@@ -1,0 +1,844 @@
+# COMPREHENSIVE CONDITIONAL TASKS TEST SUITE
+# Tests all conditional task features including basic logic, advanced features, and edge cases
+
+# === GLOBAL VARIABLES ===
+ENVIRONMENT=production
+TEST_ENVIRONMENT=staging
+SERVICE_NAME=web-api
+SERVICE_STATUS=running
+DEPLOY_VERSION=2.1.4
+PLATFORM=linux
+USER_ROLE=admin
+DEBUG_MODE=true
+MAX_RETRIES=3
+TIMEOUT_SHORT=10
+TIMEOUT_LONG=30
+
+# === PHASE 1: BASIC CONDITIONAL LOGIC ===
+
+# Test 1.1: Simple TRUE condition
+task=0
+hostname=localhost
+command=echo
+arguments=Starting Conditional Tasks Test Suite
+exec=local
+
+task=1
+type=conditional
+condition=@ENVIRONMENT@=production
+if_true_tasks=100
+if_false_tasks=101
+next=always
+
+# Test 1.2: Simple FALSE condition
+task=2
+type=conditional
+condition=@ENVIRONMENT@=development
+if_true_tasks=102
+if_false_tasks=103
+next=always
+
+# Test 1.3: Complex condition with AND logic
+task=3
+type=conditional
+condition=@ENVIRONMENT@=production&@SERVICE_STATUS@=running
+if_true_tasks=104,105
+if_false_tasks=106
+next=all_success
+
+# Test 1.4: Complex condition with OR logic
+task=4
+type=conditional
+condition=@ENVIRONMENT@=production|@ENVIRONMENT@=staging
+if_true_tasks=107,108,109
+if_false_tasks=110
+next=min_success=2
+
+# === PHASE 2: TASK RESULT DEPENDENCIES ===
+
+task=5
+hostname=localhost
+command=echo
+arguments=Task for dependency testing
+exec=local
+success=exit_0
+
+# Test 2.1: Condition based on previous task success
+task=6
+type=conditional
+condition=@5_success@=True
+if_true_tasks=111,112
+if_false_tasks=113
+next=all_success
+
+# Test 2.2: Condition based on task output
+task=7
+hostname=localhost
+command=echo
+arguments=SUCCESS_MARKER
+exec=local
+
+task=8
+type=conditional
+condition=@7_stdout@~SUCCESS_MARKER
+if_true_tasks=114,115,116
+if_false_tasks=117
+next=majority_success
+
+# === PHASE 3: ADVANCED FEATURES ===
+
+# Test 3.1: Master timeout enforcement
+task=10
+type=conditional
+condition=@ENVIRONMENT@=production
+if_true_tasks=200,201,202
+if_false_tasks=203
+timeout=@TIMEOUT_SHORT@
+next=min_success=2
+
+# Test 3.2: Retry logic with conditional tasks
+task=11
+type=conditional
+condition=@SERVICE_STATUS@=running
+if_true_tasks=210,211,212
+if_false_tasks=213
+retry_failed=true
+retry_count=@MAX_RETRIES@
+retry_delay=2
+next=max_failed=1
+
+# Test 3.3: Complex next conditions
+task=12
+type=conditional
+condition=@USER_ROLE@=admin&@DEBUG_MODE@=true
+if_true_tasks=220,221,222,223,224
+if_false_tasks=225,226
+next=min_success=4
+on_success=13
+on_failure=90
+
+task=13
+hostname=localhost
+command=echo
+arguments=Complex next condition test passed
+exec=local
+
+# === PHASE 4: MIXED SCENARIOS ===
+
+# Test 4.1: Conditional followed by parallel
+task=15
+type=conditional
+condition=@PLATFORM@=linux
+if_true_tasks=300,301
+if_false_tasks=302
+next=all_success
+
+task=16
+type=parallel
+max_parallel=3
+tasks=310,311,312
+next=min_success=2
+
+# Test 4.2: Parallel followed by conditional
+task=17
+type=parallel
+max_parallel=2
+tasks=320,321
+next=all_success
+
+task=18
+type=conditional
+condition=@320_success@=True&@321_success@=True
+if_true_tasks=330,331,332
+if_false_tasks=333
+next=majority_success
+
+# === PHASE 5: EDGE CASES AND ERROR SCENARIOS ===
+
+# Test 5.1: Only TRUE branch defined
+task=20
+type=conditional
+condition=@ENVIRONMENT@=production
+if_true_tasks=400,401
+next=all_success
+
+# Test 5.2: Only FALSE branch defined
+task=21
+type=conditional
+condition=@ENVIRONMENT@=development
+if_false_tasks=410,411
+next=all_success
+
+# Test 5.3: Empty condition evaluation
+task=22
+hostname=localhost
+command=echo
+arguments=EMPTY_TEST
+exec=local
+
+task=23
+type=conditional
+condition=@22_stdout@~NONEXISTENT
+if_true_tasks=420
+if_false_tasks=421,422
+next=any_success
+
+# Test 5.4: Variable chaining in conditions
+task=24
+type=conditional
+condition=@DEPLOY_VERSION@=2.1.4&@PLATFORM@=linux
+if_true_tasks=430,431,432
+if_false_tasks=433
+timeout=@TIMEOUT_LONG@
+next=min_success=2
+
+# === PHASE 6: REAL-WORLD SCENARIOS ===
+
+# Test 6.1: Environment-based deployment
+task=30
+hostname=localhost
+command=echo
+arguments=Starting environment-based deployment
+exec=local
+
+task=31
+type=conditional
+condition=@ENVIRONMENT@=production
+if_true_tasks=500,501,502,503,504
+if_false_tasks=510,511,512
+timeout=60
+retry_failed=true
+retry_count=2
+retry_delay=3
+next=min_success=4
+on_success=32
+on_failure=95
+
+task=32
+hostname=localhost
+command=echo
+arguments=Deployment completed successfully
+exec=local
+
+# Test 6.2: Service health check workflow
+task=35
+hostname=localhost
+command=echo
+arguments=Starting service health check workflow
+exec=local
+
+task=36
+type=conditional
+condition=@SERVICE_STATUS@=running&@SERVICE_NAME@=web-api
+if_true_tasks=520,521,522
+if_false_tasks=530,531
+next=all_success
+on_success=37
+on_failure=96
+
+task=37
+hostname=localhost
+command=echo
+arguments=Service health check completed
+exec=local
+
+# === PHASE 7: COMPREHENSIVE INTEGRATION TEST ===
+
+task=40
+hostname=localhost
+command=echo
+arguments=Starting comprehensive integration test
+exec=local
+
+task=41
+type=conditional
+condition=@ENVIRONMENT@=production&@40_success@=True
+if_true_tasks=600,601
+if_false_tasks=602
+next=all_success
+
+task=42
+type=parallel
+max_parallel=3
+tasks=610,611,612
+next=min_success=2
+
+task=43
+type=conditional
+condition=@42_success@=True
+if_true_tasks=620,621,622,623
+if_false_tasks=624
+next=max_failed=1
+on_success=44
+on_failure=97
+
+task=44
+hostname=localhost
+command=echo
+arguments=COMPREHENSIVE INTEGRATION TEST COMPLETED SUCCESSFULLY
+exec=local
+next=never
+
+# === ERROR HANDLERS ===
+
+task=90
+hostname=localhost
+command=echo
+arguments=ERROR: Complex next condition test failed
+exec=local
+return=1
+
+task=95
+hostname=localhost
+command=echo
+arguments=ERROR: Environment-based deployment failed
+exec=local
+return=1
+
+task=96
+hostname=localhost
+command=echo
+arguments=ERROR: Service health check failed
+exec=local
+return=1
+
+task=97
+hostname=localhost
+command=echo
+arguments=ERROR: Comprehensive integration test failed
+exec=local
+return=1
+
+# === FIREWALL ===
+task=99
+return=0
+
+# ===============================================
+# TASK DEFINITIONS FOR CONDITIONAL BRANCHES
+# ===============================================
+
+# Basic conditional logic tasks (100-199)
+task=100
+hostname=localhost
+command=echo
+arguments=TRUE branch executed - Environment is production
+exec=local
+
+task=101
+hostname=localhost
+command=echo
+arguments=FALSE branch executed - Environment is not production
+exec=local
+
+task=102
+hostname=localhost
+command=echo
+arguments=TRUE branch executed - Environment is development
+exec=local
+
+task=103
+hostname=localhost
+command=echo
+arguments=FALSE branch executed - Environment is not development
+exec=local
+
+task=104
+hostname=localhost
+command=echo
+arguments=AND condition TRUE - Both environment and service status match
+exec=local
+
+task=105
+hostname=localhost
+command=echo
+arguments=Second task in TRUE branch for AND condition
+exec=local
+
+task=106
+hostname=localhost
+command=echo
+arguments=AND condition FALSE - Either environment or service status does not match
+exec=local
+
+task=107
+hostname=localhost
+command=echo
+arguments=OR condition TRUE - First task in production/staging branch
+exec=local
+
+task=108
+hostname=localhost
+command=echo
+arguments=OR condition TRUE - Second task in production/staging branch
+exec=local
+
+task=109
+hostname=localhost
+command=echo
+arguments=OR condition TRUE - Third task in production/staging branch
+exec=local
+
+task=110
+hostname=localhost
+command=echo
+arguments=OR condition FALSE - Environment is neither production nor staging
+exec=local
+
+# Task result dependency tasks (111-119)
+task=111
+hostname=localhost
+command=echo
+arguments=Task 5 was successful - executing first task
+exec=local
+
+task=112
+hostname=localhost
+command=echo
+arguments=Task 5 was successful - executing second task
+exec=local
+
+task=113
+hostname=localhost
+command=echo
+arguments=Task 5 was not successful
+exec=local
+
+task=114
+hostname=localhost
+command=echo
+arguments=Task 7 output contains SUCCESS_MARKER - first task
+exec=local
+
+task=115
+hostname=localhost
+command=echo
+arguments=Task 7 output contains SUCCESS_MARKER - second task
+exec=local
+
+task=116
+hostname=localhost
+command=echo
+arguments=Task 7 output contains SUCCESS_MARKER - third task
+exec=local
+
+task=117
+hostname=localhost
+command=echo
+arguments=Task 7 output does not contain SUCCESS_MARKER
+exec=local
+
+# Advanced features tasks (200-299)
+task=200
+hostname=localhost
+command=echo
+arguments=Master timeout test - Task 1 (2s)
+exec=local
+sleep=2
+
+task=201
+hostname=localhost
+command=echo
+arguments=Master timeout test - Task 2 (3s)
+exec=local
+sleep=3
+
+task=202
+hostname=localhost
+command=echo
+arguments=Master timeout test - Task 3 (15s - should timeout)
+exec=local
+sleep=15
+
+task=203
+hostname=localhost
+command=echo
+arguments=Master timeout FALSE branch
+exec=local
+
+# Retry logic tasks (210-219)
+task=210
+hostname=localhost
+command=echo
+arguments=Retry test - Always succeeds
+exec=local
+
+task=211
+hostname=localhost
+command=sh
+arguments=-c "if [ ! -f /tmp/task211_attempt ]; then touch /tmp/task211_attempt; echo 'Task 211 - First attempt fails'; exit 1; else echo 'Task 211 - Retry succeeds'; exit 0; fi"
+exec=local
+
+task=212
+hostname=localhost
+command=sh
+arguments=-c "attempts=$(cat /tmp/task212_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task212_counter; if [ $attempts -le 2 ]; then echo \"Task 212 - Attempt $attempts fails\"; exit 1; else echo \"Task 212 - Attempt $attempts succeeds\"; exit 0; fi"
+exec=local
+
+task=213
+hostname=localhost
+command=echo
+arguments=Retry FALSE branch
+exec=local
+
+# Complex next conditions tasks (220-229)
+task=220
+hostname=localhost
+command=echo
+arguments=Admin debug mode - Task 1
+exec=local
+
+task=221
+hostname=localhost
+command=echo
+arguments=Admin debug mode - Task 2
+exec=local
+
+task=222
+hostname=localhost
+command=echo
+arguments=Admin debug mode - Task 3
+exec=local
+
+task=223
+hostname=localhost
+command=echo
+arguments=Admin debug mode - Task 4
+exec=local
+
+task=224
+hostname=localhost
+command=sh
+arguments=-c "echo 'Admin debug mode - Task 5 fails'; exit 1"
+exec=local
+
+task=225
+hostname=localhost
+command=echo
+arguments=Not admin or debug mode disabled - Task 1
+exec=local
+
+task=226
+hostname=localhost
+command=echo
+arguments=Not admin or debug mode disabled - Task 2
+exec=local
+
+# Mixed scenarios tasks (300-339)
+task=300
+hostname=localhost
+command=echo
+arguments=Linux platform - Conditional task 1
+exec=local
+
+task=301
+hostname=localhost
+command=echo
+arguments=Linux platform - Conditional task 2
+exec=local
+
+task=302
+hostname=localhost
+command=echo
+arguments=Non-Linux platform
+exec=local
+
+task=310
+hostname=localhost
+command=echo
+arguments=Parallel after conditional - Task 1
+exec=local
+
+task=311
+hostname=localhost
+command=echo
+arguments=Parallel after conditional - Task 2
+exec=local
+
+task=312
+hostname=localhost
+command=echo
+arguments=Parallel after conditional - Task 3
+exec=local
+
+task=320
+hostname=localhost
+command=echo
+arguments=Parallel before conditional - Task 1
+exec=local
+
+task=321
+hostname=localhost
+command=echo
+arguments=Parallel before conditional - Task 2
+exec=local
+
+task=330
+hostname=localhost
+command=echo
+arguments=Both parallel tasks succeeded - Task 1
+exec=local
+
+task=331
+hostname=localhost
+command=echo
+arguments=Both parallel tasks succeeded - Task 2
+exec=local
+
+task=332
+hostname=localhost
+command=echo
+arguments=Both parallel tasks succeeded - Task 3
+exec=local
+
+task=333
+hostname=localhost
+command=echo
+arguments=One or both parallel tasks failed
+exec=local
+
+# Edge cases tasks (400-439)
+task=400
+hostname=localhost
+command=echo
+arguments=Only TRUE branch - Task 1
+exec=local
+
+task=401
+hostname=localhost
+command=echo
+arguments=Only TRUE branch - Task 2
+exec=local
+
+task=410
+hostname=localhost
+command=echo
+arguments=Only FALSE branch - Task 1
+exec=local
+
+task=411
+hostname=localhost
+command=echo
+arguments=Only FALSE branch - Task 2
+exec=local
+
+task=420
+hostname=localhost
+command=echo
+arguments=Empty condition TRUE branch - should not execute
+exec=local
+
+task=421
+hostname=localhost
+command=echo
+arguments=Empty condition FALSE branch - Task 1
+exec=local
+
+task=422
+hostname=localhost
+command=echo
+arguments=Empty condition FALSE branch - Task 2
+exec=local
+
+task=430
+hostname=localhost
+command=echo
+arguments=Variable chaining TRUE - Task 1
+exec=local
+
+task=431
+hostname=localhost
+command=echo
+arguments=Variable chaining TRUE - Task 2
+exec=local
+
+task=432
+hostname=localhost
+command=echo
+arguments=Variable chaining TRUE - Task 3
+exec=local
+
+task=433
+hostname=localhost
+command=echo
+arguments=Variable chaining FALSE
+exec=local
+
+# Real-world scenarios tasks (500-599)
+
+# Production deployment tasks
+task=500
+hostname=localhost
+command=echo
+arguments=Production deployment - Stop services
+exec=local
+
+task=501
+hostname=localhost
+command=echo
+arguments=Production deployment - Backup database
+exec=local
+
+task=502
+hostname=localhost
+command=echo
+arguments=Production deployment - Deploy application
+exec=local
+
+task=503
+hostname=localhost
+command=echo
+arguments=Production deployment - Start services
+exec=local
+
+task=504
+hostname=localhost
+command=echo
+arguments=Production deployment - Health check
+exec=local
+
+# Test/staging deployment tasks
+task=510
+hostname=localhost
+command=echo
+arguments=Test deployment - Deploy to staging
+exec=local
+
+task=511
+hostname=localhost
+command=echo
+arguments=Test deployment - Run integration tests
+exec=local
+
+task=512
+hostname=localhost
+command=echo
+arguments=Test deployment - Generate report
+exec=local
+
+# Service health check tasks
+task=520
+hostname=localhost
+command=echo
+arguments=Service running - Check response time
+exec=local
+
+task=521
+hostname=localhost
+command=echo
+arguments=Service running - Check error rate
+exec=local
+
+task=522
+hostname=localhost
+command=echo
+arguments=Service running - Update monitoring
+exec=local
+
+task=530
+hostname=localhost
+command=echo
+arguments=Service not running - Attempt restart
+exec=local
+
+task=531
+hostname=localhost
+command=echo
+arguments=Service not running - Send alert
+exec=local
+
+# Comprehensive integration test tasks (600-629)
+task=600
+hostname=localhost
+command=echo
+arguments=Production integration - Database check
+exec=local
+
+task=601
+hostname=localhost
+command=echo
+arguments=Production integration - API validation
+exec=local
+
+task=602
+hostname=localhost
+command=echo
+arguments=Non-production integration - Simple validation
+exec=local
+
+task=610
+hostname=localhost
+command=echo
+arguments=Integration parallel - Load balancer check
+exec=local
+
+task=611
+hostname=localhost
+command=echo
+arguments=Integration parallel - Security scan
+exec=local
+
+task=612
+hostname=localhost
+command=echo
+arguments=Integration parallel - Performance test
+exec=local
+
+task=620
+hostname=localhost
+command=echo
+arguments=Final integration - Configuration update
+exec=local
+
+task=621
+hostname=localhost
+command=echo
+arguments=Final integration - Cache clear
+exec=local
+
+task=622
+hostname=localhost
+command=echo
+arguments=Final integration - Notification send
+exec=local
+
+task=623
+hostname=localhost
+command=echo
+arguments=Final integration - Metrics update
+exec=local
+
+task=624
+hostname=localhost
+command=echo
+arguments=Final integration failed - Rollback initiated
+exec=local
+
+# === EXPECTED TEST RESULTS SUMMARY ===
+#
+# This test suite validates:
+# 1. Basic TRUE/FALSE condition evaluation
+# 2. Complex AND/OR condition logic
+# 3. Task result dependency conditions
+# 4. Master timeout enforcement
+# 5. Retry logic with conditional tasks
+# 6. Advanced next conditions (min_success, max_failed, etc.)
+# 7. Mixed conditional/parallel workflows
+# 8. Edge cases (empty branches, missing conditions)
+# 9. Real-world deployment scenarios
+# 10. Comprehensive integration patterns
+#
+# Expected execution flow:
+# - Tasks 0-44 should execute in sequence
+# - Various conditional branches will be taken based on global variables
+# - Some tasks will be skipped based on conditions
+# - Retry logic will be demonstrated with failing tasks
+# - Final success message should be displayed
+#
+# Key test points:
+# - Environment=production → TRUE branches for production conditions
+# - Service_status=running → TRUE branches for service conditions
+# - Task result dependencies work correctly
+# - Master timeout overrides individual timeouts
+# - Retry logic works for failed tasks in conditional branches
+# - Complex next conditions evaluate correctly
+# - Mixed parallel/conditional workflows function properly

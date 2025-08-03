@@ -1,0 +1,195 @@
+# ENHANCED RETRY LOGGING TEST CASE
+# Tests the new .N attempt numbering system for parallel tasks with retry_failed=true
+
+# === SETUP ===
+task=0
+hostname=localhost
+command=echo
+arguments=Enhanced Retry Logging Test - Testing .N attempt numbering
+exec=local
+
+# === TEST 1: Basic Retry with Attempt Numbers ===
+task=1
+hostname=localhost
+command=echo
+arguments=TEST 1: Basic Retry Functionality with Attempt Numbering
+exec=local
+
+task=2
+type=parallel
+max_parallel=3
+tasks=100,101,102
+timeout=10
+retry_failed=true
+retry_count=2
+retry_delay=1
+next=min_success=2
+on_success=3
+on_failure=90
+
+task=3
+hostname=localhost
+command=echo
+arguments=TEST 1 PASSED: Enhanced retry logging working - Check logs for .N notation
+exec=local
+
+# === TEST 2: High Retry Count with Clear Attempt Tracking ===
+task=4
+hostname=localhost
+command=echo
+arguments=TEST 2: High Retry Count - Multiple attempts with clear tracking
+exec=local
+
+task=5
+type=parallel
+max_parallel=2
+tasks=200,201
+timeout=15
+retry_failed=true
+retry_count=4
+retry_delay=1
+next=min_success=1
+on_success=6
+on_failure=91
+
+task=6
+hostname=localhost
+command=echo
+arguments=TEST 2 PASSED: High retry count handled with clear attempt numbering
+exec=local
+
+# === TEST 3: Mixed Scenarios - Success, Retry, Timeout ===
+task=7
+hostname=localhost
+command=echo
+arguments=TEST 3: Mixed Scenarios - Success, Retry Success, Timeout (no retry)
+exec=local
+
+task=8
+type=parallel
+max_parallel=4
+tasks=300,301,302,303
+timeout=6
+retry_failed=true
+retry_count=2
+retry_delay=1
+next=min_success=2
+on_success=9
+on_failure=92
+
+task=9
+hostname=localhost
+command=echo
+arguments=TEST 3 PASSED: Mixed scenarios handled correctly with attempt tracking
+exec=local
+
+# === FINAL SUCCESS ===
+task=10
+hostname=localhost
+command=echo
+arguments=ALL TESTS COMPLETED - Enhanced retry logging with .N notation working
+exec=local
+next=never
+
+# === ERROR HANDLERS ===
+task=90
+hostname=localhost
+command=echo
+arguments=ERROR: TEST 1 FAILED - Basic retry functionality issue
+exec=local
+return=1
+
+task=91
+hostname=localhost
+command=echo
+arguments=ERROR: TEST 2 FAILED - High retry count issue
+exec=local
+return=1
+
+task=92
+hostname=localhost
+command=echo
+arguments=ERROR: TEST 3 FAILED - Mixed scenarios issue
+exec=local
+return=1
+
+# ===============================================
+# PARALLEL TASKS FOR ENHANCED RETRY TESTING
+# ===============================================
+
+# TEST 1: Basic Retry Functionality with Attempt Tracking
+task=100
+hostname=localhost
+command=echo
+arguments=Task 100 - Always succeeds (no retry needed)
+exec=local
+
+task=101
+hostname=localhost
+command=sh
+arguments=-c "if [ ! -f /tmp/task101_attempt ]; then touch /tmp/task101_attempt; echo 'Task 101 - Attempt 1 fails'; exit 1; else echo 'Task 101 - Attempt 2 succeeds'; exit 0; fi"
+exec=local
+
+task=102
+hostname=localhost
+command=sh
+arguments=-c "attempts=$(cat /tmp/task102_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task102_counter; if [ $attempts -le 2 ]; then echo \"Task 102 - Attempt $attempts fails\"; exit 1; else echo \"Task 102 - Attempt $attempts succeeds\"; exit 0; fi"
+exec=local
+
+# TEST 2: High Retry Count with Clear Progression
+task=200
+hostname=localhost
+command=sh
+arguments=-c "attempts=$(cat /tmp/task200_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task200_counter; if [ $attempts -le 3 ]; then echo \"Task 200 - Attempt $attempts fails (will retry)\"; exit 1; else echo \"Task 200 - Attempt $attempts finally succeeds\"; exit 0; fi"
+exec=local
+
+task=201
+hostname=localhost
+command=sh
+arguments=-c "attempts=$(cat /tmp/task201_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task201_counter; if [ $attempts -le 4 ]; then echo \"Task 201 - Attempt $attempts fails (will retry)\"; exit 1; else echo \"Task 201 - Attempt $attempts finally succeeds\"; exit 0; fi"
+exec=local
+
+# TEST 3: Mixed Scenarios - Success, Retry Success, Timeout, Exhausted Retry
+task=300
+hostname=localhost
+command=echo
+arguments=Task 300 - Immediate success (no retry needed)
+exec=local
+
+task=301
+hostname=localhost
+command=sh
+arguments=-c "if [ ! -f /tmp/task301_attempt ]; then touch /tmp/task301_attempt; echo 'Task 301 - Attempt 1 fails, will succeed on retry'; exit 1; else echo 'Task 301 - Attempt 2 succeeds after retry'; exit 0; fi"
+exec=local
+
+task=302
+hostname=localhost
+command=sleep
+arguments=8
+exec=local
+
+task=303
+hostname=localhost
+command=sh
+arguments=-c "echo 'Task 303 - Always fails even with retries'; exit 1"
+exec=local
+
+# EXPECTED LOG PATTERNS TO VERIFY:
+# 
+# Task 2-101.1: Executing [local]: sh -c "..."
+# Task 2-101.1: FAILED - will retry as Task 2-101.2 in 1s
+# Task 2-101.2: Executing [local]: sh -c "..."  
+# Task 2-101.2: SUCCESS after 1 retry attempt(s)
+#
+# Task 5-200.1: Executing [local]: sh -c "..."
+# Task 5-200.1: FAILED - will retry as Task 5-200.2 in 1s
+# Task 5-200.2: FAILED - will retry as Task 5-200.3 in 1s
+# Task 5-200.3: FAILED - will retry as Task 5-200.4 in 1s
+# Task 5-200.4: SUCCESS after 3 retry attempt(s)
+#
+# Task 8-302.1: TIMEOUT after 6s - killing process
+# DEBUG: Task 8-302.1: TIMEOUT - no retry attempted
+#
+# Task 8-303.1: FAILED - will retry as Task 8-303.2 in 1s
+# Task 8-303.2: FAILED - will retry as Task 8-303.3 in 1s  
+# Task 8-303.3: FAILED after 2 retry attempt(s) - giving up

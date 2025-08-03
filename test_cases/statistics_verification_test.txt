@@ -1,0 +1,113 @@
+# STATISTICS VERIFICATION TEST
+# Tests the fixed statistics and success logic
+
+# === TEST 1: Statistics should add up correctly ===
+task=0
+hostname=localhost
+command=echo
+arguments=Statistics Verification Test - 1 success, 1 timeout, 1 failure
+exec=local
+
+task=1
+type=parallel
+max_parallel=3
+tasks=100,101,102
+timeout=3
+next=min_success=1
+on_success=2
+on_failure=50
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Statistics test passed - min_success=1 condition met
+exec=local
+
+# === TEST 2: Overall success should be FALSE when not all succeed ===
+task=10
+hostname=localhost
+command=echo
+arguments=Overall Success Test - Should show FAILURE despite next=any_success
+exec=local
+
+task=11
+type=parallel
+max_parallel=3
+tasks=200,201,202
+timeout=2
+next=any_success
+on_success=12
+on_failure=55
+
+task=12
+hostname=localhost
+command=echo
+arguments=SUCCESS: any_success condition met, but overall result should show FAILURE
+exec=local
+next=never
+
+# === ERROR HANDLERS ===
+task=50
+hostname=localhost
+command=echo
+arguments=ERROR: Statistics test failed
+exec=local
+next=never
+
+task=55
+hostname=localhost
+command=echo
+arguments=ERROR: Overall success test failed
+exec=local
+next=never
+
+# === FIREWALL ===
+task=99
+return=0
+
+# ===============================================
+# PARALLEL TASKS FOR VERIFICATION
+# ===============================================
+
+# TEST 1: 1 success, 1 timeout, 1 failure
+task=100
+hostname=localhost
+command=echo
+arguments=Task 100 - SUCCESS (1s)
+exec=local
+sleep=1
+
+task=101
+hostname=localhost
+command=echo
+arguments=Task 101 - TIMEOUT (5s, master=3s)
+exec=local
+sleep=5
+
+task=102
+hostname=localhost
+command=sh
+arguments=-c "echo 'Task 102 - FAILURE'; exit 1"
+exec=local
+
+# TEST 2: 1 success, 2 timeout
+task=200
+hostname=localhost
+command=echo
+arguments=Task 200 - SUCCESS (1s)
+exec=local
+sleep=1
+
+task=201
+hostname=localhost
+command=echo
+arguments=Task 201 - TIMEOUT (4s, master=2s)
+exec=local
+sleep=4
+
+task=202
+hostname=localhost
+command=echo
+arguments=Task 202 - TIMEOUT (6s, master=2s)
+exec=local
+sleep=6

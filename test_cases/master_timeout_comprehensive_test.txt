@@ -1,0 +1,253 @@
+# COMPREHENSIVE MASTER TIMEOUT TEST
+# Tests all aspects of Master Timeout Only enforcement
+
+# === TEST 1: Master timeout overrides individual timeouts ===
+task=0
+hostname=localhost
+command=echo
+arguments=Master Timeout Test - Individual timeouts will be overridden
+exec=local
+
+task=1
+type=parallel
+max_parallel=3
+tasks=100,101,102
+timeout=5
+next=min_success=1
+on_success=2
+on_failure=50
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Override test passed - Master=5s won over Individual=10s
+exec=local
+
+# === TEST 2: Partial completion with timeouts ===
+task=10
+hostname=localhost
+command=echo
+arguments=Partial Completion Test - Some tasks timeout, some succeed
+exec=local
+
+task=11
+type=parallel
+max_parallel=4
+tasks=200,201,202,203
+timeout=3
+next=min_success=2
+on_success=12
+on_failure=55
+
+task=12
+hostname=localhost
+command=echo
+arguments=SUCCESS: Partial test - Got @200_success@ @201_success@ @202_success@ @203_success@
+exec=local
+
+# === TEST 3: All tasks timeout scenario ===
+task=20
+hostname=localhost
+command=echo
+arguments=All Timeout Test - Master timeout too short for any task
+exec=local
+
+task=21
+type=parallel
+max_parallel=3
+tasks=300,301,302
+timeout=1
+next=any_success
+on_success=60
+on_failure=22
+
+task=22
+hostname=localhost
+command=echo
+arguments=SUCCESS: All timeout test passed - no tasks succeeded as expected
+exec=local
+
+# === TEST 4: Complex next condition with timeouts ===
+task=30
+hostname=localhost
+command=echo
+arguments=Complex Condition Test - max_failed with timeout handling
+exec=local
+
+task=31
+type=parallel
+max_parallel=5
+tasks=400,401,402,403,404
+timeout=4
+next=max_failed=3
+on_success=32
+on_failure=65
+
+task=32
+hostname=localhost
+command=echo
+arguments=SUCCESS: Complex condition handled timeouts correctly
+exec=local
+next=never
+
+# === ERROR HANDLERS ===
+task=50
+hostname=localhost
+command=echo
+arguments=ERROR: Override test failed
+exec=local
+next=never
+
+task=55
+hostname=localhost
+command=echo
+arguments=ERROR: Partial completion test failed
+exec=local
+next=never
+
+task=60
+hostname=localhost
+command=echo
+arguments=ERROR: All timeout test failed
+exec=local
+next=never
+
+task=65
+hostname=localhost
+command=echo
+arguments=ERROR: Complex condition test failed
+exec=local
+next=never
+
+# === FIREWALL ===
+task=99
+return=0
+
+# ===============================================
+# PARALLEL TASKS WITH INDIVIDUAL TIMEOUTS
+# (These will be OVERRIDDEN by master timeout)
+# ===============================================
+
+# TEST 1: Individual timeout=10s, master=5s should win
+task=100
+hostname=localhost
+command=echo
+arguments=Task 100 - sleep 2s (should succeed under 5s master)
+exec=local
+timeout=10
+sleep=2
+
+task=101
+hostname=localhost
+command=echo
+arguments=Task 101 - sleep 6s (should timeout at 5s master)
+exec=local
+timeout=10
+sleep=6
+
+task=102
+hostname=localhost
+command=echo
+arguments=Task 102 - sleep 8s (should timeout at 5s master)
+exec=local
+timeout=10
+sleep=8
+
+# TEST 2: Mixed durations - master=3s
+task=200
+hostname=localhost
+command=echo
+arguments=Task 200 - FAST (1s)
+exec=local
+timeout=20
+sleep=1
+
+task=201
+hostname=localhost
+command=echo
+arguments=Task 201 - MEDIUM (2s)
+exec=local
+timeout=20
+sleep=2
+
+task=202
+hostname=localhost
+command=echo
+arguments=Task 202 - SLOW (5s, timeout at 3s)
+exec=local
+timeout=20
+sleep=5
+
+task=203
+hostname=localhost
+command=echo
+arguments=Task 203 - VERY SLOW (7s, timeout at 3s)
+exec=local
+timeout=20
+sleep=7
+
+# TEST 3: All timeout - master=1s
+task=300
+hostname=localhost
+command=echo
+arguments=Task 300 - Will timeout (3s sleep, 1s master)
+exec=local
+timeout=15
+sleep=3
+
+task=301
+hostname=localhost
+command=echo
+arguments=Task 301 - Will timeout (4s sleep, 1s master)
+exec=local
+timeout=15
+sleep=4
+
+task=302
+hostname=localhost
+command=echo
+arguments=Task 302 - Will timeout (2s sleep, 1s master)
+exec=local
+timeout=15
+sleep=2
+
+# TEST 4: Complex scenario - master=4s
+task=400
+hostname=localhost
+command=echo
+arguments=Task 400 - SUCCESS (1s)
+exec=local
+timeout=30
+sleep=1
+
+task=401
+hostname=localhost
+command=echo
+arguments=Task 401 - SUCCESS (2s)
+exec=local
+timeout=30
+sleep=2
+
+task=402
+hostname=localhost
+command=echo
+arguments=Task 402 - SUCCESS (3s)
+exec=local
+timeout=30
+sleep=3
+
+task=403
+hostname=localhost
+command=echo
+arguments=Task 403 - TIMEOUT (6s, fails at 4s)
+exec=local
+timeout=30
+sleep=6
+
+task=404
+hostname=localhost
+command=echo
+arguments=Task 404 - TIMEOUT (8s, fails at 4s)
+exec=local
+timeout=30
+sleep=8

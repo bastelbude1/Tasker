@@ -1,0 +1,313 @@
+# COMPREHENSIVE RETRY LOGIC TEST CASE
+# Tests the new retry_failed functionality for parallel tasks
+# Covers all scenarios: success, failure with retry, timeout (no retry), custom success conditions
+
+# === TEST 1: Basic Retry Functionality ===
+task=0
+hostname=localhost
+command=echo
+arguments=Testing Basic Retry Logic - Some tasks will fail initially but succeed after retry
+exec=local
+
+task=1
+type=parallel
+max_parallel=4
+tasks=100,101,102,103
+timeout=10
+retry_failed=true
+retry_count=2
+retry_delay=2
+next=min_success=3
+on_success=2
+on_failure=50
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Basic retry test passed - at least 3/4 tasks succeeded (with retries)
+exec=local
+
+# === TEST 2: No Retry for Timeouts ===
+task=10
+hostname=localhost
+command=echo
+arguments=Testing Timeout Behavior - Timeout tasks should NOT be retried
+exec=local
+
+task=11
+type=parallel
+max_parallel=3
+tasks=200,201,202
+timeout=4
+retry_failed=true
+retry_count=3
+retry_delay=1
+next=min_success=2
+on_success=12
+on_failure=55
+
+task=12
+hostname=localhost
+command=echo
+arguments=SUCCESS: Timeout test passed - Timeouts not retried, 2/3 succeeded
+exec=local
+
+# === TEST 3: Custom Success Conditions with Retry ===
+task=20
+hostname=localhost
+command=echo
+arguments=Testing Custom Success Conditions with Retry Logic
+exec=local
+
+task=21
+type=parallel
+max_parallel=3
+tasks=300,301,302
+timeout=8
+retry_failed=true
+retry_count=2
+retry_delay=1
+next=all_success
+on_success=22
+on_failure=60
+
+task=22
+hostname=localhost
+command=echo
+arguments=SUCCESS: Custom success conditions work with retry logic
+exec=local
+
+# === TEST 4: High Retry Count Scenario ===
+task=30
+hostname=localhost
+command=echo
+arguments=Testing High Retry Count - Some tasks need multiple attempts
+exec=local
+
+task=31
+type=parallel
+max_parallel=2
+tasks=400,401
+timeout=15
+retry_failed=true
+retry_count=4
+retry_delay=1
+next=all_success
+on_success=32
+on_failure=65
+
+task=32
+hostname=localhost
+command=echo
+arguments=SUCCESS: High retry count test passed - persistent failures overcome
+exec=local
+
+# === TEST 5: Mixed Success/Failure/Timeout with Retry ===
+task=40
+hostname=localhost
+command=echo
+arguments=Testing Mixed Scenarios - Success, Failure with retry, Timeout without retry
+exec=local
+
+task=41
+type=parallel
+max_parallel=5
+tasks=500,501,502,503,504
+timeout=6
+retry_failed=true
+retry_count=2
+retry_delay=1
+next=min_success=3
+on_success=42
+on_failure=70
+
+task=42
+hostname=localhost
+command=echo
+arguments=SUCCESS: Mixed scenarios test passed - retry logic correctly applied
+exec=local
+next=never
+
+# === ERROR HANDLERS ===
+task=50
+hostname=localhost
+command=echo
+arguments=ERROR: Basic retry test failed unexpectedly
+exec=local
+next=never
+
+task=55
+hostname=localhost
+command=echo
+arguments=ERROR: Timeout test failed - should have gotten 2/3 successes
+exec=local
+next=never
+
+task=60
+hostname=localhost
+command=echo
+arguments=ERROR: Custom success conditions test failed
+exec=local
+next=never
+
+task=65
+hostname=localhost
+command=echo
+arguments=ERROR: High retry count test failed
+exec=local
+next=never
+
+task=70
+hostname=localhost
+command=echo
+arguments=ERROR: Mixed scenarios test failed
+exec=local
+next=never
+
+# === FIREWALL ===
+task=99
+return=0
+
+# ===============================================
+# PARALLEL TASKS FOR RETRY TESTING
+# ===============================================
+
+# TEST 1: Basic Retry Functionality
+# Task 100: Always succeeds (no retry needed)
+task=100
+hostname=localhost
+command=echo
+arguments=Task 100 - Always succeeds
+exec=local
+
+# Task 101: Fails first time, succeeds on retry (simulated with counter file)
+task=101
+hostname=localhost
+command=sh
+arguments=-c "if [ ! -f /tmp/task101_attempt ]; then touch /tmp/task101_attempt; echo 'Task 101 - First attempt fails'; exit 1; else echo 'Task 101 - Retry succeeds'; exit 0; fi"
+exec=local
+
+# Task 102: Fails twice, succeeds on third attempt
+task=102
+hostname=localhost
+command=sh
+arguments=-c "attempts=$(cat /tmp/task102_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task102_counter; if [ $attempts -le 2 ]; then echo \"Task 102 - Attempt $attempts fails\"; exit 1; else echo \"Task 102 - Attempt $attempts succeeds\"; exit 0; fi"
+exec=local
+
+# Task 103: Always succeeds (no retry needed)
+task=103
+hostname=localhost
+command=echo
+arguments=Task 103 - Always succeeds
+exec=local
+
+# TEST 2: Timeout Behavior (timeouts should NOT be retried)
+# Task 200: Succeeds quickly
+task=200
+hostname=localhost
+command=echo
+arguments=Task 200 - Quick success
+exec=local
+sleep=1
+
+# Task 201: Always times out (should NOT be retried)
+task=201
+hostname=localhost
+command=sleep
+arguments=8
+exec=local
+
+# Task 202: Succeeds after short delay
+task=202
+hostname=localhost
+command=echo
+arguments=Task 202 - Success after delay
+exec=local
+sleep=2
+
+# TEST 3: Custom Success Conditions with Retry
+# Task 300: Custom success condition, fails first time, succeeds on retry
+task=300
+hostname=localhost
+command=sh
+arguments=-c "if [ ! -f /tmp/task300_attempt ]; then touch /tmp/task300_attempt; echo 'PARTIAL'; exit 0; else echo 'HEALTHY'; exit 0; fi"
+exec=local
+success=exit_0&stdout~HEALTHY
+
+# Task 301: Custom success condition, always succeeds
+task=301
+hostname=localhost
+command=echo
+arguments=HEALTHY - Custom success always works
+exec=local
+success=exit_0&stdout~HEALTHY
+
+# Task 302: Custom success condition, takes multiple retries
+task=302
+hostname=localhost
+command=sh
+arguments=-c "attempts=$(cat /tmp/task302_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task302_counter; if [ $attempts -le 1 ]; then echo \"DEGRADED (attempt $attempts)\"; exit 0; else echo \"HEALTHY (attempt $attempts)\"; exit 0; fi"
+exec=local
+success=exit_0&stdout~HEALTHY
+
+# TEST 4: High Retry Count Scenario
+# Task 400: Fails 3 times, succeeds on 4th attempt
+task=400
+hostname=localhost
+command=sh
+arguments=-c "attempts=$(cat /tmp/task400_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task400_counter; if [ $attempts -le 3 ]; then echo \"Task 400 - Attempt $attempts fails\"; exit 1; else echo \"Task 400 - Finally succeeds on attempt $attempts\"; exit 0; fi"
+exec=local
+
+# Task 401: Fails 4 times, succeeds on 5th attempt
+task=401
+hostname=localhost
+command=sh
+arguments=-c "attempts=$(cat /tmp/task401_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task401_counter; if [ $attempts -le 4 ]; then echo \"Task 401 - Attempt $attempts fails\"; exit 1; else echo \"Task 401 - Finally succeeds on attempt $attempts\"; exit 0; fi"
+exec=local
+
+# TEST 5: Mixed Success/Failure/Timeout with Retry
+# Task 500: Always succeeds immediately
+task=500
+hostname=localhost
+command=echo
+arguments=Task 500 - Immediate success
+exec=local
+
+# Task 501: Fails first time, succeeds on retry
+task=501
+hostname=localhost
+command=sh
+arguments=-c "if [ ! -f /tmp/task501_attempt ]; then touch /tmp/task501_attempt; echo 'Task 501 - First attempt fails'; exit 1; else echo 'Task 501 - Retry succeeds'; exit 0; fi"
+exec=local
+
+# Task 502: Times out (master timeout=6s, this takes 8s) - should NOT be retried
+task=502
+hostname=localhost
+command=sleep
+arguments=8
+exec=local
+
+# Task 503: Fails multiple times but eventually succeeds
+task=503
+hostname=localhost
+command=sh
+arguments=-c "attempts=$(cat /tmp/task503_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task503_counter; if [ $attempts -le 1 ]; then echo \"Task 503 - Attempt $attempts fails\"; exit 1; else echo \"Task 503 - Succeeds on attempt $attempts\"; exit 0; fi"
+exec=local
+
+# Task 504: Always fails (even after retries)
+task=504
+hostname=localhost
+command=sh
+arguments=-c "echo 'Task 504 - Always fails'; exit 1"
+exec=local
+
+# ===============================================
+# ADDITIONAL TEST TASKS FOR EDGE CASES
+# ===============================================
+
+# Cleanup tasks to remove counter files before next test run
+task=1000
+hostname=localhost
+command=rm
+arguments=-f /tmp/task101_attempt /tmp/task102_counter /tmp/task300_attempt /tmp/task302_counter /tmp/task400_counter /tmp/task401_counter /tmp/task501_attempt /tmp/task503_counter
+exec=local

@@ -1,0 +1,265 @@
+# Comprehensive Test Case for Task Executor
+# Demonstrates: condition, success, on_success, on_failure, @X_success@ dependencies
+# Uses: Linux commands + increment_counter.sh + toggle_exit.sh
+
+# === PHASE 1: BASIC SETUP AND SUCCESS FEATURE ===
+
+# Task 0: Initialize test environment
+task=0
+hostname=localhost
+command=echo
+arguments=Starting comprehensive test...
+exec=local
+success=exit_0&stdout~Starting
+next=success
+
+# Task 1: Create test file (always successful)
+task=1
+hostname=localhost
+command=touch
+arguments=/tmp/test_file.txt
+exec=local
+success=exit_0
+next=success
+
+# Task 2: Test file existence with custom success criteria
+task=2
+hostname=localhost
+command=test
+arguments=-f /tmp/test_file.txt
+exec=local
+success=exit_0
+next=success
+on_success=10
+
+# === PHASE 2: CONDITION FEATURE (PRE-EXECUTION) ===
+
+# Task 3: This should be SKIPPED because Task 2 was successful
+task=3
+condition=@2_success@!~True
+hostname=localhost
+command=echo
+arguments=This should be skipped because test file exists
+exec=local
+
+# Task 4: This should RUN because Task 2 was successful  
+task=4
+condition=@2_success@
+hostname=localhost
+command=echo
+arguments=File creation was successful: @2_success@
+exec=local
+success=exit_0&stdout~successful
+
+# === PHASE 3: SHELL SCRIPTS WITH DEPENDENCIES ===
+
+# Task 5: Run counter script only if previous task succeeded
+task=5
+condition=@4_success@
+hostname=localhost
+command=./increment_counter.sh
+exec=local
+success=exit_0&stdout~1
+next=success
+
+# Task 6: Run counter again, expect 2
+task=6
+condition=@5_success@
+hostname=localhost
+command=./increment_counter.sh
+exec=local
+success=exit_0&stdout~2
+next=success
+
+# Task 7: Run counter third time, expect 3
+task=7
+condition=@6_success@
+hostname=localhost
+command=./increment_counter.sh
+exec=local
+success=exit_0&stdout~3
+next=success
+on_success=15
+
+# === PHASE 4: TOGGLE SCRIPT WITH ERROR HANDLING ===
+
+# Task 8: First toggle (should exit 1, but we define that as success)
+task=8
+hostname=localhost
+command=./toggle_exit.sh
+exec=local
+success=exit_1&stderr~1
+next=success
+on_success=20
+on_failure=25
+
+# === PHASE 5: COMPLEX CONDITIONS AND LOOPS ===
+
+# Task 10: Multi-dependency check (only if file exists AND counter worked)
+task=10
+condition=@2_success@&@7_success@
+hostname=localhost
+command=echo
+arguments=Both file creation and counter sequence succeeded
+exec=local
+success=exit_0
+next=success
+
+# Task 11: Loop with counter until we get "2"
+task=11
+condition=@10_success@
+hostname=localhost
+command=./increment_counter.sh
+exec=local
+sleep=1
+next=loop
+loop=5
+loop_break=stdout~2
+success=exit_0
+
+# Task 12: Verify loop result
+task=12
+condition=@11_success@
+hostname=localhost
+command=echo
+arguments=Loop completed, final counter value: @11_stdout@
+exec=local
+success=exit_0&stdout~completed
+
+# === PHASE 6: ENVIRONMENT AND SYSTEM CHECKS ===
+
+# Task 13: Check system info (always runs)
+task=13
+hostname=localhost
+command=uname
+arguments=-a
+exec=local
+success=exit_0&stdout~Linux
+next=success
+
+# Task 14: Check current directory only if system check passed
+task=14
+condition=@13_success@
+hostname=localhost
+command=pwd
+exec=local
+success=exit_0
+next=success
+
+# Task 15: Complex dependency - multiple conditions
+task=15
+condition=@7_success@&@12_success@&@13_success@
+hostname=localhost
+command=echo
+arguments=All major phases completed successfully
+exec=local
+success=exit_0&stdout~successfully
+next=success
+on_success=30
+
+# === PHASE 7: TOGGLE TESTING WITH CONDITIONS ===
+
+# Task 20: Second toggle (should exit 0 now)
+task=20
+hostname=localhost
+command=./toggle_exit.sh
+exec=local
+success=exit_0&stderr~0
+next=success
+on_success=21
+
+# Task 21: Verify toggle state
+task=21
+condition=@20_success@
+hostname=localhost
+command=echo
+arguments=Toggle worked correctly, current state: @20_stderr@
+exec=local
+success=exit_0
+next=success
+
+# Task 22: Third toggle (back to exit 1)
+task=22
+condition=@21_success@
+hostname=localhost
+command=./toggle_exit.sh
+exec=local
+success=exit_1&stderr~1
+next=success
+on_success=30
+
+# === PHASE 8: ERROR SCENARIOS ===
+
+# Task 25: Error handler for toggle failure
+task=25
+hostname=localhost
+command=echo
+arguments=ERROR: Toggle script failed unexpectedly
+exec=local
+success=exit_0
+next=always
+
+# Task 26: Show error details
+task=26
+hostname=localhost
+command=echo
+arguments=Toggle script details - Exit: @8_exit_code@, Stderr: @8_stderr@
+exec=local
+on_success=35
+
+# === PHASE 9: FINAL SUMMARY ===
+
+# Task 30: Comprehensive success summary
+task=30
+condition=@15_success@|@22_success@
+hostname=localhost
+command=echo
+arguments=TEST COMPLETED - Key Results: File(@2_success@) Counter(@7_success@) System(@13_success@) 
+exec=local
+success=exit_0&stdout~COMPLETED
+next=success
+
+# Task 31: Detailed results
+task=31
+condition=@30_success@
+hostname=localhost
+command=echo
+arguments=Detailed Status: Task2=@2_success@ Task7=@7_success@ Task13=@13_success@ Task15=@15_success@
+exec=local
+
+# Task 32: Clean up test file
+task=32
+condition=@30_success@
+hostname=localhost
+command=rm
+arguments=-f /tmp/test_file.txt
+exec=local
+success=exit_0
+next=success
+
+# Task 33: Final success message
+task=33
+condition=@32_success@
+hostname=localhost
+command=echo
+arguments=All tests completed successfully, cleanup done
+exec=local
+next=never
+
+# === PHASE 10: ERROR EXIT PATH ===
+
+# Task 35: Alternative error completion
+task=35
+hostname=localhost
+command=echo
+arguments=Some tests failed, but execution completed
+exec=local
+next=never
+
+# Task 99: Emergency exit (should never be reached)
+task=99
+hostname=localhost
+command=echo
+arguments=Emergency exit triggered
+exec=local
+return=1

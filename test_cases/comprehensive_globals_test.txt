@@ -1,0 +1,213 @@
+# Comprehensive Global Variables Test
+# Demonstrates: global variables, variable chaining, overrides, mixed usage, unused variables
+
+# === GLOBAL VARIABLES SECTION ===
+
+# Basic global settings  
+HOSTNAME=localhost
+EXEC=local
+DEFAULT_TIMEOUT=15
+TEST_USER=admin
+LOG_LEVEL=debug
+
+# Path components for chaining demonstration
+BASE_PATH=/tmp/test
+SUBDIR=data
+LOG_DIR=logs
+CONFIG_DIR=config
+
+# Environment-specific hosts
+PROD_HOST=www.ubs.com
+DEV_HOST=www.github.com
+STAGE_HOST=google.com
+
+# Command arguments and flags
+VERBOSE_FLAG=--verbose
+QUIET_FLAG=--quiet
+DEFAULT_ARGS=--color=auto
+
+# Timeouts for different operations
+QUICK_TIMEOUT=5
+SLOW_TIMEOUT=60
+DB_TIMEOUT=120
+
+# Version and build info
+VERSION=2.1.4
+BUILD_NUMBER=1234
+RELEASE_TAG=stable
+
+# Test data
+TEST_MESSAGE=Hello from Global Variables
+SUCCESS_PATTERN=completed successfully
+ERROR_PATTERN=ERROR:
+
+# Unused variable (should generate warning)
+UNUSED_SETTING=this_will_never_be_used
+
+# === TASKS SECTION ===
+
+# Task 0: Setup with basic global variables
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+timeout=@DEFAULT_TIMEOUT@
+command=echo
+arguments=Starting test version @VERSION@ build @BUILD_NUMBER@ with user @TEST_USER@
+success=exit_0&stdout~Starting
+
+# Task 1: Variable chaining demonstration - path construction
+task=1
+condition=@0_success@
+hostname=@HOSTNAME@
+exec=@EXEC@
+timeout=@DEFAULT_TIMEOUT@
+command=mkdir
+arguments=-p @BASE_PATH@/@SUBDIR@ @BASE_PATH@/@LOG_DIR@ @BASE_PATH@/@CONFIG_DIR@
+success=exit_0
+
+# Task 2: Multiple variable chaining in arguments
+task=2
+condition=@1_success@
+hostname=@HOSTNAME@
+exec=@EXEC@
+timeout=@DEFAULT_TIMEOUT@
+command=echo
+arguments=Created directories: @BASE_PATH@/@SUBDIR@ and @BASE_PATH@/@LOG_DIR@ with @LOG_LEVEL@ logging
+success=exit_0&stdout~Created
+
+# Task 3: Variable chaining with flags and user info
+task=3
+condition=@2_success@
+hostname=@HOSTNAME@
+exec=@EXEC@
+timeout=@QUICK_TIMEOUT@
+command=echo
+arguments=@VERBOSE_FLAG@ @DEFAULT_ARGS@ User: @TEST_USER@ Message: @TEST_MESSAGE@
+success=exit_0
+
+# Task 4: Override global timeout for slow operation
+task=4
+condition=@3_success@
+hostname=@HOSTNAME@
+exec=@EXEC@
+timeout=@SLOW_TIMEOUT@
+command=sleep
+arguments=2
+success=exit_0
+
+# Task 5: Complex variable chaining in condition and arguments
+task=5
+condition=@4_success@
+hostname=@HOSTNAME@
+exec=@EXEC@
+timeout=@DEFAULT_TIMEOUT@
+command=test
+arguments=-d @BASE_PATH@/@SUBDIR@
+success=exit_0&stdout~
+on_success=10
+on_failure=20
+
+# Task 6: Production environment with different host
+task=6
+hostname=@PROD_HOST@
+exec=pbrun
+timeout=@DB_TIMEOUT@
+command=echo  
+arguments=Production deployment @VERSION@-@BUILD_NUMBER@ to @BASE_PATH@/@SUBDIR@
+success=exit_0&stdout~Production
+next=never
+
+# Task 10: Success path - complex variable chaining
+task=10
+hostname=@HOSTNAME@
+exec=@EXEC@
+timeout=@DEFAULT_TIMEOUT@
+command=echo
+arguments=@SUCCESS_PATTERN@: All tests passed for @TEST_USER@ version @VERSION@ in @BASE_PATH@/@LOG_DIR@
+success=exit_0&stdout~@SUCCESS_PATTERN@
+
+# Task 11: Write results to chained path
+task=11
+condition=@10_success@
+hostname=@HOSTNAME@
+exec=@EXEC@
+timeout=@DEFAULT_TIMEOUT@
+command=echo
+arguments=@TEST_MESSAGE@ > @BASE_PATH@/@LOG_DIR@/test_@VERSION@.log
+success=exit_0
+
+# Task 12: Development environment test
+task=12
+condition=@11_success@
+hostname=@DEV_HOST@
+exec=@EXEC@
+timeout=@DEFAULT_TIMEOUT@
+command=echo
+arguments=Development test @QUIET_FLAG@ in @BASE_PATH@/@CONFIG_DIR@ for build @BUILD_NUMBER@
+success=exit_0
+
+# Task 13: Staging with chained variables in condition  
+task=13
+condition=@12_success@
+hostname=@STAGE_HOST@
+exec=@EXEC@
+timeout=@DEFAULT_TIMEOUT@
+command=echo
+arguments=Staging release @RELEASE_TAG@ @VERSION@ ready in @BASE_PATH@/@SUBDIR@
+success=exit_0&stdout~Staging
+next=never
+
+# Task 20: Failure path with error pattern
+task=20
+hostname=@HOSTNAME@
+exec=@EXEC@
+timeout=@DEFAULT_TIMEOUT@
+command=echo
+arguments=@ERROR_PATTERN@ Directory @BASE_PATH@/@SUBDIR@ not found for user @TEST_USER@
+success=exit_0
+
+# Task 21: Cleanup on failure
+task=21
+condition=@20_success@
+hostname=@HOSTNAME@
+exec=@EXEC@
+timeout=@DEFAULT_TIMEOUT@
+command=rm
+arguments=-rf @BASE_PATH@/@SUBDIR@ @BASE_PATH@/@LOG_DIR@
+success=exit_0
+next=never
+return=1
+
+# === ADVANCED VARIABLE CHAINING EXAMPLES ===
+
+# Task 30: Nested path construction
+task=30
+hostname=localhost
+exec=@EXEC@
+timeout=@DEFAULT_TIMEOUT@
+command=echo
+arguments=Complex path: @BASE_PATH@/@SUBDIR@/@LOG_DIR@/app_@VERSION@_@BUILD_NUMBER@.log
+
+# Task 31: Multiple variable types in one argument
+task=31
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=@VERBOSE_FLAG@ @DEFAULT_ARGS@ Host:@HOSTNAME@ User:@TEST_USER@ Path:@BASE_PATH@/@SUBDIR@ Version:@VERSION@
+
+# === VALIDATION TEST CASES ===
+
+# This section demonstrates what should generate validation errors/warnings:
+
+# Uncomment these to test validation errors:
+# task=99
+# hostname=@UNDEFINED_HOST@     # ERROR: undefined global variable
+# exec=@UNKNOWN_EXEC@           # ERROR: undefined global variable  
+# command=echo
+# arguments=This will fail validation
+
+# task=100  
+# hostname=@HOSTNAME@
+# command=echo
+# arguments=Reference to @NONEXISTENT_VAR@ should cause error
+# condition=@MISSING_VARIABLE@  # ERROR: undefined in condition

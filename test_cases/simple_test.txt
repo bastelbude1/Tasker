@@ -1,0 +1,28 @@
+# Simple test for global variables functionality
+
+# Global variables
+HOSTNAME=localhost
+EXEC=local
+TIMEOUT=30
+PATH_BASE=/tmp/test
+SUBDIR=data
+
+# Simple task using globals
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+timeout=@TIMEOUT@
+command=echo
+arguments=Testing @PATH_BASE@/@SUBDIR@
+success=exit_0
+
+# Task with variable chaining
+task=1
+condition=@0_success@
+hostname=@HOSTNAME@
+exec=@EXEC@
+timeout=@TIMEOUT@
+command=mkdir
+arguments=-p @PATH_BASE@/@SUBDIR@
+success=exit_0
+next=never

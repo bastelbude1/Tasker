@@ -1,0 +1,276 @@
+# STRESS TEST FOR THREAD-SAFETY
+# Tests high-load parallel execution with variable dependencies
+
+# === STRESS TEST 1: High Concurrency (20 parallel tasks) ===
+task=0
+hostname=localhost
+command=echo
+arguments=Starting stress test with 20 parallel tasks
+exec=local
+
+task=1
+type=parallel
+max_parallel=20
+tasks=100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119
+next=min_success=15
+on_success=2
+on_failure=50
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: High concurrency test passed - at least 15/20 tasks succeeded
+exec=local
+
+# === STRESS TEST 2: Variable Dependencies Chain ===
+task=5
+hostname=localhost
+command=echo
+arguments=Testing variable dependency chain @100_stdout@ @101_success@ @102_stderr@
+exec=local
+condition=@100_success@&@101_success@
+
+task=6
+hostname=localhost
+command=echo
+arguments=Chain result: @5_stdout@ - Previous success: @5_success@
+exec=local
+condition=@5_success@
+
+# === STRESS TEST 3: Mixed Success/Failure with Dependencies ===
+task=10
+type=parallel
+max_parallel=10
+tasks=200,201,202,203,204,205,206,207,208,209
+next=max_failed=3
+on_success=11
+on_failure=55
+
+task=11
+hostname=localhost
+command=echo
+arguments=Mixed test passed - max 3 failures allowed, actual results: @200_success@ @201_success@ @202_success@
+exec=local
+
+# === STRESS TEST 4: Nested Variable Resolution ===
+task=15
+hostname=localhost
+command=echo
+arguments=Nested variables: Task100(@100_stdout@) Task200(@200_stdout@) Success(@100_success@)
+exec=local
+
+task=16
+hostname=localhost
+command=echo
+arguments=Final summary - High:@1_success@ Mixed:@10_success@ Nested:@15_success@
+exec=local
+next=never
+
+# === ERROR HANDLERS ===
+task=50
+hostname=localhost
+command=echo
+arguments=ERROR: High concurrency test failed
+exec=local
+next=never
+
+task=55
+hostname=localhost
+command=echo
+arguments=ERROR: Mixed success/failure test failed
+exec=local
+next=never
+
+# === FIREWALL ===
+task=99
+return=0
+
+# ===============================================
+# PARALLEL TASKS FOR STRESS TESTING
+# ===============================================
+
+# High Concurrency Tasks (100-119) - Mix of success/failure/timing
+task=100
+hostname=localhost
+command=echo
+arguments=Task 100 - SUCCESS with delay
+exec=local
+sleep=0.1
+
+task=101
+hostname=localhost
+command=sh
+arguments=-c "echo 'Task 101 - FAILURE'; exit 1"
+exec=local
+
+task=102
+hostname=localhost
+command=echo
+arguments=Task 102 - SUCCESS immediate
+exec=local
+
+task=103
+hostname=localhost
+command=echo
+arguments=Task 103 - SUCCESS with output
+exec=local
+sleep=0.05
+
+task=104
+hostname=localhost
+command=sh
+arguments=-c "echo 'Task 104 - FAILURE with stderr' >&2; exit 1"
+exec=local
+
+task=105
+hostname=localhost
+command=echo
+arguments=Task 105 - SUCCESS delayed
+exec=local
+sleep=0.2
+
+task=106
+hostname=localhost
+command=echo
+arguments=Task 106 - SUCCESS normal
+exec=local
+
+task=107
+hostname=localhost
+command=echo
+arguments=Task 107 - SUCCESS fast
+exec=local
+
+task=108
+hostname=localhost
+command=sh
+arguments=-c "echo 'Task 108 - FAILURE'; exit 1"
+exec=local
+
+task=109
+hostname=localhost
+command=echo
+arguments=Task 109 - SUCCESS with pause
+exec=local
+sleep=0.15
+
+task=110
+hostname=localhost
+command=echo
+arguments=Task 110 - SUCCESS
+exec=local
+
+task=111
+hostname=localhost
+command=echo
+arguments=Task 111 - SUCCESS
+exec=local
+
+task=112
+hostname=localhost
+command=echo
+arguments=Task 112 - SUCCESS
+exec=local
+
+task=113
+hostname=localhost
+command=sh
+arguments=-c "echo 'Task 113 - FAILURE'; exit 1"
+exec=local
+
+task=114
+hostname=localhost
+command=echo
+arguments=Task 114 - SUCCESS
+exec=local
+
+task=115
+hostname=localhost
+command=echo
+arguments=Task 115 - SUCCESS
+exec=local
+
+task=116
+hostname=localhost
+command=echo
+arguments=Task 116 - SUCCESS
+exec=local
+
+task=117
+hostname=localhost
+command=echo
+arguments=Task 117 - SUCCESS
+exec=local
+
+task=118
+hostname=localhost
+command=echo
+arguments=Task 118 - SUCCESS
+exec=local
+
+task=119
+hostname=localhost
+command=sh
+arguments=-c "echo 'Task 119 - FAILURE'; exit 1"
+exec=local
+
+# Mixed Success/Failure Tasks (200-209)
+task=200
+hostname=localhost
+command=echo
+arguments=Mixed 200 - SUCCESS
+exec=local
+
+task=201
+hostname=localhost
+command=sh
+arguments=-c "echo 'Mixed 201 - FAILURE'; exit 1"
+exec=local
+
+task=202
+hostname=localhost
+command=echo
+arguments=Mixed 202 - SUCCESS
+exec=local
+
+task=203
+hostname=localhost
+command=echo
+arguments=Mixed 203 - SUCCESS
+exec=local
+
+task=204
+hostname=localhost
+command=sh
+arguments=-c "echo 'Mixed 204 - FAILURE'; exit 1"
+exec=local
+
+task=205
+hostname=localhost
+command=echo
+arguments=Mixed 205 - SUCCESS
+exec=local
+
+task=206
+hostname=localhost
+command=echo
+arguments=Mixed 206 - SUCCESS
+exec=local
+
+task=207
+hostname=localhost
+command=sh
+arguments=-c "echo 'Mixed 207 - FAILURE'; exit 1"
+exec=local
+
+task=208
+hostname=localhost
+command=echo
+arguments=Mixed 208 - SUCCESS
+exec=local
+
+task=209
+hostname=localhost
+command=echo
+arguments=Mixed 209 - SUCCESS
+exec=local

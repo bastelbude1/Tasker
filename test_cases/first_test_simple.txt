@@ -1,0 +1,40 @@
+# SIMPLE FIRST TEST - Parallel Tasks
+# Minimal test to verify basic functionality
+
+# Test: 2 simple parallel tasks with local execution
+task=0
+hostname=localhost
+command=echo
+arguments=Starting simple parallel test
+exec=local
+
+task=1
+type=parallel
+max_parallel=2
+tasks=10,11
+timeout=30
+next=success
+
+task=2
+hostname=localhost
+command=echo
+arguments=Parallel test result: Success=@1_success@ Output=@1_stdout@
+exec=local
+next=never
+
+# === FIREWALL ===
+task=9
+return=0
+
+# === PARALLEL TASKS ===
+task=10
+hostname=localhost
+command=echo
+arguments=Hello from task 10
+exec=local
+
+task=11
+hostname=localhost
+command=echo
+arguments=Hello from task 11
+exec=local

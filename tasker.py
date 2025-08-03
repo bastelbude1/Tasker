@@ -2709,12 +2709,20 @@ class TaskExecutor:
                 self.log(f"Task {task_id}{loop_display}: Returning with exit code {return_code}")
                 self.final_exit_code = return_code
                 self.final_success = (return_code == 0)  # Consider success if return code is 0
+                
+                # Add completion message before immediate exit
+                if return_code == 0:
+                    self.log("SUCCESS: Task execution completed successfully with return code 0")
+                else:
+                    self.log(f"FAILURE: Task execution failed with return code {return_code}")
+                
                 self.cleanup() # clean up resources before exit
                 sys.exit(return_code)
             except ValueError:
                 self.log(f"Task {task_id}{loop_display}: Invalid return code '{task['return']}'. Exiting with code 1.")
-                self.final_exit_code = return_code
+                self.final_exit_code = 1
                 self.final_success = False
+                self.log("FAILURE: Task execution failed with invalid return code")
                 self.cleanup() # clean up resources before exit
                 sys.exit(1)
         

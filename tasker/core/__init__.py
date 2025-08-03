@@ -9,6 +9,7 @@ from .utilities import (
     convert_to_number,
     sanitize_for_tsv
 )
+from .condition_evaluator import ConditionEvaluator
 
 __all__ = [
     'sanitize_filename',
@@ -17,5 +18,6 @@ __all__ = [
     'ExitHandler',
     'convert_value',
     'convert_to_number',
-    'sanitize_for_tsv'
+    'sanitize_for_tsv',
+    'ConditionEvaluator'
 ]

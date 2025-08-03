@@ -46,6 +46,7 @@ from tasker.core.utilities import (
     convert_to_number,
     sanitize_for_tsv
 )
+from tasker.core.condition_evaluator import ConditionEvaluator
 
 try:
    from task_validator import TaskValidator
@@ -904,7 +905,7 @@ class TaskExecutor:
         for task in self.tasks.values():  # Changed to iterate over values
             if 'hostname' in task and task['hostname']:
                 # Replace variables in hostname before validation
-                hostname, resolved = self.replace_variables(task['hostname'])
+                hostname, resolved = ConditionEvaluator.replace_variables(task['hostname'], self.global_vars, self.task_results, self.debug_log)
                 if resolved and hostname:  # Only validate if variable resolution succeeded
                     hostnames.add(hostname)
 
@@ -1087,7 +1088,6 @@ class TaskExecutor:
 
     # ===== 4. VARIABLE & CONDITION PROCESSING =====
     
-    def replace_variables(self, text):
         """
         Replace variables like @task_number_stdout@, @task_number_stderr@, @task_number_success@, 
         or @GLOBAL_VAR@ with actual values. Supports variable chaining like @PATH@/@SUBDIR@.
@@ -1226,7 +1226,7 @@ class TaskExecutor:
         """Evaluate a complex condition expression."""
         # Replace variables and check resolution status
         original_condition = condition
-        condition, all_resolved = self.replace_variables(condition)
+        condition, all_resolved = ConditionEvaluator.replace_variables(condition, self.global_vars, self.task_results, self.debug_log)
         
         if original_condition != condition:
             self.debug_log(f"Condition after variable replacement: '{original_condition}' -> '{condition}'")
@@ -1247,7 +1247,7 @@ class TaskExecutor:
            
             inner_expr = condition[start+1:end]
             self.debug_log(f"Evaluating sub-condition: ({inner_expr})")
-            inner_result = self.evaluate_condition(inner_expr, exit_code, stdout, stderr)     
+            inner_result = ConditionEvaluator.evaluate_condition(inner_expr, exit_code, stdout, stderr, self.global_vars, self.task_results, self.debug_log)     
             # Replace the parentheses expression with its result
             condition = condition[:start] + ("true" if inner_result else "false") + condition[end+1:]
             self.debug_log(f"Condition after substitution: {condition}")
@@ -1492,7 +1492,7 @@ class TaskExecutor:
     def determine_execution_type(self, task, task_display_id, loop_display=""):
         """Determine which execution type to use, respecting priority order."""
         if 'exec' in task:
-            exec_type, _ = self.replace_variables(task['exec'])
+            exec_type, _ = ConditionEvaluator.replace_variables(task['exec'], self.global_vars, self.task_results, self.debug_log)
             self.log(f"Task {task_display_id}{loop_display}: Using execution type from task: {exec_type}")
         elif self.exec_type:
             exec_type = self.exec_type
@@ -1528,7 +1528,7 @@ class TaskExecutor:
 
         # Get timeout from task (highest priority)
         if 'timeout' in task:
-            timeout_str, resolved = self.replace_variables(task['timeout'])
+            timeout_str, resolved = ConditionEvaluator.replace_variables(task['timeout'], self.global_vars, self.task_results, self.debug_log)
             if resolved:
                 try:
                     timeout = int(timeout_str)
@@ -1584,8 +1584,8 @@ class TaskExecutor:
             
         try:
             # Resolve global variables first before int conversion
-            retry_count_str, _ = self.replace_variables(parallel_task.get('retry_count', '1'))
-            retry_delay_str, _ = self.replace_variables(parallel_task.get('retry_delay', '1'))
+            retry_count_str, _ = ConditionEvaluator.replace_variables(parallel_task.get('retry_count', '1'), self.global_vars, self.task_results, self.debug_log)
+            retry_delay_str, _ = ConditionEvaluator.replace_variables(parallel_task.get('retry_delay', '1'), self.global_vars, self.task_results, self.debug_log)
         
             retry_count = int(retry_count_str)
             retry_delay = int(retry_delay_str)
@@ -1628,11 +1628,11 @@ class TaskExecutor:
     def _handle_output_splitting(self, task, task_display_id, stdout, stderr):
         """Handle stdout/stderr splitting if specified in task."""
         if 'stdout_split' in task:
-            stdout = self.split_output(stdout, task['stdout_split'])
+            stdout = ConditionEvaluator.split_output(stdout, task['stdout_split'])
             self.log(f"Task {task_display_id}: Split STDOUT: '{stdout}'")
             
         if 'stderr_split' in task:
-            stderr = self.split_output(stderr, task['stderr_split'])
+            stderr = ConditionEvaluator.split_output(stderr, task['stderr_split'])
             self.log(f"Task {task_display_id}: Split STDERR: '{stderr}'")
         
         return stdout, stderr
@@ -1645,7 +1645,7 @@ class TaskExecutor:
         try:
             # 1. Pre-execution condition check
             if 'condition' in task:
-                condition_result = self.evaluate_condition(task['condition'], 0, "", "")
+                condition_result = ConditionEvaluator.evaluate_condition(task['condition'], 0, "", "", self.global_vars, self.task_results, self.debug_log)
                 if not condition_result:
                     self.log(f"Task {task_display_id}: Condition '{task['condition']}' evaluated to FALSE, skipping task")
                     return {
@@ -1671,9 +1671,9 @@ class TaskExecutor:
                 }
             
             # 3. Variable replacement
-            hostname, _ = self.replace_variables(task.get('hostname', ''))
-            command, _ = self.replace_variables(task.get('command', ''))
-            arguments, _ = self.replace_variables(task.get('arguments', ''))
+            hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', ''), self.global_vars, self.task_results, self.debug_log)
+            command, _ = ConditionEvaluator.replace_variables(task.get('command', ''), self.global_vars, self.task_results, self.debug_log)
+            arguments, _ = ConditionEvaluator.replace_variables(task.get('arguments', ''), self.global_vars, self.task_results, self.debug_log)
 
             # 4. Execution type and command building
             exec_type = self.determine_execution_type(task, task_display_id)
@@ -1684,7 +1684,7 @@ class TaskExecutor:
             if master_timeout is not None:
                 task_timeout = master_timeout
                 if 'timeout' in task:
-                    individual_timeout_str, _ = self.replace_variables(task['timeout'])
+                    individual_timeout_str, _ = ConditionEvaluator.replace_variables(task['timeout'], self.global_vars, self.task_results, self.debug_log)
                     try:
                         individual_timeout = int(individual_timeout_str)
                         if individual_timeout != master_timeout:
@@ -1737,7 +1737,7 @@ class TaskExecutor:
             
             # 8. Success evaluation
             if 'success' in task:
-                success_result = self.evaluate_condition(task['success'], exit_code, stdout, stderr)
+                success_result = ConditionEvaluator.evaluate_condition(task['success'], exit_code, stdout, stderr, self.global_vars, self.task_results, self.debug_log)
                 self.log(f"Task {task_display_id}: Success condition '{task['success']}' evaluated to: {success_result}")
             else:
                 success_result = (exit_code == 0) 
@@ -1746,7 +1746,7 @@ class TaskExecutor:
             # 9. Sleep handling
             if 'sleep' in task:
                 try:
-                    sleep_time_str, resolved = self.replace_variables(task['sleep'])
+                    sleep_time_str, resolved = ConditionEvaluator.replace_variables(task['sleep'], self.global_vars, self.task_results, self.debug_log)
                     if resolved:
                         sleep_time = float(sleep_time_str)
                         self.log(f"Task {task_display_id}: Sleeping for {sleep_time} seconds")
@@ -1971,7 +1971,7 @@ class TaskExecutor:
         aggregated_stdout = f"Parallel execution summary: {successful_count} successful, {failed_count} failed"
         aggregated_stderr = f"Failed tasks: {[r['task_id'] for r in results if not r['success']]}" if failed_count > 0 else ""
         
-        result = self.evaluate_condition(next_condition, aggregated_exit_code, aggregated_stdout, aggregated_stderr)
+        result = ConditionEvaluator.evaluate_condition(next_condition, aggregated_exit_code, aggregated_stdout, aggregated_stderr, self.global_vars, self.task_results, self.debug_log)
         self.log(f"Task {task_id}: Complex condition '{next_condition}' evaluated to: {result}")
         return result
 
@@ -1996,7 +1996,7 @@ class TaskExecutor:
             aggregated_stdout = f"Parallel execution summary: {successful_count} successful, {failed_count} failed"
             aggregated_stderr = ""
             
-            loop_break_result = self.evaluate_condition(parallel_task['loop_break'], aggregated_exit_code, aggregated_stdout, aggregated_stderr)
+            loop_break_result = ConditionEvaluator.evaluate_condition(parallel_task['loop_break'], aggregated_exit_code, aggregated_stdout, aggregated_stderr, self.global_vars, self.task_results, self.debug_log)
             if loop_break_result:
                 self.log(f"Task {task_id}: Breaking loop - condition '{parallel_task['loop_break']}' satisfied")
                 del self.loop_counter[task_id]
@@ -2353,7 +2353,7 @@ class TaskExecutor:
         aggregated_stdout = f"Conditional execution: {successful_count} successful, {failed_count} failed"
         aggregated_stderr = f"Failed tasks: {[r['task_id'] for r in results if not r['success']]}" if failed_count > 0 else ""
         
-        result = self.evaluate_condition(next_condition, aggregated_exit_code, aggregated_stdout, aggregated_stderr)
+        result = ConditionEvaluator.evaluate_condition(next_condition, aggregated_exit_code, aggregated_stdout, aggregated_stderr, self.global_vars, self.task_results, self.debug_log)
         self.log(f"Task {task_id}: Complex condition '{next_condition}' evaluated to: {result}")
         return result
 
@@ -2371,7 +2371,7 @@ class TaskExecutor:
             return task_id + 1
         
         # Evaluate condition using existing logic
-        condition_result = self.evaluate_condition(condition, 0, "", "")
+        condition_result = ConditionEvaluator.evaluate_condition(condition, 0, "", "", self.global_vars, self.task_results, self.debug_log)
         branch = "TRUE" if condition_result else "FALSE"
         
         self.log(f"Task {task_id}: Conditional condition '{condition}' evaluated to {branch}")
@@ -2587,7 +2587,7 @@ class TaskExecutor:
 
             # Check loop_break condition first (if exists)
             if 'loop_break' in task:
-                loop_break_result = self.evaluate_condition(task['loop_break'], exit_code, stdout, stderr)
+                loop_break_result = ConditionEvaluator.evaluate_condition(task['loop_break'], exit_code, stdout, stderr, self.global_vars, self.task_results, self.debug_log)
                 if loop_break_result:
                     # Break condition met
                     self.log(f"Task {task_id}: Breaking loop - loop_break condition '{task['loop_break']}' satisfied")
@@ -2611,7 +2611,7 @@ class TaskExecutor:
                 return True  # Proceed to next task
         
         # Parse complex conditions
-        result = self.evaluate_condition(next_condition, exit_code, stdout, stderr)
+        result = ConditionEvaluator.evaluate_condition(next_condition, exit_code, stdout, stderr, self.global_vars, self.task_results, self.debug_log)
         if result:
             self.log(f"Task {task_id}{loop_display}: 'next' condition evaluated to TRUE, proceeding to next task")
         else:
@@ -2642,7 +2642,7 @@ class TaskExecutor:
 
         # Check pre-execution condition
         if 'condition' in task:
-            condition_result = self.evaluate_condition(task['condition'], 0, "", "")
+            condition_result = ConditionEvaluator.evaluate_condition(task['condition'], 0, "", "", self.global_vars, self.task_results, self.debug_log)
             if not condition_result:
                 self.log(f"Task {task_id}{loop_display}: Condition '{task['condition']}' evaluated to FALSE, skipping task")
                 # CRITICAL: Store results for skipped task - THREAD SAFE
@@ -2658,8 +2658,8 @@ class TaskExecutor:
 
         # Update tracking for summary
         self.final_task_id = task_id
-        self.final_hostname, _ = self.replace_variables(task.get('hostname', 'N/A'))
-        self.final_command, _ = self.replace_variables(task.get('command', 'N/A'))
+        self.final_hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', 'N/A'), self.global_vars, self.task_results, self.debug_log)
+        self.final_command, _ = ConditionEvaluator.replace_variables(task.get('command', 'N/A'), self.global_vars, self.task_results, self.debug_log)
         
         # Check if this is a return task
         if 'return' in task:
@@ -2687,9 +2687,9 @@ class TaskExecutor:
                 ExitHandler.exit_with_code(ExitCodes.INVALID_ARGUMENT, "Invalid return code specified", self.debug)
         
         # Replace variables in command and arguments
-        hostname, _ = self.replace_variables(task.get('hostname', ''))
-        command, _ = self.replace_variables(task.get('command', ''))
-        arguments, _ = self.replace_variables(task.get('arguments', ''))
+        hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', ''), self.global_vars, self.task_results, self.debug_log)
+        command, _ = ConditionEvaluator.replace_variables(task.get('command', ''), self.global_vars, self.task_results, self.debug_log)
+        arguments, _ = ConditionEvaluator.replace_variables(task.get('arguments', ''), self.global_vars, self.task_results, self.debug_log)
 
         # Determine execution type (from task, args, env, or default)
         exec_type = self.determine_execution_type(task, task_id, loop_display)
@@ -2751,17 +2751,17 @@ class TaskExecutor:
         # Process output splitting if specified
         if 'stdout_split' in task:
             original_stdout = stdout
-            stdout = self.split_output(stdout, task['stdout_split'])
+            stdout = ConditionEvaluator.split_output(stdout, task['stdout_split'])
             self.log(f"Task {task_id}{loop_display}: Split STDOUT: '{stdout_stripped}' -> '{stdout}'")
             
         if 'stderr_split' in task:
             original_stderr = stderr
-            stderr = self.split_output(stderr, task['stderr_split'])
+            stderr = ConditionEvaluator.split_output(stderr, task['stderr_split'])
             self.log(f"Task {task_id}{loop_display}: Split STDERR: '{stderr_stripped}' -> '{stderr}'")
         
         # Evaluate success condition if defined, otherwise default to exit_code == 0
         if 'success' in task:
-            success_result = self.evaluate_condition(task['success'], exit_code, stdout, stderr)
+            success_result = ConditionEvaluator.evaluate_condition(task['success'], exit_code, stdout, stderr, self.global_vars, self.task_results, self.debug_log)
             self.log(f"Task {task_id}{loop_display}: Success condition '{task['success']}' evaluated to: {success_result}")
         else:
             success_result = (exit_code == 0)
@@ -2778,7 +2778,7 @@ class TaskExecutor:
         # Check if we should sleep before the next task
         if 'sleep' in task:
             try:
-                sleep_time_str, resolved = self.replace_variables(task['sleep'])
+                sleep_time_str, resolved = ConditionEvaluator.replace_variables(task['sleep'], self.global_vars, self.task_results, self.debug_log)
                 if resolved:
                     sleep_time = float(sleep_time_str)
                     self.log(f"Task {task_id}{loop_display}: Sleeping for {sleep_time} seconds")
@@ -2890,7 +2890,7 @@ class TaskExecutor:
         # For resume mode, collect hostnames but don't validate them
         for task in self.tasks.values():
             if 'hostname' in task and task['hostname']:
-                hostname, resolved = self.replace_variables(task['hostname'])
+                hostname, resolved = ConditionEvaluator.replace_variables(task['hostname'], self.global_vars, self.task_results, self.debug_log)
                 if resolved and hostname:
                     validated_hosts[hostname] = hostname  # Use as-is without validation
 

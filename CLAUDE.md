@@ -25,8 +25,66 @@
 - Ask for confirmation on major architectural decisions
 - Document decisions and rationale
 
-## Overview
-This document outlines the planned refactoring of the tasker.py module into a well-structured package to improve maintainability, modularity, and code organization.
+## Project Specification
+
+### TASK ExecutoR - TASKER 2.0
+
+**TASKER** is a simplified, robust task execution system that focuses on essential functionality with clean configuration management based on Python 3.6.8.
+
+#### Design Philosophy
+- **Simplicity over complexity**: Proven mechanisms only
+- **Text format first**: Human-readable, version-control friendly
+- **Configuration-driven**: Sensible defaults, easy customization
+- **Scale-ready**: 1-1000 servers with @HOSTNAME@ placeholders
+- **Safety-first**: Comprehensive validation and error handling
+
+#### File Format Specification
+
+**Required Fields:**
+- `task`: Integer ID (0, 1, 2, ...)
+- `hostname`: Target server or @HOSTNAME@ placeholder
+- `command`: Command to execute
+
+**Optional Fields:**
+- `arguments`: Command arguments
+- `exec`: Execution type (pbrun, p7s, local, wwrs)
+- `timeout`: Command timeout in seconds (5-3600)
+- `sleep`: Sleep after task execution (0-300 seconds)
+- `condition`: Pre-execution condition
+- `success`: Custom success criteria
+- `next`: Flow control condition
+- `on_success`: Task ID to execute on success
+- `on_failure`: Task ID to execute on failure
+- `loop`: Number of additional iterations
+- `return`: Exit workflow with return code
+
+#### Dependencies
+**Required:**
+- Python 3.6.8 or higher
+- Standard library modules only (no external dependencies)
+
+#### Success Criteria
+
+**Functional Requirements:**
+- Execute workflows reliably across 1-1000 servers
+- Support all essential TASKER features
+- Generate detailed logs and reports
+
+**Quality Requirements:**
+- 95%+ test coverage
+- Sub-second startup time
+- Memory usage < 50MB for typical workflows
+- Compatible with Python 3.6.8+
+- Clear error messages and documentation
+
+**User Experience Requirements:**
+- Simple installation (single script)
+- Intuitive command line interface
+- Helpful validation messages
+- Comprehensive documentation
+
+## Refactoring Overview
+This document outlines the planned refactoring of the tasker.py module into a well-structured package to improve maintainability, modularity, and code organization while maintaining all TASKER 2.0 requirements.
 
 ## Current State
 - Single monolithic `tasker.py` file (~3000+ lines)

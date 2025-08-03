@@ -5,9 +5,11 @@ Base Executor for Task Execution
 Abstract base class for all task execution engines with common functionality.
 """
 
+import time
 import subprocess
 from abc import ABC, abstractmethod
 from ..core.condition_evaluator import ConditionEvaluator
+from ..core.execution_context import ExecutionContext
 
 
 class BaseExecutor(ABC):
@@ -94,22 +96,29 @@ class BaseExecutor(ABC):
         return modified_stdout, modified_stderr
     
     @staticmethod
-    def execute_task_core(task, global_vars, task_results, determine_execution_type_callback, 
-                         build_command_array_callback, get_task_timeout_callback, dry_run=False,
-                         master_timeout=None, context="normal", retry_display="", 
-                         current_parallel_task=None, current_conditional_task=None,
-                         debug_callback=None, log_callback=None):
-        """Unified task execution core for parallel, conditional, and normal execution."""
+    def execute_task_core(task, execution_context, master_timeout=None, context="normal", retry_display=""):
+        """
+        Unified task execution core using ExecutionContext.
+        Simplified interface that replaces the old callback-heavy method.
+        """
         task_id = int(task['task'])
-        task_display_id = BaseExecutor._get_task_display_id(task_id, context, retry_display, current_parallel_task, current_conditional_task)
+        task_display_id = BaseExecutor._get_task_display_id(
+            task_id, context, retry_display, 
+            execution_context._current_parallel_task, 
+            execution_context._current_conditional_task
+        )
         
         try:
             # 1. Pre-execution condition check
             if 'condition' in task:
-                condition_result = ConditionEvaluator.evaluate_condition(task['condition'], 0, "", "", global_vars, task_results, debug_callback)
+                condition_result = ConditionEvaluator.evaluate_condition(
+                    task['condition'], 0, "", "", 
+                    execution_context.global_vars, 
+                    execution_context.task_results, 
+                    execution_context.log_debug
+                )
                 if not condition_result:
-                    if log_callback:
-                        log_callback(f"Task {task_display_id}: Condition '{task['condition']}' evaluated to FALSE, skipping task")
+                    execution_context.log(f"Task {task_display_id}: Condition '{task['condition']}' evaluated to FALSE, skipping task")
                     return {
                         'task_id': task_id,
                         'exit_code': -1,
@@ -122,8 +131,7 @@ class BaseExecutor(ABC):
             # 2. Handle return tasks
             if 'return' in task:
                 return_code = int(task['return'])
-                if log_callback:
-                    log_callback(f"Task {task_display_id}: Return task with exit code {return_code}")
+                execution_context.log(f"Task {task_display_id}: Return task with exit code {return_code}")
                 return {
                     'task_id': task_id,
                     'exit_code': return_code,
@@ -134,116 +142,91 @@ class BaseExecutor(ABC):
                 }
             
             # 3. Variable replacement
-            hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', ''), global_vars, task_results, debug_callback)
-            command, _ = ConditionEvaluator.replace_variables(task.get('command', ''), global_vars, task_results, debug_callback)
-            arguments, _ = ConditionEvaluator.replace_variables(task.get('arguments', ''), global_vars, task_results, debug_callback)
+            hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', ''), execution_context.global_vars, execution_context.task_results, execution_context.log_debug)
+            command, _ = ConditionEvaluator.replace_variables(task.get('command', ''), execution_context.global_vars, execution_context.task_results, execution_context.log_debug)
+            arguments, _ = ConditionEvaluator.replace_variables(task.get('arguments', ''), execution_context.global_vars, execution_context.task_results, execution_context.log_debug)
 
             # 4. Execution type and command building
-            exec_type = determine_execution_type_callback(task, task_display_id)
-            cmd_array = build_command_array_callback(exec_type, hostname, command, arguments)
+            exec_type = execution_context.determine_execution_type(task, task_display_id)
+            cmd_array = execution_context.build_command_array(exec_type, hostname, command, arguments)
             full_command_display = ' '.join(cmd_array)
 
             # 5. Timeout handling
             if master_timeout is not None:
                 task_timeout = master_timeout
                 if 'timeout' in task:
-                    individual_timeout_str, _ = ConditionEvaluator.replace_variables(task['timeout'], global_vars, task_results, debug_callback)
-                    try:
-                        individual_timeout = int(individual_timeout_str)
-                        if individual_timeout != master_timeout:
-                            if debug_callback:
-                                debug_callback(f"Task {task_display_id}: OVERRIDING individual timeout {individual_timeout}s with MASTER timeout {master_timeout}s")
-                    except ValueError:
-                        pass
-                else:
-                    if debug_callback:
-                        debug_callback(f"Task {task_display_id}: Using MASTER timeout {master_timeout}s")
+                    execution_context.log_debug(f"Task {task_display_id}: Task-specific timeout ({task['timeout']}s) overridden by master timeout ({master_timeout}s)")
             else:
-                task_timeout = get_task_timeout_callback(task)
-                if debug_callback:
-                    debug_callback(f"Task {task_display_id}: Using individual timeout {task_timeout}s")
+                task_timeout = execution_context.get_task_timeout(task)
 
-            # 6. Command execution
-            if dry_run:
-                if log_callback:
-                    log_callback(f"Task {task_display_id}: [DRY RUN] Would execute: {full_command_display}")
-                exit_code = 0
-                stdout = f"DRY RUN STDOUT - Task {task_id}"
-                stderr = ""
-            else:
-                if log_callback:
-                    log_callback(f"Task {task_display_id}: Executing [{exec_type}]: {full_command_display}")
+            # 6. Log execution details
+            execution_context.log(f"Task {task_display_id}: Using execution type from task: {exec_type}")
+            execution_context.log(f"Task {task_display_id}: Executing [{exec_type}]: {full_command_display}")
+
+            # 7. Execute or dry run
+            if execution_context.dry_run:
+                execution_context.log(f"Task {task_display_id}: DRY RUN - Command would be executed")
+                return {
+                    'task_id': task_id,
+                    'exit_code': 0,
+                    'stdout': 'DRY RUN - Command not executed',
+                    'stderr': '',
+                    'success': True,
+                    'skipped': False,
+                    'sleep_seconds': int(task.get('sleep', 0))
+                }
+
+            # 8. Real execution
+            start_time = time.time()
+            try:
+                result = subprocess.run(cmd_array, capture_output=True, text=True, timeout=task_timeout)
+                execution_time = time.time() - start_time
                 
-                try:
-                    with subprocess.Popen(
-                        cmd_array,
-                        shell=False,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        universal_newlines=True
-                    ) as process:
-                        try:
-                            stdout, stderr = process.communicate(timeout=task_timeout)
-                            exit_code = process.returncode
-                            
-                        except subprocess.TimeoutExpired: 
-                            if log_callback:
-                                log_callback(f"Task {task_display_id}: TIMEOUT after {task_timeout}s - killing process")
-                            process.kill()
-                            stdout, stderr = process.communicate()
-                            exit_code = 124  # Standard timeout exit code
-                            stderr += f"\nProcess killed after timeout of {task_timeout}s"
-                            
-                except Exception as e:
-                    if log_callback:
-                        log_callback(f"Task {task_display_id}: Error executing command: {str(e)}")
-                    exit_code = 1
-                    stdout = ""
-                    stderr = str(e)
-            
-            # 7. Result logging and processing
-            BaseExecutor._log_task_result(task_display_id, exit_code, stdout, stderr, log_callback)
-            stdout, stderr = BaseExecutor._handle_output_splitting(task, task_display_id, stdout, stderr, debug_callback)
-            
-            # 8. Success evaluation
-            if 'success' in task:
-                success_condition = task['success']
-                success_result = ConditionEvaluator.evaluate_condition(success_condition, exit_code, stdout, stderr, global_vars, task_results, debug_callback)
-                if log_callback:
-                    log_callback(f"Task {task_display_id}: Success condition '{success_condition}' evaluated to: {success_result}")
-            else:
-                # Default success: exit code 0
-                success_result = (exit_code == 0)
-            
-            # 9. Sleep information (don't execute here - return for caller to handle)
-            sleep_seconds = 0
-            if 'sleep' in task:
-                sleep_str, _ = ConditionEvaluator.replace_variables(task['sleep'], global_vars, task_results, debug_callback)
-                try:
-                    sleep_seconds = int(sleep_str)
-                except ValueError:
-                    if debug_callback:
-                        debug_callback(f"Task {task_display_id}: Invalid sleep value: {sleep_str}")
-                    sleep_seconds = 0
-            
+                exit_code = result.returncode
+                raw_stdout = result.stdout
+                raw_stderr = result.stderr
+
+            except subprocess.TimeoutExpired:
+                execution_time = time.time() - start_time
+                execution_context.log(f"Task {task_display_id}: TIMEOUT after {task_timeout}s")
+                return {
+                    'task_id': task_id,
+                    'exit_code': 124,
+                    'stdout': '',
+                    'stderr': f'Command timed out after {task_timeout} seconds',
+                    'success': False,
+                    'skipped': False,
+                    'sleep_seconds': int(task.get('sleep', 0))
+                }
+
+            # 9. Handle output splitting if configured
+            processed_stdout, processed_stderr = BaseExecutor._handle_output_splitting(task, task_display_id, raw_stdout, raw_stderr, execution_context.log_debug)
+
+            # 10. Log results
+            BaseExecutor._log_task_result(task_display_id, exit_code, processed_stdout, processed_stderr, execution_context.log)
+
+            # 11. Success condition evaluation
+            success_condition = task.get('success', 'exit_0')
+            success = ConditionEvaluator.evaluate_condition(success_condition, exit_code, processed_stdout, processed_stderr, execution_context.global_vars, execution_context.task_results, execution_context.log_debug)
+            execution_context.log(f"Task {task_display_id}: Success condition '{success_condition}' evaluated to: {success}")
+
             return {
                 'task_id': task_id,
                 'exit_code': exit_code,
-                'stdout': stdout,
-                'stderr': stderr,
-                'success': success_result,
+                'stdout': processed_stdout,
+                'stderr': processed_stderr,
+                'success': success,
                 'skipped': False,
-                'sleep_seconds': sleep_seconds
+                'sleep_seconds': int(task.get('sleep', 0))
             }
-            
+
         except Exception as e:
-            if log_callback:
-                log_callback(f"Task {task_display_id}: Unexpected error: {str(e)}")
+            execution_context.log_error(f"Task {task_display_id}: Unexpected error during execution: {str(e)}")
             return {
                 'task_id': task_id,
-                'exit_code': 1,
+                'exit_code': 255,
                 'stdout': '',
-                'stderr': f'Unexpected error: {str(e)}',
+                'stderr': f'Execution error: {str(e)}',
                 'success': False,
                 'skipped': False,
                 'sleep_seconds': 0

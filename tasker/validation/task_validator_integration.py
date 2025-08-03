@@ -25,56 +25,45 @@ class TaskValidatorIntegration:
     """
     
     @staticmethod
-    def validate_tasks(task_file, log_callback=None, debug_callback=None):
-        """Validate the task file using TaskValidator."""
+    def validate_tasks(task_file, execution_context):
+        """Validate the task file using ExecutionContext."""
         if TaskValidator is None:
-            if log_callback:
-                log_callback("Warning: TaskValidator not available. Skipping validation.")
+            execution_context.log("Warning: TaskValidator not available. Skipping validation.")
             return True
 
-        if log_callback:
-            log_callback(f"# Validating task file: {task_file}")
+        execution_context.log(f"# Validating task file: {task_file}")
 
         try:
             # Create a validator instance
             validator = TaskValidator(task_file)
 
             # Run validation
-            if validator.parse_file():
-                validator.validate_tasks()
+            validation_results = validator.validate()
 
-            # Get validation results
-            has_errors = len(validator.errors) > 0
-
-            # Log validation results
-            if has_errors:
-                if log_callback:
-                    log_callback("# Task validation FAILED.")
-                for error in validator.errors:
-                    if debug_callback:
-                        debug_callback(f"# ERROR: {error}")
-
-                # Also log warnings
-                if validator.warnings:
-                    for warning in validator.warnings:
-                        if debug_callback:
-                            debug_callback(f"# WARNING: {warning}")
+            if validation_results['errors']:
+                execution_context.log("# Task validation FAILED.")
+                # Log each error
+                for error in validation_results['errors']:
+                    execution_context.log_debug(f"# ERROR: {error}")
                 return False
-
             else:
-                if log_callback:
-                    log_callback("# Task validation passed successfully.")
-                # Log any warnings
+                # Log warnings if any
+                if validation_results['warnings']:
+                    for warning in validation_results['warnings']:
+                        execution_context.log_debug(f"# WARNING: {warning}")
 
-                if validator.warnings:
-                    for warning in validator.warnings:
-                        if debug_callback:
-                            debug_callback(f"# WARNING: {warning}")
+                # Validation passed
+                execution_context.log("# Task validation passed successfully.")
+                
+                # Log warnings again for visibility (optional)
+                if validation_results['warnings']:
+                    for warning in validation_results['warnings']:
+                        execution_context.log_debug(f"# WARNING: {warning}")
+                
                 return True
 
         except Exception as e:
-            if log_callback:
-                log_callback(f"Error during task validation: {str(e)}")
+            execution_context.log(f"Error during task validation: {str(e)}")
             return False
 
     @staticmethod
@@ -127,36 +116,15 @@ class TaskValidatorIntegration:
                 log_callback(f"ERROR: Start task {start_task_id} not found")
                 log_callback(f"Available task IDs: {available_tasks}")
             return False
-    
-        # Check for potential dependency issues
-        dependency_warnings = []
-        pattern = r'@(\d+)_(stdout|stderr|success)@'
-    
-        for task_id in range(start_task_id, max(tasks.keys()) + 1):
-            if task_id not in tasks:
-                continue
+        
+        if log_callback:
+            log_callback(f"# Start-from validation: Starting from task {start_task_id}")
+            log_callback(f"# WARNING: Tasks before {start_task_id} will be skipped")
             
-            task = tasks[task_id]
-            for field_name, field_value in task.items():
-                if isinstance(field_value, str):
-                    matches = re.findall(pattern, field_value)
-                    for dep_task_str, dep_type in matches:
-                        dep_task = int(dep_task_str)
-                        if dep_task < start_task_id:
-                            dependency_warnings.append(
-                                f"Task {task_id} field '{field_name}' references @{dep_task}_{dep_type}@ (before start point)"
-                            )
-    
-        if dependency_warnings:
-            if log_callback:
-                log_callback(f"# DEPENDENCY WARNINGS for --start-from {start_task_id}:")
-            for warning in dependency_warnings[:5]:  # Limit to first 5 warnings
-                if log_callback:
-                    log_callback(f"#   {warning}")
-            if len(dependency_warnings) > 5:
-                if log_callback:
-                    log_callback(f"#   ... and {len(dependency_warnings) - 5} more dependency issues")
-            if log_callback:
-                log_callback(f"# These tasks may fail due to unresolved variable references")
+            # Check for potential dependency issues
+            skipped_tasks = [tid for tid in tasks.keys() if tid < start_task_id]
+            if skipped_tasks:
+                log_callback(f"# Skipped tasks: {sorted(skipped_tasks)}")
+                log_callback(f"# CAUTION: Task {start_task_id} may fail if it depends on skipped tasks")
         
         return True

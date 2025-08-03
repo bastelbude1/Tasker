@@ -19,6 +19,7 @@ class ParallelExecutor(BaseExecutor):
         """Execute a single task as part of parallel execution with enhanced retry display support."""
         return executor_instance._execute_task_core(task, master_timeout, "parallel", retry_display)
 
+
     @staticmethod
     def execute_single_task_with_retry(task, master_timeout, retry_config, executor_instance=None):
         """Execute a single task with retry logic and attempt numbering (.N notation)."""

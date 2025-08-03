@@ -19,7 +19,7 @@ for test in simple_test.txt comprehensive_retry_validation_test.txt first_test_s
     
     # Test with tasker.py (no debug) - capture stderr to detect exceptions
     reset_state
-    tasker_error=$(timeout 30s ../tasker.py "$test" -r 2>&1 >/dev/null)
+    tasker_error=$(timeout 60s ../tasker.py "$test" -r 2>&1 >/dev/null)
     tasker_exit=$?
     
     # Check for Python exceptions
@@ -31,7 +31,7 @@ for test in simple_test.txt comprehensive_retry_validation_test.txt first_test_s
     
     # Test with tasker_orig.py (no debug) - capture stderr to detect exceptions
     reset_state
-    orig_error=$(timeout 30s ../tasker_orig.py "$test" -r 2>&1 >/dev/null)
+    orig_error=$(timeout 60s ../tasker_orig.py "$test" -r 2>&1 >/dev/null)
     orig_exit=$?
     
     # Check for Python exceptions

@@ -172,7 +172,7 @@ class ConditionEvaluator:
             return output
 
     @staticmethod
-    def evaluate_condition(condition, exit_code, stdout, stderr, global_vars, task_results, debug_callback=None):
+    def evaluate_condition(condition, exit_code, stdout, stderr, global_vars, task_results, debug_callback=None, current_task_success=None):
         """
         Evaluate a complex condition that may contain boolean operators (AND, OR, NOT)
         and nested parentheses. Supports both simple conditions and complex expressions.
@@ -188,7 +188,7 @@ class ConditionEvaluator:
         
         # Handle simple conditions without boolean operators (check for |, &, AND, OR, NOT)
         if not any(op in condition for op in ['|', '&']) and not any(op in condition.upper() for op in [' AND ', ' OR ', ' NOT ']):
-            return ConditionEvaluator.evaluate_simple_condition(condition, exit_code, stdout, stderr, debug_callback)
+            return ConditionEvaluator.evaluate_simple_condition(condition, exit_code, stdout, stderr, debug_callback, current_task_success)
         
         # For complex conditions with boolean operators, we need to parse them
         # This is a simplified implementation that handles basic cases
@@ -198,7 +198,7 @@ class ConditionEvaluator:
         condition = condition.strip()
         if condition.upper().startswith('NOT '):
             inner_condition = condition[4:].strip()
-            result = not ConditionEvaluator.evaluate_simple_condition(inner_condition, exit_code, stdout, stderr, debug_callback)
+            result = not ConditionEvaluator.evaluate_simple_condition(inner_condition, exit_code, stdout, stderr, debug_callback, current_task_success)
             if debug_callback:
                 debug_callback(f"NOT condition '{inner_condition}' evaluated to: {result}")
             return result
@@ -208,7 +208,7 @@ class ConditionEvaluator:
             parts = re.split(r'\s+AND\s+', condition, flags=re.IGNORECASE)
             results = []
             for part in parts:
-                part_result = ConditionEvaluator.evaluate_simple_condition(part.strip(), exit_code, stdout, stderr, debug_callback)
+                part_result = ConditionEvaluator.evaluate_simple_condition(part.strip(), exit_code, stdout, stderr, debug_callback, current_task_success)
                 results.append(part_result)
                 if debug_callback:
                     debug_callback(f"AND part '{part.strip()}' evaluated to: {part_result}")
@@ -222,7 +222,7 @@ class ConditionEvaluator:
             parts = re.split(r'\s+OR\s+', condition, flags=re.IGNORECASE)
             results = []
             for part in parts:
-                part_result = ConditionEvaluator.evaluate_simple_condition(part.strip(), exit_code, stdout, stderr, debug_callback)
+                part_result = ConditionEvaluator.evaluate_simple_condition(part.strip(), exit_code, stdout, stderr, debug_callback, current_task_success)
                 results.append(part_result)
                 if debug_callback:
                     debug_callback(f"OR part '{part.strip()}' evaluated to: {part_result}")
@@ -236,7 +236,7 @@ class ConditionEvaluator:
             parts = condition.split('|')
             results = []
             for part in parts:
-                part_result = ConditionEvaluator.evaluate_simple_condition(part.strip(), exit_code, stdout, stderr, debug_callback)
+                part_result = ConditionEvaluator.evaluate_simple_condition(part.strip(), exit_code, stdout, stderr, debug_callback, current_task_success)
                 results.append(part_result)
                 if debug_callback:
                     debug_callback(f"OR (|) part '{part.strip()}' evaluated to: {part_result}")
@@ -250,7 +250,7 @@ class ConditionEvaluator:
             parts = condition.split('&')
             results = []
             for part in parts:
-                part_result = ConditionEvaluator.evaluate_simple_condition(part.strip(), exit_code, stdout, stderr, debug_callback)
+                part_result = ConditionEvaluator.evaluate_simple_condition(part.strip(), exit_code, stdout, stderr, debug_callback, current_task_success)
                 results.append(part_result)
                 if debug_callback:
                     debug_callback(f"AND (&) part '{part.strip()}' evaluated to: {part_result}")
@@ -260,10 +260,10 @@ class ConditionEvaluator:
             return result
         
         # If no boolean operators found, treat as simple condition
-        return ConditionEvaluator.evaluate_simple_condition(condition, exit_code, stdout, stderr, debug_callback)
+        return ConditionEvaluator.evaluate_simple_condition(condition, exit_code, stdout, stderr, debug_callback, current_task_success)
 
     @staticmethod
-    def evaluate_simple_condition(condition, exit_code, stdout, stderr, debug_callback=None):
+    def evaluate_simple_condition(condition, exit_code, stdout, stderr, debug_callback=None, current_task_success=None):
         """Evaluate a simple condition without boolean operators."""
         condition = condition.strip()
         
@@ -290,6 +290,18 @@ class ConditionEvaluator:
                     debug_callback(f"Invalid exit code condition '{condition}', treating as False")
                 return False
         
+        # Check for success condition - use the current task success value
+        if condition == "success":
+            if current_task_success is not None:
+                if debug_callback:
+                    debug_callback(f"Success condition: {current_task_success}")
+                return current_task_success
+            else:
+                # If no success value provided, default to exit_code == 0
+                success_value = (exit_code == 0)
+                if debug_callback:
+                    debug_callback(f"Success condition (default): {success_value}")
+                return success_value
         
         # Check for stdout/stderr conditions (legacy support maintained)
         if condition.startswith('stdout'):

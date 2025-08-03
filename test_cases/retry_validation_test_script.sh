@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Test configuration
-VALIDATOR_SCRIPT="./task_validator.py"
+VALIDATOR_SCRIPT="../task_validator.py"
 TEST_FILE="comprehensive_retry_validation_test.txt"
 LOG_FILE="retry_validation_test.log"
 

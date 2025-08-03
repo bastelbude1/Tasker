@@ -3,11 +3,22 @@
 # SIMPLE RETRY LOGIC TEST RUNNER - NO FORK BOMB
 # Simplified version to avoid infinite loops
 # NO complex pattern matching that could cause hangs
+# Usage: ./simple_retry_test_runner.sh [tasker|tasker_orig]
 
 set -e
 
-# Configuration
-TASKER_SCRIPT="./tasker.py"
+# Determine which tasker script to use
+TASKER_VERSION=${1:-tasker}
+if [ "$TASKER_VERSION" = "tasker_orig" ]; then
+    TASKER_SCRIPT="../tasker_orig.py"
+elif [ "$TASKER_VERSION" = "tasker" ]; then
+    TASKER_SCRIPT="../tasker.py"
+else
+    echo "Usage: $0 [tasker|tasker_orig]"
+    echo "  tasker      - Use refactored tasker.py (default)"
+    echo "  tasker_orig - Use original tasker_orig.py"
+    exit 1
+fi
 TEST_FILE="comprehensive_retry_test_case.txt"
 LOG_DIR="./test_logs"
 TIMESTAMP=$(date +%d%b%y_%H%M%S)

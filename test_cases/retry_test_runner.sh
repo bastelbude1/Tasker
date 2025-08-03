@@ -3,11 +3,22 @@
 # RETRY LOGIC TEST RUNNER
 # Automated test runner for the retry functionality
 # Validates that retry logic works correctly for parallel tasks
+# Usage: ./retry_test_runner.sh [tasker|tasker_orig]
 
 set -e
 
-# Configuration
-TASKER_SCRIPT="./tasker.py"
+# Determine which tasker script to use
+TASKER_VERSION=${1:-tasker}
+if [ "$TASKER_VERSION" = "tasker_orig" ]; then
+    TASKER_SCRIPT="../tasker_orig.py"
+elif [ "$TASKER_VERSION" = "tasker" ]; then
+    TASKER_SCRIPT="../tasker.py"
+else
+    echo "Usage: $0 [tasker|tasker_orig]"
+    echo "  tasker      - Use refactored tasker.py (default)"
+    echo "  tasker_orig - Use original tasker_orig.py"
+    exit 1
+fi
 TEST_FILE="retry_logic_test_case.txt"
 LOG_DIR="./test_logs"
 TIMESTAMP=$(date +%d%b%y_%H%M%S)

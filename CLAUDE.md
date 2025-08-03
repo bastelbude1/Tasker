@@ -18,6 +18,69 @@
 - Preserve all existing functionality during refactoring
 - Test thoroughly after each change
 
+### **CRITICAL: 1:1 Code Copy Policy**
+- **ALWAYS copy code 1:1** from `tasker.py` into the corresponding module
+- **MINIMIZE changes** to only what is absolutely necessary for the module move:
+  - Convert instance methods to static methods
+  - Change `self.method()` calls to parameter passing
+  - Update `self.debug_log` to `debug_callback` parameter
+  - Update `self.log` to `log_callback` parameter
+- **NEVER modify logic, conditions, or algorithms** during the move
+- **Use `tasker_orig.py` for verification** - compare outputs after each phase
+- **If behavior differs from original**, revert and copy 1:1 again
+
+### **MANDATORY: Verification Testing Protocol**
+**BEFORE pushing any code changes, ALWAYS perform this verification:**
+
+1. **Reset test state files:**
+   ```bash
+   rm -f ../.toggle_value ../.my_counter
+   ```
+
+2. **Test multiple test cases with both versions:**
+   ```bash
+   # Test with original
+   ./tasker_orig.py test_cases/example_task.txt -r -d
+   
+   # Reset state and test with refactored
+   rm -f ../.toggle_value ../.my_counter
+   ./tasker.py test_cases/example_task.txt -r -d
+   ```
+
+3. **Compare outputs systematically:**
+   - **Test ALL .txt files in test_cases/ directory** (no exceptions)
+   - **Test ALL .sh scripts in test_cases/ directory** with both tasker versions:
+     ```bash
+     # In test_cases/ directory:
+     ./script_name.sh tasker_orig  # Test with original
+     ./script_name.sh tasker       # Test with refactored
+     # Exception: retry_validation_test_script.sh (only tests task_validator.py)
+     ```
+   - **Use comprehensive test script:**
+     ```bash
+     cd test_cases/
+     ./run_all_verification_tests.sh  # Tests ALL .txt and .sh files automatically
+     ```
+   - Reset state files between each test
+   - Use `-r -d` flags for detailed output comparison
+
+4. **Acceptable differences:**
+   - ✅ **ONLY acceptable:** Additional debug lines in `tasker.py` that don't exist in `tasker_orig.py`
+   - ✅ **ONLY acceptable:** Extra debug output like `DEBUG: SUCCESS: Task execution completed...`
+   - ✅ **ONLY acceptable:** Minor formatting differences in debug output
+   - ✅ **ONLY acceptable:** More detailed exit codes (e.g., 20 for validation failure, 14 for conditional execution failure vs 1 for generic failure)
+   - ❌ **NOT acceptable:** Any difference in task execution flow, conditions, or results
+
+5. **Verification success criteria:**
+   - All test cases produce functionally identical results
+   - Same workflow logic and task execution paths
+   - Same condition evaluations (TRUE/FALSE results)
+   - Same stdout/stderr content from tasks
+   - Same workflow completion status
+   - **Note:** `tasker.py` may have additional debug output and more detailed exit codes - these improvements are acceptable
+
+**If ANY functional differences are found:** Revert changes and copy 1:1 from `tasker_orig.py`
+
 ### Communication Style
 - Provide detailed explanations of reasoning
 - Present multiple solution options when applicable
@@ -183,22 +246,27 @@ tasker/
 - [x] Updated imports and exports
 - [x] Committed to git (commit: 5f3b643)
 
-### 🔄 Phase 2: Condition Evaluation (NEXT)
-- [ ] Create `tasker/core/condition_evaluator.py`
-- [ ] Extract condition evaluation methods:
-  - `replace_variables()`
-  - `evaluate_condition()`
-  - `evaluate_simple_condition()`
-  - `evaluate_operator_comparison()`
-  - `split_output()`
+### ✅ Phase 2: Condition Evaluation (COMPLETED)
+- [x] Created `tasker/core/condition_evaluator.py`
+- [x] Extracted condition evaluation methods (1:1 copy from `tasker_orig.py`):
+  - `replace_variables()` - Variable replacement with @VARIABLE@ syntax
+  - `evaluate_condition()` - Complex condition evaluation with boolean operators
+  - `evaluate_simple_condition()` - Simple condition evaluation (copied 1:1 from lines 1339-1418)
+  - `evaluate_operator_comparison()` - Comparison operators (=, !=, ~, !~, <, >, etc.)
+  - `split_output()` - Output splitting by delimiter (restored original format)
+- [x] **CRITICAL FIX:** Copied stdout/stderr condition logic 1:1 from `tasker_orig.py`
+- [x] Verified with comprehensive testing - functional behavior matches `tasker_orig.py` exactly (with acceptable additional debug output)
 
-### 🔄 Phase 3: Host Validation
-- [ ] Create `tasker/validation/host_validator.py`
-- [ ] Extract host validation methods:
-  - `resolve_hostname()`
-  - `check_host_alive()`
-  - `check_exec_connection()`
-  - `validate_hosts()`
+### ✅ Phase 3: Host Validation (COMPLETED)
+- [x] Created `tasker/validation/host_validator.py`
+- [x] Extracted host validation methods (1:1 copy):
+  - `validate_hosts()` - Main host validation with connectivity tests
+  - `resolve_hostname()` - DNS resolution validation
+  - `check_host_alive()` - Ping connectivity test
+  - `check_exec_connection()` - Execution type connection testing
+- [x] Converted to static methods with minimal parameter changes only
+- [x] Updated `tasker.py` to use `HostValidator.validate_hosts()`
+- [x] **VERIFIED:** Comprehensive testing completed - functional behavior matches `tasker_orig.py` exactly (with acceptable additional debug output)
 
 ### 🔄 Phase 4: Task Validation Integration
 - [ ] Create `tasker/validation/task_validator_integration.py`
@@ -228,11 +296,13 @@ tasker/
 
 ## Migration Strategy
 
-- Refactor incrementally, one module at a time
-- Maintain full functionality at each step
-- Test thoroughly after each phase
-- Update imports and dependencies as modules are created
-- Preserve all existing command-line interfaces and behavior
+- **Refactor incrementally**, one module at a time
+- **Copy code 1:1** from `tasker.py` with minimal changes for module conversion
+- **Maintain full functionality** at each step
+- **Test thoroughly after each phase** using the **Mandatory Verification Testing Protocol**
+- **Update imports and dependencies** as modules are created
+- **Preserve all existing command-line interfaces and behavior**
+- **Use `tasker_orig.py` as reference** - if outputs differ, revert and copy 1:1 again
 
 ## Files to be Kept Unchanged
 

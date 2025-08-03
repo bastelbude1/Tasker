@@ -39,16 +39,13 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # Import from our library package
 from tasker.core.utilities import (
     sanitize_filename,
-    get_log_directory,
-    ExitCodes,
-    ExitHandler,
-    convert_value,
-    convert_to_number,
-    sanitize_for_tsv
+    get_log_directory
 )
-from tasker.core.condition_evaluator import ConditionEvaluator
-from tasker.validation.host_validator import HostValidator
-from tasker.validation.task_validator_integration import TaskValidatorIntegration
+
+try:
+   from task_validator import TaskValidator
+except ImportError:
+   TaskValidator = None  # Handle the case where task_validator isn't available
 
 
 class TaskExecutor:
@@ -346,7 +343,7 @@ class TaskExecutor:
                     self.final_command = f"{self.final_command} [GRACEFUL_SHUTDOWN_{signal_info}]"
         
             self.cleanup()
-            ExitHandler.exit_with_code(ExitCodes.SIGNAL_INTERRUPT, "Task execution interrupted by signal", self.debug)
+            sys.exit(130)
 
     def __del__(self):
         if hasattr(self, 'log_file') and self.log_file:
@@ -548,6 +545,10 @@ class TaskExecutor:
         status = "SUCCESS" if self.final_success else "FAILURE"
         log_file = os.path.basename(getattr(self, 'log_file_path', 'unknown.log'))
     
+        def sanitize_for_tsv(value):
+            if value is None:
+                return "N/A"
+            return str(value).replace('\t', ' ').replace('\n', ' ').replace('\r', '')
     
         fields = [
             timestamp,
@@ -604,15 +605,53 @@ class TaskExecutor:
     
     def validate_tasks(self):
         """Validate the task file using TaskValidator."""
-        return TaskValidatorIntegration.validate_tasks(
-            self.task_file, self.log, self.debug_log
-        )
+        if TaskValidator is None:
+            self.log("Warning: TaskValidator not available. Skipping validation.")
+            return True
+
+        self.log(f"# Validating task file: {self.task_file}")
+
+        try:
+            # Create a validator instance
+            validator = TaskValidator(self.task_file)
+
+            # Run validation
+            if validator.parse_file():
+                validator.validate_tasks()
+
+            # Get validation results
+            has_errors = len(validator.errors) > 0
+
+            # Log validation results
+            if has_errors:
+                self.log("# Task validation FAILED.")
+                for error in validator.errors:
+                    self.debug_log(f"# ERROR: {error}")
+
+                # Also log warnings
+                if validator.warnings:
+                    for warning in validator.warnings:
+                        self.debug_log(f"# WARNING: {warning}")
+                return False
+
+            else:
+                self.log("# Task validation passed successfully.")
+                # Log any warningsa
+
+                if validator.warnings:
+                    for warning in validator.warnings:
+                        self.debug_log(f"# WARNING: {warning}")
+                return True
+
+        except Exception as e:
+            self.log(f"Error during task validation: {str(e)}")
+            return False
 
     def parse_task_file(self):
         """Parse the task file and extract global variables and task definitions."""
         if not os.path.exists(self.task_file):
             self.log(f"Error: Task file '{self.task_file}' not found.")
-            ExitHandler.exit_with_code(ExitCodes.TASK_FILE_NOT_FOUND, f"Task file '{self.task_file}' not found", self.debug)
+            sys.exit(1)
             
         with open(self.task_file, 'r') as f:
             lines = f.readlines()
@@ -725,15 +764,76 @@ class TaskExecutor:
 
     def validate_task_dependencies(self):
         """Validate that task dependencies can be resolved given the execution flow."""
-        return TaskValidatorIntegration.validate_task_dependencies(
-            self.tasks, self.log
-        )
+        dependency_issues = []
+        pattern = r'@(\d+)_(stdout|stderr|success)@'
+        
+        for task_id, task in self.tasks.items():
+            # Check condition dependencies
+            if 'condition' in task:
+                matches = re.findall(pattern, task['condition'])
+                for dep_task_str, _ in matches:
+                    dep_task = int(dep_task_str)
+                    if dep_task not in self.tasks:
+                        dependency_issues.append(f"Task {task_id} condition references non-existent Task {dep_task}")
+                    elif dep_task >= task_id:
+                        dependency_issues.append(f"Task {task_id} condition references future Task {dep_task} - this may cause execution issues")
+            
+            # Check argument dependencies
+            if 'arguments' in task:
+                matches = re.findall(pattern, task['arguments'])
+                for dep_task_str, _ in matches:
+                    dep_task = int(dep_task_str)
+                    if dep_task not in self.tasks:
+                        dependency_issues.append(f"Task {task_id} arguments reference non-existent Task {dep_task}")
+                    elif dep_task >= task_id:
+                        dependency_issues.append(f"Task {task_id} arguments reference future Task {dep_task} - this may cause execution issues")
+        
+        if dependency_issues:
+            self.log("# WARNING: Task dependency issues detected:")
+            for issue in dependency_issues:
+                self.log(f"#   {issue}")
+            self.log("# These may cause tasks to be skipped due to unresolved dependencies.")
+            return False
+        else:
+            self.log("# Task dependency validation passed.")
+            return True
 
     def validate_start_from_task(self, start_task_id):
         """Validate and provide warnings for --start-from usage."""
-        return TaskValidatorIntegration.validate_start_from_task(
-            start_task_id, self.tasks, self.log
-        )
+        if start_task_id not in self.tasks:
+            available_tasks = sorted(self.tasks.keys())
+            self.log(f"ERROR: Start task {start_task_id} not found")
+            self.log(f"Available task IDs: {available_tasks}")
+            return False
+    
+        # Check for potential dependency issues
+        dependency_warnings = []
+        pattern = r'@(\d+)_(stdout|stderr|success)@'
+    
+        for task_id in range(start_task_id, max(self.tasks.keys()) + 1):
+            if task_id not in self.tasks:
+                continue
+            
+            task = self.tasks[task_id]
+            for field_name, field_value in task.items():
+                if isinstance(field_value, str):
+                    matches = re.findall(pattern, field_value)
+                    for dep_task_str, dep_type in matches:
+                        dep_task = int(dep_task_str)
+                        if dep_task < start_task_id:
+                            dependency_warnings.append(
+                                f"Task {task_id} field '{field_name}' references @{dep_task}_{dep_type}@ (before start point)"
+                            )
+    
+        if dependency_warnings:
+            self.log(f"# DEPENDENCY WARNINGS for --start-from {start_task_id}:")
+            for warning in dependency_warnings[:5]:  # Limit to first 5 warnings
+                self.log(f"#   {warning}")
+            if len(dependency_warnings) > 5:
+                self.log(f"#   ... and {len(dependency_warnings) - 5} more dependency issues")
+            self.log(f"# These tasks may fail due to unresolved variable references")
+        
+        return True
     def show_execution_plan(self):
         """Show execution plan and get user confirmation."""
         self.log("=== EXECUTION PLAN ===")
@@ -772,7 +872,7 @@ class TaskExecutor:
         # User confirmation
         if not self._get_user_confirmation():
             self.log("Execution cancelled by user.")
-            ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Execution cancelled by user", self.debug)
+            sys.exit(0)
 
     def _get_user_confirmation(self):
         """Get user confirmation to proceed."""
@@ -789,23 +889,650 @@ class TaskExecutor:
                 print("\nExecution cancelled by user.")
                 return False
 
+    def validate_hosts(self, check_connectivity=False):
+        """
+        Validate all unique hostnames in the task list.
+        Returns a dict mapping original hostnames to validated FQDNs if successfull,
+        or False if validation failed.
+        """
 
+        # Collect unique hostnames from all tasks
+        hostnames = set()
+        host_exec_types = {}
 
+        for task in self.tasks.values():  # Changed to iterate over values
+            if 'hostname' in task and task['hostname']:
+                # Replace variables in hostname before validation
+                hostname, resolved = self.replace_variables(task['hostname'])
+                if resolved and hostname:  # Only validate if variable resolution succeeded
+                    hostnames.add(hostname)
 
+                    # Track execution type for each hostname
+                    if 'exec' in task:
+                        exec_type = task['exec']
+                    elif self.exec_type:
+                        exec_type = self.exec_type
+                    elif 'TASK_EXECUTOR_TYPE' in os.environ:
+                        exec_type = os.environ['TASK_EXECUTOR_TYPE']
+                    else:
+                        exec_type = self.default_exec_type
+
+                    # Store the exec type for this hostname
+                    if hostname not in host_exec_types:
+                        host_exec_types[hostname] = set()
+
+                    host_exec_types[hostname].add(exec_type)
+
+        # Check each unique hostname
+        failed_hosts = []
+        validated_hosts = {} # will map original hostnames to validated FQDNs
+
+        self.log(f"# Validating {len(hostnames)} unique hostnames...")
+
+        for hostname in hostnames:
+            # Try to resolve hostname
+            resolved, resolved_name = self.resolve_hostname(hostname)
+
+            if not resolved:
+                #self.debug_log(f"WARNING: Could not resolve hostname '{hostname}'")
+                failed_hosts.append(hostname)
+                continue
+
+            # Store the resolved hostname
+            validated_hosts[hostname] = resolved_name
+
+            # Check if host is alive
+            if not self.check_host_alive(resolved_name):
+                self.debug_log(f"WARNING: Host '{hostname}' ({resolved_name}) is not reachable")
+                failed_hosts.append(hostname)
+                continue
+
+            # If requested, check specific connection type
+            if check_connectivity:
+                conn_failed = False
+                for exec_type in host_exec_types[hostname]:
+                    if exec_type in ['pbrun', 'p7s', 'wwrs']:
+                        if not self.check_exec_connection(exec_type, resolved_name):
+                            self.debug_log(f"WARNING: Connection test failed for {exec_type} to '{hostname}' ({resolved_name})")
+                            failed_hosts.append(f"{hostname} ({exec_type})")
+                            conn_failed = True
+
+                # if any connection test failed, don't consider this as an validated host 
+                if conn_failed:
+                    if hostname in validated_hosts:
+                        del validated_hosts[hostname]
+
+        # If any hosts failed validation, abort execution
+        if failed_hosts:
+            self.log(f"# ERROR: {len(failed_hosts)} host(s) failed validation: {', '.join(failed_hosts)}")
+            return False
+
+        self.log(f"# All {len(hostnames)} hosts passed successfully.")
+        return validated_hosts
+
+    def resolve_hostname(self, hostname):
+        """Try to resolve hostname using DNS or op mc_isac if needed."""
+        try:
+            # Try direct DNS resolution first
+            socket.gethostbyname(hostname)
+            self.debug_log(f"Hostname '{hostname}' resolved via DNS")
+            return True, hostname
+
+        except socket.gaierror:
+            self.debug_log(f"Hostname '{hostname}' not found in DNS, trying op mc_isac")
+            try:
+                # Try using op mc_isac to get FQDN
+                with subprocess.Popen(
+                    ["op", "mc_isac", "-f", hostname],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True
+                ) as process:
+
+                    try:
+                        stdout, stderr = process.communicate(timeout=10)
+                        if process.returncode == 0 and stdout.strip():
+                            fqdn = stdout.strip()
+                            self.debug_log(f"Resolved '{hostname}' to FQDN '{fqdn}' using op mc_isac")
+                            return True, fqdn
+                        else:
+                            self.debug_log(f"ERROR: Could not resolve hostname '{hostname}' with op mc_isac: {stderr.strip()}")
+                            return False, hostname
+
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        stdout, stderr = process.communicate()
+                        self.debug_log(f"ERROR: op mc_isac for hostname '{hostname}' timed out")
+                        return False, hostname
+
+            except Exception as e:
+                self.debug_log(f"ERROR: op mc_isac for hostname '{hostname}' failed: {str(e)}")
+                return False, hostname
+
+    def check_host_alive(self, hostname):
+        """Check if host is reachable via ping."""
+        try:
+            # Use ping to check if host is alive
+            if sys.platform == "win32":
+                # Windows ping command
+                ping_cmd = ["ping", "-n", "1", "-w", "1000", hostname]
+            else:
+                # Linux/Unix ping command
+                ping_cmd = ["ping", "-c", "1", "-W", "1", hostname]
+
+            with subprocess.Popen(
+                ping_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            ) as process:
+
+                try:
+                    stdout, stderr = process.communicate(timeout=5)
+                    self.debug_log(f"ping '{hostname}' is alive")
+                    return process.returncode == 0
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    stdout, stderr = process.communicate()
+                    self.debug_log(f"ERROR: ping to '{hostname}' timed out")
+                    return False
+
+        except Exception as e:
+            self.debug_log(f"ERROR: pinging host '{hostname}': {str(e)}")
+            return False
+
+    def check_exec_connection(self, exec_type, hostname):
+        """Test connectivity for specific execution type."""
+        if exec_type not in ['pbrun', 'p7s', 'wwrs']:
+            # For local or unknown exec types, just return True
+            return True
+
+        # Build command array based on exec_type
+        if exec_type == 'pbrun':
+            cmd_array = ["pbrun", "-n", "-h", hostname, "pbtest"]
+        elif exec_type == 'p7s':
+            cmd_array = ["p7s", hostname, "pbtest"]
+        elif exec_type == 'wwrs':
+            cmd_array = ["wwrs_clir", hostname, "wwrs_test"]
+
+        self.debug_log(f"Testing {exec_type} connection to '{hostname}' with: {' '.join(cmd_array)}")
+
+        try:
+            with subprocess.Popen(
+                cmd_array,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            ) as process:
+
+                try:
+                    stdout, stderr = process.communicate(timeout=10)
+                    success = process.returncode == 0 and "OK" in stdout
+                    if success:
+                        self.debug_log(f"{exec_type} connection to '{hostname}' successful")
+                    else:
+                        self.debug_log(f"ERROR: {exec_type} connection to '{hostname}' failed: {stderr.strip()}")
+                    return success
+
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    stdout, stderr = process.communicate()
+                    self.debug_log(f"ERROR: {exec_type} connection to '{hostname}' timed out")
+                    return False
+
+        except Exception as e:
+            self.debug_log(f"ERROR: testing {exec_type} connection to '{hostname}': {str(e)}")
+            return False
 
     # ===== 4. VARIABLE & CONDITION PROCESSING =====
+    
+    def replace_variables(self, text):
+        """
+        Replace variables like @task_number_stdout@, @task_number_stderr@, @task_number_success@, 
+        or @GLOBAL_VAR@ with actual values. Supports variable chaining like @PATH@/@SUBDIR@.
+        CRITICAL: Thread-safe access to task_results.
+        """
+        if not text:
+            return text, True  # Return text and resolution status
+            
+        # Enhanced pattern to match both task result variables and global variables
+        task_result_pattern = r'@(\d+)_(stdout|stderr|success)@'
+        global_var_pattern = r'@([a-zA-Z_][a-zA-Z0-9_]*)@'
+        
+        replaced_text = text
+        unresolved_variables = []
+        original_text = text
+        
+        # First, handle task result variables (@X_stdout@, etc.) - THREAD SAFE
+        task_matches = re.findall(task_result_pattern, text)
+        for task_num, output_type in task_matches:
+            task_num = int(task_num)
+            
+            # CRITICAL: Thread-safe access to task_results
+            task_result = self.get_task_result(task_num)
+            if task_result is not None:
+                if output_type == 'stdout':
+                    value = task_result.get('stdout', '').rstrip('\n')
+                elif output_type == 'stderr':
+                    value = task_result.get('stderr', '').rstrip('\n')
+                elif output_type == 'success':
+                    value = str(task_result.get('success', False))
+                else:
+                    value = ''
+                pattern_replace = f"@{task_num}_{output_type}@"
+                replaced_text = replaced_text.replace(pattern_replace, value)
+                self.debug_log(f"Replaced task variable {pattern_replace} with '{value}'")
+            else:
+                unresolved_variables.append(f"@{task_num}_{output_type}@")
+        
+        # Second, handle global variables (@VARIABLE_NAME@) - supports chaining
+        global_matches = re.findall(global_var_pattern, replaced_text)
+        for var_name in global_matches:
+            # Skip if this is a task result variable (already handled above)
+            if re.match(r'\d+_(stdout|stderr|success)$', var_name):
+                continue
+                
+            # Check if it's a defined global variable
+            if var_name in self.global_vars:
+                value = self.global_vars[var_name]
+                pattern_replace = f"@{var_name}@"
+                replaced_text = replaced_text.replace(pattern_replace, value)
+                self.debug_log(f"Replaced global variable @{var_name}@ with '{value}'")
+            else:
+                unresolved_variables.append(f"@{var_name}@")
+        
+        # Handle nested global variables (variable chaining support)
+        # Keep replacing until no more global variables are found or max iterations reached
+        max_iterations = 10  # Prevent infinite loops
+        iteration = 0
+        
+        while iteration < max_iterations:
+            iteration += 1
+            nested_matches = re.findall(global_var_pattern, replaced_text)
+            nested_replaced = False
+            
+            for var_name in nested_matches:
+                # Skip task result variables
+                if re.match(r'\d+_(stdout|stderr|success)$', var_name):
+                    continue
+                    
+                if var_name in self.global_vars:
+                    value = self.global_vars[var_name]
+                    pattern_replace = f"@{var_name}@"
+                    replaced_text = replaced_text.replace(pattern_replace, value)
+                    self.debug_log(f"Replaced nested global variable @{var_name}@ with '{value}' (iteration {iteration})")
+                    nested_replaced = True
+            
+            # If no nested replacements were made, we're done
+            if not nested_replaced:
+                break
+        
+        # Final check for any remaining unresolved variables
+        final_matches = re.findall(global_var_pattern, replaced_text)
+        for var_name in final_matches:
+            if not re.match(r'\d+_(stdout|stderr|success)$', var_name):
+                if var_name not in self.global_vars:
+                    unresolved_variables.append(f"@{var_name}@")
+                
+        if unresolved_variables:
+            self.debug_log(f"Unresolved variables in '{original_text}': {', '.join(set(unresolved_variables))}")
+            return replaced_text, False
+        
+        if original_text != replaced_text:
+            self.debug_log(f"Variable replacement: '{original_text}' -> '{replaced_text}'")
+        
+        return replaced_text, True
 
+    def split_output(self, output, split_spec):
+        """Split the output based on the specification and return the selected part."""
+        if not output or not split_spec:
+            return output
+            
+        parts = split_spec.split(',')
+        if len(parts) != 2:
+            self.log(f"Warning: Invalid split specification '{split_spec}'. Format should be 'delimiter,index'")
+            return output
+            
+        delimiter, index = parts
+        try:
+            index = int(index)
+        except ValueError:
+            self.log(f"Warning: Invalid index '{index}' in split specification.")
+            return output
+            
+        # Convert delimiter keywords to actual regex patterns
+        delimiter_map = {
+            'space': r'\s+',
+            'tab': r'\t+',
+            'semi': ';',
+            'comma': ',',
+            'pipe': '|'
+        }
+        
+        delimiter_pattern = delimiter_map.get(delimiter, delimiter)
+        
+        # Split the output
+        split_output = re.split(delimiter_pattern, output)
+        
+        # Return the selected part if index is valid
+        if 0 <= index < len(split_output):
+            return split_output[index]
+        else:
+            self.log(f"Warning: Index {index} out of bounds for split output (0-{len(split_output)-1}).")
+            return output
 
+    def evaluate_condition(self, condition, exit_code, stdout, stderr):
+        """Evaluate a complex condition expression."""
+        # Replace variables and check resolution status
+        original_condition = condition
+        condition, all_resolved = self.replace_variables(condition)
+        
+        if original_condition != condition:
+            self.debug_log(f"Condition after variable replacement: '{original_condition}' -> '{condition}'")
 
+        # If not all variables could be resolved, condition fails
+        if not all_resolved:
+            self.debug_log(f"Condition '{original_condition}' contains unresolved variables, evaluating to FALSE")
+            return False
 
+        # First, handle parentheses by recursively evaluating what's inside
+        while '(' in condition and ')' in condition:
+            # Find the innermost parentheses
+            start = condition.rfind('(')
+            end = condition.find(')', start)
+            if start == -1 or end == -1:
+                self.log(f"Warning: Mismatched parentheses in condition: {condition}")
+                return False
+           
+            inner_expr = condition[start+1:end]
+            self.debug_log(f"Evaluating sub-condition: ({inner_expr})")
+            inner_result = self.evaluate_condition(inner_expr, exit_code, stdout, stderr)     
+            # Replace the parentheses expression with its result
+            condition = condition[:start] + ("true" if inner_result else "false") + condition[end+1:]
+            self.debug_log(f"Condition after substitution: {condition}")
+        
+        # Now we have a flat condition with only AND/OR operators
+        # Clean up boolean string literals from variable replacement
+        condition = condition.replace('True', 'true').replace('False', 'false')
 
+        # Handle strings like "exit_0&true" or "exit_0&false"
+        if '&true' in condition:
+            condition = condition.replace('&true', '')
+        if '&false' in condition:
+            return False
+        if '|true' in condition:
+            return True
+        if '|false' in condition:
+            condition = condition.replace('|false', '')
+
+        # If we now have just "true" or "false"
+        if condition == "true":
+            return True
+        if condition == "false":
+            return False
+        
+        # Split by OR first
+        or_parts = condition.split('|')
+        for or_part in or_parts:
+            # All AND parts must be true for this OR part to be true
+            and_parts = or_part.split('&')
+            if all(self.evaluate_simple_condition(p.strip(), exit_code, stdout, stderr) for p in and_parts):
+                return True
+                
+        # If we get here, no OR part was fully true
+        return False
+
+    def evaluate_simple_condition(self, condition, exit_code, stdout, stderr):
+        """Evaluate a simple condition without AND/OR/parentheses."""
+
+        # Check for boolean literals (handle both Python and string representations)
+        if condition.lower() in ["true"]:
+            self.debug_log(f"Simple condition '{condition}' evaluated to True")
+            return True
+        if condition.lower() in ["false"]:
+            self.debug_log(f"Simple condition '{condition}' evaluated to False")
+            return False
+
+        # Check for unresolved variable references - these should not reach here anymore
+        # but we keep it as a safety net
+        if re.match(r'@\d+_(stdout|stderr|success)@', condition):
+            self.debug_log(f"WARNING: Unresolved variable reference '{condition}' in simple condition - this should have been caught earlier")
+            return False
+
+        # Check for success condition - use the stored success value for current task - THREAD SAFE
+        if condition == "success":
+            task_id = self.current_task
+            task_result = self.get_task_result(task_id)
+            if task_result is not None and 'success' in task_result:
+                success_value = task_result['success']
+                self.debug_log(f"Success condition for task {task_id}: {success_value}")
+                return success_value
+            else:
+                # If no success value stored yet, default to exit_code == 0
+                success_value = (exit_code == 0)
+                self.debug_log(f"Success condition (default) for task {task_id}: {success_value}")
+                return success_value
+
+        # Check for exit code condition
+        if condition.startswith('exit_'):
+            try:
+                expected_exit = int(condition[5:])
+                result = exit_code == expected_exit
+                self.debug_log(f"Exit code condition '{condition}': expected {expected_exit}, actual {exit_code}, result {result}")
+                return result
+            except ValueError:
+                self.log(f"Warning: Invalid exit code in condition: {condition}")
+                return False
+
+        # NEW: Enhanced operator support - but only for non-stdout/stderr conditions
+        # Order matters: check longer operators first (!=, !~, <=, >=)
+        if not condition.startswith(('stdout', 'stderr')):
+            operators = ['!=', '!~', '<=', '>=', '=', '~', '<', '>']
+            for op in operators:
+                if op in condition:
+                    parts = condition.split(op, 1)
+                    if len(parts) == 2:
+                        left = parts[0].strip()
+                        right = parts[1].strip()
+                        return self.evaluate_operator_comparison(left, op, right, exit_code, stdout, stderr)
+        
+        # Check for stdout/stderr conditions (legacy support maintained)
+        if condition.startswith('stdout'):
+            stdout_stripped = stdout.rstrip('\n')
+            if condition == 'stdout~':
+                result = stdout.strip() == ''
+                self.debug_log(f"Stdout empty check: '{stdout.strip()}' is {'empty' if result else 'not empty'}")
+                return result
+            elif condition == 'stdout!~':
+                result = stdout.strip() != ''
+                self.debug_log(f"Stdout not empty check: '{stdout.strip()}' is {'not empty' if result else 'empty'}")
+                return result
+            elif '~' in condition:
+                pattern = condition.split('~', 1)[1]
+                if condition.startswith('stdout!~'):
+                    result = pattern not in stdout
+                    self.debug_log(f"Stdout pattern not match: '{pattern}' is {'absent' if result else 'present'} in '{stdout_stripped}'")
+                    return result
+                else:
+                    result = pattern in stdout
+                    self.debug_log(f"Stdout pattern match: '{pattern}' is {'present' if result else 'absent'} in '{stdout_stripped}'")
+                    return result
+            elif '_count' in condition:
+                try:
+                    count_parts = condition.split('_count')
+                    operator = count_parts[1][0] if len(count_parts[1]) > 0 else '='
+                    expected_count = int(count_parts[1][1:])
+                    actual_count = len(stdout.strip().split('\n'))
+                    
+                    if operator == '=':
+                        return actual_count == expected_count
+                    elif operator == '<':
+                        return actual_count < expected_count
+                    elif operator == '>':
+                        return actual_count > expected_count
+                    else:
+                        self.log(f"Warning: Invalid operator in count condition: {condition}")
+                        return False
+                except (ValueError, IndexError):
+                    self.log(f"Warning: Invalid count specification in condition: {condition}")
+                    return False
+
+        # Check for stderr conditions 
+        if condition.startswith('stderr'):
+            stderr_stripped = stderr.rstrip('\n')
+            if condition == 'stderr~':
+                result = stderr.strip() == ''
+                self.debug_log(f"Stderr empty check: '{stderr.strip()}' is {'empty' if result else 'not empty'}")
+                return result
+            elif condition == 'stderr!~':
+                result = stderr.strip() != ''
+                self.debug_log(f"Stderr not empty check: '{stderr.strip()}' is {'not empty' if result else 'empty'}")
+                return result
+            elif '~' in condition:
+                pattern = condition.split('~', 1)[1]
+                if condition.startswith('stderr!~'):
+                    result = pattern not in stderr
+                    self.debug_log(f"Stderr pattern not match: '{pattern}' is {'absent' if result else 'present'} in '{stderr_stripped}'")
+                    return result
+                else:
+                    result = pattern in stderr
+                    self.debug_log(f"Stderr pattern match: '{pattern}' is {'present' if result else 'absent'} in '{stderr_stripped}'")
+                    return result
+            elif '_count' in condition:
+                try:
+                    count_parts = condition.split('_count')
+                    operator = count_parts[1][0] if len(count_parts[1]) > 0 else '='
+                    expected_count = int(count_parts[1][1:])
+                    actual_count = len(stderr.strip().split('\n'))
+                    
+                    if operator == '=':
+                        return actual_count == expected_count
+                    elif operator == '<':
+                        return actual_count < expected_count
+                    elif operator == '>':
+                        return actual_count > expected_count
+                    else:
+                        self.log(f"Warning: Invalid operator in count condition: {condition}")
+                        return False
+                except (ValueError, IndexError):
+                    self.log(f"Warning: Invalid count specification in condition: {condition}")
+                    return False
+        
+        # If we get here, the condition wasn't recognized
+        self.log(f"Warning: Unrecognized condition: '{condition}'")
+        return False
+
+    def evaluate_operator_comparison(self, left, operator, right, exit_code, stdout, stderr):
+        """Evaluate a comparison between two values using the specified operator."""
+        
+        # Handle special cases for stdout/stderr as left operand
+        if left == 'stdout':
+            left_val = stdout.rstrip('\n')
+        elif left == 'stderr':
+            left_val = stderr.rstrip('\n')
+        else:
+            left_val = self.convert_value(left)
+        
+        right_val = self.convert_value(right)
+        
+        try:
+            if operator == '=':
+                result = left_val == right_val
+                self.debug_log(f"Equality comparison '{left}' = '{right}': {left_val} == {right_val} = {result}")
+                return result
+            elif operator == '!=':
+                result = left_val != right_val
+                self.debug_log(f"Inequality comparison '{left}' != '{right}': {left_val} != {right_val} = {result}")
+                return result
+            elif operator == '~':
+                # Contains check (string operation)
+                left_str = str(left_val)
+                right_str = str(right_val)
+                result = right_str in left_str
+                self.debug_log(f"Contains comparison '{left}' ~ '{right}': '{right_str}' in '{left_str}' = {result}")
+                return result
+            elif operator == '!~':
+                # Not contains check (string operation)
+                left_str = str(left_val)
+                right_str = str(right_val)
+                result = right_str not in left_str
+                self.debug_log(f"Not-contains comparison '{left}' !~ '{right}': '{right_str}' not in '{left_str}' = {result}")
+                return result
+            elif operator in ['<', '<=', '>', '>=']:
+                # Numerical comparisons
+                left_num = self.convert_to_number(left_val)
+                right_num = self.convert_to_number(right_val)
+                
+                if left_num is None or right_num is None:
+                    self.debug_log(f"Non-numerical comparison '{left}' {operator} '{right}' - treating as False")
+                    return False
+                
+                if operator == '<':
+                    result = left_num < right_num
+                elif operator == '<=':
+                    result = left_num <= right_num
+                elif operator == '>':
+                    result = left_num > right_num
+                elif operator == '>=':
+                    result = left_num >= right_num
+                
+                self.debug_log(f"Numerical comparison '{left}' {operator} '{right}': {left_num} {operator} {right_num} = {result}")
+                return result
+                
+        except Exception as e:
+            self.debug_log(f"Error in operator comparison '{left}' {operator} '{right}': {str(e)}")
+            return False
+        
+        return False
+
+    def convert_value(self, value):
+        """Convert a string value to its appropriate type (bool, int, float, or string)."""
+        if not isinstance(value, str):
+            return value
+            
+        value = value.strip()
+        
+        # Boolean conversion
+        if value.lower() == 'true':
+            return True
+        elif value.lower() == 'false':
+            return False
+        
+        # Numerical conversion
+        try:
+            # Try integer first
+            if '.' not in value:
+                return int(value)
+            else:
+                return float(value)
+        except ValueError:
+            pass
+        
+        # Return as string
+        return value
+
+    def convert_to_number(self, value):
+        """Convert a value to a number, returning None if not possible."""
+        try:
+            if isinstance(value, (int, float)):
+                return value
+            elif isinstance(value, str):
+                if '.' in value:
+                    return float(value)
+                else:
+                    return int(value)
+            elif isinstance(value, bool):
+                return int(value)  # True -> 1, False -> 0
+        except ValueError:
+            pass
+        return None
 
     # ===== 5. TASK EXECUTION HELPERS =====
     
     def determine_execution_type(self, task, task_display_id, loop_display=""):
         """Determine which execution type to use, respecting priority order."""
         if 'exec' in task:
-            exec_type, _ = ConditionEvaluator.replace_variables(task['exec'], self.global_vars, self.task_results, self.debug_log)
+            exec_type, _ = self.replace_variables(task['exec'])
             self.log(f"Task {task_display_id}{loop_display}: Using execution type from task: {exec_type}")
         elif self.exec_type:
             exec_type = self.exec_type
@@ -841,7 +1568,7 @@ class TaskExecutor:
 
         # Get timeout from task (highest priority)
         if 'timeout' in task:
-            timeout_str, resolved = ConditionEvaluator.replace_variables(task['timeout'], self.global_vars, self.task_results, self.debug_log)
+            timeout_str, resolved = self.replace_variables(task['timeout'])
             if resolved:
                 try:
                     timeout = int(timeout_str)
@@ -897,8 +1624,8 @@ class TaskExecutor:
             
         try:
             # Resolve global variables first before int conversion
-            retry_count_str, _ = ConditionEvaluator.replace_variables(parallel_task.get('retry_count', '1'), self.global_vars, self.task_results, self.debug_log)
-            retry_delay_str, _ = ConditionEvaluator.replace_variables(parallel_task.get('retry_delay', '1'), self.global_vars, self.task_results, self.debug_log)
+            retry_count_str, _ = self.replace_variables(parallel_task.get('retry_count', '1'))
+            retry_delay_str, _ = self.replace_variables(parallel_task.get('retry_delay', '1'))
         
             retry_count = int(retry_count_str)
             retry_delay = int(retry_delay_str)
@@ -941,11 +1668,11 @@ class TaskExecutor:
     def _handle_output_splitting(self, task, task_display_id, stdout, stderr):
         """Handle stdout/stderr splitting if specified in task."""
         if 'stdout_split' in task:
-            stdout = ConditionEvaluator.split_output(stdout, task['stdout_split'])
+            stdout = self.split_output(stdout, task['stdout_split'])
             self.log(f"Task {task_display_id}: Split STDOUT: '{stdout}'")
             
         if 'stderr_split' in task:
-            stderr = ConditionEvaluator.split_output(stderr, task['stderr_split'])
+            stderr = self.split_output(stderr, task['stderr_split'])
             self.log(f"Task {task_display_id}: Split STDERR: '{stderr}'")
         
         return stdout, stderr
@@ -958,7 +1685,7 @@ class TaskExecutor:
         try:
             # 1. Pre-execution condition check
             if 'condition' in task:
-                condition_result = ConditionEvaluator.evaluate_condition(task['condition'], 0, "", "", self.global_vars, self.task_results, self.debug_log)
+                condition_result = self.evaluate_condition(task['condition'], 0, "", "")
                 if not condition_result:
                     self.log(f"Task {task_display_id}: Condition '{task['condition']}' evaluated to FALSE, skipping task")
                     return {
@@ -984,9 +1711,9 @@ class TaskExecutor:
                 }
             
             # 3. Variable replacement
-            hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', ''), self.global_vars, self.task_results, self.debug_log)
-            command, _ = ConditionEvaluator.replace_variables(task.get('command', ''), self.global_vars, self.task_results, self.debug_log)
-            arguments, _ = ConditionEvaluator.replace_variables(task.get('arguments', ''), self.global_vars, self.task_results, self.debug_log)
+            hostname, _ = self.replace_variables(task.get('hostname', ''))
+            command, _ = self.replace_variables(task.get('command', ''))
+            arguments, _ = self.replace_variables(task.get('arguments', ''))
 
             # 4. Execution type and command building
             exec_type = self.determine_execution_type(task, task_display_id)
@@ -997,7 +1724,7 @@ class TaskExecutor:
             if master_timeout is not None:
                 task_timeout = master_timeout
                 if 'timeout' in task:
-                    individual_timeout_str, _ = ConditionEvaluator.replace_variables(task['timeout'], self.global_vars, self.task_results, self.debug_log)
+                    individual_timeout_str, _ = self.replace_variables(task['timeout'])
                     try:
                         individual_timeout = int(individual_timeout_str)
                         if individual_timeout != master_timeout:
@@ -1050,7 +1777,7 @@ class TaskExecutor:
             
             # 8. Success evaluation
             if 'success' in task:
-                success_result = ConditionEvaluator.evaluate_condition(task['success'], exit_code, stdout, stderr, self.global_vars, self.task_results, self.debug_log)
+                success_result = self.evaluate_condition(task['success'], exit_code, stdout, stderr)
                 self.log(f"Task {task_display_id}: Success condition '{task['success']}' evaluated to: {success_result}")
             else:
                 success_result = (exit_code == 0) 
@@ -1059,7 +1786,7 @@ class TaskExecutor:
             # 9. Sleep handling
             if 'sleep' in task:
                 try:
-                    sleep_time_str, resolved = ConditionEvaluator.replace_variables(task['sleep'], self.global_vars, self.task_results, self.debug_log)
+                    sleep_time_str, resolved = self.replace_variables(task['sleep'])
                     if resolved:
                         sleep_time = float(sleep_time_str)
                         self.log(f"Task {task_display_id}: Sleeping for {sleep_time} seconds")
@@ -1284,7 +2011,7 @@ class TaskExecutor:
         aggregated_stdout = f"Parallel execution summary: {successful_count} successful, {failed_count} failed"
         aggregated_stderr = f"Failed tasks: {[r['task_id'] for r in results if not r['success']]}" if failed_count > 0 else ""
         
-        result = ConditionEvaluator.evaluate_condition(next_condition, aggregated_exit_code, aggregated_stdout, aggregated_stderr, self.global_vars, self.task_results, self.debug_log)
+        result = self.evaluate_condition(next_condition, aggregated_exit_code, aggregated_stdout, aggregated_stderr)
         self.log(f"Task {task_id}: Complex condition '{next_condition}' evaluated to: {result}")
         return result
 
@@ -1309,7 +2036,7 @@ class TaskExecutor:
             aggregated_stdout = f"Parallel execution summary: {successful_count} successful, {failed_count} failed"
             aggregated_stderr = ""
             
-            loop_break_result = ConditionEvaluator.evaluate_condition(parallel_task['loop_break'], aggregated_exit_code, aggregated_stdout, aggregated_stderr, self.global_vars, self.task_results, self.debug_log)
+            loop_break_result = self.evaluate_condition(parallel_task['loop_break'], aggregated_exit_code, aggregated_stdout, aggregated_stderr)
             if loop_break_result:
                 self.log(f"Task {task_id}: Breaking loop - condition '{parallel_task['loop_break']}' satisfied")
                 del self.loop_counter[task_id]
@@ -1666,7 +2393,7 @@ class TaskExecutor:
         aggregated_stdout = f"Conditional execution: {successful_count} successful, {failed_count} failed"
         aggregated_stderr = f"Failed tasks: {[r['task_id'] for r in results if not r['success']]}" if failed_count > 0 else ""
         
-        result = ConditionEvaluator.evaluate_condition(next_condition, aggregated_exit_code, aggregated_stdout, aggregated_stderr, self.global_vars, self.task_results, self.debug_log)
+        result = self.evaluate_condition(next_condition, aggregated_exit_code, aggregated_stdout, aggregated_stderr)
         self.log(f"Task {task_id}: Complex condition '{next_condition}' evaluated to: {result}")
         return result
 
@@ -1684,7 +2411,7 @@ class TaskExecutor:
             return task_id + 1
         
         # Evaluate condition using existing logic
-        condition_result = ConditionEvaluator.evaluate_condition(condition, 0, "", "", self.global_vars, self.task_results, self.debug_log)
+        condition_result = self.evaluate_condition(condition, 0, "", "")
         branch = "TRUE" if condition_result else "FALSE"
         
         self.log(f"Task {task_id}: Conditional condition '{condition}' evaluated to {branch}")
@@ -1858,7 +2585,7 @@ class TaskExecutor:
 
     # ===== 8. NORMAL TASK EXECUTION =====
     
-    def check_next_condition(self, task, exit_code, stdout, stderr, current_task_success=None):
+    def check_next_condition(self, task, exit_code, stdout, stderr):
         """
         Check if the 'next' condition is satisfied.
         Return True if we should proceed to the next task, False otherwise.
@@ -1900,7 +2627,7 @@ class TaskExecutor:
 
             # Check loop_break condition first (if exists)
             if 'loop_break' in task:
-                loop_break_result = ConditionEvaluator.evaluate_condition(task['loop_break'], exit_code, stdout, stderr, self.global_vars, self.task_results, self.debug_log)
+                loop_break_result = self.evaluate_condition(task['loop_break'], exit_code, stdout, stderr)
                 if loop_break_result:
                     # Break condition met
                     self.log(f"Task {task_id}: Breaking loop - loop_break condition '{task['loop_break']}' satisfied")
@@ -1924,7 +2651,7 @@ class TaskExecutor:
                 return True  # Proceed to next task
         
         # Parse complex conditions
-        result = ConditionEvaluator.evaluate_condition(next_condition, exit_code, stdout, stderr, self.global_vars, self.task_results, self.debug_log, current_task_success)
+        result = self.evaluate_condition(next_condition, exit_code, stdout, stderr)
         if result:
             self.log(f"Task {task_id}{loop_display}: 'next' condition evaluated to TRUE, proceeding to next task")
         else:
@@ -1955,7 +2682,7 @@ class TaskExecutor:
 
         # Check pre-execution condition
         if 'condition' in task:
-            condition_result = ConditionEvaluator.evaluate_condition(task['condition'], 0, "", "", self.global_vars, self.task_results, self.debug_log)
+            condition_result = self.evaluate_condition(task['condition'], 0, "", "")
             if not condition_result:
                 self.log(f"Task {task_id}{loop_display}: Condition '{task['condition']}' evaluated to FALSE, skipping task")
                 # CRITICAL: Store results for skipped task - THREAD SAFE
@@ -1971,8 +2698,8 @@ class TaskExecutor:
 
         # Update tracking for summary
         self.final_task_id = task_id
-        self.final_hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', 'N/A'), self.global_vars, self.task_results, self.debug_log)
-        self.final_command, _ = ConditionEvaluator.replace_variables(task.get('command', 'N/A'), self.global_vars, self.task_results, self.debug_log)
+        self.final_hostname, _ = self.replace_variables(task.get('hostname', 'N/A'))
+        self.final_command, _ = self.replace_variables(task.get('command', 'N/A'))
         
         # Check if this is a return task
         if 'return' in task:
@@ -1982,27 +2709,19 @@ class TaskExecutor:
                 self.log(f"Task {task_id}{loop_display}: Returning with exit code {return_code}")
                 self.final_exit_code = return_code
                 self.final_success = (return_code == 0)  # Consider success if return code is 0
-                
-                # Add completion message before immediate exit
-                if return_code == 0:
-                    self.log("SUCCESS: Task execution completed successfully with return code 0")
-                else:
-                    self.log(f"FAILURE: Task execution failed with return code {return_code}")
-                
                 self.cleanup() # clean up resources before exit
-                ExitHandler.exit_with_code(return_code, f"Task execution completed with return code {return_code}", self.debug)
+                sys.exit(return_code)
             except ValueError:
                 self.log(f"Task {task_id}{loop_display}: Invalid return code '{task['return']}'. Exiting with code 1.")
-                self.final_exit_code = 1  # Use 1 for invalid return codes (this is correct)
+                self.final_exit_code = return_code
                 self.final_success = False
-                self.log("FAILURE: Task execution failed with invalid return code")
                 self.cleanup() # clean up resources before exit
-                ExitHandler.exit_with_code(ExitCodes.INVALID_ARGUMENT, "Invalid return code specified", self.debug)
+                sys.exit(1)
         
         # Replace variables in command and arguments
-        hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', ''), self.global_vars, self.task_results, self.debug_log)
-        command, _ = ConditionEvaluator.replace_variables(task.get('command', ''), self.global_vars, self.task_results, self.debug_log)
-        arguments, _ = ConditionEvaluator.replace_variables(task.get('arguments', ''), self.global_vars, self.task_results, self.debug_log)
+        hostname, _ = self.replace_variables(task.get('hostname', ''))
+        command, _ = self.replace_variables(task.get('command', ''))
+        arguments, _ = self.replace_variables(task.get('arguments', ''))
 
         # Determine execution type (from task, args, env, or default)
         exec_type = self.determine_execution_type(task, task_id, loop_display)
@@ -2064,17 +2783,17 @@ class TaskExecutor:
         # Process output splitting if specified
         if 'stdout_split' in task:
             original_stdout = stdout
-            stdout = ConditionEvaluator.split_output(stdout, task['stdout_split'])
+            stdout = self.split_output(stdout, task['stdout_split'])
             self.log(f"Task {task_id}{loop_display}: Split STDOUT: '{stdout_stripped}' -> '{stdout}'")
             
         if 'stderr_split' in task:
             original_stderr = stderr
-            stderr = ConditionEvaluator.split_output(stderr, task['stderr_split'])
+            stderr = self.split_output(stderr, task['stderr_split'])
             self.log(f"Task {task_id}{loop_display}: Split STDERR: '{stderr_stripped}' -> '{stderr}'")
         
         # Evaluate success condition if defined, otherwise default to exit_code == 0
         if 'success' in task:
-            success_result = ConditionEvaluator.evaluate_condition(task['success'], exit_code, stdout, stderr, self.global_vars, self.task_results, self.debug_log)
+            success_result = self.evaluate_condition(task['success'], exit_code, stdout, stderr)
             self.log(f"Task {task_id}{loop_display}: Success condition '{task['success']}' evaluated to: {success_result}")
         else:
             success_result = (exit_code == 0)
@@ -2091,7 +2810,7 @@ class TaskExecutor:
         # Check if we should sleep before the next task
         if 'sleep' in task:
             try:
-                sleep_time_str, resolved = ConditionEvaluator.replace_variables(task['sleep'], self.global_vars, self.task_results, self.debug_log)
+                sleep_time_str, resolved = self.replace_variables(task['sleep'])
                 if resolved:
                     sleep_time = float(sleep_time_str)
                     self.log(f"Task {task_id}{loop_display}: Sleeping for {sleep_time} seconds")
@@ -2103,7 +2822,7 @@ class TaskExecutor:
                 self.log(f"Task {task_id}{loop_display}: Invalid sleep time '{task['sleep']}'. Continuing.")
         
         # Check the 'next' condition to determine if we should continue
-        should_continue = self.check_next_condition(task, exit_code, stdout, stderr, success_result)
+        should_continue = self.check_next_condition(task, exit_code, stdout, stderr)
 
         # Update final exit code
         self.final_exit_code = exit_code
@@ -2164,7 +2883,7 @@ class TaskExecutor:
         if not self.skip_task_validation:
             validation_successful = self.validate_tasks()
             if not validation_successful:
-                ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Task file validation failed", self.debug)
+                sys.exit(1)
             # Add shutdown check after potentially long operation
             self._check_shutdown()
         else:
@@ -2173,7 +2892,7 @@ class TaskExecutor:
         # NEW: Additional validation for --start-from
         if self.start_from_task is not None:
             if not self.validate_start_from_task(self.start_from_task):
-                ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, "Start-from task validation failed", self.debug)
+                sys.exit(1)
             # Optional: Add shutdown check after start-from validation
             self._check_shutdown()
 
@@ -2187,20 +2906,11 @@ class TaskExecutor:
 
         # NEW: Conditional host validation
         if not self.skip_host_validation:
-            validated_hosts = HostValidator.validate_hosts(
-                self.tasks, 
-                self.global_vars, 
-                self.task_results, 
-                self.exec_type, 
-                self.default_exec_type, 
-                self.connection_test, 
-                self.debug_log, 
-                self.log
-            )
+            validated_hosts = self.validate_hosts(self.connection_test)
             if validated_hosts is False:
                 self.debug_log("Host validation failed. Exiting.")
                 self.cleanup()
-                ExitHandler.exit_with_code(ExitCodes.HOST_VALIDATION_FAILED, "Host validation failed", self.debug)
+                sys.exit(2)
             # Check for shutdown after host validation
             self._check_shutdown()
         else:
@@ -2212,7 +2922,7 @@ class TaskExecutor:
         # For resume mode, collect hostnames but don't validate them
         for task in self.tasks.values():
             if 'hostname' in task and task['hostname']:
-                hostname, resolved = ConditionEvaluator.replace_variables(task['hostname'], self.global_vars, self.task_results, self.debug_log)
+                hostname, resolved = self.replace_variables(task['hostname'])
                 if resolved and hostname:
                     validated_hosts[hostname] = hostname  # Use as-is without validation
 
@@ -2239,7 +2949,7 @@ class TaskExecutor:
                 self.log(f"ERROR: Start task {start_task_id} not found in task definitions")
                 available_tasks = sorted(self.tasks.keys())
                 self.log(f"Available tasks: {available_tasks}")
-                ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, f"Start task {start_task_id} not found", self.debug)
+                sys.exit(1)
             
             # NEW: Warning about unresolved dependencies
             if start_task_id > 0:
@@ -2277,22 +2987,22 @@ class TaskExecutor:
                 if 'next' in last_task and last_task['next'] == 'never':
                     # This is a successful completion with 'next=never'
                     self.log("SUCCESS: Task execution completed successfully with 'next=never'.")
-                    ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully with 'next=never'", self.debug)
+                    sys.exit(0)
                 else:
                     # This is a failure due to a 'next' condition
                     self.log("FAILED: Task execution stopped: 'next' condition was not satisfied.")
-                    ExitHandler.exit_with_code(ExitCodes.CONDITIONAL_EXECUTION_FAILED, "Task execution stopped: 'next' condition was not satisfied", self.debug)
+                    sys.exit(1)
             else:
                 self.log("FAILED: Task execution stopped for an unknown reason.")
-                ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for an unknown reason", self.debug)
+                sys.exit(1)
         elif next_task_id not in self.tasks:  # Changed condition
             # We've successfully completed all tasks or reached a non-existent task
             self.log("SUCCESS: Task execution completed - reached end of defined tasks.")
-            ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully", self.debug)
+            sys.exit(0)
         else:
             # Something else stopped execution
             self.log("FAILED: Task execution stopped for an unknown reason.")
-            ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for unknown reason", self.debug)
+            sys.exit(1)
 
 
 # ===== 10. ENTRY POINT =====

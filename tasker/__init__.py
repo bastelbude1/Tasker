@@ -12,6 +12,7 @@ from .core.utilities import (
 
 # Validation components
 from .validation.host_validator import HostValidator
+from .validation.task_validator_integration import TaskValidatorIntegration
 
 # Public API
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     'sanitize_filename',
     'get_log_directory',
     # Validation
-    'HostValidator'
+    'HostValidator',
+    'TaskValidatorIntegration'
 ]

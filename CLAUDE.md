@@ -1,5 +1,30 @@
 # Tasker Refactoring Plan
 
+## Claude Code Instructions
+
+### Working Methodology
+- **Break down large tasks** into smaller, manageable sub-steps
+- **Ask clarifying questions** when requirements are unclear or ambiguous
+- **Think step-by-step** and explain reasoning for complex problems
+- **Propose solution approaches** and ask for approval before implementation
+- **Use concrete examples** to demonstrate solution approaches with pros and cons
+- **Explain the thought process** in feedback and highlight problems and opportunities
+- **Consult the knowledge repository** (this CLAUDE.md file) regularly to consider all information
+
+### Code Quality Guidelines
+- **NO inline comments** when creating test cases
+- **Use ASCII-safe character set only** (avoid special Unicode characters)
+- Maintain existing code style and conventions
+- Preserve all existing functionality during refactoring
+- Test thoroughly after each change
+
+### Communication Style
+- Provide detailed explanations of reasoning
+- Present multiple solution options when applicable
+- Highlight potential risks and benefits
+- Ask for confirmation on major architectural decisions
+- Document decisions and rationale
+
 ## Overview
 This document outlines the planned refactoring of the tasker.py module into a well-structured package to improve maintainability, modularity, and code organization.
 

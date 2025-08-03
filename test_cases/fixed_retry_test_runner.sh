@@ -110,7 +110,11 @@ count_config_warnings() {
     retry_delay_warnings=$(grep -c "unknown field.*retry_delay" "$log_file" 2>/dev/null || echo "0")
     retry_failed_warnings=$(grep -c "unknown field.*retry_failed" "$log_file" 2>/dev/null || echo "0")
     
-    # Sum them up using arithmetic expansion
+    # Strip whitespace and sum them up using arithmetic expansion
+    retry_count_warnings=$(echo "$retry_count_warnings" | tr -d '\n\r ')
+    retry_delay_warnings=$(echo "$retry_delay_warnings" | tr -d '\n\r ')
+    retry_failed_warnings=$(echo "$retry_failed_warnings" | tr -d '\n\r ')
+    
     echo $((retry_count_warnings + retry_delay_warnings + retry_failed_warnings))
 }
 
@@ -271,6 +275,11 @@ echo -e "${YELLOW}Test 5: Overall Execution Analysis${NC}"
 parallel_executions=$(count_parallel_with_retry "$TEST1_LOG")
 retry_messages=$(grep -c "RETRY.*failed task" "$TEST1_LOG" 2>/dev/null || echo "0")
 success_after_retry=$(grep -c "SUCCESS after.*retry attempt" "$TEST1_LOG" 2>/dev/null || echo "0")
+
+# Strip whitespace from all variables
+parallel_executions=$(echo "$parallel_executions" | tr -d '\n\r ')
+retry_messages=$(echo "$retry_messages" | tr -d '\n\r ')
+success_after_retry=$(echo "$success_after_retry" | tr -d '\n\r ')
 
 echo -e "  ${BLUE}ℹ️${NC} Parallel executions with retry: $parallel_executions"
 echo -e "  ${BLUE}ℹ️${NC} Retry messages found: $retry_messages"  

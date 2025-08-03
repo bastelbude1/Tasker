@@ -55,10 +55,25 @@ from tasker.executors.conditional_executor import ConditionalExecutor
 
 
 class TaskExecutor:
+    """
+    TASKER 2.0 - Modular Task Execution System
+    
+    A sophisticated task execution framework that orchestrates sequential, parallel,
+    and conditional task execution with comprehensive logging and validation.
+    
+    Architecture:
+    - Core orchestration and lifecycle management (this class)
+    - Delegated execution to specialized modules in tasker/ package
+    - Thread-safe logging and result storage
+    - Comprehensive validation and error handling
+    """
     
     # ===== 1. CLASS LIFECYCLE =====
     
-    def __init__(self, task_file, log_dir='logs', dry_run=True, debug=False, exec_type=None, timeout=30, connection_test=False, project = None, start_from_task=None, skip_task_validation=False, skip_host_validation=False, show_plan=False):
+    def __init__(self, task_file, log_dir='logs', dry_run=True, debug=False, 
+                 exec_type=None, timeout=30, connection_test=False, project=None, 
+                 start_from_task=None, skip_task_validation=False, 
+                 skip_host_validation=False, show_plan=False):
         self.task_file = task_file
         self.log_dir = log_dir
         self.dry_run = dry_run
@@ -72,41 +87,40 @@ class TaskExecutor:
         self.default_exec_type = 'pbrun'  # Default execution type
         self.timeout = timeout # Default timeout from command line
         self.connection_test = connection_test # Whether to make an connection test
-        self.project = sanitize_filename(project) if project else None # get an sanitized project name if one exists
+        self.project = sanitize_filename(project) if project else None  # Sanitized project name
         self.show_plan = show_plan
 
-        # NEW: Configurable timeouts for cleanup and summary operations
+        # Configurable timeouts for cleanup and summary operations
         self.summary_lock_timeout = 20  # Seconds for summary file locking (longer for shared files)
         # Adjust timeouts based on system load or user preference
         if os.environ.get('TASK_EXECUTOR_HIGH_LOAD'):
             self.summary_lock_timeout = 45
 
-        # NEW: Global variables support
+        # Global variables support
         self.global_vars = {}  # Store global variables
         
-        # NEW: Thread safety for logging
+        # Thread safety for logging
         self.log_lock = threading.Lock()
         
-        # CRITICAL: Thread safety for task results
+        # Thread safety for task results
         self.task_results_lock = threading.Lock()
         
-        # NEW: Simple shutdown handling
+        # Graceful shutdown handling
         self._shutdown_requested = False
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
 
-        # NEW: Track current parallel task for improved logging
+        # Track current parallel/conditional tasks for improved logging
         self._current_parallel_task = None
         
-        # NEW: Track current conditional task for improved logging
         self._current_conditional_task = None
 
-        # NEW: Resume capability parameters
+        # Resume capability parameters
         self.start_from_task = start_from_task
         self.skip_task_validation = skip_task_validation
         self.skip_host_validation = skip_host_validation
 
-        # NEW: Log resume information
+        # Log resume information
         if self.start_from_task is not None:
             self.log(f"# Resume mode: Starting from Task {self.start_from_task}")
             if self.skip_task_validation:
@@ -165,7 +179,7 @@ class TaskExecutor:
         else:
             self.summary_log = None
 
-        # Start loggin task exec
+        # Start logging task execution
         self.log(f"=== Task Execution Start: {timestamp} ===")
         self.log(f"# Task file: {task_file}")
 
@@ -179,7 +193,8 @@ class TaskExecutor:
             exec_type = self.default_exec_type
             self.log(f"# Execution type (Default): {exec_type} (if not overriden by task)")
 
-        if dry_run: self.log(f"# Dry run mode")
+        if dry_run: 
+            self.log(f"# Dry run mode")
         self.log(f"# Default timeout: {timeout} [s]")
     
         # Only add minimal warning for shared summary files
@@ -203,22 +218,21 @@ class TaskExecutor:
                     pass  # Ignore test errors
 
     def __enter__(self):
-        """Enable use of the class as a context manager"""
-        return self;
+        """Enable use of the class as a context manager."""
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Clean up ressources when exiting the context manager"""
+        """Clean up resources when exiting the context manager."""
         self.cleanup()
-        return False # Dont suppress exceptions
+        return False  # Don't suppress exceptions
 
-    # --- cleanup
     def cleanup(self):
         """
-        Timeout-geschuetzter cleanup().
+        Timeout-protected cleanup with comprehensive error handling.
         """
         cleanup_errors = []
 
-        # PHASE 1: Log file cleanup (unveraendert)
+        # PHASE 1: Log file cleanup
         if hasattr(self, 'log_file'):
             try:
                 if self.log_file and not self.log_file.closed:
@@ -249,7 +263,7 @@ class TaskExecutor:
             finally:
                 self.log_file = None
 
-        # PHASE 2: FIXED - Timeout-geschuetzter Summary log cleanup
+        # PHASE 2: Timeout-protected summary log cleanup
         if hasattr(self, 'summary_log'):
             try:
                 # Step 1: TIMEOUT-GESCHueTZTER final summary write
@@ -270,7 +284,7 @@ class TaskExecutor:
                         else:
                             cleanup_errors.append(f"Final summary write failed: {write_error}")
         
-                # Step 2: Summary file close (unveraendert)
+                # Step 2: Summary file close
                 if self.summary_log:
                     try:
                         with self.log_lock:
@@ -299,7 +313,7 @@ class TaskExecutor:
             finally:
                 self.summary_log = None
 
-        # PHASE 3: Error reporting (unveraendert)
+        # PHASE 3: Error reporting
         if cleanup_errors:
             error_count = len(cleanup_errors)
             error_summary = f"Cleanup completed with {error_count} error(s):"
@@ -309,20 +323,20 @@ class TaskExecutor:
             self._safe_error_report(error_summary)
 
     def _signal_handler(self, signum, frame):
-        """Simple signal handler - just set flag and log"""
+        """Signal handler for graceful shutdown."""
         signal_name = "SIGINT" if signum == signal.SIGINT else "SIGTERM"
         self.log(f"Received {signal_name}, initiating graceful shutdown...")
         self._shutdown_requested = True
-    
+        
         # Store signal info for summary
         self._shutdown_signal = signal_name
 
     def _check_shutdown(self):
-        """Check if shutdown was requested - call at natural breakpoints"""
+        """Check if shutdown was requested - call at natural breakpoints."""
         if self._shutdown_requested:
             self.log("Graceful shutdown requested - stopping execution")
-        
-            # NEW: Ensure summary gets written for graceful shutdown
+            
+            # Ensure summary gets written for graceful shutdown
             if hasattr(self, 'summary_log') and self.summary_log:
                 # Set final task info for graceful shutdown if not already set
                 if self.final_task_id is None:
@@ -337,30 +351,33 @@ class TaskExecutor:
                         self.final_task_id = 'interrupted'
                         self.final_hostname = 'graceful_shutdown'
                         self.final_command = 'interrupted_by_signal'
-            
+                
                 # Set graceful shutdown specific values
                 self.final_exit_code = 130  # Standard SIGINT exit code
                 self.final_success = False  # Graceful shutdown is not success
-            
+                
                 # Add graceful shutdown marker to command for clarity
-                if not 'graceful_shutdown' in str(self.final_command):
+                if 'graceful_shutdown' not in str(self.final_command):
                     # Add signal info to command if available
                     signal_info = getattr(self, '_shutdown_signal', 'SIGNAL')
                     self.final_command = f"{self.final_command} [GRACEFUL_SHUTDOWN_{signal_info}]"
-        
+            
             self.cleanup()
-            ExitHandler.exit_with_code(ExitCodes.SIGNAL_INTERRUPT, "Task execution interrupted by signal", self.debug)
+            ExitHandler.exit_with_code(ExitCodes.SIGNAL_INTERRUPT, 
+                                     "Task execution interrupted by signal", self.debug)
 
     def __del__(self):
+        """Destructor - ensure log file is closed."""
         if hasattr(self, 'log_file') and self.log_file:
             self.log(f"# Log file: {self.log_file_path}")
-            self.log("=== Task Execution End: {} ===".format(datetime.now().strftime('%d%b%y_%H%M%S')))
+            self.log("=== Task Execution End: {} ===".format(
+                datetime.now().strftime('%d%b%y_%H%M%S')))
             self.log_file.close()
             self.log_file = None
     
     # ===== 2. CORE UTILITIES =====
     
-    # Thread-safe helpers
+    # Thread-safe task result management
     def store_task_result(self, task_id, result):
         """Thread-safe method to store task results."""
         with self.task_results_lock:
@@ -376,13 +393,13 @@ class TaskExecutor:
         with self.task_results_lock:
             return task_id in self.task_results
     
-    # Logging
+    # Logging infrastructure
     def log(self, message):
         """Log a message to the log file and print to console with thread safety."""
         timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
         log_message = f"[{timestamp}] {message}"
-    
-        # NEW: Thread-safe logging with reentrancy protection
+        
+        # Thread-safe logging with reentrancy protection
         with self.log_lock:
             print(log_message)
             if hasattr(self, 'log_file') and self.log_file and not self.log_file.closed:
@@ -393,7 +410,7 @@ class TaskExecutor:
         """Direct logging without acquiring log_lock - for internal use only."""
         timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
         log_message = f"[{timestamp}] {message}"
-    
+        
         # Direct write without lock - caller must ensure thread safety
         print(log_message)
         if hasattr(self, 'log_file') and self.log_file and not self.log_file.closed:
@@ -405,12 +422,12 @@ class TaskExecutor:
         if self.debug:
             self.log(f"DEBUG: {message}")
 
-    # --- write_final_summary -helper
+    # Safe error reporting with multiple fallback channels
 
     def _safe_error_report(self, message, *fallback_channels):
         """Ultra-safe error reporting with multiple fallback channels."""
         reported = False
-    
+        
         # Try each channel in order until one succeeds
         channels = [
             ("direct_log", lambda: self._try_direct_log_write(message)),
@@ -418,7 +435,7 @@ class TaskExecutor:
             ("stdout", lambda: self._try_stdout_write(message)),
             ("file_direct", lambda: self._try_emergency_file_write(message))
         ]
-    
+        
         for channel_name, channel_func in channels:
             try:
                 channel_func()
@@ -426,13 +443,14 @@ class TaskExecutor:
                 break
             except:
                 continue  # Try next channel
-    
+        
         # If absolutely nothing worked, there's nothing more we can do
         if not reported:
             # Last resort: try to create a temp file in /tmp
             try:
                 import tempfile
-                with tempfile.NamedTemporaryFile(mode='w', prefix='tasker_error_', delete=False) as f:
+                with tempfile.NamedTemporaryFile(mode='w', prefix='tasker_error_', 
+                                               delete=False) as f:
                     f.write(f"EMERGENCY ERROR REPORT: {message}\n")
             except:
                 pass  # Truly nothing we can do
@@ -467,18 +485,18 @@ class TaskExecutor:
 
     def _acquire_file_lock_atomically(self, timeout_seconds=5):
         """
-        ATOMARE Lock-Akquisition mit Retry - eliminiert Race Conditions.
-        Produktionstaugliche Loesung mit Retry-Logik.
+        Atomic lock acquisition with retry - eliminates race conditions.
+        Production-ready solution with retry logic.
         """
         try:
-            # Atomare Validierung und Lock-Akquisition in einem Schritt
+            # Atomic validation and lock acquisition in one step
             if (not hasattr(self, 'summary_log') or not self.summary_log or 
                 self.summary_log.closed):
                 return None, False
             
             file_no = self.summary_log.fileno()
         
-            # RETRY-LOOP mit Timeout (wie in der originalen Methode)
+            # Retry loop with timeout
             start_time = time.time()
             while True:
                 try:
@@ -487,24 +505,24 @@ class TaskExecutor:
                 
                 except (OSError, IOError) as e:
                     if e.errno in (errno.EAGAIN, errno.EACCES):
-                        # File ist gesperrt - pruefe Timeout
+                        # File is locked - check timeout
                         elapsed = time.time() - start_time
                         if elapsed >= timeout_seconds:
-                            return None, False  # Timeout erreicht
-                        time.sleep(0.1)  # Kurz warten, dann retry
+                            return None, False  # Timeout reached
+                        time.sleep(0.1)  # Wait briefly, then retry
                         continue
                     else:
-                        # Anderer Fehler (EBADF, etc.) - File Handle ungueltig
+                        # Other error (EBADF, etc.) - file handle invalid
                         return None, False
                 
         except Exception:
-            # Jeder andere Fehler - safe fallback
+            # Any other error - safe fallback
             return None, False
 
     def write_final_summary_with_timeout(self, timeout_seconds=5):
         """
-        Thread-basierter Timeout for cleanup() - vermeidet Signal-Konflikte.
-        Minimale, robuste Losung for Produktionsumgebung.
+        Thread-based timeout for cleanup() - avoids signal conflicts.
+        Minimal, robust solution for production environment.
         """
         import threading
     
@@ -517,36 +535,35 @@ class TaskExecutor:
             except Exception as e:
                 result['error'] = e
     
-        # Starte Write-Operation in separatem Thread  
+        # Start write operation in separate thread
         worker_thread = threading.Thread(target=write_worker, daemon=True)
         worker_thread.start()
-    
-        # Warte mit Timeout
+        
+        # Wait with timeout
         worker_thread.join(timeout=timeout_seconds)
-    
+        
         if worker_thread.is_alive():
-            # Thread lauft noch - Timeout erreicht
+            # Thread still running - timeout reached
             raise TimeoutError(f"write_final_summary timeout after {timeout_seconds}s")
-    
+        
         if result['error']:
-            # Exception im Worker-Thread
+            # Exception in worker thread
             raise result['error']
-    
+        
         if not result['completed']:
-            # Unerwarteter Zustand
+            # Unexpected state
             raise RuntimeError("write_final_summary completed unexpectedly")
 
-    # --- write_final_summary
     def write_final_summary(self):
         """
-        Race-condition-freie Summary Write mit Retry-Logik.
+        Race-condition-free summary write with retry logic.
         """
-        # Schnelle Validierung und Exit
+        # Quick validation and exit
         if (not hasattr(self, 'summary_log') or not self.summary_log or 
             self.final_task_id is None):
             return
     
-        # Message Vorbereitung AUSSERHALB der kritischen Sektion
+        # Message preparation outside critical section
         timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
         status = "SUCCESS" if self.final_success else "FAILURE"
         log_file = os.path.basename(getattr(self, 'log_file_path', 'unknown.log'))
@@ -564,43 +581,43 @@ class TaskExecutor:
         ]
         message = '\t'.join(fields)
     
-        # ATOMARE Lock-Akquisition und Write mit Retry
+        # Atomic lock acquisition and write with retry
         with self.log_lock:
-            # Verwende konfigurierbaren Timeout (wie in der Original-Methode)
+            # Use configurable timeout
             timeout_seconds = getattr(self, 'summary_lock_timeout', 20)
             file_no, lock_acquired = self._acquire_file_lock_atomically(timeout_seconds)
-        
+            
             if not lock_acquired:
-                # Detaillierte Error-Message (wie in Original)
+                # Detailed error message
                 project_name = getattr(self, 'project', 'unknown')
                 raise TimeoutError(
                     f"Could not acquire lock on shared summary file '{project_name}.summary' "
                     f"within {timeout_seconds} seconds. Another tasker instance "
                     f"is currently writing to the summary file."
                 )
-        
+            
             try:
-                # Letzte Validierung nach Lock (Defense in Depth)
+                # Final validation after lock (defense in depth)
                 if self.summary_log.closed:
                     raise ValueError("Summary log unexpectedly closed after lock acquisition")
                 
-                # Atomare Write-Operationen
+                # Atomic write operations
                 self.summary_log.seek(0, 2)  # End of file
                 self.summary_log.write(f"{message}\n")
                 self.summary_log.flush()
-            
-                # Verification (wie in Original)
+                
+                # Verification
                 current_pos = self.summary_log.tell()
                 if current_pos == 0:
                     raise IOError("Write verification failed - file position is 0")
                 
             finally:
-                # GARANTIERTE Lock-Freigabe
+                # Guaranteed lock release
                 if file_no is not None:
                     try:
                         fcntl.flock(file_no, fcntl.LOCK_UN)
                     except Exception:
-                        # Lock wird beim Process-Exit automatisch freigegeben
+                        # Lock will be automatically released on process exit
                         pass
 
     # ===== 3. VALIDATION & SETUP =====
@@ -797,11 +814,18 @@ class TaskExecutor:
 
 
     # ===== 4. VARIABLE & CONDITION PROCESSING =====
-
-
-
-
-
+    #
+    # Variable replacement (@VARIABLE@ syntax) and condition evaluation logic
+    # has been moved to: tasker/core/condition_evaluator.py
+    #
+    # This module provides:
+    # - replace_variables(): Variable replacement with @VARIABLE@ syntax
+    # - evaluate_condition(): Complex condition evaluation with boolean operators
+    # - evaluate_simple_condition(): Simple condition evaluation
+    # - evaluate_operator_comparison(): Comparison operators (=, !=, ~, !~, <, >, etc.)
+    # - split_output(): Output splitting by delimiter
+    #
+    # Usage: All condition processing is now delegated through ConditionEvaluator static methods
 
     # ===== 5. TASK EXECUTION HELPERS =====
     
@@ -948,7 +972,7 @@ class TaskExecutor:
     # ===== 6. PARALLEL TASK EXECUTION =====
     
     def execute_parallel_tasks(self, parallel_task):
-        """Execute multiple tasks in parallel with ENHANCED RETRY LOGIC and IMPROVED LOGGING."""
+        """Execute multiple tasks in parallel with enhanced retry logic and improved logging."""
         return ParallelExecutor.execute_parallel_tasks(parallel_task, self)
 
     def check_parallel_next_condition(self, parallel_task, results):
@@ -960,7 +984,8 @@ class TaskExecutor:
             successful_count = len([r for r in results if r['success']])
             total_count = len(results)
             should_continue = successful_count == total_count
-            self.log(f"Task {task_id}: No 'next' condition, using all_success logic: {successful_count}/{total_count} = {should_continue}")
+            self.log(f"Task {task_id}: No 'next' condition, using all_success logic: "
+                    f"{successful_count}/{total_count} = {should_continue}")
             return should_continue
             
         next_condition = parallel_task['next']
@@ -982,13 +1007,16 @@ class TaskExecutor:
         # Handle backwards compatibility for 'success' - treat as 'all_success'
         if next_condition == 'success':
             self.log(f"Task {task_id}: Legacy 'success' condition treated as 'all_success'")
-            result = ParallelExecutor.evaluate_parallel_next_condition('all_success', results, self.debug_log, self.log)
+            result = ParallelExecutor.evaluate_parallel_next_condition(
+                'all_success', results, self.debug_log, self.log)
             self.log(f"Task {task_id}: Condition 'success' (→ all_success) evaluated to: {result}")
             return result
         
         # Handle parallel-specific conditions (simplified syntax)
-        if next_condition in ['all_success', 'any_success', 'majority_success'] or '=' in next_condition:
-            result = ParallelExecutor.evaluate_parallel_next_condition(next_condition, results, self.debug_log, self.log)
+        parallel_conditions = ['all_success', 'any_success', 'majority_success']
+        if next_condition in parallel_conditions or '=' in next_condition:
+            result = ParallelExecutor.evaluate_parallel_next_condition(
+                next_condition, results, self.debug_log, self.log)
             self.log(f"Task {task_id}: Condition '{next_condition}' evaluated to: {result}")
             return result
         
@@ -998,10 +1026,14 @@ class TaskExecutor:
         failed_count = len([r for r in results if not r['success']])
         
         aggregated_exit_code = 0 if successful_count == len(results) else 1
-        aggregated_stdout = f"Parallel execution summary: {successful_count} successful, {failed_count} failed"
-        aggregated_stderr = f"Failed tasks: {[r['task_id'] for r in results if not r['success']]}" if failed_count > 0 else ""
+        aggregated_stdout = (f"Parallel execution summary: {successful_count} successful, "
+                           f"{failed_count} failed")
+        failed_task_ids = [r['task_id'] for r in results if not r['success']]
+        aggregated_stderr = f"Failed tasks: {failed_task_ids}" if failed_count > 0 else ""
         
-        result = ConditionEvaluator.evaluate_condition(next_condition, aggregated_exit_code, aggregated_stdout, aggregated_stderr, self.global_vars, self.task_results, self.debug_log)
+        result = ConditionEvaluator.evaluate_condition(
+            next_condition, aggregated_exit_code, aggregated_stdout, aggregated_stderr, 
+            self.global_vars, self.task_results, self.debug_log)
         self.log(f"Task {task_id}: Complex condition '{next_condition}' evaluated to: {result}")
         return result
 
@@ -1023,12 +1055,16 @@ class TaskExecutor:
             successful_count = len([r for r in results if r['success']])
             failed_count = len([r for r in results if not r['success']])
             aggregated_exit_code = 0 if successful_count == len(results) else 1
-            aggregated_stdout = f"Parallel execution summary: {successful_count} successful, {failed_count} failed"
+            aggregated_stdout = (f"Parallel execution summary: {successful_count} successful, "
+                               f"{failed_count} failed")
             aggregated_stderr = ""
             
-            loop_break_result = ConditionEvaluator.evaluate_condition(parallel_task['loop_break'], aggregated_exit_code, aggregated_stdout, aggregated_stderr, self.global_vars, self.task_results, self.debug_log)
+            loop_break_result = ConditionEvaluator.evaluate_condition(
+                parallel_task['loop_break'], aggregated_exit_code, aggregated_stdout, 
+                aggregated_stderr, self.global_vars, self.task_results, self.debug_log)
             if loop_break_result:
-                self.log(f"Task {task_id}: Breaking loop - condition '{parallel_task['loop_break']}' satisfied")
+                self.log(f"Task {task_id}: Breaking loop - condition "
+                        f"'{parallel_task['loop_break']}' satisfied")
                 del self.loop_counter[task_id]
                 del self.loop_iterations[task_id]
                 return True
@@ -1037,7 +1073,8 @@ class TaskExecutor:
         self.loop_counter[task_id] -= 1
         
         if self.loop_counter[task_id] >= 0:
-            self.log(f"Task {task_id}: Looping (iteration {self.loop_iterations[task_id]}, {self.loop_counter[task_id]} remaining)")
+            self.log(f"Task {task_id}: Looping (iteration {self.loop_iterations[task_id]}, "
+                    f"{self.loop_counter[task_id]} remaining)")
             return "LOOP"
         else:
             self.log(f"Task {task_id}: Loop complete - max iterations reached")
@@ -1049,7 +1086,7 @@ class TaskExecutor:
         """Execute conditional tasks based on condition evaluation - sequential execution."""
         return ConditionalExecutor.execute_conditional_tasks(conditional_task, self)
 
-    # ===== 8. NORMAL TASK EXECUTION =====
+    # ===== 7. SEQUENTIAL TASK EXECUTION =====
     
     def check_next_condition(self, task, exit_code, stdout, stderr, current_task_success=None):
         """
@@ -1129,7 +1166,7 @@ class TaskExecutor:
         """Execute a single task and return whether to continue to the next task."""
         return SequentialExecutor.execute_task(task, self)
 
-    # ===== 9. MAIN ORCHESTRATION =====
+    # ===== 8. MAIN ORCHESTRATION =====
     
     def run(self):
         """Execute all tasks based on their flow control."""
@@ -1282,27 +1319,46 @@ class TaskExecutor:
             ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for unknown reason", self.debug)
 
 
-# ===== 10. ENTRY POINT =====
+# ===== 9. ENTRY POINT =====
 
 def main():
+    """Main entry point for TASKER 2.0 command-line interface."""
     parser = argparse.ArgumentParser(description='Execute tasks on remote servers.')
-    parser.add_argument('task_file', help='Path to the task file')
-    parser.add_argument('-r', '--run', action='store_true', help='Actually run the commands (not dry run)')
-    parser.add_argument('-l', '--log-dir', default=None, help='Directory to store log files')
-    parser.add_argument('-d', '--debug', action='store_true', help='Enable debug logging')
-    parser.add_argument('-t', '--type', choices=['pbrun', 'p7s', 'local', 'wwrs'], help='Execution type (overridden by task-specific settings)')
-    parser.add_argument('-o', '--timeout', type=int, default=30, help='Default command timeout in seconds (5-1000, default: 30)')
-    parser.add_argument('-c', '--connection-test', action='store_true', help='Check connectivity for pbrun,p7s,wwrs hosts')
-    parser.add_argument('-p', '--project', help='Project name for summary logging')
     
-    # NEW: Resume capability
-    parser.add_argument('--start-from', type=int, metavar='TASK_ID', help='Start execution from specific task ID (resume capability)')
-    # NEW: Granular validation control
-    parser.add_argument('--skip-task-validation', action='store_true', help='Skip task file and dependency validation (faster resume)')
-    parser.add_argument('--skip-host-validation', action='store_true', help='Skip host validation and use hostnames as-is (WARNING: risky!)')
-    parser.add_argument('--skip-validation', action='store_true', help='Skip ALL validation (same as --skip-task-validation --skip-host-validation)')
-    # show plan
-    parser.add_argument('--show-plan', action='store_true', help='Show execution plan and require confirmation before running')
+    # Positional arguments
+    parser.add_argument('task_file', help='Path to the task file')
+    
+    # Execution control
+    parser.add_argument('-r', '--run', action='store_true', 
+                       help='Actually run the commands (not dry run)')
+    parser.add_argument('-l', '--log-dir', default=None, 
+                       help='Directory to store log files')
+    parser.add_argument('-d', '--debug', action='store_true', 
+                       help='Enable debug logging')
+    parser.add_argument('-t', '--type', choices=['pbrun', 'p7s', 'local', 'wwrs'], 
+                       help='Execution type (overridden by task-specific settings)')
+    parser.add_argument('-o', '--timeout', type=int, default=30, 
+                       help='Default command timeout in seconds (5-1000, default: 30)')
+    parser.add_argument('-c', '--connection-test', action='store_true', 
+                       help='Check connectivity for pbrun,p7s,wwrs hosts')
+    parser.add_argument('-p', '--project', 
+                       help='Project name for summary logging')
+    
+    # Resume capability
+    parser.add_argument('--start-from', type=int, metavar='TASK_ID', 
+                       help='Start execution from specific task ID (resume capability)')
+    
+    # Granular validation control
+    parser.add_argument('--skip-task-validation', action='store_true', 
+                       help='Skip task file and dependency validation (faster resume)')
+    parser.add_argument('--skip-host-validation', action='store_true', 
+                       help='Skip host validation and use hostnames as-is (WARNING: risky!)')
+    parser.add_argument('--skip-validation', action='store_true', 
+                       help='Skip ALL validation (same as --skip-task-validation --skip-host-validation)')
+    
+    # Execution planning
+    parser.add_argument('--show-plan', action='store_true', 
+                       help='Show execution plan and require confirmation before running')
 
     args = parser.parse_args()
 
@@ -1317,7 +1373,7 @@ def main():
         print(f"Warning: Timeout {args.timeout} too high, using maximum 1000")
         args.timeout = 1000
     
-    # NEW: Handle convenience flag
+    # Handle convenience flag
     skip_task_validation = args.skip_task_validation or args.skip_validation
     skip_host_validation = args.skip_host_validation or args.skip_validation
 
@@ -1325,7 +1381,21 @@ def main():
     if skip_host_validation:
         print("WARNING: Skipping host validation can lead to connection failures!")
 
-    with TaskExecutor(args.task_file, log_dir, not args.run, args.debug, args.type, args.timeout, args.connection_test, args.project, args.start_from, skip_task_validation, skip_host_validation, args.show_plan) as executor:
+    # Execute tasks with context manager for proper cleanup
+    with TaskExecutor(
+        task_file=args.task_file,
+        log_dir=log_dir,
+        dry_run=not args.run,
+        debug=args.debug,
+        exec_type=args.type,
+        timeout=args.timeout,
+        connection_test=args.connection_test,
+        project=args.project,
+        start_from_task=args.start_from,
+        skip_task_validation=skip_task_validation,
+        skip_host_validation=skip_host_validation,
+        show_plan=args.show_plan
+    ) as executor:
         executor.run()
 
 ### MAIN ###

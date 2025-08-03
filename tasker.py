@@ -348,7 +348,7 @@ class TaskExecutor:
                     self.final_command = f"{self.final_command} [GRACEFUL_SHUTDOWN_{signal_info}]"
         
             self.cleanup()
-            ExitHandler.exit_with_code(ExitCodes.SIGNAL_INTERRUPT, "Task execution interrupted by signal")
+            ExitHandler.exit_with_code(ExitCodes.SIGNAL_INTERRUPT, "Task execution interrupted by signal", self.debug)
 
     def __del__(self):
         if hasattr(self, 'log_file') and self.log_file:
@@ -652,7 +652,7 @@ class TaskExecutor:
         """Parse the task file and extract global variables and task definitions."""
         if not os.path.exists(self.task_file):
             self.log(f"Error: Task file '{self.task_file}' not found.")
-            ExitHandler.exit_with_code(ExitCodes.TASK_FILE_NOT_FOUND, f"Task file '{self.task_file}' not found")
+            ExitHandler.exit_with_code(ExitCodes.TASK_FILE_NOT_FOUND, f"Task file '{self.task_file}' not found", self.debug)
             
         with open(self.task_file, 'r') as f:
             lines = f.readlines()
@@ -873,7 +873,7 @@ class TaskExecutor:
         # User confirmation
         if not self._get_user_confirmation():
             self.log("Execution cancelled by user.")
-            ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Execution cancelled by user")
+            ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Execution cancelled by user", self.debug)
 
     def _get_user_confirmation(self):
         """Get user confirmation to proceed."""
@@ -2677,14 +2677,14 @@ class TaskExecutor:
                     self.log(f"FAILURE: Task execution failed with return code {return_code}")
                 
                 self.cleanup() # clean up resources before exit
-                ExitHandler.exit_with_code(return_code, f"Task execution completed with return code {return_code}")
+                ExitHandler.exit_with_code(return_code, f"Task execution completed with return code {return_code}", self.debug)
             except ValueError:
                 self.log(f"Task {task_id}{loop_display}: Invalid return code '{task['return']}'. Exiting with code 1.")
                 self.final_exit_code = 1  # Use 1 for invalid return codes (this is correct)
                 self.final_success = False
                 self.log("FAILURE: Task execution failed with invalid return code")
                 self.cleanup() # clean up resources before exit
-                ExitHandler.exit_with_code(ExitCodes.INVALID_ARGUMENT, "Invalid return code specified")
+                ExitHandler.exit_with_code(ExitCodes.INVALID_ARGUMENT, "Invalid return code specified", self.debug)
         
         # Replace variables in command and arguments
         hostname, _ = self.replace_variables(task.get('hostname', ''))
@@ -2851,7 +2851,7 @@ class TaskExecutor:
         if not self.skip_task_validation:
             validation_successful = self.validate_tasks()
             if not validation_successful:
-                ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Task file validation failed")
+                ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Task file validation failed", self.debug)
             # Add shutdown check after potentially long operation
             self._check_shutdown()
         else:
@@ -2860,7 +2860,7 @@ class TaskExecutor:
         # NEW: Additional validation for --start-from
         if self.start_from_task is not None:
             if not self.validate_start_from_task(self.start_from_task):
-                ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, "Start-from task validation failed")
+                ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, "Start-from task validation failed", self.debug)
             # Optional: Add shutdown check after start-from validation
             self._check_shutdown()
 
@@ -2878,7 +2878,7 @@ class TaskExecutor:
             if validated_hosts is False:
                 self.debug_log("Host validation failed. Exiting.")
                 self.cleanup()
-                ExitHandler.exit_with_code(ExitCodes.HOST_VALIDATION_FAILED, "Host validation failed")
+                ExitHandler.exit_with_code(ExitCodes.HOST_VALIDATION_FAILED, "Host validation failed", self.debug)
             # Check for shutdown after host validation
             self._check_shutdown()
         else:
@@ -2917,7 +2917,7 @@ class TaskExecutor:
                 self.log(f"ERROR: Start task {start_task_id} not found in task definitions")
                 available_tasks = sorted(self.tasks.keys())
                 self.log(f"Available tasks: {available_tasks}")
-                ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, f"Start task {start_task_id} not found")
+                ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, f"Start task {start_task_id} not found", self.debug)
             
             # NEW: Warning about unresolved dependencies
             if start_task_id > 0:
@@ -2955,22 +2955,22 @@ class TaskExecutor:
                 if 'next' in last_task and last_task['next'] == 'never':
                     # This is a successful completion with 'next=never'
                     self.log("SUCCESS: Task execution completed successfully with 'next=never'.")
-                    ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully with 'next=never'")
+                    ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully with 'next=never'", self.debug)
                 else:
                     # This is a failure due to a 'next' condition
                     self.log("FAILED: Task execution stopped: 'next' condition was not satisfied.")
-                    ExitHandler.exit_with_code(ExitCodes.CONDITIONAL_EXECUTION_FAILED, "Task execution stopped: 'next' condition was not satisfied")
+                    ExitHandler.exit_with_code(ExitCodes.CONDITIONAL_EXECUTION_FAILED, "Task execution stopped: 'next' condition was not satisfied", self.debug)
             else:
                 self.log("FAILED: Task execution stopped for an unknown reason.")
-                ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for an unknown reason")
+                ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for an unknown reason", self.debug)
         elif next_task_id not in self.tasks:  # Changed condition
             # We've successfully completed all tasks or reached a non-existent task
             self.log("SUCCESS: Task execution completed - reached end of defined tasks.")
-            ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully")
+            ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully", self.debug)
         else:
             # Something else stopped execution
             self.log("FAILED: Task execution stopped for an unknown reason.")
-            ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for unknown reason")
+            ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for unknown reason", self.debug)
 
 
 # ===== 10. ENTRY POINT =====

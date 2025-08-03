@@ -64,17 +64,23 @@ class ExitHandler:
     """Safe exit code handler that preserves workflow functionality."""
     
     @staticmethod
-    def exit_with_code(code, message=None):
+    def exit_with_code(code, message=None, debug=False):
         """Exit with specific code and optional message.
         
         IMPORTANT: This only affects final tasker.py exit status.
         Internal task evaluation continues to use 0=success, other=failure.
+        
+        Args:
+            code: Exit code to use
+            message: Optional message to display
+            debug: If True, show message with timestamp (default: False)
         """
-        if message:
+        if message and debug:
+            timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
             if code == ExitCodes.SUCCESS:
-                print(f"SUCCESS: {message}")
+                print(f"[{timestamp}] DEBUG: SUCCESS: {message}")
             else:
-                print(f"FAILURE: {message} (Exit code: {code})")
+                print(f"[{timestamp}] DEBUG: FAILURE: {message} (Exit code: {code})")
         sys.exit(code)
     
     @staticmethod

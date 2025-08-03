@@ -17,20 +17,28 @@ for test in simple_test.txt comprehensive_retry_validation_test.txt first_test_s
     echo "Testing: $test"
     test_count=$((test_count + 1))
     
-    # Test with tasker.py (no debug)
+    # Test with tasker.py (no debug) - capture stderr to detect exceptions
     reset_state
-    if timeout 30s ../tasker.py "$test" -r > /dev/null 2>&1; then
-        tasker_exit=0
-    else
-        tasker_exit=$?
+    tasker_error=$(timeout 30s ../tasker.py "$test" -r 2>&1 >/dev/null)
+    tasker_exit=$?
+    
+    # Check for Python exceptions
+    if echo "$tasker_error" | grep -E "(Traceback|AttributeError|Exception|Error:)" > /dev/null; then
+        echo "  ❌ EXCEPTION in tasker.py:"
+        echo "$tasker_error" | head -3
+        continue
     fi
     
-    # Test with tasker_orig.py (no debug)  
+    # Test with tasker_orig.py (no debug) - capture stderr to detect exceptions
     reset_state
-    if timeout 30s ../tasker_orig.py "$test" -r > /dev/null 2>&1; then
-        orig_exit=0
-    else
-        orig_exit=$?
+    orig_error=$(timeout 30s ../tasker_orig.py "$test" -r 2>&1 >/dev/null)
+    orig_exit=$?
+    
+    # Check for Python exceptions
+    if echo "$orig_error" | grep -E "(Traceback|AttributeError|Exception|Error:)" > /dev/null; then
+        echo "  ❌ EXCEPTION in tasker_orig.py:"
+        echo "$orig_error" | head -3
+        continue
     fi
     
     echo "  tasker.py exit: $tasker_exit"

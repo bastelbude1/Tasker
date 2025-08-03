@@ -32,18 +32,19 @@
 ### **MANDATORY: Verification Testing Protocol**
 **BEFORE pushing any code changes, ALWAYS perform this verification:**
 
-**🎯 STREAMLINED PROTOCOL - RELIABLE SINGLE VERSION VERIFICATION**
+**🎯 CRITICAL PROTOCOL - EXCEPTION-AWARE VERIFICATION (ZERO TOLERANCE)**
 
 1. **Run the comprehensive verification:**
    ```bash
    cd test_cases/
    ./focused_verification.sh
    ```
-   - Tests ALL .txt files with `tasker.py` (no debug to avoid output differences)
-   - Compares with `tasker_orig.py` (no debug) for verification when needed
+   - Tests ALL .txt files with `tasker.py` (captures stderr to detect exceptions)
+   - Compares with `tasker_orig.py` (also captures exceptions)
+   - **CRITICAL:** Detects Python exceptions (Traceback, AttributeError, etc.) and treats as FAILURE
    - Automatic state file cleanup between tests using `reset_state()` function
-   - 30-second timeout per test - **Must achieve 100% success rate with ZERO timeouts**
-   - **Key advantage:** Since only debug output changed, both versions must have identical results without `-d`
+   - 30-second timeout per test - **Must achieve 100% success rate with ZERO timeouts AND ZERO exceptions**
+   - **Key protection:** Prevents false positives from hidden runtime errors
 
 2. **Test the validation script separately:**
    ```bash
@@ -53,21 +54,23 @@
    - Tests `task_validator.py` functionality
    - Different scope from task execution testing
 
-3. **Verification logic:**
+3. **CRITICAL Verification logic (ZERO TOLERANCE):**
+   - ❌ **Python exceptions = IMMEDIATE FAILURE:** Any Traceback, AttributeError, Exception detected in stderr
+   - ❌ **Timeouts = IMMEDIATE FAILURE:** Any timeout (exit 124) = immediate failure
    - ✅ **Exit code matching:** `tasker.py` and `tasker_orig.py` must have identical exit codes (without `-d`)
    - ✅ **Improved exit codes allowed:** 
      - `orig: 1` → `tasker: 20` (improved validation failure detection)
      - `orig: 1` → `tasker: 14` (improved conditional execution failure detection)
    - ✅ **State consistency:** `reset_state()` ensures each test starts with clean state
-   - ❌ **Timeouts are FAILURES:** Any timeout (exit 124) = immediate failure
 
-4. **Verification success criteria:**
-   - **100% success rate with ZERO timeouts** (any timeout = FAILURE)
+4. **CRITICAL Success criteria (ZERO TOLERANCE):**
+   - **100% success rate with ZERO timeouts AND ZERO exceptions**
+   - **ANY Python exception = VERIFICATION FAILURE** (prevents false positives)
    - All test cases produce functionally identical results between versions
    - Only acceptable differences: improved exit codes (1→20, 1→14)
-   - **Clean state guarantee:** Each test runs with reset state files
+   - **Exception detection:** Captures stderr to detect runtime errors that exit codes miss
 
-**Key insight:** Since we only changed debug output, `tasker.py` and `tasker_orig.py` must behave identically when run without `-d` flag. This provides reliable verification without needing to predict expected behaviors.
+**CRITICAL LESSON LEARNED:** Previous verification falsely reported SUCCESS because `> /dev/null 2>&1` hid Python exceptions. The improved verification captures stderr and detects runtime errors, preventing false positives that could break production code.
 
 ### Communication Style
 - Provide detailed explanations of reasoning

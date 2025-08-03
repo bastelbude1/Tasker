@@ -37,36 +37,54 @@ run_test() {
     echo -e "${YELLOW}[Testing: $test_name]${NC}"
     total_tests=$((total_tests + 1))
     
-    # Reset state and run with tasker.py (NO DEBUG to avoid output differences)
+    # Reset state and run with tasker.py (capture stderr to detect exceptions)
     reset_state
     echo "  Running tasker.py (no debug)..."
-    if timeout 30s ../tasker.py "$test_name" -r > /dev/null 2>&1; then
-        tasker_exit=0
-    else
-        tasker_exit=$?
-        if [ $tasker_exit -eq 124 ]; then
-            echo -e "    ${RED}TIMEOUT: tasker.py${NC}"
-            timeout_tests+=("$test_name")
-            failed_tests+=("$test_name")
-            echo -e "  ❌ FAIL: Timeout - not acceptable"
-            return
-        fi
+    
+    # Capture stderr to check for Python exceptions while hiding normal output
+    error_output=$(timeout 30s ../tasker.py "$test_name" -r 2>&1 >/dev/null)
+    tasker_exit=$?
+    
+    # Check for Python exceptions in stderr
+    if echo "$error_output" | grep -E "(Traceback|AttributeError|Exception|Error:)" > /dev/null; then
+        echo -e "    ${RED}EXCEPTION DETECTED in tasker.py:${NC}"
+        echo "$error_output" | head -3
+        failed_tests+=("$test_name")
+        echo -e "  ❌ FAIL: Python exception - not acceptable"
+        return
     fi
     
-    # Reset state and run with tasker_orig.py (NO DEBUG for fair comparison)
+    if [ $tasker_exit -eq 124 ]; then
+        echo -e "    ${RED}TIMEOUT: tasker.py${NC}"
+        timeout_tests+=("$test_name")
+        failed_tests+=("$test_name")
+        echo -e "  ❌ FAIL: Timeout - not acceptable"
+        return
+    fi
+    
+    # Reset state and run with tasker_orig.py (capture stderr to detect exceptions)
     reset_state
     echo "  Running tasker_orig.py (no debug) for verification..."
-    if timeout 30s ../tasker_orig.py "$test_name" -r > /dev/null 2>&1; then
-        orig_exit=0
-    else
-        orig_exit=$?
-        if [ $orig_exit -eq 124 ]; then
-            echo -e "    ${RED}TIMEOUT: tasker_orig.py${NC}"
-            timeout_tests+=("$test_name (orig)")
-            failed_tests+=("$test_name")
-            echo -e "  ❌ FAIL: Timeout in reference - not acceptable"
-            return
-        fi
+    
+    # Capture stderr to check for Python exceptions while hiding normal output
+    orig_error_output=$(timeout 30s ../tasker_orig.py "$test_name" -r 2>&1 >/dev/null)
+    orig_exit=$?
+    
+    # Check for Python exceptions in stderr
+    if echo "$orig_error_output" | grep -E "(Traceback|AttributeError|Exception|Error:)" > /dev/null; then
+        echo -e "    ${RED}EXCEPTION DETECTED in tasker_orig.py:${NC}"
+        echo "$orig_error_output" | head -3
+        failed_tests+=("$test_name")
+        echo -e "  ❌ FAIL: Python exception in reference - not acceptable"
+        return
+    fi
+    
+    if [ $orig_exit -eq 124 ]; then
+        echo -e "    ${RED}TIMEOUT: tasker_orig.py${NC}"
+        timeout_tests+=("$test_name (orig)")
+        failed_tests+=("$test_name")
+        echo -e "  ❌ FAIL: Timeout in reference - not acceptable"
+        return
     fi
     
     # Compare results (allowing for improved exit codes)

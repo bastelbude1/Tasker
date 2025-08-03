@@ -32,47 +32,36 @@
 ### **MANDATORY: Verification Testing Protocol**
 **BEFORE pushing any code changes, ALWAYS perform this verification:**
 
-1. **Reset test state files:**
+**🎯 STREAMLINED PROTOCOL - ZERO DUPLICATES, 100% SUCCESS REQUIRED**
+
+1. **Run the comprehensive verification:**
    ```bash
-   rm -f ../.toggle_value ../.my_counter
+   cd test_cases/
+   ./focused_verification.sh
    ```
+   - Tests ALL 25 .txt files with both `tasker_orig.py` and `tasker.py`
+   - Automatic state file cleanup between tests
+   - 60-second timeout per test (handles complex retry scenarios)
+   - **Must achieve 100% success rate with ZERO timeouts**
 
-2. **Test multiple test cases with both versions:**
+2. **Test the validation script separately:**
    ```bash
-   # Test with original
-   ./tasker_orig.py test_cases/example_task.txt -r -d
-   
-   # Reset state and test with refactored
-   rm -f ../.toggle_value ../.my_counter
-   ./tasker.py test_cases/example_task.txt -r -d
+   cd test_cases/
+   ./retry_validation_test_script.sh
    ```
+   - Tests `task_validator.py` functionality
+   - Different scope from task execution testing
 
-3. **Compare outputs systematically:**
-   - **Test ALL .txt files in test_cases/ directory** (no exceptions)
-   - **Test ALL .sh scripts in test_cases/ directory** with both tasker versions:
-     ```bash
-     # In test_cases/ directory:
-     ./script_name.sh tasker_orig  # Test with original
-     ./script_name.sh tasker       # Test with refactored
-     # Exception: retry_validation_test_script.sh (only tests task_validator.py)
-     ```
-   - **Use comprehensive test script:**
-     ```bash
-     cd test_cases/
-     ./run_all_verification_tests.sh  # Tests ALL .txt and .sh files automatically
-     ```
-   - Reset state files between each test
-   - Use `-r -d` flags for detailed output comparison
-
-4. **Acceptable differences:**
+3. **Acceptable differences:**
    - ✅ **ONLY acceptable:** Additional debug lines in `tasker.py` that don't exist in `tasker_orig.py`
    - ✅ **ONLY acceptable:** Extra debug output like `DEBUG: SUCCESS: Task execution completed...`
    - ✅ **ONLY acceptable:** Minor formatting differences in debug output
    - ✅ **ONLY acceptable:** More detailed exit codes (e.g., 20 for validation failure, 14 for conditional execution failure vs 1 for generic failure)
    - ❌ **NOT acceptable:** Any difference in task execution flow, conditions, or results
 
-5. **Verification success criteria:**
-   - All test cases produce functionally identical results
+4. **Verification success criteria:**
+   - **100% success rate with ZERO timeouts** (any timeout = FAILURE)
+   - All 25 test cases produce functionally identical results
    - Same workflow logic and task execution paths
    - Same condition evaluations (TRUE/FALSE results)
    - Same stdout/stderr content from tasks

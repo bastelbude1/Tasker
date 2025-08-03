@@ -924,35 +924,6 @@ class TaskExecutor:
             return None
 
     # Unified execution helpers
-    def _get_task_display_id(self, task_id, context_type, retry_display=""):
-        """Get consistent task display ID for different execution contexts."""
-        if context_type == "parallel" and self._current_parallel_task is not None:
-            return f"{self._current_parallel_task}-{task_id}{retry_display}"
-        elif context_type == "conditional" and self._current_conditional_task is not None:
-            return f"{self._current_conditional_task}-{task_id}{retry_display}"
-        else:
-            return f"{task_id}{retry_display}"
-
-    def _log_task_result(self, task_display_id, exit_code, stdout, stderr):
-        """Log task execution results consistently."""
-        self.log(f"Task {task_display_id}: Exit code: {exit_code}")
-        if stdout.strip():
-            self.log(f"Task {task_display_id}: STDOUT: {stdout.rstrip()}")
-        if stderr.strip():
-            self.log(f"Task {task_display_id}: STDERR: {stderr.rstrip()}")
-
-    def _handle_output_splitting(self, task, task_display_id, stdout, stderr):
-        """Handle stdout/stderr splitting if specified in task."""
-        if 'stdout_split' in task:
-            stdout = ConditionEvaluator.split_output(stdout, task['stdout_split'])
-            self.log(f"Task {task_display_id}: Split STDOUT: '{stdout}'")
-            
-        if 'stderr_split' in task:
-            stderr = ConditionEvaluator.split_output(stderr, task['stderr_split'])
-            self.log(f"Task {task_display_id}: Split STDERR: '{stderr}'")
-        
-        return stdout, stderr
-
     def _execute_task_core(self, task, master_timeout=None, context="normal", retry_display=""):
         """Unified task execution core for parallel, conditional, and normal execution."""
         from tasker.executors.base_executor import BaseExecutor
@@ -979,83 +950,6 @@ class TaskExecutor:
     def execute_parallel_tasks(self, parallel_task):
         """Execute multiple tasks in parallel with ENHANCED RETRY LOGIC and IMPROVED LOGGING."""
         return ParallelExecutor.execute_parallel_tasks(parallel_task, self)
-
-    def evaluate_parallel_next_condition(self, next_condition, results):
-        """Evaluate next condition specifically for parallel tasks."""
-        if not results:
-            self.log(f"No results to evaluate for parallel next condition: '{next_condition}'")
-            return False
-            
-        successful_tasks = [r for r in results if r['success']]
-        failed_tasks = [r for r in results if not r['success']]
-        total_tasks = len(results)
-        success_count = len(successful_tasks)
-        failed_count = len(failed_tasks)
-        
-        self.debug_log(f"Parallel condition evaluation: {success_count} successful, {failed_count} failed, total {total_tasks}")
-        
-        # Handle direct modifier conditions (min_success=N, max_failed=N, etc.)
-        if '=' in next_condition:
-            return self.evaluate_direct_modifier_condition(next_condition, success_count, failed_count, total_tasks)
-        
-        # Handle standard conditions
-        if next_condition == 'all_success':
-            result = success_count == total_tasks
-            self.debug_log(f"all_success: {success_count} == {total_tasks} = {result}")
-            return result
-            
-        elif next_condition == 'any_success':
-            result = success_count > 0
-            self.debug_log(f"any_success: {success_count} > 0 = {result}")
-            return result
-            
-        elif next_condition == 'majority_success':
-            majority_threshold = total_tasks / 2
-            result = success_count > majority_threshold
-            self.debug_log(f"majority_success: {success_count} > {majority_threshold} = {result}")
-            return result
-            
-        else:
-            self.log(f"Unknown parallel next condition: '{next_condition}'")
-            return False
-
-    def evaluate_direct_modifier_condition(self, condition, success_count, failed_count, total_tasks):
-        """Evaluate direct modifier condition (min_success=N, max_failed=N, etc.)."""
-        if '=' not in condition:
-            self.log(f"Invalid modifier condition format: '{condition}'")
-            return False
-            
-        key, value = condition.split('=', 1)
-        
-        try:
-            threshold = int(value)
-        except ValueError:
-            self.log(f"Invalid modifier value: '{condition}'")
-            return False
-        
-        if key == 'min_success':
-            result = success_count >= threshold
-            self.debug_log(f"min_success: {success_count} >= {threshold} = {result}")
-            return result
-            
-        elif key == 'max_success':
-            result = success_count <= threshold
-            self.debug_log(f"max_success: {success_count} <= {threshold} = {result}")
-            return result
-            
-        elif key == 'min_failed':
-            result = failed_count >= threshold
-            self.debug_log(f"min_failed: {failed_count} >= {threshold} = {result}")
-            return result
-            
-        elif key == 'max_failed':
-            result = failed_count <= threshold
-            self.debug_log(f"max_failed: {failed_count} <= {threshold} = {result}")
-            return result
-            
-        else:
-            self.log(f"Unknown modifier: '{key}' in condition '{condition}'")
-            return False
 
     def check_parallel_next_condition(self, parallel_task, results):
         """Check next condition for parallel tasks with simplified syntax."""
@@ -1088,13 +982,13 @@ class TaskExecutor:
         # Handle backwards compatibility for 'success' - treat as 'all_success'
         if next_condition == 'success':
             self.log(f"Task {task_id}: Legacy 'success' condition treated as 'all_success'")
-            result = self.evaluate_parallel_next_condition('all_success', results)
+            result = ParallelExecutor.evaluate_parallel_next_condition('all_success', results, self.debug_log, self.log)
             self.log(f"Task {task_id}: Condition 'success' (→ all_success) evaluated to: {result}")
             return result
         
         # Handle parallel-specific conditions (simplified syntax)
         if next_condition in ['all_success', 'any_success', 'majority_success'] or '=' in next_condition:
-            result = self.evaluate_parallel_next_condition(next_condition, results)
+            result = ParallelExecutor.evaluate_parallel_next_condition(next_condition, results, self.debug_log, self.log)
             self.log(f"Task {task_id}: Condition '{next_condition}' evaluated to: {result}")
             return result
         
@@ -1151,18 +1045,6 @@ class TaskExecutor:
             del self.loop_iterations[task_id]
             return True
     
-    def execute_single_task_for_conditional(self, task, master_timeout=None):
-        """Execute a single task as part of conditional execution (sequential)."""
-        return self._execute_task_core(task, master_timeout, "conditional")
-
-    def execute_single_task_for_conditional_with_retry_display(self, task, master_timeout=None, retry_display=""):
-        """Execute a single task as part of conditional execution with retry display support."""
-        return self._execute_task_core(task, master_timeout, "conditional", retry_display)
-
-    def execute_single_task_with_retry_conditional(self, task, master_timeout, retry_config):
-        """Execute a single task with retry logic for conditional tasks."""
-        return ConditionalExecutor._execute_single_task_with_retry_core(task, master_timeout, retry_config, "conditional", self)
-
     def execute_conditional_tasks(self, conditional_task):
         """Execute conditional tasks based on condition evaluation - sequential execution."""
         return ConditionalExecutor.execute_conditional_tasks(conditional_task, self)

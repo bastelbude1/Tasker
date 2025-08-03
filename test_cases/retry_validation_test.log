@@ -11,9 +11,9 @@ Validation warnings: 'comprehensive_retry_validation_test.txt' has 15 warnings:
   WARNING: Line 29: Task 11 has retry_failed=true but no retry_count specified. Will use default (1).
   WARNING: Line 29: Task 11 has retry_failed=true but no retry_delay specified. Will use default (1).
   WARNING: Line 38: Task 12 has retry_count=0. This effectively disables retry.
-  WARNING: Line 64: Task 20 uses retry field(s) 'retry_failed' but is not a parallel task. Retry logic only applies to parallel tasks.
-  WARNING: Line 72: Task 21 uses retry field(s) 'retry_failed, retry_count, retry_delay' but is not a parallel task. Retry logic only applies to parallel tasks.
-  WARNING: Line 82: Task 22 uses retry field(s) 'retry_failed, retry_count' but is not a parallel task. Retry logic only applies to parallel tasks.
+  WARNING: Line 64: Task 20 uses retry field(s) 'retry_failed' but is not a parallel or conditional task. Retry logic only applies to parallel and conditional tasks.
+  WARNING: Line 72: Task 21 uses retry field(s) 'retry_failed, retry_count, retry_delay' but is not a parallel or conditional task. Retry logic only applies to parallel and conditional tasks.
+  WARNING: Line 82: Task 22 uses retry field(s) 'retry_failed, retry_count' but is not a parallel or conditional task. Retry logic only applies to parallel and conditional tasks.
   WARNING: Line 151: Task 40 has retry_count/retry_delay but no retry_failed field. These fields are ignored unless retry_failed=true.
   WARNING: Line 161: Task 41 has retry_count/retry_delay but no retry_failed field. These fields are ignored unless retry_failed=true.
   WARNING: Line 170: Task 42 has retry_failed=true but no retry_count specified. Will use default (1).

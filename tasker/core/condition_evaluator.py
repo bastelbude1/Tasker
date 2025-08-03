@@ -135,42 +135,40 @@ class ConditionEvaluator:
         if not output or not split_spec:
             return output
             
-        try:
-            parts = split_spec.split(':')
-            if len(parts) != 2:
-                return output
-                
-            split_type, split_value = parts
+        parts = split_spec.split(',')
+        if len(parts) != 2:
+            # Note: In a static method context, we cannot call self.log
+            # This should be handled by the calling code if logging is needed
+            return output
             
-            if split_type == 'line':
-                lines = output.split('\n')
-                line_num = int(split_value)
-                if 1 <= line_num <= len(lines):
-                    return lines[line_num - 1]  # Convert to 0-based index
-                else:
-                    return ''
-            elif split_type == 'word':
-                words = output.split()
-                word_num = int(split_value)
-                if 1 <= word_num <= len(words):
-                    return words[word_num - 1]  # Convert to 0-based index
-                else:
-                    return ''
-            elif split_type == 'char':
-                char_ranges = split_value.split('-')
-                if len(char_ranges) == 2:
-                    start = int(char_ranges[0]) - 1  # Convert to 0-based
-                    end = int(char_ranges[1])
-                    return output[start:end] if start >= 0 else ''
-                else:
-                    char_num = int(split_value)
-                    if 1 <= char_num <= len(output):
-                        return output[char_num - 1]  # Convert to 0-based index
-                    else:
-                        return ''
-            else:
-                return output
-        except (ValueError, IndexError):
+        delimiter, index = parts
+        try:
+            index = int(index)
+        except ValueError:
+            # Note: In a static method context, we cannot call self.log
+            # This should be handled by the calling code if logging is needed
+            return output
+            
+        # Convert delimiter keywords to actual regex patterns
+        delimiter_map = {
+            'space': r'\s+',
+            'tab': r'\t+',
+            'semi': ';',
+            'comma': ',',
+            'pipe': '|'
+        }
+        
+        delimiter_pattern = delimiter_map.get(delimiter, delimiter)
+        
+        # Split the output
+        split_output = re.split(delimiter_pattern, output)
+        
+        # Return the selected part if index is valid
+        if 0 <= index < len(split_output):
+            return split_output[index]
+        else:
+            # Note: In a static method context, we cannot call self.log
+            # This should be handled by the calling code if logging is needed
             return output
 
     @staticmethod

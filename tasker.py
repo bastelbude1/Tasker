@@ -12,6 +12,7 @@ NEW: Retry Logic for failed parallel tasks only (retry_failed=true).
 NEW: Enhanced Retry Logging with Attempt Numbering (.N notation) for parallel tasks.
 NEW: CONDITIONAL TASKS - Execute different task sequences based on conditions.
 IMPROVED: Better parallel task logging for readability.
+NEW: Proper Log Level Control with ERROR, WARN, INFO, DEBUG levels.
 """
 
 import os
@@ -64,20 +65,29 @@ class TaskExecutor:
     Architecture:
     - Core orchestration and lifecycle management (this class)
     - Delegated execution to specialized modules in tasker/ package
-    - Thread-safe logging and result storage
+    - Thread-safe logging and result storage with granular log levels
     - Comprehensive validation and error handling
     """
     
+    # Log level constants
+    LOG_LEVELS = {
+        'ERROR': 1,
+        'WARN': 2,
+        'INFO': 3,
+        'DEBUG': 4
+    }
+    
     # ===== 1. CLASS LIFECYCLE =====
     
-    def __init__(self, task_file, log_dir='logs', dry_run=True, debug=False, 
+    def __init__(self, task_file, log_dir='logs', dry_run=True, log_level='INFO', 
                  exec_type=None, timeout=30, connection_test=False, project=None, 
                  start_from_task=None, skip_task_validation=False, 
                  skip_host_validation=False, show_plan=False):
         self.task_file = task_file
         self.log_dir = log_dir
         self.dry_run = dry_run
-        self.debug = debug
+        self.log_level = log_level.upper()
+        self.log_level_num = self.LOG_LEVELS.get(self.log_level, 3)  # Default to INFO
         self.tasks = {}  # Changed to dictionary for sparse task IDs
         self.task_results = {}
         self.current_task = 0 # Track current task
@@ -122,11 +132,11 @@ class TaskExecutor:
 
         # Log resume information
         if self.start_from_task is not None:
-            self.log(f"# Resume mode: Starting from Task {self.start_from_task}")
+            self.log_info(f"# Resume mode: Starting from Task {self.start_from_task}")
             if self.skip_task_validation:
-                self.log(f"# Task Validation will be skipped")
+                self.log_warn(f"# Task Validation will be skipped")
             if self.skip_host_validation:
-                self.log(f"# Host Validation will be skipped - ATTENTION")
+                self.log_warn(f"# Host Validation will be skipped - ATTENTION")
 
         # Initialize summary tracking variables
         self.final_task_id = None
@@ -154,9 +164,9 @@ class TaskExecutor:
             task_filename = os.path.basename(task_file)
             task_copy_path = os.path.join(self.log_dir, f"{task_filename}_{timestamp}")
             shutil.copy2(task_file, task_copy_path)
-            self.debug_log(f"Created task file copy: {task_copy_path}")
+            self.log_debug(f"Created task file copy: {task_copy_path}")
         except Exception as e:
-            self.debug_log(f"Warning: Could not copy task file to tasks directory: {str(e)}")
+            self.log_warn(f"Could not copy task file to tasks directory: {str(e)}")
 
         # Set up project summary logging if project is specified
         if self.project:
@@ -180,22 +190,23 @@ class TaskExecutor:
             self.summary_log = None
 
         # Start logging task execution
-        self.log(f"=== Task Execution Start: {timestamp} ===")
-        self.log(f"# Task file: {task_file}")
+        self.log_info(f"=== Task Execution Start: {timestamp} ===")
+        self.log_info(f"# Task file: {task_file}")
+        self.log_info(f"# Log level: {self.log_level}")
 
         if self.exec_type:
             exec_type=self.exec_type
-            self.log(f"# Execution type from args: {exec_type}")
+            self.log_info(f"# Execution type from args: {exec_type}")
         elif 'TASK_EXECUTOR_TYPE' in os.environ:
             exec_type = os.environ.get('TASK_EXECUTOR_TYPE')
-            self.log(f"# Execution type from environment: {exec_type}")
+            self.log_info(f"# Execution type from environment: {exec_type}")
         else:
             exec_type = self.default_exec_type
-            self.log(f"# Execution type (Default): {exec_type} (if not overriden by task)")
+            self.log_info(f"# Execution type (Default): {exec_type} (if not overriden by task)")
 
         if dry_run: 
-            self.log(f"# Dry run mode")
-        self.log(f"# Default timeout: {timeout} [s]")
+            self.log_info(f"# Dry run mode")
+        self.log_info(f"# Default timeout: {timeout} [s]")
     
         # Only add minimal warning for shared summary files
         if self.project:
@@ -212,8 +223,8 @@ class TaskExecutor:
                             # File is not locked
                         except (OSError, IOError):
                             # File is currently locked by another process
-                            self.log(f"Info: Summary file '{self.project}.summary' is currently in use by another tasker instance.")
-                            self.log(f"Summary writes will wait for the other instance to complete.")
+                            self.log_info(f"Info: Summary file '{self.project}.summary' is currently in use by another tasker instance.")
+                            self.log_info(f"Summary writes will wait for the other instance to complete.")
                 except Exception:
                     pass  # Ignore test errors
 
@@ -325,7 +336,7 @@ class TaskExecutor:
     def _signal_handler(self, signum, frame):
         """Signal handler for graceful shutdown."""
         signal_name = "SIGINT" if signum == signal.SIGINT else "SIGTERM"
-        self.log(f"Received {signal_name}, initiating graceful shutdown...")
+        self.log_warn(f"Received {signal_name}, initiating graceful shutdown...")
         self._shutdown_requested = True
         
         # Store signal info for summary
@@ -334,7 +345,7 @@ class TaskExecutor:
     def _check_shutdown(self):
         """Check if shutdown was requested - call at natural breakpoints."""
         if self._shutdown_requested:
-            self.log("Graceful shutdown requested - stopping execution")
+            self.log_warn("Graceful shutdown requested - stopping execution")
             
             # Ensure summary gets written for graceful shutdown
             if hasattr(self, 'summary_log') and self.summary_log:
@@ -364,13 +375,13 @@ class TaskExecutor:
             
             self.cleanup()
             ExitHandler.exit_with_code(ExitCodes.SIGNAL_INTERRUPT, 
-                                     "Task execution interrupted by signal", self.debug)
+                                     "Task execution interrupted by signal", False)
 
     def __del__(self):
         """Destructor - ensure log file is closed."""
         if hasattr(self, 'log_file') and self.log_file:
-            self.log(f"# Log file: {self.log_file_path}")
-            self.log("=== Task Execution End: {} ===".format(
+            self.log_info(f"# Log file: {self.log_file_path}")
+            self.log_info("=== Task Execution End: {} ===".format(
                 datetime.now().strftime('%d%b%y_%H%M%S')))
             self.log_file.close()
             self.log_file = None
@@ -393,11 +404,19 @@ class TaskExecutor:
         with self.task_results_lock:
             return task_id in self.task_results
     
-    # Logging infrastructure
-    def log(self, message):
-        """Log a message to the log file and print to console with thread safety."""
+    # Enhanced logging infrastructure with log levels
+    def _should_log(self, level):
+        """Check if message should be logged based on current log level."""
+        return self.LOG_LEVELS.get(level, 0) <= self.log_level_num
+
+    def _log_with_level(self, level, message):
+        """Internal method to log with specified level."""
+        if not self._should_log(level):
+            return
+            
         timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
-        log_message = f"[{timestamp}] {message}"
+        level_prefix = f"{level}: " if level != 'INFO' else ""
+        log_message = f"[{timestamp}] {level_prefix}{message}"
         
         # Thread-safe logging with reentrancy protection
         with self.log_lock:
@@ -405,6 +424,31 @@ class TaskExecutor:
             if hasattr(self, 'log_file') and self.log_file and not self.log_file.closed:
                 self.log_file.write(log_message + "\n")
                 self.log_file.flush()
+
+    def log_error(self, message):
+        """Log an error message."""
+        self._log_with_level('ERROR', message)
+
+    def log_warn(self, message):
+        """Log a warning message."""
+        self._log_with_level('WARN', message)
+
+    def log_info(self, message):
+        """Log an info message."""
+        self._log_with_level('INFO', message)
+
+    def log_debug(self, message):
+        """Log a debug message."""
+        self._log_with_level('DEBUG', message)
+
+    # Backward compatibility methods
+    def log(self, message):
+        """Legacy log method - maps to log_info for backward compatibility."""
+        self.log_info(message)
+
+    def debug_log(self, message):
+        """Legacy debug_log method - maps to log_debug for backward compatibility."""
+        self.log_debug(message)
 
     def _log_direct(self, message):
         """Direct logging without acquiring log_lock - for internal use only."""
@@ -416,11 +460,6 @@ class TaskExecutor:
         if hasattr(self, 'log_file') and self.log_file and not self.log_file.closed:
             self.log_file.write(log_message + "\n")
             self.log_file.flush()
-
-    def debug_log(self, message):
-        """Log a debug message if debug mode is enabled."""
-        if self.debug:
-            self.log(f"DEBUG: {message}")
 
     # Safe error reporting with multiple fallback channels
 
@@ -479,7 +518,7 @@ class TaskExecutor:
         """Try to write to emergency log file in home directory."""
         home_dir = os.path.expanduser("~")
         emergency_file = os.path.join(home_dir, "tasker_emergency.log")
-        timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
+        timestamp = datetime.now().strftime('%d%b%y_%H%M%S')
         with open(emergency_file, 'a') as f:
             f.write(f"[{timestamp}] EMERGENCY: {message}\n")
 
@@ -625,20 +664,20 @@ class TaskExecutor:
     def validate_tasks(self):
         """Validate the task file using TaskValidator."""
         return TaskValidatorIntegration.validate_tasks(
-            self.task_file, self.log, self.debug_log
+            self.task_file, self.log_info, self.log_debug
         )
 
     def parse_task_file(self):
         """Parse the task file and extract global variables and task definitions."""
         if not os.path.exists(self.task_file):
-            self.log(f"Error: Task file '{self.task_file}' not found.")
-            ExitHandler.exit_with_code(ExitCodes.TASK_FILE_NOT_FOUND, f"Task file '{self.task_file}' not found", self.debug)
+            self.log_error(f"Task file '{self.task_file}' not found.")
+            ExitHandler.exit_with_code(ExitCodes.TASK_FILE_NOT_FOUND, f"Task file '{self.task_file}' not found", False)
             
         with open(self.task_file, 'r') as f:
             lines = f.readlines()
         
         # PHASE 1: Collect global variables (first pass)
-        self.log(f"# Parsing global variables from '{self.task_file}'")
+        self.log_info(f"# Parsing global variables from '{self.task_file}'")
         global_count = 0
         
         for line_num, line in enumerate(lines, 1):
@@ -667,12 +706,12 @@ class TaskExecutor:
                     # This is a global variable
                     self.global_vars[key] = value
                     global_count += 1
-                    self.debug_log(f"Global variable: {key} = {value}")
+                    self.log_debug(f"Global variable: {key} = {value}")
         
-        self.log(f"# Found {global_count} global variables")
-        if self.debug and global_count > 0:
+        self.log_info(f"# Found {global_count} global variables")
+        if global_count > 0:
             for key, value in self.global_vars.items():
-                self.debug_log(f"#   {key} = {value}")
+                self.log_debug(f"#   {key} = {value}")
         
         # PHASE 2: Parse tasks (second pass)
         current_task = None
@@ -716,52 +755,52 @@ class TaskExecutor:
         # Validate tasks - now we only check that required fields are present
         valid_task_count = 0
         for task_id, task in self.tasks.items():
-            # NEW: Different validation for parallel and conditional tasks
+            # Different validation for parallel and conditional tasks
             if task.get('type') == 'parallel':
                 if 'tasks' not in task:
-                    self.log(f"Warning: Parallel task {task_id} is missing required 'tasks' field.")
+                    self.log_warn(f"Parallel task {task_id} is missing required 'tasks' field.")
                     continue
                 valid_task_count += 1
             elif task.get('type') == 'conditional':
                 if 'condition' not in task:
-                    self.log(f"Warning: Conditional task {task_id} is missing required 'condition' field.")
+                    self.log_warn(f"Conditional task {task_id} is missing required 'condition' field.")
                     continue
                 if 'if_true_tasks' not in task and 'if_false_tasks' not in task:
-                    self.log(f"Warning: Conditional task {task_id} has no task branches defined.")
+                    self.log_warn(f"Conditional task {task_id} has no task branches defined.")
                     continue
                 valid_task_count += 1
             else:
                 if 'hostname' not in task and 'return' not in task:
-                    self.log(f"Warning: Task {task_id} is missing required 'hostname' field.")
+                    self.log_warn(f"Task {task_id} is missing required 'hostname' field.")
                     continue
                     
                 if 'command' not in task and 'return' not in task:
-                    self.log(f"Warning: Task {task_id} is missing required 'command' field.")
+                    self.log_warn(f"Task {task_id} is missing required 'command' field.")
                     continue
                     
                 valid_task_count += 1
             
-        self.log(f"# Successfully parsed {valid_task_count} valid tasks from '{self.task_file}'")
+        self.log_info(f"# Successfully parsed {valid_task_count} valid tasks from '{self.task_file}'")
 
     def validate_task_dependencies(self):
         """Validate that task dependencies can be resolved given the execution flow."""
         return TaskValidatorIntegration.validate_task_dependencies(
-            self.tasks, self.log
+            self.tasks, self.log_info
         )
 
     def validate_start_from_task(self, start_task_id):
         """Validate and provide warnings for --start-from usage."""
         return TaskValidatorIntegration.validate_start_from_task(
-            start_task_id, self.tasks, self.log
+            start_task_id, self.tasks, self.log_info
         )
     def show_execution_plan(self):
         """Show execution plan and get user confirmation."""
-        self.log("=== EXECUTION PLAN ===")
+        self.log_info("=== EXECUTION PLAN ===")
     
         # Determine starting point
         start_id = self.start_from_task if self.start_from_task is not None else 0
         if self.start_from_task is not None:
-            self.log(f"# Resume mode: Starting from Task {start_id}")
+            self.log_info(f"# Resume mode: Starting from Task {start_id}")
     
         # Count and show tasks
         task_count = 0
@@ -774,25 +813,25 @@ class TaskExecutor:
         
             if task_type == 'parallel':
                 tasks_str = task.get('tasks', '')
-                self.log(f"  Task {task_id}: PARALLEL -> tasks [{tasks_str}]")
+                self.log_info(f"  Task {task_id}: PARALLEL -> tasks [{tasks_str}]")
             elif task_type == 'conditional':
                 condition = task.get('condition', 'N/A')
-                self.log(f"  Task {task_id}: CONDITIONAL [{condition}]")
+                self.log_info(f"  Task {task_id}: CONDITIONAL [{condition}]")
             elif 'return' in task:
                 return_code = task.get('return', 'N/A')
-                self.log(f"  Task {task_id}: RETURN {return_code}")
+                self.log_info(f"  Task {task_id}: RETURN {return_code}")
             else:
                 hostname = task.get('hostname', 'N/A')
                 command = task.get('command', 'N/A')
-                self.log(f"  Task {task_id}: {hostname} -> {command}")
+                self.log_info(f"  Task {task_id}: {hostname} -> {command}")
     
-        self.log(f"# Total: {task_count} tasks to execute")
-        self.log("=" * 50)
+        self.log_info(f"# Total: {task_count} tasks to execute")
+        self.log_info("=" * 50)
     
         # User confirmation
         if not self._get_user_confirmation():
-            self.log("Execution cancelled by user.")
-            ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Execution cancelled by user", self.debug)
+            self.log_info("Execution cancelled by user.")
+            ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Execution cancelled by user", False)
 
     def _get_user_confirmation(self):
         """Get user confirmation to proceed."""
@@ -808,10 +847,6 @@ class TaskExecutor:
             except (KeyboardInterrupt, EOFError):
                 print("\nExecution cancelled by user.")
                 return False
-
-
-
-
 
     # ===== 4. VARIABLE & CONDITION PROCESSING =====
     #
@@ -832,17 +867,17 @@ class TaskExecutor:
     def determine_execution_type(self, task, task_display_id, loop_display=""):
         """Determine which execution type to use, respecting priority order."""
         if 'exec' in task:
-            exec_type, _ = ConditionEvaluator.replace_variables(task['exec'], self.global_vars, self.task_results, self.debug_log)
-            self.log(f"Task {task_display_id}{loop_display}: Using execution type from task: {exec_type}")
+            exec_type, _ = ConditionEvaluator.replace_variables(task['exec'], self.global_vars, self.task_results, self.log_debug)
+            self.log_info(f"Task {task_display_id}{loop_display}: Using execution type from task: {exec_type}")
         elif self.exec_type:
             exec_type = self.exec_type
-            self.debug_log(f"Task {task_display_id}{loop_display}: Using execution type from args: {exec_type}")
+            self.log_debug(f"Task {task_display_id}{loop_display}: Using execution type from args: {exec_type}")
         elif 'TASK_EXECUTOR_TYPE' in os.environ:
             exec_type = os.environ['TASK_EXECUTOR_TYPE']
-            self.debug_log(f"Task {task_display_id}{loop_display}: Using execution type from environment: {exec_type}")
+            self.log_debug(f"Task {task_display_id}{loop_display}: Using execution type from environment: {exec_type}")
         else:
             exec_type = self.default_exec_type
-            self.debug_log(f"Task {task_display_id}{loop_display}: Using default execution type: {exec_type}")
+            self.log_debug(f"Task {task_display_id}{loop_display}: Using default execution type: {exec_type}")
         return exec_type
 
     def build_command_array(self, exec_type, hostname, command, arguments):
@@ -857,7 +892,7 @@ class TaskExecutor:
             return ["wwrs_clir", hostname, command] + shlex.split(arguments)
         else:
             # Default to pbrun if unknown exec_type
-            self.log(f"Unknown execution type '{exec_type}', using default 'pbrun'")
+            self.log_warn(f"Unknown execution type '{exec_type}', using default 'pbrun'")
             return ["pbrun", "-n", "-h", hostname, command] + shlex.split(arguments)
 
     def get_task_timeout(self, task):
@@ -868,43 +903,43 @@ class TaskExecutor:
 
         # Get timeout from task (highest priority)
         if 'timeout' in task:
-            timeout_str, resolved = ConditionEvaluator.replace_variables(task['timeout'], self.global_vars, self.task_results, self.debug_log)
+            timeout_str, resolved = ConditionEvaluator.replace_variables(task['timeout'], self.global_vars, self.task_results, self.log_debug)
             if resolved:
                 try:
                     timeout = int(timeout_str)
-                    self.debug_log(f"Using timeout from task: {timeout}")
+                    self.log_debug(f"Using timeout from task: {timeout}")
                 except ValueError:
-                    self.log(f"Warning: Invalid timeout value in task: '{timeout_str}'. Using default.")
+                    self.log_warn(f"Invalid timeout value in task: '{timeout_str}'. Using default.")
                     timeout = self.timeout
             else:
-                self.log(f"Warning: Unresolved variables in timeout. Using default.")
+                self.log_warn(f"Unresolved variables in timeout. Using default.")
                 timeout = self.timeout
 
         # Get timeout from command line argument (medium priority)
         elif self.timeout:
             timeout = self.timeout
-            self.debug_log(f"Using timeout from command line: {timeout}")
+            self.log_debug(f"Using timeout from command line: {timeout}")
 
         # Get timeout from environment (lower priority)
         elif 'TASK_EXECUTOR_TIMEOUT' in os.environ:
             try:
                 timeout = int(os.environ['TASK_EXECUTOR_TIMEOUT'])
-                self.debug_log(f"Using timeout from environment: {timeout}")
+                self.log_debug(f"Using timeout from environment: {timeout}")
             except ValueError:
-                self.log(f"Warning: Invalid timeout value in environment: '{os.environ['TASK_EXECUTOR_TIMEOUT']}'. Using default.")
+                self.log_warn(f"Invalid timeout value in environment: '{os.environ['TASK_EXECUTOR_TIMEOUT']}'. Using default.")
                 timeout = 30
 
         # Use default timeout (lowest priority)
         else:
             timeout = 30
-            self.debug_log(f"Using default timeout: {timeout}")
+            self.log_debug(f"Using default timeout: {timeout}")
 
         # Ensure timeout is within valid range
         if timeout < min_timeout:
-            self.log(f"Warning: Timeout {timeout} too low, using minimum {min_timeout}")
+            self.log_warn(f"Timeout {timeout} too low, using minimum {min_timeout}")
             timeout = min_timeout
         elif timeout > max_timeout:
-            self.log(f"Warning: Timeout {timeout} too high, using maximum {max_timeout}")
+            self.log_warn(f"Timeout {timeout} too high, using maximum {max_timeout}")
             timeout = max_timeout
         return timeout
 
@@ -924,19 +959,19 @@ class TaskExecutor:
             
         try:
             # Resolve global variables first before int conversion
-            retry_count_str, _ = ConditionEvaluator.replace_variables(parallel_task.get('retry_count', '1'), self.global_vars, self.task_results, self.debug_log)
-            retry_delay_str, _ = ConditionEvaluator.replace_variables(parallel_task.get('retry_delay', '1'), self.global_vars, self.task_results, self.debug_log)
+            retry_count_str, _ = ConditionEvaluator.replace_variables(parallel_task.get('retry_count', '1'), self.global_vars, self.task_results, self.log_debug)
+            retry_delay_str, _ = ConditionEvaluator.replace_variables(parallel_task.get('retry_delay', '1'), self.global_vars, self.task_results, self.log_debug)
         
             retry_count = int(retry_count_str)
             retry_delay = int(retry_delay_str)
             
             # Validate retry parameters
             if retry_count < 0 or retry_count > 10:
-                self.log(f"Warning: retry_count {retry_count} out of range (0-10), using 1")
+                self.log_warn(f"retry_count {retry_count} out of range (0-10), using 1")
                 retry_count = 1
                 
             if retry_delay < 0 or retry_delay > 300:
-                self.log(f"Warning: retry_delay {retry_delay} out of range (0-300), using 1")
+                self.log_warn(f"retry_delay {retry_delay} out of range (0-300), using 1")
                 retry_delay = 1
                 
             return {
@@ -944,7 +979,7 @@ class TaskExecutor:
                 'delay': retry_delay
             }
         except ValueError as e:
-            self.log(f"Warning: Invalid retry configuration: {str(e)}. Retry disabled.")
+            self.log_warn(f"Invalid retry configuration: {str(e)}. Retry disabled.")
             return None
 
     # Unified execution helpers
@@ -965,8 +1000,8 @@ class TaskExecutor:
             retry_display=retry_display,
             current_parallel_task=self._current_parallel_task,
             current_conditional_task=None,
-            debug_callback=self.debug_log,
-            log_callback=self.log
+            debug_callback=self.log_debug,
+            log_callback=self.log_info
         )
 
     # ===== 6. PARALLEL TASK EXECUTION =====
@@ -984,20 +1019,20 @@ class TaskExecutor:
             successful_count = len([r for r in results if r['success']])
             total_count = len(results)
             should_continue = successful_count == total_count
-            self.log(f"Task {task_id}: No 'next' condition, using all_success logic: "
+            self.log_info(f"Task {task_id}: No 'next' condition, using all_success logic: "
                     f"{successful_count}/{total_count} = {should_continue}")
             return should_continue
             
         next_condition = parallel_task['next']
-        self.log(f"Task {task_id}: Evaluating 'next' condition: {next_condition}")
+        self.log_info(f"Task {task_id}: Evaluating 'next' condition: {next_condition}")
         
         # Special cases
         if next_condition == 'never':
-            self.log(f"Task {task_id}: 'next=never' found, stopping execution")
+            self.log_info(f"Task {task_id}: 'next=never' found, stopping execution")
             return "NEVER"
 
         if next_condition == 'always':
-            self.log(f"Task {task_id}: 'next=always' found, proceeding to next task")
+            self.log_info(f"Task {task_id}: 'next=always' found, proceeding to next task")
             return True
 
         if next_condition == 'loop' and 'loop' in parallel_task:
@@ -1006,18 +1041,18 @@ class TaskExecutor:
         
         # Handle backwards compatibility for 'success' - treat as 'all_success'
         if next_condition == 'success':
-            self.log(f"Task {task_id}: Legacy 'success' condition treated as 'all_success'")
+            self.log_info(f"Task {task_id}: Legacy 'success' condition treated as 'all_success'")
             result = ParallelExecutor.evaluate_parallel_next_condition(
-                'all_success', results, self.debug_log, self.log)
-            self.log(f"Task {task_id}: Condition 'success' (→ all_success) evaluated to: {result}")
+                'all_success', results, self.log_debug, self.log_info)
+            self.log_info(f"Task {task_id}: Condition 'success' (→ all_success) evaluated to: {result}")
             return result
         
         # Handle parallel-specific conditions (simplified syntax)
         parallel_conditions = ['all_success', 'any_success', 'majority_success']
         if next_condition in parallel_conditions or '=' in next_condition:
             result = ParallelExecutor.evaluate_parallel_next_condition(
-                next_condition, results, self.debug_log, self.log)
-            self.log(f"Task {task_id}: Condition '{next_condition}' evaluated to: {result}")
+                next_condition, results, self.log_debug, self.log_info)
+            self.log_info(f"Task {task_id}: Condition '{next_condition}' evaluated to: {result}")
             return result
         
         # Handle complex condition expressions (delegate to existing logic)
@@ -1033,8 +1068,8 @@ class TaskExecutor:
         
         result = ConditionEvaluator.evaluate_condition(
             next_condition, aggregated_exit_code, aggregated_stdout, aggregated_stderr, 
-            self.global_vars, self.task_results, self.debug_log)
-        self.log(f"Task {task_id}: Complex condition '{next_condition}' evaluated to: {result}")
+            self.global_vars, self.task_results, self.log_debug)
+        self.log_info(f"Task {task_id}: Complex condition '{next_condition}' evaluated to: {result}")
         return result
 
     def handle_parallel_loop(self, parallel_task, results):
@@ -1045,7 +1080,7 @@ class TaskExecutor:
         if task_id not in self.loop_counter:
             self.loop_counter[task_id] = int(parallel_task['loop'])
             self.loop_iterations[task_id] = 1
-            self.log(f"Task {task_id}: Loop initialized with count {self.loop_counter[task_id]}")
+            self.log_info(f"Task {task_id}: Loop initialized with count {self.loop_counter[task_id]}")
         else:
             self.loop_iterations[task_id] += 1
 
@@ -1061,9 +1096,9 @@ class TaskExecutor:
             
             loop_break_result = ConditionEvaluator.evaluate_condition(
                 parallel_task['loop_break'], aggregated_exit_code, aggregated_stdout, 
-                aggregated_stderr, self.global_vars, self.task_results, self.debug_log)
+                aggregated_stderr, self.global_vars, self.task_results, self.log_debug)
             if loop_break_result:
-                self.log(f"Task {task_id}: Breaking loop - condition "
+                self.log_info(f"Task {task_id}: Breaking loop - condition "
                         f"'{parallel_task['loop_break']}' satisfied")
                 del self.loop_counter[task_id]
                 del self.loop_iterations[task_id]
@@ -1073,11 +1108,11 @@ class TaskExecutor:
         self.loop_counter[task_id] -= 1
         
         if self.loop_counter[task_id] >= 0:
-            self.log(f"Task {task_id}: Looping (iteration {self.loop_iterations[task_id]}, "
+            self.log_info(f"Task {task_id}: Looping (iteration {self.loop_iterations[task_id]}, "
                     f"{self.loop_counter[task_id]} remaining)")
             return "LOOP"
         else:
-            self.log(f"Task {task_id}: Loop complete - max iterations reached")
+            self.log_info(f"Task {task_id}: Loop complete - max iterations reached")
             del self.loop_counter[task_id]
             del self.loop_iterations[task_id]
             return True
@@ -1092,7 +1127,7 @@ class TaskExecutor:
         """
         Check if the 'next' condition is satisfied.
         Return True if we should proceed to the next task, False otherwise.
-        Also return an special value for 'never' to distinguish it from normal failure
+        Also return a special value for 'never' to distinguish it from normal failure.
         """
 
         task_id = int(task['task'])
@@ -1103,40 +1138,44 @@ class TaskExecutor:
             loop_display = f".{self.loop_iterations[task_id]}"
 
         if 'next' not in task:
-            self.log(f"Task {task_id}{loop_display}: No 'next' condition specified, proceeding to next task")
+            self.log_info(f"Task {task_id}{loop_display}: No 'next' condition specified, proceeding to next task")
             return True  # Default to True if not specified
             
         next_condition = task['next']
-        self.log(f"Task {task_id}{loop_display}: 'next' evaluating condition: {next_condition}")
+        self.log_info(f"Task {task_id}{loop_display}: 'next' evaluating condition: {next_condition}")
         
         # Special cases
         if next_condition == 'never':
-            self.log(f"Task {task_id}{loop_display}: 'next=never' found, stopping execution")
-            return "NEVER" # Special Case 
+            self.log_info(f"Task {task_id}{loop_display}: 'next=never' found, stopping execution")
+            return "NEVER"  # Special case
 
         if next_condition == 'always':
-            self.log(f"Task {task_id}{loop_display}: 'next=always' found, proceeding to next task")
+            self.log_info(f"Task {task_id}{loop_display}: 'next=always' found, proceeding to next task")
             return True
 
-        # Handle the loop case with new simplified syntax
+        # Handle the loop case with simplified syntax
         if next_condition == 'loop' and 'loop' in task:
             # Check if this is the first time we're seeing this task
             if task_id not in self.loop_counter:
                 self.loop_counter[task_id] = int(task['loop'])
-                self.loop_iterations[task_id] = 1 # Start at iteration 1
-                self.log(f"Task {task_id}{loop_display}: Loop initialized with count {self.loop_counter[task_id]}")
+                self.loop_iterations[task_id] = 1  # Start at iteration 1
+                self.log_info(f"Task {task_id}{loop_display}: Loop initialized with count "
+                        f"{self.loop_counter[task_id]}")
             else:
-                self.loop_iterations[task_id] += 1 # increment the iteration counter by 1
+                self.loop_iterations[task_id] += 1  # Increment iteration counter
 
             # Check loop_break condition first (if exists)
             if 'loop_break' in task:
-                loop_break_result = ConditionEvaluator.evaluate_condition(task['loop_break'], exit_code, stdout, stderr, self.global_vars, self.task_results, self.debug_log)
+                loop_break_result = ConditionEvaluator.evaluate_condition(
+                    task['loop_break'], exit_code, stdout, stderr, 
+                    self.global_vars, self.task_results, self.log_debug)
                 if loop_break_result:
                     # Break condition met
-                    self.log(f"Task {task_id}: Breaking loop - loop_break condition '{task['loop_break']}' satisfied")
+                    self.log_info(f"Task {task_id}: Breaking loop - loop_break condition "
+                            f"'{task['loop_break']}' satisfied")
                     del self.loop_counter[task_id]
                     del self.loop_iterations[task_id]
-                    self.log(f"Task {task_id}: Loop complete, proceeding to next task")
+                    self.log_info(f"Task {task_id}: Loop complete, proceeding to next task")
                     return True  # Proceed to next task
 
             # Decrement the counter
@@ -1144,21 +1183,26 @@ class TaskExecutor:
             
             # If counter is still >= 0, continue looping
             if self.loop_counter[task_id] >= 0:
-                self.log(f"Task {task_id}: Looping (iteration {self.loop_iterations[task_id]}, {self.loop_counter[task_id]} remaining)")
+                self.log_info(f"Task {task_id}: Looping (iteration {self.loop_iterations[task_id]}, "
+                        f"{self.loop_counter[task_id]} remaining)")
                 return "LOOP"  # Trigger the loop
             else:
                 # Max iterations reached
-                self.log(f"Task {task_id}: Loop complete - max iterations reached")
+                self.log_info(f"Task {task_id}: Loop complete - max iterations reached")
                 del self.loop_counter[task_id]
                 del self.loop_iterations[task_id]
                 return True  # Proceed to next task
         
         # Parse complex conditions
-        result = ConditionEvaluator.evaluate_condition(next_condition, exit_code, stdout, stderr, self.global_vars, self.task_results, self.debug_log, current_task_success)
+        result = ConditionEvaluator.evaluate_condition(
+            next_condition, exit_code, stdout, stderr, self.global_vars, 
+            self.task_results, self.log_debug, current_task_success)
         if result:
-            self.log(f"Task {task_id}{loop_display}: 'next' condition evaluated to TRUE, proceeding to next task")
+            self.log_info(f"Task {task_id}{loop_display}: 'next' condition evaluated to TRUE, "
+                    f"proceeding to next task")
         else:
-            self.log(f"Task {task_id}{loop_display}: 'next' condition evaluated to FALSE, stopping")
+            self.log_info(f"Task {task_id}{loop_display}: 'next' condition evaluated to FALSE, "
+                    f"stopping")
 
         return result
 
@@ -1177,39 +1221,39 @@ class TaskExecutor:
         self._check_shutdown()
 
         if not self.tasks:
-            self.log("No valid tasks found. Exiting.")
+            self.log_warn("No valid tasks found. Exiting.")
             return
 
-        # NEW: Show execution plan if requested
+        # Show execution plan if requested
         if self.show_plan:
             self.show_execution_plan()
 
-        # NEW: Conditional validation based on resume mode
+        # Conditional validation based on resume mode
         if not self.skip_task_validation:
             validation_successful = self.validate_tasks()
             if not validation_successful:
-                ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Task file validation failed", self.debug)
+                ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Task file validation failed", False)
             # Add shutdown check after potentially long operation
             self._check_shutdown()
         else:
-            self.log("# Skipping task file validation due to --skip_task_validation flag")
+            self.log_info("# Skipping task file validation due to --skip_task_validation flag")
 
-        # NEW: Additional validation for --start-from
+        # Additional validation for --start-from
         if self.start_from_task is not None:
             if not self.validate_start_from_task(self.start_from_task):
-                ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, "Start-from task validation failed", self.debug)
+                ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, "Start-from task validation failed", False)
             # Optional: Add shutdown check after start-from validation
             self._check_shutdown()
 
-        # NEW: Conditional task dependency validation
+        # Conditional task dependency validation
         if not self.skip_task_validation:
             self.validate_task_dependencies()
             # Check for shutdown after dependency validation
             self._check_shutdown()
         else:
-            self.log("# Skipping task dependency validation due to --skip_task_validation flag")
+            self.log_info("# Skipping task dependency validation due to --skip_task_validation flag")
 
-        # NEW: Conditional host validation
+        # Conditional host validation
         if not self.skip_host_validation:
             validated_hosts = HostValidator.validate_hosts(
                 self.tasks, 
@@ -1218,30 +1262,30 @@ class TaskExecutor:
                 self.exec_type, 
                 self.default_exec_type, 
                 self.connection_test, 
-                self.debug_log, 
-                self.log
+                self.log_debug, 
+                self.log_info
             )
             if validated_hosts is False:
-                self.debug_log("Host validation failed. Exiting.")
+                self.log_error("Host validation failed. Exiting.")
                 self.cleanup()
-                ExitHandler.exit_with_code(ExitCodes.HOST_VALIDATION_FAILED, "Host validation failed", self.debug)
+                ExitHandler.exit_with_code(ExitCodes.HOST_VALIDATION_FAILED, "Host validation failed", False)
             # Check for shutdown after host validation
             self._check_shutdown()
         else:
-            self.log("# WARNING: Skipping host validation due to --skip-host-validation flag")
-            self.log("# WARNING: Using hostnames as-is without FQDN resolution or reachability check")
+            self.log_warn("# WARNING: Skipping host validation due to --skip-host-validation flag")
+            self.log_warn("# WARNING: Using hostnames as-is without FQDN resolution or reachability check")
             # Create dummy validated_hosts dict for resume mode
             validated_hosts = {}
     
         # For resume mode, collect hostnames but don't validate them
         for task in self.tasks.values():
             if 'hostname' in task and task['hostname']:
-                hostname, resolved = ConditionEvaluator.replace_variables(task['hostname'], self.global_vars, self.task_results, self.debug_log)
+                hostname, resolved = ConditionEvaluator.replace_variables(task['hostname'], self.global_vars, self.task_results, self.log_debug)
                 if resolved and hostname:
                     validated_hosts[hostname] = hostname  # Use as-is without validation
 
         # Replace hostnames with validated FQDNs in all tasks
-        # NEW: Conditional hostname FQDN replacement
+        # Conditional hostname FQDN replacement
         if not self.skip_host_validation and validated_hosts:
             # Only replace hostnames if we actually validated them
             for task_id, task in self.tasks.items():
@@ -1249,28 +1293,28 @@ class TaskExecutor:
                     orig_hostname = task['hostname']
                     fqdn = validated_hosts[orig_hostname]
                     if orig_hostname != fqdn:
-                        self.debug_log(f"Replacing hostname '{orig_hostname}' with validated FQDN '{fqdn}'")
+                        self.log_debug(f"Replacing hostname '{orig_hostname}' with validated FQDN '{fqdn}'")
                         task['hostname'] = fqdn
         elif self.skip_host_validation:
-            self.log("# Skipping hostname FQDN replacement due to --skip-host-validation flag")
+            self.log_info("# Skipping hostname FQDN replacement due to --skip-host-validation flag")
 
-        # NEW: Determine starting task ID
+        # Determine starting task ID
         if self.start_from_task is not None:
             start_task_id = self.start_from_task
             
             # Validate that start task exists
             if start_task_id not in self.tasks:
-                self.log(f"ERROR: Start task {start_task_id} not found in task definitions")
+                self.log_error(f"Start task {start_task_id} not found in task definitions")
                 available_tasks = sorted(self.tasks.keys())
-                self.log(f"Available tasks: {available_tasks}")
-                ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, f"Start task {start_task_id} not found", self.debug)
+                self.log_error(f"Available tasks: {available_tasks}")
+                ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, f"Start task {start_task_id} not found", False)
             
-            # NEW: Warning about unresolved dependencies
+            # Warning about unresolved dependencies
             if start_task_id > 0:
-                self.log(f"# WARNING: Task dependencies @X_stdout@, @X_stderr@, @X_success@ for tasks 0-{start_task_id-1} will be unresolved")
-                self.log(f"# Tasks {start_task_id}+ may fail if they depend on results from earlier tasks")
+                self.log_warn(f"# WARNING: Task dependencies @X_stdout@, @X_stderr@, @X_success@ for tasks 0-{start_task_id-1} will be unresolved")
+                self.log_warn(f"# Tasks {start_task_id}+ may fail if they depend on results from earlier tasks")
                 
-            self.log(f"# Starting execution from Task {start_task_id}")
+            self.log_info(f"# Starting execution from Task {start_task_id}")
         else:
             start_task_id = 0
 
@@ -1281,12 +1325,12 @@ class TaskExecutor:
 
             task = self.tasks[next_task_id]
             if task is None:
-                self.log(f"Task {next_task_id}: Task not found. Stopping.")
+                self.log_error(f"Task {next_task_id}: Task not found. Stopping.")
                 break
 
             result = self.execute_task(task)
 
-            # handle ste special LOOP case
+            # handle the special LOOP case
             if result == "LOOP":
                 continue # Re-execute the same task
 
@@ -1300,23 +1344,23 @@ class TaskExecutor:
                 last_task = self.tasks[self.current_task]
                 if 'next' in last_task and last_task['next'] == 'never':
                     # This is a successful completion with 'next=never'
-                    self.log("SUCCESS: Task execution completed successfully with 'next=never'.")
-                    ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully with 'next=never'", self.debug)
+                    self.log_info("SUCCESS: Task execution completed successfully with 'next=never'.")
+                    ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully with 'next=never'", False)
                 else:
                     # This is a failure due to a 'next' condition
-                    self.log("FAILED: Task execution stopped: 'next' condition was not satisfied.")
-                    ExitHandler.exit_with_code(ExitCodes.CONDITIONAL_EXECUTION_FAILED, "Task execution stopped: 'next' condition was not satisfied", self.debug)
+                    self.log_error("FAILED: Task execution stopped: 'next' condition was not satisfied.")
+                    ExitHandler.exit_with_code(ExitCodes.CONDITIONAL_EXECUTION_FAILED, "Task execution stopped: 'next' condition was not satisfied", False)
             else:
-                self.log("FAILED: Task execution stopped for an unknown reason.")
-                ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for an unknown reason", self.debug)
+                self.log_error("FAILED: Task execution stopped for an unknown reason.")
+                ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for an unknown reason", False)
         elif next_task_id not in self.tasks:  # Changed condition
             # We've successfully completed all tasks or reached a non-existent task
-            self.log("SUCCESS: Task execution completed - reached end of defined tasks.")
-            ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully", self.debug)
+            self.log_info("SUCCESS: Task execution completed - reached end of defined tasks.")
+            ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully", False)
         else:
             # Something else stopped execution
-            self.log("FAILED: Task execution stopped for an unknown reason.")
-            ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for unknown reason", self.debug)
+            self.log_error("FAILED: Task execution stopped for an unknown reason.")
+            ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for unknown reason", False)
 
 
 # ===== 9. ENTRY POINT =====
@@ -1333,8 +1377,8 @@ def main():
                        help='Actually run the commands (not dry run)')
     parser.add_argument('-l', '--log-dir', default=None, 
                        help='Directory to store log files')
-    parser.add_argument('-d', '--debug', action='store_true', 
-                       help='Enable debug logging')
+    parser.add_argument('--log-level', choices=['ERROR', 'WARN', 'INFO', 'DEBUG'], 
+                       default='INFO', help='Set logging level (default: INFO)')
     parser.add_argument('-t', '--type', choices=['pbrun', 'p7s', 'local', 'wwrs'], 
                        help='Execution type (overridden by task-specific settings)')
     parser.add_argument('-o', '--timeout', type=int, default=30, 
@@ -1360,10 +1404,20 @@ def main():
     parser.add_argument('--show-plan', action='store_true', 
                        help='Show execution plan and require confirmation before running')
 
+    # Legacy support - keep -d/--debug for backward compatibility but deprecate
+    parser.add_argument('-d', '--debug', action='store_true', 
+                       help='Enable debug logging (DEPRECATED: use --log-level=DEBUG)')
+
     args = parser.parse_args()
 
+    # Handle legacy debug flag
+    if args.debug:
+        if args.log_level == 'INFO':  # Only override if user didn't explicitly set log level
+            args.log_level = 'DEBUG'
+        print("WARNING: -d/--debug is deprecated. Use --log-level=DEBUG instead.")
+
     # Get and create log directory
-    log_dir = get_log_directory(args.log_dir, args.debug)
+    log_dir = get_log_directory(args.log_dir, args.log_level == 'DEBUG')
 
     # Validate timeout range
     if args.timeout < 5:
@@ -1386,7 +1440,7 @@ def main():
         task_file=args.task_file,
         log_dir=log_dir,
         dry_run=not args.run,
-        debug=args.debug,
+        log_level=args.log_level,
         exec_type=args.type,
         timeout=args.timeout,
         connection_test=args.connection_test,

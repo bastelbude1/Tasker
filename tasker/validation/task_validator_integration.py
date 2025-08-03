@@ -37,27 +37,34 @@ class TaskValidatorIntegration:
             # Create a validator instance
             validator = TaskValidator(task_file)
 
-            # Run validation
-            validation_results = validator.validate()
+            # Parse the file first
+            if not validator.parse_file():
+                execution_context.log("# Task validation FAILED - could not parse file.")
+                for error in validator.errors:
+                    execution_context.log_debug(f"# ERROR: {error}")
+                return False
 
-            if validation_results['errors']:
+            # Run validation
+            validation_success = validator.validate_tasks()
+
+            if not validation_success or validator.errors:
                 execution_context.log("# Task validation FAILED.")
                 # Log each error
-                for error in validation_results['errors']:
+                for error in validator.errors:
                     execution_context.log_debug(f"# ERROR: {error}")
                 return False
             else:
                 # Log warnings if any
-                if validation_results['warnings']:
-                    for warning in validation_results['warnings']:
+                if validator.warnings:
+                    for warning in validator.warnings:
                         execution_context.log_debug(f"# WARNING: {warning}")
 
                 # Validation passed
                 execution_context.log("# Task validation passed successfully.")
                 
                 # Log warnings again for visibility (optional)
-                if validation_results['warnings']:
-                    for warning in validation_results['warnings']:
+                if validator.warnings:
+                    for warning in validator.warnings:
                         execution_context.log_debug(f"# WARNING: {warning}")
                 
                 return True

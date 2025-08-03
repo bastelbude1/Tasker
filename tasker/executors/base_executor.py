@@ -179,7 +179,7 @@ class BaseExecutor(ABC):
             # 8. Real execution
             start_time = time.time()
             try:
-                result = subprocess.run(cmd_array, capture_output=True, text=True, timeout=task_timeout)
+                result = subprocess.run(cmd_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=task_timeout)
                 execution_time = time.time() - start_time
                 
                 exit_code = result.returncode

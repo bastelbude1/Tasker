@@ -10,10 +10,14 @@ from .core.utilities import (
     get_log_directory
 )
 
+# Validation components
+from .validation.host_validator import HostValidator
 
 # Public API
 __all__ = [
     # Core
     'sanitize_filename',
-    'get_log_directory'
+    'get_log_directory',
+    # Validation
+    'HostValidator'
 ]

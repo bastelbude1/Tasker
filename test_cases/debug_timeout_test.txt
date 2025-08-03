@@ -1,0 +1,43 @@
+# DEBUG TIMEOUT TEST
+task=0
+hostname=localhost
+command=echo
+arguments=Debug Timeout Test
+exec=local
+
+task=1
+type=parallel
+max_parallel=2
+tasks=100,101
+timeout=3
+next=min_success=1
+on_success=2
+on_failure=99
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Test passed
+exec=local
+next=never
+
+task=99
+hostname=localhost
+command=echo
+arguments=ERROR: Test failed
+exec=local
+next=never
+
+# Parallel tasks
+task=100
+hostname=localhost
+command=echo
+arguments=Task 100 - Quick success
+exec=local
+
+task=101
+hostname=localhost
+command=echo
+arguments=Task 101 - Should timeout (5s sleep vs 5s master timeout)
+exec=local
+sleep=5

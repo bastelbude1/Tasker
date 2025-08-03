@@ -60,10 +60,7 @@ simple_count() {
     local pattern="$2"
     
     if [ -f "$log_file" ]; then
-        local count=$(grep -c "$pattern" "$log_file" 2>/dev/null || echo "0")
-        # Just return the first character sequence that looks like a number
-        echo "$count" | head -1 | cut -c1-2 | tr -cd '0-9' | head -c2
-        [ -z "$(echo "$count" | head -1 | cut -c1-2 | tr -cd '0-9' | head -c2)" ] && echo "0"
+        grep -c "$pattern" "$log_file" 2>/dev/null || echo "0"
     else
         echo "0"
     fi
@@ -121,7 +118,7 @@ final_success=$(simple_check "$MAIN_LOG" "ALL TESTS COMPLETED SUCCESSFULLY")
 echo -e "Overall Success: $final_success"
 
 # Count retry attempts - SIMPLE
-retry_count=$(simple_count "$MAIN_LOG" "RETRY.*failed task")
+retry_count=$(simple_count "$MAIN_LOG" "will retry as Task")
 echo -e "Total Retry Attempts: $retry_count"
 
 # Count successes after retry - SIMPLE  

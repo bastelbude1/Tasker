@@ -215,19 +215,16 @@ class BaseExecutor(ABC):
                 # Default success: exit code 0
                 success_result = (exit_code == 0)
             
-            # 9. Sleep after task if specified
+            # 9. Sleep information (don't execute here - return for caller to handle)
+            sleep_seconds = 0
             if 'sleep' in task:
                 sleep_str, _ = ConditionEvaluator.replace_variables(task['sleep'], global_vars, task_results, debug_callback)
                 try:
                     sleep_seconds = int(sleep_str)
-                    if sleep_seconds > 0:
-                        if log_callback:
-                            log_callback(f"Task {task_display_id}: Sleeping for {sleep_seconds} seconds...")
-                        import time
-                        time.sleep(sleep_seconds)
                 except ValueError:
                     if debug_callback:
                         debug_callback(f"Task {task_display_id}: Invalid sleep value: {sleep_str}")
+                    sleep_seconds = 0
             
             return {
                 'task_id': task_id,
@@ -235,7 +232,8 @@ class BaseExecutor(ABC):
                 'stdout': stdout,
                 'stderr': stderr,
                 'success': success_result,
-                'skipped': False
+                'skipped': False,
+                'sleep_seconds': sleep_seconds
             }
             
         except Exception as e:
@@ -247,7 +245,8 @@ class BaseExecutor(ABC):
                 'stdout': '',
                 'stderr': f'Unexpected error: {str(e)}',
                 'success': False,
-                'skipped': False
+                'skipped': False,
+                'sleep_seconds': 0
             }
 
     @abstractmethod

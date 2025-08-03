@@ -1,0 +1,63 @@
+# TEST 3: Custom Success Conditions with Retry
+# Tests retry logic with custom success conditions
+
+task=0
+hostname=localhost
+command=echo
+arguments=Testing Custom Success Conditions with Retry Logic
+exec=local
+
+task=1
+type=parallel
+max_parallel=3
+tasks=300,301,302
+timeout=8
+retry_failed=true
+retry_count=2
+retry_delay=1
+next=all_success
+on_success=2
+on_failure=50
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Custom success conditions work with retry logic
+exec=local
+next=never
+
+task=50
+hostname=localhost
+command=echo
+arguments=ERROR: Custom success conditions test failed
+exec=local
+next=never
+
+# === FIREWALL ===
+task=99
+return=0
+
+# === PARALLEL TASKS ===
+# Task 300: Custom success condition, fails first time, succeeds on retry
+task=300
+hostname=localhost
+command=sh
+arguments=-c "if [ ! -f /tmp/task300_attempt ]; then touch /tmp/task300_attempt; echo 'PARTIAL'; exit 0; else echo 'HEALTHY'; exit 0; fi"
+exec=local
+success=exit_0&stdout~HEALTHY
+
+# Task 301: Custom success condition, always succeeds
+task=301
+hostname=localhost
+command=echo
+arguments=HEALTHY - Custom success always works
+exec=local
+success=exit_0&stdout~HEALTHY
+
+# Task 302: Custom success condition, takes multiple retries
+task=302
+hostname=localhost
+command=sh
+arguments=-c "attempts=$(cat /tmp/task302_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task302_counter; if [ $attempts -le 1 ]; then echo \"DEGRADED (attempt $attempts)\"; exit 0; else echo \"HEALTHY (attempt $attempts)\"; exit 0; fi"
+exec=local
+success=exit_0&stdout~HEALTHY

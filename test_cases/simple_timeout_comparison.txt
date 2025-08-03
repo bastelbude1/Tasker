@@ -1,0 +1,34 @@
+# Simple timeout comparison test
+task=0
+hostname=localhost
+command=echo
+arguments=Simple timeout test
+exec=local
+
+task=1
+type=parallel
+max_parallel=2
+tasks=100,101
+timeout=3
+next=min_success=1
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Test completed
+exec=local
+next=never
+
+# Parallel tasks
+task=100
+hostname=localhost
+command=echo
+arguments=Quick success
+exec=local
+
+task=101
+hostname=localhost
+command=echo
+arguments=Should sleep after completion
+exec=local
+sleep=5

@@ -1,0 +1,61 @@
+# TEST 2: Timeout Behavior Analysis
+# Tests that timeout tasks are NOT retried (only failed tasks are retried)
+
+task=0
+hostname=localhost
+command=echo
+arguments=Testing Timeout Behavior - Timeout tasks should NOT be retried
+exec=local
+
+task=1
+type=parallel
+max_parallel=3
+tasks=200,201,202
+timeout=4
+retry_failed=true
+retry_count=3
+retry_delay=1
+next=min_success=2
+on_success=2
+on_failure=50
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Timeout test passed - Timeouts not retried, at least 2/3 succeeded
+exec=local
+next=never
+
+task=50
+hostname=localhost
+command=echo
+arguments=ERROR: Timeout test failed - should have gotten 2/3 successes
+exec=local
+next=never
+
+# === FIREWALL ===
+task=99
+return=0
+
+# === PARALLEL TASKS ===
+# Task 200: Fails first time, succeeds on retry
+task=200
+hostname=localhost
+command=sh
+arguments=-c "if [ ! -f /tmp/task200_attempt ]; then touch /tmp/task200_attempt; echo 'Task 200 - First attempt fails'; exit 1; else echo 'Task 200 - Retry succeeds'; exit 0; fi"
+exec=local
+
+# Task 201: Always times out (should NOT be retried)
+task=201
+hostname=localhost
+command=sleep
+arguments=8
+exec=local
+
+# Task 202: Succeeds after short delay
+task=202
+hostname=localhost
+command=echo
+arguments=Task 202 - Success after delay
+exec=local
+sleep=2

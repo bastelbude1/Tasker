@@ -1,0 +1,53 @@
+# TEST 4: High Retry Count Scenario
+# Tests retry logic with high retry counts
+
+task=0
+hostname=localhost
+command=echo
+arguments=Testing High Retry Count - Some tasks need multiple attempts
+exec=local
+
+task=1
+type=parallel
+max_parallel=2
+tasks=400,401
+timeout=15
+retry_failed=true
+retry_count=4
+retry_delay=1
+next=all_success
+on_success=2
+on_failure=50
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: High retry count test passed - persistent failures overcome
+exec=local
+next=never
+
+task=50
+hostname=localhost
+command=echo
+arguments=ERROR: High retry count test failed
+exec=local
+next=never
+
+# === FIREWALL ===
+task=99
+return=0
+
+# === PARALLEL TASKS ===
+# Task 400: Fails 3 times, succeeds on 4th attempt
+task=400
+hostname=localhost
+command=sh
+arguments=-c "attempts=$(cat /tmp/task400_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task400_counter; if [ $attempts -le 3 ]; then echo \"Task 400 - Attempt $attempts fails\"; exit 1; else echo \"Task 400 - Finally succeeds on attempt $attempts\"; exit 0; fi"
+exec=local
+
+# Task 401: Fails 4 times, succeeds on 5th attempt
+task=401
+hostname=localhost
+command=sh
+arguments=-c "attempts=$(cat /tmp/task401_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task401_counter; if [ $attempts -le 4 ]; then echo \"Task 401 - Attempt $attempts fails\"; exit 1; else echo \"Task 401 - Finally succeeds on attempt $attempts\"; exit 0; fi"
+exec=local

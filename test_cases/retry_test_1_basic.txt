@@ -1,0 +1,67 @@
+# TEST 1: Basic Retry Functionality
+# Tests basic retry logic with failed tasks that succeed on retry
+
+task=0
+hostname=localhost
+command=echo
+arguments=Testing Basic Retry Logic - Tasks will fail initially but succeed after retry
+exec=local
+
+task=1
+type=parallel
+max_parallel=4
+tasks=100,101,102,103
+timeout=10
+retry_failed=true
+retry_count=2
+retry_delay=2
+next=min_success=3
+on_success=2
+on_failure=50
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Basic retry test passed - at least 3/4 tasks succeeded with retries
+exec=local
+next=never
+
+task=50
+hostname=localhost
+command=echo
+arguments=ERROR: Basic retry test failed unexpectedly
+exec=local
+next=never
+
+# === FIREWALL ===
+task=99
+return=0
+
+# === PARALLEL TASKS ===
+# Task 100: Always succeeds (no retry needed)
+task=100
+hostname=localhost
+command=echo
+arguments=Task 100 - Always succeeds
+exec=local
+
+# Task 101: Fails first time, succeeds on retry
+task=101
+hostname=localhost
+command=sh
+arguments=-c "if [ ! -f /tmp/task101_attempt ]; then touch /tmp/task101_attempt; echo 'Task 101 - First attempt fails'; exit 1; else echo 'Task 101 - Retry succeeds'; exit 0; fi"
+exec=local
+
+# Task 102: Fails twice, succeeds on third attempt
+task=102
+hostname=localhost
+command=sh
+arguments=-c "attempts=$(cat /tmp/task102_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task102_counter; if [ $attempts -le 2 ]; then echo \"Task 102 - Attempt $attempts fails\"; exit 1; else echo \"Task 102 - Attempt $attempts succeeds\"; exit 0; fi"
+exec=local
+
+# Task 103: Always succeeds (no retry needed)
+task=103
+hostname=localhost
+command=echo
+arguments=Task 103 - Always succeeds
+exec=local

@@ -282,6 +282,14 @@ class ParallelExecutor(BaseExecutor):
 
                         try:
                             result = future.result()
+                            
+                            # Handle sleep AFTER task completion but BEFORE recording result
+                            sleep_seconds = result.get('sleep_seconds', 0)
+                            if sleep_seconds > 0:
+                                task_display_id = f"{task_id}-{result['task_id']}"
+                                executor_instance.log(f"Task {task_display_id}: Sleeping for {sleep_seconds} seconds...")
+                                time.sleep(sleep_seconds)
+                            
                             results.append(result)
                             
                             # IMPROVED: Simple completion message

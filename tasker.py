@@ -49,6 +49,9 @@ from tasker.core.utilities import (
 from tasker.core.condition_evaluator import ConditionEvaluator
 from tasker.validation.host_validator import HostValidator
 from tasker.validation.task_validator_integration import TaskValidatorIntegration
+from tasker.executors.sequential_executor import SequentialExecutor
+from tasker.executors.parallel_executor import ParallelExecutor
+from tasker.executors.conditional_executor import ConditionalExecutor
 
 
 class TaskExecutor:
@@ -1330,6 +1333,7 @@ class TaskExecutor:
 
     def execute_parallel_tasks(self, parallel_task):
         """Execute multiple tasks in parallel with ENHANCED RETRY LOGIC and IMPROVED LOGGING."""
+        return ParallelExecutor.execute_parallel_tasks(parallel_task, self)
         task_id = int(parallel_task['task'])
         
         # Set current parallel task for child task logging
@@ -1672,6 +1676,7 @@ class TaskExecutor:
 
     def execute_conditional_tasks(self, conditional_task):
         """Execute conditional tasks based on condition evaluation - sequential execution."""
+        return ConditionalExecutor.execute_conditional_tasks(conditional_task, self)
         task_id = int(conditional_task['task'])
         
         # Set current conditional task for child task logging
@@ -1934,213 +1939,7 @@ class TaskExecutor:
 
     def execute_task(self, task):
         """Execute a single task and return whether to continue to the next task."""
-        task_id = int(task['task'])
-        self.current_task = task_id # track current task
-
-        # NEW: Check if this is a conditional task
-        if task.get('type') == 'conditional':
-            return self.execute_conditional_tasks(task)
-
-        # NEW: Check if this is a parallel task
-        if task.get('type') == 'parallel':
-            return self.execute_parallel_tasks(task)
-
-        # Get loop iteration display if looping
-        loop_display = ""
-        if task_id in self.loop_iterations:
-            loop_display = f".{self.loop_iterations[task_id]}"
-
-        # Check for shutdown before task execution
-        self._check_shutdown()
-
-        # Check pre-execution condition
-        if 'condition' in task:
-            condition_result = ConditionEvaluator.evaluate_condition(task['condition'], 0, "", "", self.global_vars, self.task_results, self.debug_log)
-            if not condition_result:
-                self.log(f"Task {task_id}{loop_display}: Condition '{task['condition']}' evaluated to FALSE, skipping task")
-                # CRITICAL: Store results for skipped task - THREAD SAFE
-                self.store_task_result(task_id, {
-                    'exit_code': -1,     # Special: Task was skipped
-                    'stdout': '',
-                    'stderr': 'Task skipped due to condition',
-                    'success': False
-                })
-                return task_id + 1  # Continue to next task
-            else:
-                self.log(f"Task {task_id}{loop_display}: Condition '{task['condition']}' evaluated to TRUE, executing task")
-
-        # Update tracking for summary
-        self.final_task_id = task_id
-        self.final_hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', 'N/A'), self.global_vars, self.task_results, self.debug_log)
-        self.final_command, _ = ConditionEvaluator.replace_variables(task.get('command', 'N/A'), self.global_vars, self.task_results, self.debug_log)
-        
-        # Check if this is a return task
-        if 'return' in task:
-            if self.final_command == 'N/A': self.final_command = 'return'
-            try:
-                return_code = int(task['return'])
-                self.log(f"Task {task_id}{loop_display}: Returning with exit code {return_code}")
-                self.final_exit_code = return_code
-                self.final_success = (return_code == 0)  # Consider success if return code is 0
-                
-                # Add completion message before immediate exit
-                if return_code == 0:
-                    self.log("SUCCESS: Task execution completed successfully with return code 0")
-                else:
-                    self.log(f"FAILURE: Task execution failed with return code {return_code}")
-                
-                self.cleanup() # clean up resources before exit
-                ExitHandler.exit_with_code(return_code, f"Task execution completed with return code {return_code}", self.debug)
-            except ValueError:
-                self.log(f"Task {task_id}{loop_display}: Invalid return code '{task['return']}'. Exiting with code 1.")
-                self.final_exit_code = 1  # Use 1 for invalid return codes (this is correct)
-                self.final_success = False
-                self.log("FAILURE: Task execution failed with invalid return code")
-                self.cleanup() # clean up resources before exit
-                ExitHandler.exit_with_code(ExitCodes.INVALID_ARGUMENT, "Invalid return code specified", self.debug)
-        
-        # Replace variables in command and arguments
-        hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', ''), self.global_vars, self.task_results, self.debug_log)
-        command, _ = ConditionEvaluator.replace_variables(task.get('command', ''), self.global_vars, self.task_results, self.debug_log)
-        arguments, _ = ConditionEvaluator.replace_variables(task.get('arguments', ''), self.global_vars, self.task_results, self.debug_log)
-
-        # Determine execution type (from task, args, env, or default)
-        exec_type = self.determine_execution_type(task, task_id, loop_display)
-        # special case for local host
-        if self.final_hostname == '': self.final_hostname = exec_type
-
-        # Construct the command array based on execution type
-        cmd_array = self.build_command_array(exec_type, hostname, command, arguments)
-        self.debug_log(f"Command array: {cmd_array}")
-
-        # Log the full command for the user
-        full_command_display = ' '.join(cmd_array)
-        self.final_command = full_command_display # better to have full command in the summary log
-
-        # Get timeout for this task
-        task_timeout = self.get_task_timeout(task)
-        #self.log(f"Task {task_id}{loop_display}: Using timeout of {task_timeout} [s]")
-
-        # Execute the command (or simulate in dry run mode)
-        if self.dry_run:
-            self.log(f"Task {task_id}{loop_display}: [DRY RUN] Would execute: {full_command_display}")
-            exit_code = 0
-            stdout = "DRY RUN STDOUT"
-            stderr = ""
-        else:
-            self.log(f"Task {task_id}{loop_display}: Executing [{exec_type}]: {full_command_display}")
-            try:
-                # Execute using contect manager for automatic cleanup
-                with subprocess.Popen(
-                    cmd_array,
-                    shell=False, # More secure
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    universal_newlines=True
-                ) as process:
-                    try:
-                        stdout, stderr = process.communicate(timeout=task_timeout)
-                        exit_code = process.returncode
-                    except subprocess.TimeoutExpired: 
-                        # Process timed out - kill it
-                        self.log(f"Task {task_id}{loop_display}: Timeout after {task_timeout} seconds. Killing process.")
-                        process.kill()
-                        stdout, stderr = process.communicate()
-                        exit_code = 124  # Common exit code for timeout
-                        stderr += f"\nProcess killed after timeout of {task_timeout} seconds"
-            except Exception as e:
-                self.log(f"Task {task_id}{loop_display}: Error executing command: {str(e)}")
-                exit_code = 1
-                stdout = ""
-                stderr = str(e)
-        
-        # Log the results
-        stdout_stripped = stdout.rstrip('\n')
-        stderr_stripped = stderr.rstrip('\n')
-        self.log(f"Task {task_id}{loop_display}: Exit code: {exit_code}")
-        self.log(f"Task {task_id}{loop_display}: STDOUT: {stdout_stripped}")
-        self.log(f"Task {task_id}{loop_display}: STDERR: {stderr_stripped}")
-        
-        # Process output splitting if specified
-        if 'stdout_split' in task:
-            original_stdout = stdout
-            stdout = ConditionEvaluator.split_output(stdout, task['stdout_split'])
-            self.log(f"Task {task_id}{loop_display}: Split STDOUT: '{stdout_stripped}' -> '{stdout}'")
-            
-        if 'stderr_split' in task:
-            original_stderr = stderr
-            stderr = ConditionEvaluator.split_output(stderr, task['stderr_split'])
-            self.log(f"Task {task_id}{loop_display}: Split STDERR: '{stderr_stripped}' -> '{stderr}'")
-        
-        # Evaluate success condition if defined, otherwise default to exit_code == 0
-        if 'success' in task:
-            success_result = ConditionEvaluator.evaluate_condition(task['success'], exit_code, stdout, stderr, self.global_vars, self.task_results, self.debug_log)
-            self.log(f"Task {task_id}{loop_display}: Success condition '{task['success']}' evaluated to: {success_result}")
-        else:
-            success_result = (exit_code == 0)
-            self.debug_log(f"Task {task_id}{loop_display}: Success (default): {success_result}")
-        
-        # CRITICAL: Store the results for future reference - THREAD SAFE
-        self.store_task_result(task_id, {
-            'exit_code': exit_code,
-            'stdout': stdout,
-            'stderr': stderr,
-            'success': success_result
-        })
-        
-        # Check if we should sleep before the next task
-        if 'sleep' in task:
-            try:
-                sleep_time_str, resolved = ConditionEvaluator.replace_variables(task['sleep'], self.global_vars, self.task_results, self.debug_log)
-                if resolved:
-                    sleep_time = float(sleep_time_str)
-                    self.log(f"Task {task_id}{loop_display}: Sleeping for {sleep_time} seconds")
-                    if not self.dry_run:
-                        time.sleep(sleep_time)
-                else:
-                    self.log(f"Task {task_id}{loop_display}: Unresolved variables in sleep time. Skipping sleep.")
-            except ValueError:
-                self.log(f"Task {task_id}{loop_display}: Invalid sleep time '{task['sleep']}'. Continuing.")
-        
-        # Check the 'next' condition to determine if we should continue
-        should_continue = self.check_next_condition(task, exit_code, stdout, stderr, success_result)
-
-        # Update final exit code
-        self.final_exit_code = exit_code
-
-        # Determine if this task succeeded
-        has_on_failure = 'on_failure' in task
-        self.final_success = should_continue is True or (should_continue is False and has_on_failure)
-
-        if should_continue == "NEVER":
-            self.final_success = True;
-            return None # Stop execution, do not check for on_failure
-
-        if should_continue == "LOOP":
-            return "LOOP" 
-        
-        # If we should continue and we have an 'on_success', jump to that task
-        if should_continue and 'on_success' in task:
-            try:
-                on_success_task = int(task['on_success'])
-                self.log(f"Task {task_id}{loop_display}: 'next' condition succeeded, jumping to Task {on_success_task}")
-                return on_success_task
-            except ValueError:
-                self.log(f"Task {task_id}{loop_display}: Invalid 'on_success' task '{task['on_success']}'. Continuing to next task.")
-                return task_id + 1
-        
-        # If we shouldn't continue but we have an 'on_failure', jump to that task
-        if not should_continue and 'on_failure' in task:
-            try:
-                on_failure_task = int(task['on_failure'])
-                self.log(f"Task {task_id}{loop_display}: 'next' condition failed, jumping to Task {on_failure_task}")
-                return on_failure_task
-            except ValueError:
-                self.log(f"Task {task_id}{loop_display}: Invalid 'on_failure' task '{task['on_failure']}'. Stopping.")
-                return None
-
-        # Return the next task ID or None to stop
-        return task_id + 1 if should_continue else None
+        return SequentialExecutor.execute_task(task, self)
 
     # ===== 9. MAIN ORCHESTRATION =====
     

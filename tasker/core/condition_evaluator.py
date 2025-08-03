@@ -290,28 +290,105 @@ class ConditionEvaluator:
                     debug_callback(f"Invalid exit code condition '{condition}', treating as False")
                 return False
         
-        # Built-in string conditions
-        elif condition == 'stdout_empty':
-            result = not stdout.strip()
-            if debug_callback:
-                debug_callback(f"Stdout empty condition: stdout='{stdout.strip()}', result {result}")
-            return result
-        elif condition == 'stdout_not_empty':
-            result = bool(stdout.strip())
-            if debug_callback:
-                debug_callback(f"Stdout not empty condition: stdout='{stdout.strip()}', result {result}")
-            return result
-        elif condition == 'stderr_empty':
-            result = not stderr.strip()
-            if debug_callback:
-                debug_callback(f"Stderr empty condition: stderr='{stderr.strip()}', result {result}")
-            return result
-        elif condition == 'stderr_not_empty':
-            result = bool(stderr.strip())
-            if debug_callback:
-                debug_callback(f"Stderr not empty condition: stderr='{stderr.strip()}', result {result}")
-            return result
         
+        # Check for stdout/stderr conditions (legacy support maintained)
+        if condition.startswith('stdout'):
+            stdout_stripped = stdout.rstrip('\n')
+            if condition == 'stdout~':
+                result = stdout.strip() == ''
+                if debug_callback:
+                    debug_callback(f"Stdout empty check: '{stdout.strip()}' is {'empty' if result else 'not empty'}")
+                return result
+            elif condition == 'stdout!~':
+                result = stdout.strip() != ''
+                if debug_callback:
+                    debug_callback(f"Stdout not empty check: '{stdout.strip()}' is {'not empty' if result else 'empty'}")
+                return result
+            elif '~' in condition:
+                pattern = condition.split('~', 1)[1]
+                if condition.startswith('stdout!~'):
+                    result = pattern not in stdout
+                    if debug_callback:
+                        debug_callback(f"Stdout pattern not match: '{pattern}' is {'absent' if result else 'present'} in '{stdout_stripped}'")
+                    return result
+                else:
+                    result = pattern in stdout
+                    if debug_callback:
+                        debug_callback(f"Stdout pattern match: '{pattern}' is {'present' if result else 'absent'} in '{stdout_stripped}'")
+                    return result
+            elif '_count' in condition:
+                try:
+                    count_parts = condition.split('_count')
+                    operator = count_parts[1][0] if len(count_parts[1]) > 0 else '='
+                    expected_count = int(count_parts[1][1:])
+                    actual_count = len(stdout.strip().split('\n'))
+                    
+                    if operator == '=':
+                        return actual_count == expected_count
+                    elif operator == '<':
+                        return actual_count < expected_count
+                    elif operator == '>':
+                        return actual_count > expected_count
+                    else:
+                        # Note: Cannot call self.log in static method, using debug_callback
+                        if debug_callback:
+                            debug_callback(f"Warning: Invalid operator in count condition: {condition}")
+                        return False
+                except (ValueError, IndexError):
+                    # Note: Cannot call self.log in static method, using debug_callback
+                    if debug_callback:
+                        debug_callback(f"Warning: Invalid count specification in condition: {condition}")
+                    return False
+
+        # Check for stderr conditions 
+        if condition.startswith('stderr'):
+            stderr_stripped = stderr.rstrip('\n')
+            if condition == 'stderr~':
+                result = stderr.strip() == ''
+                if debug_callback:
+                    debug_callback(f"Stderr empty check: '{stderr.strip()}' is {'empty' if result else 'not empty'}")
+                return result
+            elif condition == 'stderr!~':
+                result = stderr.strip() != ''
+                if debug_callback:
+                    debug_callback(f"Stderr not empty check: '{stderr.strip()}' is {'not empty' if result else 'empty'}")
+                return result
+            elif '~' in condition:
+                pattern = condition.split('~', 1)[1]
+                if condition.startswith('stderr!~'):
+                    result = pattern not in stderr
+                    if debug_callback:
+                        debug_callback(f"Stderr pattern not match: '{pattern}' is {'absent' if result else 'present'} in '{stderr_stripped}'")
+                    return result
+                else:
+                    result = pattern in stderr
+                    if debug_callback:
+                        debug_callback(f"Stderr pattern match: '{pattern}' is {'present' if result else 'absent'} in '{stderr_stripped}'")
+                    return result
+            elif '_count' in condition:
+                try:
+                    count_parts = condition.split('_count')
+                    operator = count_parts[1][0] if len(count_parts[1]) > 0 else '='
+                    expected_count = int(count_parts[1][1:])
+                    actual_count = len(stderr.strip().split('\n'))
+                    
+                    if operator == '=':
+                        return actual_count == expected_count
+                    elif operator == '<':
+                        return actual_count < expected_count
+                    elif operator == '>':
+                        return actual_count > expected_count
+                    else:
+                        # Note: Cannot call self.log in static method, using debug_callback
+                        if debug_callback:
+                            debug_callback(f"Warning: Invalid operator in count condition: {condition}")
+                        return False
+                except (ValueError, IndexError):
+                    # Note: Cannot call self.log in static method, using debug_callback
+                    if debug_callback:
+                        debug_callback(f"Warning: Invalid count specification in condition: {condition}")
+                    return False
+
         # Advanced conditions with operators
         elif any(op in condition for op in ['=', '!=', '~', '!~', '<', '<=', '>', '>=']):
             return ConditionEvaluator.evaluate_operator_comparison(condition, exit_code, stdout, stderr, debug_callback)

@@ -188,8 +188,8 @@ class ConditionEvaluator:
         if debug_callback:
             debug_callback(f"Condition after variable replacement: '{condition}'")
         
-        # Handle simple conditions without boolean operators
-        if not any(op in condition.upper() for op in [' AND ', ' OR ', ' NOT ']):
+        # Handle simple conditions without boolean operators (check for |, &, AND, OR, NOT)
+        if not any(op in condition for op in ['|', '&']) and not any(op in condition.upper() for op in [' AND ', ' OR ', ' NOT ']):
             return ConditionEvaluator.evaluate_simple_condition(condition, exit_code, stdout, stderr, debug_callback)
         
         # For complex conditions with boolean operators, we need to parse them
@@ -231,6 +231,34 @@ class ConditionEvaluator:
             result = any(results)
             if debug_callback:
                 debug_callback(f"OR condition overall result: {result}")
+            return result
+        
+        # Handle | operator (OR - pipe symbol)
+        if '|' in condition:
+            parts = condition.split('|')
+            results = []
+            for part in parts:
+                part_result = ConditionEvaluator.evaluate_simple_condition(part.strip(), exit_code, stdout, stderr, debug_callback)
+                results.append(part_result)
+                if debug_callback:
+                    debug_callback(f"OR (|) part '{part.strip()}' evaluated to: {part_result}")
+            result = any(results)
+            if debug_callback:
+                debug_callback(f"OR (|) condition overall result: {result}")
+            return result
+        
+        # Handle & operator (AND - ampersand symbol)  
+        if '&' in condition:
+            parts = condition.split('&')
+            results = []
+            for part in parts:
+                part_result = ConditionEvaluator.evaluate_simple_condition(part.strip(), exit_code, stdout, stderr, debug_callback)
+                results.append(part_result)
+                if debug_callback:
+                    debug_callback(f"AND (&) part '{part.strip()}' evaluated to: {part_result}")
+            result = all(results)
+            if debug_callback:
+                debug_callback(f"AND (&) condition overall result: {result}")
             return result
         
         # If no boolean operators found, treat as simple condition

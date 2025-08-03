@@ -51,9 +51,9 @@ class ParallelExecutor(BaseExecutor):
         
             # Log attempt information with unique task ID
             if attempt == 0:
-                executor_instance.debug_log(f"Task {parent_task_id}-{task_id}{retry_display}: Initial attempt - Result: {category}")
+                executor_instance.log_debug(f"Task {parent_task_id}-{task_id}{retry_display}: Initial attempt - Result: {category}")
             else:
-                executor_instance.debug_log(f"Task {parent_task_id}-{task_id}{retry_display}: Retry attempt {attempt} - Result: {category}")
+                executor_instance.log_debug(f"Task {parent_task_id}-{task_id}{retry_display}: Retry attempt {attempt} - Result: {category}")
         
             # Check if we should retry
             if category in ['SUCCESS', 'TIMEOUT']:
@@ -64,7 +64,7 @@ class ParallelExecutor(BaseExecutor):
                         # SUCCESS after retry goes to NORMAL logging (not just debug)
                         executor_instance.log(f"Task {parent_task_id}-{task_id}{retry_display}: SUCCESS after {attempt} retry attempt(s)")
                     else:
-                        executor_instance.debug_log(f"Task {parent_task_id}-{task_id}{retry_display}: TIMEOUT - no retry attempted")
+                        executor_instance.log_debug(f"Task {parent_task_id}-{task_id}{retry_display}: TIMEOUT - no retry attempted")
                 return result
             
             elif category == 'FAILED' and attempt < max_retries:
@@ -242,7 +242,7 @@ class ParallelExecutor(BaseExecutor):
                 individual_timeout_count += 1
         
         if individual_timeout_count > 0:
-            executor_instance.debug_log(f"Task {task_id}: WARNING: {individual_timeout_count} sub-tasks have individual timeouts - MASTER timeout {master_timeout}s will override them")
+            executor_instance.log_debug(f"Task {task_id}: WARNING: {individual_timeout_count} sub-tasks have individual timeouts - MASTER timeout {master_timeout}s will override them")
         
         # Execute tasks in parallel with master timeout enforcement and retry logic
         results = []
@@ -368,7 +368,7 @@ class ParallelExecutor(BaseExecutor):
         # Verify statistics add up correctly
         total_accounted = successful_count + failed_count + timeout_count + skipped_count
         if total_accounted != len(results):
-            executor_instance.debug_log(f"Task {task_id}: WARNING: Statistics mismatch - {total_accounted} accounted vs {len(results)} total")
+            executor_instance.log_debug(f"Task {task_id}: WARNING: Statistics mismatch - {total_accounted} accounted vs {len(results)} total")
         
         # IMPROVED: Overall success determination and logging
         overall_success = successful_count == len(results)
@@ -384,21 +384,21 @@ class ParallelExecutor(BaseExecutor):
                 executor_instance.log(f"Task {task_id}: RETRY SUMMARY - Retry enabled with {retry_config['count']} max attempts, {retry_config['delay']}s delay")
                 
                 if len(successful_after_potential_retry) > 0:
-                    executor_instance.debug_log(f"Task {task_id}: RETRY SUCCESS - {len(successful_after_potential_retry)} task(s) completed successfully (some may have used retries)")
+                    executor_instance.log_debug(f"Task {task_id}: RETRY SUCCESS - {len(successful_after_potential_retry)} task(s) completed successfully (some may have used retries)")
                 
                 if len(retry_eligible_tasks) > 0:
                     failed_task_ids = [r['task_id'] for r in retry_eligible_tasks]
-                    executor_instance.debug_log(f"Task {task_id}: RETRY EXHAUSTED - Tasks {failed_task_ids} failed after all retry attempts")
+                    executor_instance.log_debug(f"Task {task_id}: RETRY EXHAUSTED - Tasks {failed_task_ids} failed after all retry attempts")
         
         # Move detailed statistics to debug mode only
         if not overall_success:
             if timeout_count > 0:
                 timeout_task_ids = [r['task_id'] for r in timeout_tasks]
-                executor_instance.debug_log(f"Task {task_id}: TIMEOUT DETAILS - Tasks {timeout_task_ids} exceeded master timeout of {master_timeout}s")
+                executor_instance.log_debug(f"Task {task_id}: TIMEOUT DETAILS - Tasks {timeout_task_ids} exceeded master timeout of {master_timeout}s")
             
             if failed_count > 0:
                 failed_task_ids = [r['task_id'] for r in failed_tasks]
-                executor_instance.debug_log(f"Task {task_id}: FAILURE DETAILS - Tasks {failed_task_ids} failed (non-timeout)")
+                executor_instance.log_debug(f"Task {task_id}: FAILURE DETAILS - Tasks {failed_task_ids} failed (non-timeout)")
         
         # Create aggregated output with enhanced information
         aggregated_stdout = f"Parallel execution: {successful_count}/{len(results)} successful"

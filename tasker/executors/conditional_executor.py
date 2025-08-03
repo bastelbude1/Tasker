@@ -39,7 +39,7 @@ class ConditionalExecutor(BaseExecutor):
         
         # Use same evaluation logic as parallel tasks
         from .parallel_executor import ParallelExecutor
-        return ParallelExecutor.evaluate_parallel_next_condition(next_condition, results, executor_instance.debug_log, executor_instance.log)
+        return ParallelExecutor.evaluate_parallel_next_condition(next_condition, results, executor_instance.log_debug, executor_instance.log)
 
     @staticmethod
     def execute_conditional_tasks(conditional_task, executor_instance):
@@ -56,7 +56,7 @@ class ConditionalExecutor(BaseExecutor):
             return task_id + 1
         
         # Evaluate condition using existing logic
-        condition_result = ConditionEvaluator.evaluate_condition(condition, 0, "", "", executor_instance.global_vars, executor_instance.task_results, executor_instance.debug_log)
+        condition_result = ConditionEvaluator.evaluate_condition(condition, 0, "", "", executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
         branch = "TRUE" if condition_result else "FALSE"
         
         executor_instance.log(f"Task {task_id}: Conditional condition '{condition}' evaluated to {branch}")

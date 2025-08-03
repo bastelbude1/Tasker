@@ -40,7 +40,7 @@ class SequentialExecutor(BaseExecutor):
 
         # Check pre-execution condition
         if 'condition' in task:
-            condition_result = ConditionEvaluator.evaluate_condition(task['condition'], 0, "", "", executor_instance.global_vars, executor_instance.task_results, executor_instance.debug_log)
+            condition_result = ConditionEvaluator.evaluate_condition(task['condition'], 0, "", "", executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
             if not condition_result:
                 executor_instance.log(f"Task {task_id}{loop_display}: Condition '{task['condition']}' evaluated to FALSE, skipping task")
                 # CRITICAL: Store results for skipped task - THREAD SAFE
@@ -56,8 +56,8 @@ class SequentialExecutor(BaseExecutor):
 
         # Update tracking for summary
         executor_instance.final_task_id = task_id
-        executor_instance.final_hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', 'N/A'), executor_instance.global_vars, executor_instance.task_results, executor_instance.debug_log)
-        executor_instance.final_command, _ = ConditionEvaluator.replace_variables(task.get('command', 'N/A'), executor_instance.global_vars, executor_instance.task_results, executor_instance.debug_log)
+        executor_instance.final_hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', 'N/A'), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
+        executor_instance.final_command, _ = ConditionEvaluator.replace_variables(task.get('command', 'N/A'), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
         
         # Check if this is a return task
         if 'return' in task:
@@ -75,19 +75,19 @@ class SequentialExecutor(BaseExecutor):
                     executor_instance.log(f"FAILURE: Task execution failed with return code {return_code}")
                 
                 executor_instance.cleanup() # clean up resources before exit
-                ExitHandler.exit_with_code(return_code, f"Task execution completed with return code {return_code}", executor_instance.debug)
+                ExitHandler.exit_with_code(return_code, f"Task execution completed with return code {return_code}", False)
             except ValueError:
                 executor_instance.log(f"Task {task_id}{loop_display}: Invalid return code '{task['return']}'. Exiting with code 1.")
                 executor_instance.final_exit_code = 1  # Use 1 for invalid return codes (this is correct)
                 executor_instance.final_success = False
                 executor_instance.log("FAILURE: Task execution failed with invalid return code")
                 executor_instance.cleanup() # clean up resources before exit
-                ExitHandler.exit_with_code(ExitCodes.INVALID_ARGUMENTS, "Invalid return code specified", executor_instance.debug)
+                ExitHandler.exit_with_code(ExitCodes.INVALID_ARGUMENTS, "Invalid return code specified", False)
         
         # Replace variables in command and arguments
-        hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', ''), executor_instance.global_vars, executor_instance.task_results, executor_instance.debug_log)
-        command, _ = ConditionEvaluator.replace_variables(task.get('command', ''), executor_instance.global_vars, executor_instance.task_results, executor_instance.debug_log)
-        arguments, _ = ConditionEvaluator.replace_variables(task.get('arguments', ''), executor_instance.global_vars, executor_instance.task_results, executor_instance.debug_log)
+        hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', ''), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
+        command, _ = ConditionEvaluator.replace_variables(task.get('command', ''), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
+        arguments, _ = ConditionEvaluator.replace_variables(task.get('arguments', ''), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
 
         # Determine execution type (from task, args, env, or default)
         exec_type = executor_instance.determine_execution_type(task, task_id, loop_display)
@@ -96,7 +96,7 @@ class SequentialExecutor(BaseExecutor):
 
         # Construct the command array based on execution type
         cmd_array = executor_instance.build_command_array(exec_type, hostname, command, arguments)
-        executor_instance.debug_log(f"Command array: {cmd_array}")
+        executor_instance.log_debug(f"Command array: {cmd_array}")
 
         # Log the full command for the user
         full_command_display = ' '.join(cmd_array)
@@ -160,11 +160,11 @@ class SequentialExecutor(BaseExecutor):
         
         # Evaluate success condition if defined, otherwise default to exit_code == 0
         if 'success' in task:
-            success_result = ConditionEvaluator.evaluate_condition(task['success'], exit_code, stdout, stderr, executor_instance.global_vars, executor_instance.task_results, executor_instance.debug_log)
+            success_result = ConditionEvaluator.evaluate_condition(task['success'], exit_code, stdout, stderr, executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
             executor_instance.log(f"Task {task_id}{loop_display}: Success condition '{task['success']}' evaluated to: {success_result}")
         else:
             success_result = (exit_code == 0)
-            executor_instance.debug_log(f"Task {task_id}{loop_display}: Success (default): {success_result}")
+            executor_instance.log_debug(f"Task {task_id}{loop_display}: Success (default): {success_result}")
         
         # CRITICAL: Store the results for future reference - THREAD SAFE
         executor_instance.store_task_result(task_id, {
@@ -177,7 +177,7 @@ class SequentialExecutor(BaseExecutor):
         # Check if we should sleep before the next task
         if 'sleep' in task:
             try:
-                sleep_time_str, resolved = ConditionEvaluator.replace_variables(task['sleep'], executor_instance.global_vars, executor_instance.task_results, executor_instance.debug_log)
+                sleep_time_str, resolved = ConditionEvaluator.replace_variables(task['sleep'], executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
                 if resolved:
                     sleep_time = float(sleep_time_str)
                     executor_instance.log(f"Task {task_id}{loop_display}: Sleeping for {sleep_time} seconds")

@@ -248,11 +248,12 @@ tasker/
 test_cases/                      # Comprehensive test suite
 ├── extended_verification_test.sh  # Main verification testing framework
 ├── host_validation_*.txt        # Host validation test cases
-├── *.txt                        # Various test scenarios
-└── test_scripts/                # Mock execution commands for testing
-    ├── pbrun                    # Mock pbrun command
-    ├── p7s                      # Mock p7s command  
-    └── wwrs_clir                # Mock wwrs_clir command
+└── *.txt                        # Various test scenarios
+
+test_scripts/                    # Mock execution commands for testing
+├── pbrun                        # Mock pbrun command
+├── p7s                          # Mock p7s command  
+└── wwrs_clir                    # Mock wwrs_clir command
 ```
 
 ## Module Responsibilities

@@ -1,5 +1,26 @@
 # Tasker Refactoring Plan
 
+## 🚨 MANDATORY PRE-WORK CHECKLIST 🚨
+
+**⚠️ BEFORE making ANY code changes, Claude MUST explicitly state:**
+
+```
+✅ "I will create backups using: cp file.py file.py.backup_$(date +%Y%m%d_%H%M%S)"
+✅ "I will run 100% verification testing before any commit suggestions" 
+✅ "I acknowledge that violating CRITICAL/MANDATORY requirements breaks production code"
+✅ "I have read and will follow all CRITICAL/MANDATORY sections below"
+```
+
+**🔒 USER ENFORCEMENT:** If Claude starts making changes without this explicit confirmation, **IMMEDIATELY STOP THE WORK** and require compliance.
+
+**⚠️ VIOLATION CONSEQUENCES:** If Claude violates any CRITICAL/MANDATORY requirement:
+- User should immediately point out the specific violation
+- Claude must acknowledge which requirement was violated
+- All work must STOP until proper process is followed
+- Claude must restart with proper checklist compliance
+
+---
+
 ## 🚨 CRITICAL COMPATIBILITY REQUIREMENTS 🚨
 
 ### **Python 3.6.8 ONLY - No features from 3.7+ allowed**

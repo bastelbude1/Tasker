@@ -43,7 +43,7 @@ from .utilities import (
 )
 from .condition_evaluator import ConditionEvaluator
 from ..validation.host_validator import HostValidator
-from ..validation.task_validator_integration import TaskValidatorIntegration
+from ..validation.task_validator import TaskValidator
 from ..executors.sequential_executor import SequentialExecutor
 from ..executors.parallel_executor import ParallelExecutor
 from ..executors.conditional_executor import ConditionalExecutor
@@ -76,7 +76,7 @@ class TaskExecutor:
     def __init__(self, task_file, log_dir='logs', dry_run=True, log_level='INFO', 
                  exec_type=None, timeout=30, connection_test=False, project=None, 
                  start_from_task=None, skip_task_validation=False, 
-                 skip_host_validation=False, show_plan=False):
+                 skip_host_validation=False, show_plan=False, validate_only=False):
         self.task_file = task_file
         self.log_dir = log_dir
         self.dry_run = dry_run
@@ -93,6 +93,7 @@ class TaskExecutor:
         self.connection_test = connection_test # Whether to make an connection test
         self.project = sanitize_filename(project) if project else None  # Sanitized project name
         self.show_plan = show_plan
+        self.validate_only = validate_only
 
         # Configurable timeouts for cleanup and summary operations
         self.summary_lock_timeout = 20  # Seconds for summary file locking (longer for shared files)
@@ -656,9 +657,37 @@ class TaskExecutor:
     # ===== 3. VALIDATION & SETUP =====
     
     def validate_tasks(self):
-        """Validate the task file using TaskValidator with ExecutionContext."""
-        execution_context = self.get_execution_context()
-        return TaskValidatorIntegration.validate_tasks(self.task_file, execution_context)
+        """Validate the task file using TaskValidator module."""
+        self.log_info(f"# Validating task file: {self.task_file}")
+        
+        try:
+            # Use the new TaskValidator module
+            result = TaskValidator.validate_task_file(
+                self.task_file, 
+                debug=(self.log_level == 'DEBUG'),
+                log_callback=self.log_info,
+                debug_callback=self.log_debug if self.log_level == 'DEBUG' else None
+            )
+            
+            if not result['success']:
+                self.log_info("# Task validation FAILED.")
+                # Log each error
+                for error in result['errors']:
+                    self.log_debug(f"# ERROR: {error}")
+                return False
+            else:
+                # Log warnings if any
+                if result['warnings']:
+                    for warning in result['warnings']:
+                        self.log_debug(f"# WARNING: {warning}")
+                
+                # Validation passed
+                self.log_info("# Task validation passed successfully.")
+                return True
+                
+        except Exception as e:
+            self.log_error(f"Error during task validation: {str(e)}")
+            return False
 
     def parse_task_file(self):
         """Parse the task file and extract global variables and task definitions."""
@@ -777,15 +806,58 @@ class TaskExecutor:
 
     def validate_task_dependencies(self):
         """Validate that task dependencies can be resolved given the execution flow."""
-        return TaskValidatorIntegration.validate_task_dependencies(
-            self.tasks, self.log_info
-        )
+        dependency_issues = []
+        pattern = r'@(\d+)_(stdout|stderr|success)@'
+        
+        for task_id, task in self.tasks.items():
+            # Check condition dependencies
+            if 'condition' in task:
+                matches = re.findall(pattern, task['condition'])
+                for dep_task_str, _ in matches:
+                    dep_task = int(dep_task_str)
+                    if dep_task not in self.tasks:
+                        dependency_issues.append(f"Task {task_id} condition references non-existent Task {dep_task}")
+                    elif dep_task >= task_id:
+                        dependency_issues.append(f"Task {task_id} condition references future Task {dep_task} - this may cause execution issues")
+            
+            # Check argument dependencies
+            if 'arguments' in task:
+                matches = re.findall(pattern, task['arguments'])
+                for dep_task_str, _ in matches:
+                    dep_task = int(dep_task_str)
+                    if dep_task not in self.tasks:
+                        dependency_issues.append(f"Task {task_id} arguments reference non-existent Task {dep_task}")
+                    elif dep_task >= task_id:
+                        dependency_issues.append(f"Task {task_id} arguments reference future Task {dep_task} - this may cause execution issues")
+        
+        if dependency_issues:
+            self.log_info("# WARNING: Task dependency issues detected:")
+            for issue in dependency_issues:
+                self.log_info(f"#   {issue}")
+            self.log_info("# These may cause tasks to be skipped due to unresolved dependencies.")
+            return False
+        else:
+            self.log_info("# Task dependency validation passed.")
+            return True
 
     def validate_start_from_task(self, start_task_id):
         """Validate and provide warnings for --start-from usage."""
-        return TaskValidatorIntegration.validate_start_from_task(
-            start_task_id, self.tasks, self.log_info
-        )
+        if start_task_id not in self.tasks:
+            available_tasks = sorted(self.tasks.keys())
+            self.log_info(f"ERROR: Start task {start_task_id} not found")
+            self.log_info(f"Available task IDs: {available_tasks}")
+            return False
+        
+        self.log_info(f"# Start-from validation: Starting from task {start_task_id}")
+        self.log_info(f"# WARNING: Tasks before {start_task_id} will be skipped")
+        
+        # Check for potential dependency issues
+        skipped_tasks = [tid for tid in self.tasks.keys() if tid < start_task_id]
+        if skipped_tasks:
+            self.log_info(f"# Skipped tasks: {sorted(skipped_tasks)}")
+            self.log_info(f"# CAUTION: Task {start_task_id} may fail if it depends on skipped tasks")
+        
+        return True
     def show_execution_plan(self):
         """Show execution plan and get user confirmation."""
         self.log_info("=== EXECUTION PLAN ===")
@@ -1246,11 +1318,20 @@ class TaskExecutor:
                 self.task_results, 
                 self.exec_type, 
                 self.default_exec_type, 
-                self.connection_test, 
-                self.log_debug, 
+                True,  # Always check connectivity for remote hosts
+                self.log_debug if self.log_level == 'DEBUG' else None,  # Only detailed output in debug mode
                 self.log_info
             )
-            if validated_hosts is False:
+            
+            # Handle new return format
+            if isinstance(validated_hosts, dict) and 'error' in validated_hosts:
+                # Extract the specific exit code
+                exit_code = validated_hosts.get('exit_code', ExitCodes.HOST_VALIDATION_FAILED)
+                self.log_error("Host validation failed. Exiting.")
+                self.cleanup()
+                ExitHandler.exit_with_code(exit_code, "Host validation failed", False)
+            elif validated_hosts is False:
+                # Legacy compatibility
                 self.log_error("Host validation failed. Exiting.")
                 self.cleanup()
                 ExitHandler.exit_with_code(ExitCodes.HOST_VALIDATION_FAILED, "Host validation failed", False)
@@ -1282,6 +1363,12 @@ class TaskExecutor:
                         task['hostname'] = fqdn
         elif self.skip_host_validation:
             self.log_info("# Skipping hostname FQDN replacement due to --skip-host-validation flag")
+
+        # If validate-only mode, exit after all validations complete
+        if self.validate_only:
+            self.log_info("# All validations completed successfully")
+            self.log_info("# Validate-only mode: exiting without task execution")
+            ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Validation completed", False)
 
         # Determine starting task ID
         if self.start_from_task is not None:

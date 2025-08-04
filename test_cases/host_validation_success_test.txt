@@ -1,0 +1,42 @@
+# Host Validation Success Test
+# Tests only success scenarios - should pass validation completely
+
+# Task 0: Test pbrun success scenario
+task=0
+hostname=pbrun-success-host
+command=echo
+arguments=Testing pbrun success scenario
+exec=pbrun
+timeout=10
+
+# Task 1: Test p7s success scenario  
+task=1
+hostname=p7s-success-host
+command=echo
+arguments=Testing p7s success scenario
+exec=p7s
+timeout=10
+
+# Task 2: Test wwrs success scenario
+task=2
+hostname=wwrs-success-host
+command=echo
+arguments=Testing wwrs success scenario
+exec=wwrs
+timeout=10
+
+# Task 3: Test general connectivity
+task=3
+hostname=connectivity-test
+command=echo
+arguments=Testing general connectivity
+exec=pbrun
+timeout=10
+
+# Task 4: Test validation pass server
+task=4
+hostname=validation-pass-server
+command=echo
+arguments=Testing validation pass server
+exec=p7s
+timeout=10

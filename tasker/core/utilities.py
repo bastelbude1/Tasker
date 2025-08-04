@@ -254,3 +254,31 @@ def get_log_directory(cmd_log_dir=None, debug=False):
    
     return log_dir
 
+
+def format_output_for_log(output, max_length=200, label="OUTPUT"):
+    """
+    Format command output for logging with proper newline handling and length limiting.
+    
+    Args:
+        output (str): Raw command output
+        max_length (int): Maximum length before truncation
+        label (str): Label for the output type (STDOUT/STDERR)
+    
+    Returns:
+        str: Formatted output string suitable for logging
+    """
+    if not output or not output.strip():
+        return ""
+    
+    # Strip leading/trailing whitespace
+    cleaned = output.strip()
+    
+    # Replace actual newlines with \n for single-line logging
+    formatted = cleaned.replace('\n', '\\n').replace('\r', '\\r')
+    
+    # Truncate if too long
+    if len(formatted) > max_length:
+        formatted = formatted[:max_length] + f"... ({len(cleaned)} chars total)"
+    
+    return formatted
+

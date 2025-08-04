@@ -1,0 +1,26 @@
+# Test case with only local execution
+# Should skip remote host validation
+
+# Task 0: Local execution
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing local execution 1
+success=exit_0
+
+# Task 1: Another local execution
+task=1
+hostname=
+exec=local
+command=echo
+arguments=Testing local execution 2
+success=exit_0
+
+# Task 2: Local with hostname (still local)
+task=2
+hostname=myserver
+exec=local
+command=echo
+arguments=Testing local execution 3
+success=exit_0

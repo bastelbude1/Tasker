@@ -12,6 +12,7 @@ import sys
 import socket
 import subprocess
 from ..core.condition_evaluator import ConditionEvaluator
+from ..core.utilities import ExitCodes
 
 
 class HostValidator:
@@ -25,9 +26,9 @@ class HostValidator:
     @staticmethod
     def validate_hosts(tasks, global_vars, task_results, exec_type=None, default_exec_type='pbrun', check_connectivity=False, debug_callback=None, log_callback=None):
         """
-        Validate all unique hostnames in the task list.
+        Enhanced host validation with automatic connectivity testing for remote hosts.
         Returns a dict mapping original hostnames to validated FQDNs if successful,
-        or False if validation failed.
+        or a dict with error information if validation failed.
         
         Args:
             tasks: Dictionary of task definitions
@@ -35,98 +36,130 @@ class HostValidator:
             task_results: Dictionary of task results
             exec_type: Override execution type
             default_exec_type: Default execution type to use
-            check_connectivity: Whether to test actual connectivity
+            check_connectivity: Whether to test actual connectivity (ignored - always True for remote hosts)
             debug_callback: Optional function for debug logging
             log_callback: Optional function for main logging
             
         Returns:
-            Dict mapping hostnames to validated FQDNs, or False if validation failed
+            Dict mapping hostnames to validated FQDNs, or dict with 'error' and 'exit_code' if validation failed
         """
-
-        # Collect unique hostnames from all tasks
-        hostnames = set()
-        host_exec_types = {}
-
-        for task in tasks.values():  # Changed to iterate over values
+        # First check if remote execution commands exist
+        exec_commands = {
+            'pbrun': 'pbrun',
+            'p7s': 'p7s', 
+            'wwrs': 'wwrs_clir'
+        }
+        
+        # Collect unique host+exec_type combinations
+        host_exec_combinations = {}  # {hostname: set(exec_types)}
+        
+        for task in tasks.values():
             if 'hostname' in task and task['hostname']:
-                # Replace variables in hostname before validation
-                hostname, resolved = ConditionEvaluator.replace_variables(task['hostname'], global_vars, task_results, debug_callback)
-                if resolved and hostname:  # Only validate if variable resolution succeeded
-                    hostnames.add(hostname)
-
-                    # Track execution type for each hostname
-                    if 'exec' in task:
-                        task_exec_type = task['exec']
-                    elif exec_type:
-                        task_exec_type = exec_type
-                    elif 'TASK_EXECUTOR_TYPE' in os.environ:
-                        task_exec_type = os.environ['TASK_EXECUTOR_TYPE']
-                    else:
-                        task_exec_type = default_exec_type
-
-                    # Store the exec type for this hostname
-                    if hostname not in host_exec_types:
-                        host_exec_types[hostname] = set()
-
-                    host_exec_types[hostname].add(task_exec_type)
-
-        # Check each unique hostname
-        failed_hosts = []
-        validated_hosts = {} # will map original hostnames to validated FQDNs
-
-        if log_callback:
-            log_callback(f"# Validating {len(hostnames)} unique hostnames...")
-
-        for hostname in hostnames:
-            # Try to resolve hostname
+                hostname, resolved = ConditionEvaluator.replace_variables(
+                    task['hostname'], global_vars, task_results, debug_callback)
+                
+                if resolved and hostname:
+                    # Determine exec type for this task
+                    task_exec = HostValidator._determine_task_exec_type(
+                        task, exec_type, default_exec_type)
+                    
+                    # Skip local execution from validation
+                    if task_exec == 'local':
+                        continue
+                        
+                    if hostname not in host_exec_combinations:
+                        host_exec_combinations[hostname] = set()
+                    host_exec_combinations[hostname].add(task_exec)
+        
+        # Check if required execution commands exist
+        missing_commands = set()
+        for exec_types in host_exec_combinations.values():
+            for exec_type in exec_types:
+                if exec_type in exec_commands:
+                    cmd = exec_commands[exec_type]
+                    if not HostValidator._check_command_exists(cmd):
+                        missing_commands.add(f"{exec_type} ({cmd})")
+        
+        if missing_commands:
+            if log_callback:
+                log_callback(f"# ERROR: Required remote execution commands not found: {', '.join(missing_commands)}")
+            return {'error': 'missing_commands', 'exit_code': ExitCodes.CONNECTION_FAILED}
+        
+        # Validate each unique host+exec_type combination
+        failed_validations = []
+        validated_hosts = {}
+        total_tests = sum(len(exec_types) for exec_types in host_exec_combinations.values())
+        
+        if log_callback and total_tests > 0:
+            log_callback(f"# Validating {len(host_exec_combinations)} unique hosts with {total_tests} connection tests...")
+        
+        for hostname, exec_types in host_exec_combinations.items():
+            # DNS resolution
             resolved, resolved_name = HostValidator.resolve_hostname(hostname, debug_callback)
-
             if not resolved:
-                #debug_callback(f"WARNING: Could not resolve hostname '{hostname}'")
-                failed_hosts.append(hostname)
+                failed_validations.append({
+                    'host': hostname,
+                    'error': 'dns_resolution_failed',
+                    'exit_code': ExitCodes.HOST_UNREACHABLE
+                })
                 continue
-
-            # Store the resolved hostname
+                
             validated_hosts[hostname] = resolved_name
-
-            # Check if host is alive
+            
+            # Ping test
             if not HostValidator.check_host_alive(resolved_name, debug_callback):
-                if debug_callback:
-                    debug_callback(f"WARNING: Host '{hostname}' ({resolved_name}) is not reachable")
-                failed_hosts.append(hostname)
+                failed_validations.append({
+                    'host': hostname,
+                    'resolved': resolved_name,
+                    'error': 'host_unreachable',
+                    'exit_code': ExitCodes.HOST_UNREACHABLE
+                })
+                del validated_hosts[hostname]
                 continue
-
-            # If requested, check specific connection type
-            if check_connectivity:
-                conn_failed = False
-                for task_exec_type in host_exec_types[hostname]:
-                    if task_exec_type in ['pbrun', 'p7s', 'wwrs']:
-                        if not HostValidator.check_exec_connection(task_exec_type, resolved_name, debug_callback):
-                            if debug_callback:
-                                debug_callback(f"WARNING: Connection test failed for {task_exec_type} to '{hostname}' ({resolved_name})")
-                            failed_hosts.append(f"{hostname} ({task_exec_type})")
-                            conn_failed = True
-
-                # if any connection test failed, don't consider this as an validated host 
-                if conn_failed:
+            
+            # Test each exec_type for this host
+            for exec_type in exec_types:
+                if not HostValidator._test_remote_access(exec_type, resolved_name, debug_callback):
+                    failed_validations.append({
+                        'host': hostname,
+                        'resolved': resolved_name,
+                        'exec_type': exec_type,
+                        'error': f'{exec_type}_connection_failed',
+                        'exit_code': ExitCodes.CONNECTION_FAILED
+                    })
                     if hostname in validated_hosts:
                         del validated_hosts[hostname]
-
-        # If any hosts failed validation, abort execution
-        if failed_hosts:
-            if log_callback:
-                log_callback(f"# ERROR: {len(failed_hosts)} host(s) failed validation: {', '.join(failed_hosts)}")
-            return False
-
-        if log_callback:
-            log_callback(f"# All {len(hostnames)} hosts passed successfully.")
+                    break
+        
+        # Handle failures
+        if failed_validations:
+            return HostValidator._handle_validation_failures(
+                failed_validations, log_callback, debug_callback)
+        
+        if log_callback and total_tests > 0:
+            log_callback(f"# All {total_tests} host connectivity tests passed successfully.")
+        
         return validated_hosts
 
     @staticmethod
     def resolve_hostname(hostname, debug_callback=None):
-        """Try to resolve hostname using DNS or op mc_isac if needed."""
+        """Try to resolve hostname - optimized for WSL2 environment with fast /etc/hosts lookup."""
         try:
-            # Try direct DNS resolution first
+            # Fast path: check /etc/hosts directly to avoid WSL2 DNS delays
+            try:
+                with open('/etc/hosts', 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#'):
+                            parts = line.split()
+                            if len(parts) >= 2 and hostname in parts[1:]:
+                                if debug_callback:
+                                    debug_callback(f"Hostname '{hostname}' found in /etc/hosts")
+                                return True, hostname
+            except (IOError, OSError):
+                pass  # Fall back to DNS resolution
+            
+            # Fallback to DNS resolution (may be slow in WSL2)
             socket.gethostbyname(hostname)
             if debug_callback:
                 debug_callback(f"Hostname '{hostname}' resolved via DNS")
@@ -252,3 +285,126 @@ class HostValidator:
             if debug_callback:
                 debug_callback(f"ERROR: testing {exec_type} connection to '{hostname}': {str(e)}")
             return False
+    
+    @staticmethod
+    def _determine_task_exec_type(task, exec_type, default_exec_type):
+        """Determine execution type for a task."""
+        if 'exec' in task:
+            return task['exec']
+        elif exec_type:
+            return exec_type
+        elif 'TASK_EXECUTOR_TYPE' in os.environ:
+            return os.environ['TASK_EXECUTOR_TYPE']
+        else:
+            return default_exec_type
+    
+    @staticmethod
+    def _check_command_exists(command):
+        """Check if a command exists and is executable."""
+        try:
+            # Use 'which' command to check if command exists (Python 3.6 compatible)
+            with subprocess.Popen(['which', command], 
+                                stdout=subprocess.PIPE, 
+                                stderr=subprocess.PIPE,
+                                universal_newlines=True) as process:
+                try:
+                    stdout, stderr = process.communicate(timeout=5)
+                    return process.returncode == 0
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    return False
+        except:
+            return False
+    
+    @staticmethod
+    def _test_remote_access(exec_type, hostname, debug_callback=None):
+        """Enhanced remote access test expecting exit 0 and stdout containing OK."""
+        if exec_type not in ['pbrun', 'p7s', 'wwrs']:
+            return True
+            
+        # Build test command
+        if exec_type == 'pbrun':
+            cmd_array = ["pbrun", "-n", "-h", hostname, "pbtest"]
+        elif exec_type == 'p7s':
+            cmd_array = ["p7s", hostname, "pbtest"]
+        elif exec_type == 'wwrs':
+            cmd_array = ["wwrs_clir", hostname, "wwrs_test"]
+        
+        if debug_callback:
+            debug_callback(f"Testing {exec_type} connection to '{hostname}': {' '.join(cmd_array)}")
+        
+        try:
+            with subprocess.Popen(cmd_array, 
+                                stdout=subprocess.PIPE, 
+                                stderr=subprocess.PIPE,
+                                universal_newlines=True) as process:
+                try:
+                    stdout, stderr = process.communicate(timeout=10)
+                    exit_code = process.returncode
+                    
+                    # Check for exit code 0 AND stdout containing "OK"
+                    success = (exit_code == 0 and "OK" in stdout)
+                    
+                    if debug_callback:
+                        if success:
+                            debug_callback(f"{exec_type} connection to '{hostname}' successful")
+                        else:
+                            debug_callback(f"{exec_type} connection to '{hostname}' failed:")
+                            debug_callback(f"  Exit code: {exit_code}")
+                            debug_callback(f"  Stdout: {stdout.strip()}")
+                            debug_callback(f"  Stderr: {stderr.strip()}")
+                    
+                    return success
+                    
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    stdout, stderr = process.communicate()
+                    if debug_callback:
+                        debug_callback(f"ERROR: {exec_type} connection to '{hostname}' timed out")
+                    return False
+            
+        except subprocess.TimeoutExpired:
+            if debug_callback:
+                debug_callback(f"ERROR: {exec_type} connection to '{hostname}' timed out")
+            return False
+        except Exception as e:
+            if debug_callback:
+                debug_callback(f"ERROR: {exec_type} test failed: {str(e)}")
+            return False
+    
+    @staticmethod
+    def _handle_validation_failures(failures, log_callback, debug_callback):
+        """Handle validation failures with appropriate error reporting."""
+        # Group failures by type
+        dns_failures = [f for f in failures if f['error'] == 'dns_resolution_failed']
+        unreachable = [f for f in failures if f['error'] == 'host_unreachable']
+        connection_failures = [f for f in failures if 'connection_failed' in f['error']]
+        
+        # Determine primary exit code
+        if connection_failures:
+            primary_exit_code = ExitCodes.CONNECTION_FAILED
+        elif unreachable:
+            primary_exit_code = ExitCodes.HOST_UNREACHABLE
+        else:
+            primary_exit_code = ExitCodes.HOST_VALIDATION_FAILED
+        
+        # Build error message
+        if log_callback:
+            log_callback(f"# ERROR: Host validation failed ({len(failures)} failures)")
+            
+            if debug_callback:
+                # Detailed output in debug mode
+                if dns_failures:
+                    debug_callback(f"DNS resolution failed for: {', '.join(f['host'] for f in dns_failures)}")
+                if unreachable:
+                    debug_callback(f"Hosts unreachable: {', '.join(f['host'] for f in unreachable)}")
+                if connection_failures:
+                    for failure in connection_failures:
+                        debug_callback(f"{failure['exec_type']} connection failed: {failure['host']}")
+            else:
+                # Brief output in normal mode
+                if connection_failures:
+                    exec_types = set(f['exec_type'] for f in connection_failures)
+                    log_callback(f"# Remote access validation failed for: {', '.join(exec_types)}")
+        
+        return {'error': 'validation_failed', 'exit_code': primary_exit_code}

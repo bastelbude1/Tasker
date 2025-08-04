@@ -12,7 +12,7 @@ from .core.utilities import (
 
 # Validation components
 from .validation.host_validator import HostValidator
-from .validation.task_validator_integration import TaskValidatorIntegration
+from .validation.task_validator import TaskValidator
 
 # Public API
 __all__ = [
@@ -21,5 +21,5 @@ __all__ = [
     'get_log_directory',
     # Validation
     'HostValidator',
-    'TaskValidatorIntegration'
+    'TaskValidator'
 ]

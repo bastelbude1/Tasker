@@ -8,6 +8,7 @@ Abstract base class for all task execution engines with common functionality.
 import time
 import subprocess
 from abc import ABC, abstractmethod
+from ..core.utilities import format_output_for_log
 from ..core.condition_evaluator import ConditionEvaluator
 from ..core.execution_context import ExecutionContext
 
@@ -30,8 +31,16 @@ class BaseExecutor(ABC):
         """Log task execution results consistently."""
         if log_callback:
             log_callback(f"Task {task_display_id}: Exit code: {exit_code}")
-            log_callback(f"Task {task_display_id}: STDOUT: {stdout}")
-            log_callback(f"Task {task_display_id}: STDERR: {stderr}")
+            
+            # Format STDOUT for clean logging
+            formatted_stdout = format_output_for_log(stdout, max_length=200, label="STDOUT")
+            if formatted_stdout:
+                log_callback(f"Task {task_display_id}: STDOUT: {formatted_stdout}")
+            
+            # Format STDERR for clean logging
+            formatted_stderr = format_output_for_log(stderr, max_length=200, label="STDERR") 
+            if formatted_stderr:
+                log_callback(f"Task {task_display_id}: STDERR: {formatted_stderr}")
     
     @staticmethod
     def _handle_output_splitting(task, task_display_id, stdout, stderr, debug_callback=None):

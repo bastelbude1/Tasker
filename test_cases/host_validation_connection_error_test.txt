@@ -1,0 +1,10 @@
+# Test case for connection-specific failures
+# Uses localhost but with hostnames that our test scripts will handle differently
+
+# Task 1: Host configured to fail pbrun in our test script  
+task=1
+hostname=127.0.0.1
+exec=pbrun
+command=hostname
+arguments=-f
+success=exit_0

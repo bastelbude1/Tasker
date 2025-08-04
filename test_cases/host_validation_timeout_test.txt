@@ -1,0 +1,27 @@
+# Host Validation Timeout Test
+# Tests timeout scenarios during host validation
+# These tests will timeout during validation and should fail appropriately
+
+# Task 0: Test pbrun timeout scenario
+task=0
+hostname=pbrun-timeout-host
+command=echo
+arguments=This should timeout during validation
+exec=pbrun
+timeout=5
+
+# Task 1: Test p7s timeout scenario
+task=1
+hostname=p7s-timeout-host
+command=echo
+arguments=This should timeout during validation
+exec=p7s
+timeout=5
+
+# Task 2: Test wwrs timeout scenario
+task=2
+hostname=wwrs-timeout-host
+command=echo
+arguments=This should timeout during validation
+exec=wwrs
+timeout=5

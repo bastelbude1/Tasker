@@ -7,6 +7,6 @@ Includes host resolution, connectivity testing, and task validation integration.
 """
 
 from .host_validator import HostValidator
-from .task_validator_integration import TaskValidatorIntegration
+from .task_validator import TaskValidator
 
-__all__ = ['HostValidator', 'TaskValidatorIntegration']
+__all__ = ['HostValidator', 'TaskValidator']

@@ -44,6 +44,7 @@ Examples:
   %(prog)s tasks.txt --log-level=DEBUG     # Execute with debug logging  
   %(prog)s tasks.txt --show-plan           # Show execution plan first
   %(prog)s tasks.txt --start-from=5        # Resume from task 5
+  %(prog)s tasks.txt --validate-only       # Only validate, don't execute
         ''',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -78,22 +79,23 @@ Examples:
                        help='Skip host validation and use hostnames as-is (WARNING: risky!)')
     parser.add_argument('--skip-validation', action='store_true', 
                        help='Skip ALL validation (same as --skip-task-validation --skip-host-validation)')
+    parser.add_argument('--validate-only', action='store_true',
+                       help='Perform complete validation (task + host) and exit - no task execution')
     
     # Execution planning
     parser.add_argument('--show-plan', action='store_true', 
                        help='Show execution plan and require confirmation before running')
 
-    # Legacy support - keep -d/--debug for backward compatibility but deprecate
+    # Keep -d/--debug as convenient shorthand for --log-level=DEBUG
     parser.add_argument('-d', '--debug', action='store_true', 
-                       help='Enable debug logging (DEPRECATED: use --log-level=DEBUG)')
+                       help='Enable debug logging (shorthand for --log-level=DEBUG)')
 
     args = parser.parse_args()
 
-    # Handle legacy debug flag
+    # Handle debug flag as shorthand
     if args.debug:
         if args.log_level == 'INFO':  # Only override if user didn't explicitly set log level
             args.log_level = 'DEBUG'
-        print("WARNING: -d/--debug is deprecated. Use --log-level=DEBUG instead.")
 
     # Get and create log directory
     log_dir = get_log_directory(args.log_dir, args.log_level == 'DEBUG')
@@ -127,7 +129,8 @@ Examples:
         start_from_task=args.start_from,
         skip_task_validation=skip_task_validation,
         skip_host_validation=skip_host_validation,
-        show_plan=args.show_plan
+        show_plan=args.show_plan,
+        validate_only=args.validate_only
     ) as executor:
         executor.run()
 

@@ -1,0 +1,64 @@
+#!/bin/bash
+# Simulated wwrs_clir command for testing
+# Usage: wwrs_clir hostname command [args...]
+
+HOSTNAME="$1"
+COMMAND="$2"
+shift 2
+ARGS="$@"
+
+# Handle special test commands
+if [[ "$COMMAND" == "wwrs_test" ]]; then
+    # Connection test command - responds based on hostname pattern
+    case "$HOSTNAME" in
+        # Success scenarios (must contain "OK" for validation to pass)
+        "wwrs-success-host"|"wwrs-connection-ok"|"validation-pass-server"|"connectivity-test"|"remotehost1"|"remotehost2"|"remotehost3"|"localhost")
+            echo "wwrs_clir test OK"
+            echo "Connection established"
+            exit 0
+            ;;
+        # Authentication/access denied scenarios
+        "wwrs-denied-host"|"badhost")
+            echo "Authentication failed for $HOSTNAME" >&2
+            exit 2
+            ;;
+        # Connection failure scenarios
+        "wwrs-fail-host"|"validation-fail-server")
+            echo "Connection refused: $HOSTNAME" >&2
+            exit 1
+            ;;
+        # Empty response scenarios (should fail validation)
+        "wwrs-empty-response"|"noresponse")
+            echo ""  # Empty stdout - should fail validation
+            exit 0
+            ;;
+        # Partial response scenarios (should fail validation - no "OK")
+        "partialok")
+            echo "Partial response without OK keyword"
+            exit 0
+            ;;
+        # Timeout scenarios
+        "wwrs-timeout-host"|"timeout")
+            echo "Testing wwrs connection to $HOSTNAME..." >&2
+            sleep 15  # Simulate timeout
+            echo "wwrs_clir test OK"  # Won't be reached
+            exit 0
+            ;;
+        # DNS resolution test
+        "dns-resolve-test")
+            echo "wwrs_clir test OK"
+            echo "Connection established"
+            exit 0
+            ;;
+        # Unknown host scenarios
+        *)
+            echo "Connection refused: $HOSTNAME - host unreachable" >&2
+            exit 1
+            ;;
+    esac
+fi
+
+# Handle regular commands
+echo "wwrs_clir: Executing '$COMMAND $ARGS' on $HOSTNAME"
+echo "wwrs_clir: Command completed on $HOSTNAME"
+exit 0

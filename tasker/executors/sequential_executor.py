@@ -8,7 +8,7 @@ Normal sequential task execution with flow control.
 import time
 from .base_executor import BaseExecutor
 from ..core.condition_evaluator import ConditionEvaluator
-from ..core.utilities import ExitHandler, ExitCodes
+from ..core.utilities import ExitHandler, ExitCodes, format_output_for_log
 
 
 class SequentialExecutor(BaseExecutor):
@@ -144,8 +144,16 @@ class SequentialExecutor(BaseExecutor):
         stdout_stripped = stdout.rstrip('\n')
         stderr_stripped = stderr.rstrip('\n')
         executor_instance.log(f"Task {task_id}{loop_display}: Exit code: {exit_code}")
-        executor_instance.log(f"Task {task_id}{loop_display}: STDOUT: {stdout_stripped}")
-        executor_instance.log(f"Task {task_id}{loop_display}: STDERR: {stderr_stripped}")
+        
+        # Format STDOUT for clean logging
+        formatted_stdout = format_output_for_log(stdout_stripped, max_length=200, label="STDOUT")
+        if formatted_stdout:
+            executor_instance.log(f"Task {task_id}{loop_display}: STDOUT: {formatted_stdout}")
+        
+        # Format STDERR for clean logging  
+        formatted_stderr = format_output_for_log(stderr_stripped, max_length=200, label="STDERR")
+        if formatted_stderr:
+            executor_instance.log(f"Task {task_id}{loop_display}: STDERR: {formatted_stderr}")
         
         # Process output splitting if specified
         if 'stdout_split' in task:

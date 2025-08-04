@@ -1,0 +1,18 @@
+# Test case for enhanced host validation with error cases
+# This tests connection failures
+
+# Task 1: Host that should fail pbrun connection
+task=1
+hostname=badhost
+exec=pbrun
+command=hostname
+arguments=-f
+success=exit_0
+
+# Task 2: Host with no response (empty stdout)
+task=2
+hostname=noresponse
+exec=p7s
+command=uname
+arguments=-a
+success=exit_0

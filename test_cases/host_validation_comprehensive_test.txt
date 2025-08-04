@@ -1,0 +1,67 @@
+# Comprehensive Host Validation Test
+# Tests various host validation scenarios using descriptive hostnames
+# Requires /etc/hosts entries (see ../etc_hosts_entries.txt)
+
+# Task 0: Test pbrun success scenario
+task=0
+hostname=pbrun-success-host
+command=echo
+arguments=Testing pbrun success scenario
+exec=pbrun
+timeout=10
+
+# Task 1: Test p7s success scenario  
+task=1
+hostname=p7s-success-host
+command=echo
+arguments=Testing p7s success scenario
+exec=p7s
+timeout=10
+
+# Task 2: Test wwrs success scenario
+task=2
+hostname=wwrs-success-host
+command=echo
+arguments=Testing wwrs success scenario
+exec=wwrs
+timeout=10
+
+# Task 3: Test pbrun connection failure
+task=3
+hostname=pbrun-fail-host
+command=echo
+arguments=This should fail during host validation
+exec=pbrun
+timeout=10
+
+# Task 4: Test p7s connection failure
+task=4
+hostname=p7s-fail-host
+command=echo
+arguments=This should fail during host validation
+exec=p7s
+timeout=10
+
+# Task 5: Test wwrs connection failure
+task=5
+hostname=wwrs-fail-host
+command=echo
+arguments=This should fail during host validation
+exec=wwrs
+timeout=10
+
+# Task 6: Test DNS resolution
+task=6
+hostname=dns-resolve-test
+command=echo
+arguments=Testing DNS resolution
+exec=local
+timeout=10
+
+# Task 7: Test general connectivity
+task=7
+hostname=connectivity-test
+command=echo
+arguments=Testing general connectivity
+exec=pbrun
+timeout=10

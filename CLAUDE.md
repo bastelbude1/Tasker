@@ -1,5 +1,41 @@
 # Tasker Refactoring Plan
 
+## 🚨 CRITICAL COMPATIBILITY REQUIREMENTS 🚨
+
+### **Python 3.6.8 ONLY - No features from 3.7+ allowed**
+
+**❌ FORBIDDEN (Python 3.7+ only):**
+- `subprocess.run(capture_output=True, text=True)` - `capture_output` added in 3.7
+- `subprocess.run(text=True)` - `text` parameter added in 3.7
+- f-string `=` specifier: `f"{var=}"` - added in 3.8
+- `dict.values()` with walrus operator `:=` - added in 3.8
+
+**✅ REQUIRED (Python 3.6.8 compatible):**
+- `subprocess.Popen()` with `universal_newlines=True` for text mode
+- `process.communicate(timeout=X)` for output capture with timeout
+- Manual `process.returncode` checking instead of `subprocess.run().returncode`
+- Use `with subprocess.Popen(...) as process:` for proper resource management
+
+**Example - CORRECT Python 3.6.8 pattern:**
+```python
+with subprocess.Popen(['command'], 
+                    stdout=subprocess.PIPE, 
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True) as process:
+    try:
+        stdout, stderr = process.communicate(timeout=10)
+        exit_code = process.returncode
+    except subprocess.TimeoutExpired:
+        process.kill()
+        stdout, stderr = process.communicate()
+```
+
+### **Dependencies**
+- **Python 3.6.8 or higher** (but use ONLY 3.6.8 compatible features)
+- **Standard library modules only** - no external dependencies
+
+---
+
 ## Claude Code Instructions
 
 ### Working Methodology
@@ -17,6 +53,20 @@
 - Maintain existing code style and conventions
 - Preserve all existing functionality during refactoring
 - Test thoroughly after each change
+
+### **CRITICAL: Backup Policy**
+**🚨 MANDATORY: Always create backups before ANY code changes!**
+
+```bash
+# Before making changes, ALWAYS backup working files:
+cp file.py file.py.backup
+cp tasker.py tasker.py.backup_YYYYMMDD
+```
+
+- **Purpose**: Enables instant rollback to last known working version
+- **When**: Before every refactoring, feature addition, or bug fix
+- **Critical files**: tasker.py, all validation modules, test scripts
+- **Rollback command**: `cp file.py.backup file.py` (instant restore)
 
 ### **CRITICAL: 1:1 Code Copy Policy**
 - **ALWAYS copy code 1:1** from `tasker.py` into the corresponding module

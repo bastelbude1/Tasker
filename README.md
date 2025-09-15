@@ -193,37 +193,27 @@ TASKER 2.0 Project Structure
 ├── task_validator_orig.py       # Original validation script (reference)
 ├── tasker_orig.py              # Original monolithic version (reference)
 │
-├── tasker/                     # Core modular package
-│   ├── __init__.py             # Package initialization
-│   │
-│   ├── core/                   # Fundamental framework components
-│   │   ├── __init__.py         # Core package exports
-│   │   ├── utilities.py        # Shared utility functions & exit codes
-│   │   ├── execution_context.py # Unified callback and state management
-│   │   ├── condition_evaluator.py # Variable replacement & condition logic
-│   │   └── task_executor_main.py # Main TaskExecutor class
-│   │
-│   ├── executors/              # Task execution engines
-│   │   ├── __init__.py         # Executor package exports
-│   │   ├── base_executor.py    # Abstract base class for all executors
-│   │   ├── sequential_executor.py # Standard task-by-task execution
-│   │   ├── parallel_executor.py   # Multi-threaded parallel execution
-│   │   └── conditional_executor.py # Conditional branching logic
-│   │
-│   └── validation/             # Optional validation systems
-│       ├── __init__.py         # Validation package exports
-│       ├── task_validator.py   # Task file syntax & dependency validation
-│       └── host_validator.py   # Host connectivity & DNS validation
-│
-├── test_cases/                 # Comprehensive test suite
-│   ├── extended_verification_test.sh # Main verification framework
-│   ├── host_validation_test_runner.sh # Host validation testing
-│   └── *.txt                   # Test scenario files
-│
-└── test_scripts/               # Mock execution environments
-    ├── pbrun                   # Mock pbrun command for testing
-    ├── p7s                     # Mock p7s command for testing
-    └── wwrs_clir              # Mock wwrs_clir command for testing
+└── tasker/                     # Core modular package
+    ├── __init__.py             # Package initialization
+    │
+    ├── core/                   # Fundamental framework components
+    │   ├── __init__.py         # Core package exports
+    │   ├── utilities.py        # Shared utility functions & exit codes
+    │   ├── execution_context.py # Unified callback and state management
+    │   ├── condition_evaluator.py # Variable replacement & condition logic
+    │   └── task_executor_main.py # Main TaskExecutor class
+    │
+    ├── executors/              # Task execution engines
+    │   ├── __init__.py         # Executor package exports
+    │   ├── base_executor.py    # Abstract base class for all executors
+    │   ├── sequential_executor.py # Standard task-by-task execution
+    │   ├── parallel_executor.py   # Multi-threaded parallel execution
+    │   └── conditional_executor.py # Conditional branching logic
+    │
+    └── validation/             # Optional validation systems
+        ├── __init__.py         # Validation package exports
+        ├── task_validator.py   # Task file syntax & dependency validation
+        └── host_validator.py   # Host connectivity & DNS validation
 ```
 
 #### Purpose and Design Rationale
@@ -306,17 +296,6 @@ TASKER 2.0 Project Structure
   - Production environment safety checks
   - **Why optional**: Not always needed (local execution, trusted environments)
 
-##### Testing Infrastructure
-
-- **`test_cases/`** - **Verification Framework**
-  - Comprehensive test scenarios covering all functionality
-  - Automated verification against reference implementation
-  - **Why comprehensive**: Ensures refactoring doesn't break functionality
-
-- **`test_scripts/`** - **Mock Environment**
-  - Simulated execution commands for testing
-  - Controlled success/failure scenarios
-  - **Why needed**: Enables testing without real infrastructure
 
 #### Design Benefits
 
@@ -422,9 +401,6 @@ tasker --validate-only production_deployment.txt
 # Extended validation with connectivity testing
 tasker -c --validate-only production_tasks.txt
 
-# Skip validation for faster resume (use after validation)
-tasker --start-from=5 --skip-task-validation deployment.txt
-
 # Emergency options (use with caution)
 tasker --skip-host-validation emergency_fix.txt
 tasker --skip-validation critical_fix.txt
@@ -435,6 +411,180 @@ tasker --skip-validation critical_fix.txt
 - Cannot be disabled - essential for workflow execution
 
 *See [Validation Systems](#validation-systems) section for detailed usage guidance*
+
+## Resume and Recovery
+
+TASKER 2.0 provides powerful resume capabilities that allow you to continue workflow execution from any specific task, making it ideal for handling failures and recovering from interruptions.
+
+### When to Use Resume Functionality
+
+**Common Scenarios:**
+- **Task failure recovery**: A task failed due to temporary issues (network, permissions, etc.)
+- **Workflow interruption**: Execution was stopped (Ctrl+C, system restart, timeout)
+- **Iterative development**: Testing changes to specific parts of a workflow
+- **Production incidents**: Quickly resume after fixing infrastructure issues
+- **Partial deployment**: Continue deployment after resolving blocking issues
+
+### How Resume Works
+
+When TASKER executes tasks, each task has a unique ID. The `--start-from` parameter allows you to specify which task ID to begin execution from, skipping all previous tasks.
+
+**Key Concepts:**
+- **Task IDs are sequential**: Tasks are numbered 0, 1, 2, 3...
+- **Previous task data unavailable**: Tasks before start point haven't executed, so `@TASK_ID_stdout@` references won't work
+- **Validation can be skipped**: Use `--skip-task-validation` for faster resume after initial validation
+- **Global variables preserved**: `@VARIABLE_NAME@` substitutions still work normally
+
+### Resume Command Examples
+
+#### Basic Resume
+```bash
+# Original execution failed at task 7
+tasker -r deployment.txt
+# ... execution stops at task 7 due to error
+
+# Fix the issue, then resume from task 7
+tasker -r --start-from=7 deployment.txt
+```
+
+#### Fast Resume (Skip Validation)
+```bash
+# Resume with validation skipped (faster, use after successful validation)
+tasker -r --start-from=5 --skip-task-validation deployment.txt
+
+# Resume with all validation skipped (emergency use only)
+tasker -r --start-from=10 --skip-validation emergency_fix.txt
+```
+
+#### Resume with Validation
+```bash
+# Resume with full validation (slower but safer)
+tasker -r --start-from=3 production_deployment.txt
+
+# Resume with extended validation including connectivity
+tasker -r --start-from=8 -c production_deployment.txt
+```
+
+### Resume Workflow Patterns
+
+#### 1. Standard Failure Recovery
+```bash
+# Initial execution
+tasker -r -p PROD_DEPLOY deployment.txt
+# Fails at task 12 due to permission issue
+
+# Fix permission issue
+sudo chmod +x /opt/deploy/scripts/configure.sh
+
+# Resume from failed task
+tasker -r -p PROD_DEPLOY --start-from=12 --skip-task-validation deployment.txt
+```
+
+#### 2. Development and Testing
+```bash
+# Test entire workflow first
+tasker -r --validate-only complex_workflow.txt
+
+# Test specific section during development
+tasker -r --start-from=20 --skip-task-validation complex_workflow.txt
+
+# Test final section after changes
+tasker -r --start-from=45 complex_workflow.txt
+```
+
+#### 3. Staged Production Deployment
+```bash
+# Phase 1: Pre-deployment tasks (0-10)
+tasker -r -p PROD_DEPLOY --start-from=0 deployment.txt
+
+# Phase 2: Core deployment (11-25) - after approval
+tasker -r -p PROD_DEPLOY --start-from=11 --skip-task-validation deployment.txt
+
+# Phase 3: Post-deployment (26-35) - after verification
+tasker -r -p PROD_DEPLOY --start-from=26 --skip-task-validation deployment.txt
+```
+
+#### 4. Parallel Task Recovery
+```bash
+# Parallel task group failed partially
+tasker -r parallel_deployment.txt
+# Tasks 10,11,12 succeeded, but 13,14 failed
+
+# Resume with retry for failed parallel tasks
+tasker -r --start-from=10 --skip-task-validation parallel_deployment.txt
+```
+
+### Important Considerations
+
+#### Task Data Dependencies
+```bash
+# This WILL NOT WORK if task 5 depends on task 3 output
+task=3
+hostname=server1
+command=get_deployment_id
+exec=local
+
+task=5
+hostname=server2
+command=deploy_application
+arguments=--deployment-id=@3_stdout@  # ❌ Task 3 didn't execute!
+
+# To resume from task 5, you need to manually handle the dependency
+# or resume from an earlier task that includes the dependency
+```
+
+#### Global Variables Still Work
+```bash
+# Global variables work normally during resume
+ENVIRONMENT=production
+APP_VERSION=v2.1.0
+
+# This works fine when resuming
+task=10
+hostname=@ENVIRONMENT@-server
+command=deploy
+arguments=@APP_VERSION@  # ✅ Global variables always available
+```
+
+#### Validation Strategies
+```bash
+# Conservative approach (slower, safer)
+tasker -r --start-from=5 production_tasks.txt
+
+# Optimized approach (faster, after initial validation)
+tasker -r --start-from=5 --skip-task-validation production_tasks.txt
+
+# Emergency approach (fastest, use only when time is critical)
+tasker -r --start-from=5 --skip-validation emergency_fix.txt
+```
+
+### Best Practices for Resume Operations
+
+1. **Identify the correct start point**: Resume from the failed task, not after it
+2. **Understand dependencies**: Ensure resumed tasks don't depend on skipped task output
+3. **Use appropriate validation**: Skip only when safe and after initial validation
+4. **Log resume operations**: Use project names (`-p`) to track recovery operations
+5. **Test resume points**: Verify resume functionality during workflow development
+6. **Document recovery procedures**: Include resume commands in operational runbooks
+
+### Resume in Production Environments
+
+**Pre-production validation:**
+```bash
+# Validate the resume point first
+tasker --start-from=15 --validate-only production_deployment.txt
+
+# Execute with logging
+tasker -r -p INCIDENT_RECOVERY --start-from=15 --skip-task-validation production_deployment.txt
+```
+
+**Emergency recovery:**
+```bash
+# Maximum speed for critical production issues
+tasker -r -p EMERGENCY_RECOVERY --start-from=8 --skip-validation critical_fix.txt
+```
+
+The resume functionality makes TASKER highly resilient to failures and enables sophisticated deployment strategies where workflows can be executed in phases with approval gates and recovery points.
 
 ## Default LOG Directory Structure
 

@@ -190,7 +190,7 @@ TASKER 2.0 follows a clean modular architecture where each file has a specific p
 TASKER 2.0 Project Structure
 ./
 ├── tasker.py                    # Main executable script (CLI entry point)
-├── task_validator.py            # Standalone validation utility
+├── task_validator_orig.py       # Original validation script (reference)
 ├── tasker_orig.py              # Original monolithic version (reference)
 │
 ├── tasker/                     # Core modular package
@@ -235,11 +235,10 @@ TASKER 2.0 Project Structure
   - Maintains backward compatibility
   - **Why separate**: Clean separation between CLI and business logic
 
-- **`task_validator.py`** - **Standalone Validator**
-  - Independent validation utility
-  - Can be used separately from main workflow execution
-  - Comprehensive syntax and dependency checking
-  - **Why standalone**: Allows validation without execution overhead
+- **`task_validator_orig.py`** - **Original Reference Implementation**
+  - Original standalone validation script (preserved for reference)
+  - Used for comparison and verification during development
+  - **Why kept**: Historical reference and compatibility testing
 
 ##### Core Framework (`tasker/core/`)
 

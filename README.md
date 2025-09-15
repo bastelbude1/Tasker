@@ -287,7 +287,8 @@ Each task must have at least:
 
 Optional parameters include:
 - `arguments`: command arguments
-- `next`: condition for proceeding to next task
+- `condition`: pre-execution condition (task is skipped if condition is false)
+- `next`: condition for proceeding to next task (evaluated after execution)
 - `exec`: execution type for this specific task
 - `timeout`: command timeout in seconds
 - `sleep`: pause after task completion
@@ -465,6 +466,39 @@ Supported delimiters:
 - `semi`: Split by semicolons
 - `pipe`: Split by pipes
 - `newline`: Split by newlines
+
+#### Pre-execution Conditions
+
+Skip task execution based on conditions evaluated before the task runs:
+
+```
+task=0
+hostname=serverA
+command=echo
+arguments="Creating file"
+exec=local
+
+# This task only runs if the previous task was successful
+task=1
+hostname=serverA
+condition=@0_success@
+command=echo
+arguments="File creation was successful"
+exec=local
+
+# This task only runs if a global variable matches
+task=2
+hostname=serverA
+condition=@ENVIRONMENT@=production
+command=deploy_to_production
+exec=local
+```
+
+**Pre-execution Condition Features:**
+- Evaluated before task execution (unlike `next` which is evaluated after)
+- If condition evaluates to false, task is skipped entirely
+- Same condition syntax as `next` parameter
+- Useful for conditional task execution based on previous results or global variables
 
 #### Error Handling with Success/Failure Routing
 

@@ -69,6 +69,7 @@ task=10
 hostname=app-server
 command=rollback_deployment
 on_success=100
+next=never
 
 task=99
 hostname=notification
@@ -1416,32 +1417,40 @@ exec=local
 
 ```mermaid
 graph TD
-    Start([🌐 Smart File Download<br/>Port-Based Protocol Selection]) --> T0[Task 0: Port Scan<br/>Check 80 & 443]
-    T0 --> Check{Port Status?<br/>80 open? 443 open?}
+    Start([🌐 Smart File Download<br/>Priority-Based Protocol Selection]) --> T0[Task 0: Check HTTPS Port 443<br/>🔒 Preferred secure protocol]
+    T0 --> T1[Task 1: Conditional<br/>HTTPS Available?]
 
-    Check -->|✅ HTTPS Available<br/>443 open| Secure[Task 1: Conditional<br/>HTTPS Branch]
-    Check -->|⚠️ HTTP Only<br/>80 open, 443 closed| Basic[Task 2: Conditional<br/>HTTP Branch]
-    Check -->|❌ No Ports<br/>Both closed| Error[Task 3: Conditional<br/>Error Branch]
+    T1 -->|✅ HTTPS Available<br/>443 OPEN| Secure[HTTPS Branch<br/>Tasks 10,11]
+    T1 -->|❌ HTTPS Not Available<br/>443 CLOSED| T2[Task 2: Check HTTP Port 80<br/>⚠️ Fallback protocol]
+
+    T2 --> T3[Task 3: Conditional<br/>HTTP Available?]
+    T3 -->|✅ HTTP Available<br/>80 OPEN| Basic[HTTP Branch<br/>Tasks 20,21]
+    T3 -->|❌ HTTP Not Available<br/>80 CLOSED| T4[Task 4: Emergency Fallback<br/>Alternative sources]
+
+    T4 --> Error[Fallback Branch<br/>Tasks 30,31]
 
     Secure --> T10[Task 10: Download via HTTPS<br/>🔒 Secure connection]
-    Secure --> T11[Task 11: Verify SSL cert<br/>🛡️ Security check]
+    Secure --> T11[Task 11: Verify SSL cert<br/>🛡️ Security validation]
 
-    Basic --> T20[Task 20: Download via HTTP<br/>⚠️ Warning: insecure]
-    Basic --> T21[Task 21: Log security risk<br/>📝 Audit trail]
+    Basic --> T20[Task 20: Download via HTTP<br/>⚠️ Insecure but functional]
+    Basic --> T21[Task 21: Log security risk<br/>📝 Security audit trail]
 
-    Error --> T30[Task 30: Try alternative source<br/>🔄 Fallback option]
-    Error --> T31[Task 31: Send failure alert<br/>📧 Notify admin]
+    Error --> T30[Task 30: Alternative source<br/>🔄 Mirror/backup server]
+    Error --> T31[Task 31: Send failure alert<br/>📧 Admin notification]
 
-    T10 --> Success[✅ Download Complete<br/>Secure method used]
+    T10 --> Success[✅ Download Complete<br/>🔒 Secure HTTPS used]
     T11 --> Success
-    T20 --> Success2[✅ Download Complete<br/>Insecure method logged]
+    T20 --> Success2[✅ Download Complete<br/>⚠️ HTTP used - logged]
     T21 --> Success2
-    T30 --> Success3[⚠️ Download Complete<br/>Alternative source used]
+    T30 --> Success3[⚠️ Download Complete<br/>🔄 Alternative source]
     T31 --> Failed[❌ Download Failed<br/>All methods exhausted]
 
     style Start fill:#e1f5fe
     style T0 fill:#f3e5f5
-    style Check fill:#fff3e0
+    style T1 fill:#fff3e0
+    style T2 fill:#f3e5f5
+    style T3 fill:#fff3e0
+    style T4 fill:#fff3e0
     style Secure fill:#e8f5e8
     style Basic fill:#fff8e1
     style Error fill:#ffebee
@@ -1459,15 +1468,15 @@ TARGET_HOST=download.example.com
 FILENAME=installer.zip
 DOWNLOAD_PATH=/tmp/downloads
 
-# Task 0: Port scanning to determine available protocols
+# Task 0: Check HTTPS port 443 first (preferred protocol)
 task=0
 hostname=localhost
 command=nmap
-arguments=-p 80,443 --open @TARGET_HOST@
-timeout=30
+arguments=-p 443 --open @TARGET_HOST@
+timeout=15
 exec=local
 
-# Task 1: Conditional - HTTPS available (port 443 open)
+# Task 1: Conditional - HTTPS available (port 443 open) - HIGHEST PRIORITY
 task=1
 type=conditional
 condition=@0_stdout@~443/tcp
@@ -1475,22 +1484,30 @@ if_true_tasks=10,11
 timeout=60
 next=all_success
 on_success=100
-on_failure=90
+on_failure=2
 
-# Task 2: Conditional - HTTP only (port 80 open, 443 not mentioned)
+# Task 2: Check HTTP port 80 (fallback protocol)
 task=2
+hostname=localhost
+command=nmap
+arguments=-p 80 --open @TARGET_HOST@
+timeout=15
+exec=local
+
+# Task 3: Conditional - HTTP available (port 80 open) - FALLBACK
+task=3
 type=conditional
-condition=@0_stdout@~80/tcp&@0_stdout@!~443/tcp
+condition=@2_stdout@~80/tcp
 if_true_tasks=20,21
 timeout=60
 next=all_success
 on_success=101
-on_failure=91
+on_failure=4
 
-# Task 3: Conditional - No ports available (emergency fallback)
-task=3
+# Task 4: No ports available - emergency fallback
+task=4
 type=conditional
-condition=@0_stdout@!~80/tcp&@0_stdout@!~443/tcp
+condition=always
 if_true_tasks=30,31
 timeout=120
 next=any_success

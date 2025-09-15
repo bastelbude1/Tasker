@@ -190,8 +190,6 @@ TASKER 2.0 follows a clean modular architecture where each file has a specific p
 TASKER 2.0 Project Structure
 ./
 ├── tasker.py                    # Main executable script (CLI entry point)
-├── task_validator_orig.py       # Original validation script (reference)
-├── tasker_orig.py              # Original monolithic version (reference)
 │
 └── tasker/                     # Core modular package
     ├── __init__.py             # Package initialization
@@ -218,17 +216,12 @@ TASKER 2.0 Project Structure
 
 #### Purpose and Design Rationale
 
-##### Main Scripts
+##### Main Script
 - **`tasker.py`** - **Main Entry Point**
   - CLI interface and argument parsing
   - Minimal logic - delegates to TaskExecutor
   - Maintains backward compatibility
   - **Why separate**: Clean separation between CLI and business logic
-
-- **`task_validator_orig.py`** - **Original Reference Implementation**
-  - Original standalone validation script (preserved for reference)
-  - Used for comparison and verification during development
-  - **Why kept**: Historical reference and compatibility testing
 
 ##### Core Framework (`tasker/core/`)
 
@@ -307,17 +300,6 @@ TASKER 2.0 Project Structure
 6. **Extensibility**: New execution engines can be added easily
 7. **Optional Components**: Validation can be bypassed when not needed
 
-#### Migration from Monolithic Design
-
-The original `tasker_orig.py` was a single 3000+ line file with all functionality mixed together. The modular design provides:
-
-- **Easier debugging**: Issues are localized to specific modules
-- **Independent development**: Teams can work on different modules
-- **Selective loading**: Only required modules are imported
-- **Clear boundaries**: Well-defined interfaces prevent tight coupling
-- **Future extensibility**: New features can be added without touching core logic
-
-This structure enables TASKER to scale from simple sequential workflows to complex enterprise deployments while maintaining code clarity and reliability.
 
 ## Usage
 
@@ -998,9 +980,31 @@ arguments=--config=/tmp/runtime_vars
 |-----------------|----------------------|
 | `@VARIABLE_NAME@` | `@TASK_ID_stdout@` |
 | Defined at task file start | Generated during execution |
-| Static throughout workflow | Dynamic based on task results |
+| **Read-only during execution** | Dynamic based on task results |
 | Configuration & environment | Runtime data flow |
 | User-defined values | System-captured output |
+
+##### Can Global Variables Be Updated During Execution?
+
+**Current Behavior: NO** - Global variables are **read-only** during workflow execution.
+
+Global variables are parsed once at the beginning of the workflow and remain constant throughout execution. They cannot be modified by tasks during runtime.
+
+**Alternative: Use Task Output Variables for Dynamic Data**
+```bash
+# Get dynamic value from task
+task=0
+hostname=config-server
+command=get_database_host
+exec=local
+
+# Use task output directly in subsequent tasks
+task=1
+hostname=@0_stdout@  # Use dynamic hostname from task 0
+command=connect_database
+```
+
+For dynamic workflow values, use `@TASK_ID_stdout@` variables which are designed for runtime data flow.
 
 #### Task Result Storage and Referencing
 
@@ -1514,9 +1518,33 @@ Available execution types:
 ## Condition Syntax
 
 ### Exit Code Conditions
-- `exit_0`: Exit code equals 0
-- `exit_1`: Exit code equals 1
-- `exit_N`: Exit code equals N
+
+Exit codes are numeric values (0-255) returned by commands when they finish executing. In Unix/Linux systems, **exit code 0 means success** and any non-zero value indicates an error or failure.
+
+**Basic Exit Code Syntax:**
+- `exit_0`: Exit code equals 0 (command succeeded)
+- `exit_1`: Exit code equals 1 (command failed)
+- `exit_N`: Exit code equals any specific number (e.g., `exit_2`, `exit_127`)
+
+**Common Exit Code Meanings:**
+- `exit_0`: Success (standard success indicator)
+- `exit_1`: General error (most common failure indicator)
+- `exit_2`: Misuse of shell command (invalid arguments)
+- `exit_126`: Command not executable (permission issues)
+- `exit_127`: Command not found
+- `exit_130`: Process terminated by Ctrl+C
+
+**Usage Examples:**
+```bash
+# Proceed only if previous command succeeded
+next=exit_0
+
+# Proceed only if previous command failed
+next=exit_1
+
+# Proceed only if specific error occurred
+next=exit_127    # Command not found error
+```
 
 ### Output Pattern Matching (same for stderr)
 - `stdout~pattern`: stdout contains "pattern"
@@ -1924,6 +1952,183 @@ tasker -r --log-level=DEBUG workflow.txt
 - Implement comprehensive validation before production execution
 - Monitor execution with appropriate logging levels
 - Document complex workflows with clear task descriptions
+
+## Feature Requests
+
+This section documents potential enhancements that could improve TASKER's functionality in future versions.
+
+### Global Variable Updates During Execution
+
+**Current Limitation**: Global variables are read-only during workflow execution and cannot be modified by tasks.
+
+**Proposed Enhancement**: Allow tasks to update global variables during runtime using special syntax.
+
+**Potential Implementation**:
+```bash
+# Proposed syntax (NOT currently supported)
+task=0
+hostname=config-server
+command=get_deployment_target
+exec=local
+set_global=DEPLOYMENT_TARGET,@0_stdout@  # Set global var to task output
+
+# Then use updated global variable
+task=1
+hostname=@DEPLOYMENT_TARGET@
+command=deploy
+```
+
+**Use Cases**:
+- Dynamic environment configuration based on runtime detection
+- Updating deployment targets based on availability checks
+- Setting global parameters from external configuration services
+- Runtime decision making that affects multiple subsequent tasks
+
+**Current Workarounds**:
+- Use `@TASK_ID_stdout@` variables for dynamic data flow
+- Load external configuration files during execution
+- Use conditional task execution based on task results
+
+### JSON and YAML Task File Support
+
+**Current Limitation**: TASKER only supports simple key-value text format for task files.
+
+**Proposed Enhancement**: Support JSON and YAML formats for defining complex workflows with nested structures, arrays, and advanced data types.
+
+**Benefits of Structured Formats**:
+- **Complex Data Structures**: Arrays, nested objects, multi-line strings
+- **Better Organization**: Logical grouping and hierarchical structure
+- **Validation**: Schema validation and IDE support
+- **Tool Integration**: Easy parsing by external tools and CI/CD systems
+- **Advanced Workflows**: More sophisticated task definitions and relationships
+
+**Potential YAML Implementation**:
+```yaml
+# tasks.yaml
+global_variables:
+  ENVIRONMENT: production
+  APP_VERSION: v2.1.0
+  REGIONS: [us-west-2, us-east-1, eu-west-1]
+
+tasks:
+  - id: 0
+    name: "Environment Validation"
+    hostname: "{{ ENVIRONMENT }}-validator"
+    command: validate_environment
+    arguments:
+      - "--env={{ ENVIRONMENT }}"
+      - "--version={{ APP_VERSION }}"
+    timeout: 30
+    condition: "{{ ENVIRONMENT }}!=development"
+
+  - id: 1
+    name: "Multi-Region Deployment"
+    type: parallel
+    max_parallel: 3
+    tasks:
+      - hostname: "{{ ENVIRONMENT }}-{{ item }}"
+        command: deploy_application
+        arguments: ["--region={{ item }}", "--version={{ APP_VERSION }}"]
+        with_items: "{{ REGIONS }}"
+
+  - id: 2
+    name: "Health Check Matrix"
+    hostname: monitor-server
+    command: health_check
+    arguments:
+      environment: "{{ ENVIRONMENT }}"
+      regions: "{{ REGIONS }}"
+      checks:
+        - api_health
+        - database_connectivity
+        - cache_status
+    success: "exit_0 && stdout~all_healthy"
+```
+
+**Potential JSON Implementation**:
+```json
+{
+  "global_variables": {
+    "ENVIRONMENT": "production",
+    "APP_VERSION": "v2.1.0",
+    "DATABASE_SERVERS": ["db1", "db2", "db3"]
+  },
+  "tasks": [
+    {
+      "id": 0,
+      "name": "Database Migration",
+      "hostname": "{{ ENVIRONMENT }}-migration",
+      "command": "migrate_database",
+      "arguments": {
+        "servers": "{{ DATABASE_SERVERS }}",
+        "version": "{{ APP_VERSION }}",
+        "parallel": true
+      },
+      "pre_conditions": [
+        "{{ ENVIRONMENT }}!=development",
+        "{{ APP_VERSION }}~v2"
+      ],
+      "retry": {
+        "max_attempts": 3,
+        "backoff_seconds": 30
+      }
+    },
+    {
+      "id": 1,
+      "name": "Conditional Deployment",
+      "branches": {
+        "production": {
+          "condition": "{{ ENVIRONMENT }}==production",
+          "tasks": [
+            {
+              "hostname": "prod-deployer",
+              "command": "deploy_production",
+              "arguments": ["--version={{ APP_VERSION }}"]
+            }
+          ]
+        },
+        "staging": {
+          "condition": "{{ ENVIRONMENT }}==staging",
+          "tasks": [
+            {
+              "hostname": "staging-deployer",
+              "command": "deploy_staging"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+**Advanced Features Enabled**:
+- **Template Variables**: `{{ VARIABLE_NAME }}` syntax with Jinja2-style templating
+- **Arrays and Loops**: `with_items` for iterating over lists
+- **Nested Task Groups**: Logical organization and parallel execution groups
+- **Complex Arguments**: Objects and arrays as command arguments
+- **Conditional Branches**: Native if/else logic structures
+- **Retry Logic**: Built-in retry configuration with backoff
+- **Task Metadata**: Names, descriptions, and documentation
+- **Schema Validation**: JSON Schema or YAML schema validation
+
+**Migration Strategy**:
+- **Maintain backward compatibility** with existing text format
+- **Auto-detect format** based on file extension (.txt, .json, .yaml)
+- **Conversion tools** to migrate existing workflows
+- **Side-by-side support** allowing mixed format usage
+
+**Use Cases**:
+- **Complex Deployments**: Multi-region, multi-environment workflows
+- **Infrastructure as Code**: Define entire deployment pipelines
+- **CI/CD Integration**: Native support in build systems
+- **Template Libraries**: Reusable workflow components
+- **Enterprise Workflows**: Complex approval gates and parallel operations
+
+**Current Workarounds**:
+- Use multiple task files with external orchestration
+- Generate text format from templates using external tools
+- Use complex variable substitution patterns
 
 ---
 

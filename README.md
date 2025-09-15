@@ -1508,24 +1508,6 @@ return=1
 # === FIREWALL ===
 task=98
 return=0
-
-# === HTTPS DOWNLOAD (Preferred - port 443) ===
-task=10
-hostname=localhost
-command=curl
-arguments=--ssl-reqd -o @DOWNLOAD_PATH@/@FILENAME@ https://@TARGET_HOST@/@FILENAME@
-timeout=300
-success=exit_0
-exec=local
-
-# === HTTP DOWNLOAD (Fallback - port 80) ===
-task=20
-hostname=localhost
-command=curl
-arguments=-o @DOWNLOAD_PATH@/@FILENAME@ http://@TARGET_HOST@/@FILENAME@
-timeout=300
-success=exit_0
-exec=local
 ```
 
 **Why this example demonstrates conditional execution superiority:**

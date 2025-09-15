@@ -4,7 +4,7 @@
 
 ```mermaid
 graph TD
-    Start([📋 Task File<br/>Simple Text Config]) --> T1[Task 1: Deploy App<br/>🔄 Running...]
+    Start([📋 No-Code Workflow Automation<br/>Simple Text Config]) --> T1[Task 1: Deploy App<br/>🔄 Running...]
     T1 --> Check1{Exit Code?<br/>stdout? stderr?}
 
     Check1 -->|✅ Success<br/>exit_0 & stdout~deployed| T2[Task 2: Start Service<br/>🔄 Running...]
@@ -12,15 +12,14 @@ graph TD
 
     T2 --> Check2{Exit Code?<br/>stdout? stderr?}
     Check2 -->|✅ Success<br/>exit_0 & stdout~started| T3[Task 3: Verify Health<br/>🔄 Running...]
-    Check2 -->|❌ Failure<br/>exit_1| Retry[🔄 Retry Task 2<br/>loop=3 times]
+    Check2 -->|❌ Failure<br/>exit_1| Rollback[Task 10: Rollback<br/>⏪ Restore previous version]
 
-    Retry --> Check2
     T3 --> Check3{Exit Code?<br/>stdout? stderr?}
-    Check3 -->|✅ Success<br/>stdout~healthy| Success[🎉 Deployment Complete<br/>📊 Generate Report]
-    Check3 -->|❌ Failure<br/>stdout~unhealthy| Rollback[Task 10: Rollback<br/>⏪ Restore previous version]
+    Check3 -->|✅ Success<br/>stdout~healthy| Success[🎉 Send Success Report<br/>📊 Notify completion]
+    Check3 -->|❌ Failure<br/>stdout~unhealthy| Rollback
 
     Error --> End([🛑 Workflow Failed])
-    Success --> End2([✅ Workflow Complete])
+    Success --> Complete([✅ Workflow Complete])
     Rollback --> End
 
     style Start fill:#e1f5fe
@@ -33,6 +32,7 @@ graph TD
     style Success fill:#e8f5e8
     style Error fill:#ffebee
     style Rollback fill:#fff3e0
+    style Complete fill:#e8f5e8
 ```
 
 **🚀 Why TASKER?**
@@ -55,9 +55,8 @@ task=2
 hostname=app-server
 command=start_service
 success=exit_0&stdout~started
-loop=3
 on_success=3
-on_failure=99
+on_failure=10
 
 task=3
 hostname=app-server
@@ -1445,6 +1444,38 @@ command=deploy
 - Use `@TASK_ID_stdout@` variables for dynamic data flow
 - Load external configuration files during execution
 - Use conditional task execution based on task results
+
+### Logical Parameter Validation
+
+**Current Limitation**: TASKER does not prevent illogical parameter combinations that make no practical sense.
+
+**Example of Illogical Configuration**:
+```
+task=2
+hostname=app-server
+command=start_service
+success=exit_0&stdout~started
+loop=3                          # Illogical: why loop if already successful?
+on_success=3                    # Conflicts with loop behavior
+on_failure=99
+```
+
+**Problem**: If the service starts successfully on first attempt (`exit_0&stdout~started`), the task jumps to task 3, making `loop=3` meaningless. The loop parameter expects to retry until success, but `on_success` immediately exits the loop.
+
+**Proposed Enhancement**: Add logical validation that detects and warns about conflicting parameter combinations:
+- `loop=N` with `on_success` when success condition is achievable on first attempt
+- `retry_failed=true` with `success=exit_1` (will never retry since exit_1 is defined as success)
+- `if_true_tasks` and `if_false_tasks` both empty in conditional tasks
+- `timeout=0` or negative timeout values
+- `max_parallel=0` or exceeding reasonable limits
+
+**Benefits**:
+- **Prevent Configuration Errors**: Catch illogical combinations before execution
+- **Improve Debugging**: Clear warnings about conflicting parameters
+- **Better User Experience**: Guide users toward correct configurations
+- **Reduce Runtime Issues**: Prevent unexpected workflow behavior
+
+**Current Workaround**: Manually review task files for logical consistency.
 
 ### JSON and YAML Task File Support
 

@@ -1,5 +1,91 @@
 # TASK ExecutoR - TASKER 2.0
 
+**No-Code Workflow Automation** - Transform complex operations into simple configuration files
+
+```mermaid
+graph TD
+    Start([📋 Task File<br/>Simple Text Config]) --> T1[Task 1: Deploy App<br/>🔄 Running...]
+    T1 --> Check1{Exit Code?<br/>stdout? stderr?}
+
+    Check1 -->|✅ Success<br/>exit_0 & stdout~deployed| T2[Task 2: Start Service<br/>🔄 Running...]
+    Check1 -->|❌ Failure<br/>exit_1 or stderr~error| Error[Task 99: Send Alert<br/>📧 Notify team]
+
+    T2 --> Check2{Exit Code?<br/>stdout? stderr?}
+    Check2 -->|✅ Success<br/>exit_0 & stdout~started| T3[Task 3: Verify Health<br/>🔄 Running...]
+    Check2 -->|❌ Failure<br/>exit_1| Retry[🔄 Retry Task 2<br/>loop=3 times]
+
+    Retry --> Check2
+    T3 --> Check3{Exit Code?<br/>stdout? stderr?}
+    Check3 -->|✅ Success<br/>stdout~healthy| Success[🎉 Deployment Complete<br/>📊 Generate Report]
+    Check3 -->|❌ Failure<br/>stdout~unhealthy| Rollback[Task 10: Rollback<br/>⏪ Restore previous version]
+
+    Error --> End([🛑 Workflow Failed])
+    Success --> End2([✅ Workflow Complete])
+    Rollback --> End
+
+    style Start fill:#e1f5fe
+    style T1 fill:#f3e5f5
+    style T2 fill:#f3e5f5
+    style T3 fill:#f3e5f5
+    style Check1 fill:#fff3e0
+    style Check2 fill:#fff3e0
+    style Check3 fill:#fff3e0
+    style Success fill:#e8f5e8
+    style Error fill:#ffebee
+    style Rollback fill:#fff3e0
+```
+
+**🚀 Why TASKER?**
+- **Zero Coding Required**: Write workflows in simple text files
+- **Smart Decision Making**: Automatic routing based on command results
+- **Built-in Intelligence**: Detects success/failure from exit codes, stdout, stderr
+- **Enterprise Ready**: Scales from 1 to 1000+ servers effortlessly
+
+**The workflow above is created with this simple text file:**
+```
+# deployment.txt - No programming required!
+task=1
+hostname=app-server
+command=deploy_application
+success=exit_0&stdout~deployed
+on_success=2
+on_failure=99
+
+task=2
+hostname=app-server
+command=start_service
+success=exit_0&stdout~started
+loop=3
+on_success=3
+on_failure=99
+
+task=3
+hostname=app-server
+command=health_check
+success=stdout~healthy
+on_success=100
+on_failure=10
+
+task=10
+hostname=app-server
+command=rollback_deployment
+on_success=100
+
+task=99
+hostname=notification
+command=send_alert
+arguments=Deployment failed on app-server
+
+task=100
+hostname=notification
+command=send_success_report
+arguments=Deployment completed successfully
+```
+
+**Run it:** `tasker -r deployment.txt` ✨
+
+---
+
 A sophisticated Python-based task execution system for running commands on remote or local servers with comprehensive flow control, parallel execution capabilities, and enterprise-grade validation.
 
 ## Overview
@@ -95,6 +181,86 @@ on_failure=99                     # Jump to task 99 on failure
 loop=3                            # Repeat task 3 additional times
 return=0                          # Exit workflow with return code
 ```
+
+### Parallel Execution Parameters
+
+Execute multiple tasks simultaneously with sophisticated control and retry logic:
+
+```
+# Parallel execution example
+task=1
+type=parallel                   # Enable parallel execution mode
+max_parallel=5                  # Maximum concurrent tasks
+tasks=100,101,102,103,104       # Task IDs to execute in parallel
+timeout=30                      # Master timeout for all parallel tasks
+retry_failed=true               # Enable retry for failed tasks
+retry_count=3                   # Number of retry attempts (1-10)
+retry_delay=2                   # Delay between retries in seconds (1-300)
+next=min_success=3              # Require at least 3 tasks to succeed
+on_success=10                   # Jump to task 10 if condition met
+on_failure=99                   # Jump to task 99 if condition failed
+```
+
+**Parallel Task Control:**
+- `type=parallel`: Enable parallel execution mode
+- `max_parallel=N`: Maximum concurrent tasks (1-50)
+- `tasks=X,Y,Z`: Comma-separated task IDs to execute in parallel
+- `timeout=N`: Master timeout applies to ALL parallel tasks
+- `retry_failed=true/false`: Enable automatic retry for failed tasks
+- `retry_count=N`: Number of retry attempts per failed task (1-10)
+- `retry_delay=N`: Seconds to wait between retry attempts (1-300)
+
+**Parallel Success Conditions:**
+- `next=min_success=N`: Minimum number of tasks that must succeed
+- `next=max_failed=N`: Maximum number of tasks allowed to fail
+- `next=all_success`: All parallel tasks must succeed
+- `next=any_success`: At least one task must succeed
+- `next=majority_success`: More than 50% of tasks must succeed
+
+### Conditional Execution Parameters
+
+Execute different task branches based on runtime conditions:
+
+```
+# Conditional execution example
+task=5
+type=conditional                # Enable conditional execution mode
+condition=@ENVIRONMENT@=production&@0_success@=True
+if_true_tasks=200,201,202       # Tasks to execute if condition is TRUE
+if_false_tasks=300,301          # Tasks to execute if condition is FALSE
+timeout=60                      # Master timeout for conditional tasks
+retry_failed=true               # Enable retry for failed conditional tasks
+retry_count=2                   # Retry attempts for failed tasks
+next=all_success                # All conditional tasks must succeed
+on_success=10                   # Jump to task 10 if condition met
+on_failure=99                   # Jump to task 99 if condition failed
+```
+
+**Conditional Task Control:**
+- `type=conditional`: Enable conditional execution mode
+- `condition=EXPR`: Boolean expression to evaluate
+- `if_true_tasks=X,Y`: Tasks to execute when condition is TRUE
+- `if_false_tasks=A,B`: Tasks to execute when condition is FALSE
+- Note: Either `if_true_tasks` OR `if_false_tasks` can be omitted
+
+### Enhanced Loop Control
+
+Advanced loop control with break conditions:
+
+```
+task=0
+hostname=server1
+command=check_service_status
+loop=10                         # Execute up to 11 times total
+loop_break=stdout~HEALTHY       # Break loop when output contains "HEALTHY"
+sleep=5                         # Wait 5 seconds between loop iterations
+success=exit_0                  # Custom success criteria
+```
+
+**Loop Control Parameters:**
+- `loop=N`: Execute N additional times (total = original + N loops)
+- `loop_break=CONDITION`: Condition to break out of loop early
+- `sleep=N`: Delay between loop iterations
 
 ### Parameter Details
 
@@ -434,21 +600,43 @@ graph TD
 
 **Example**:
 ```
-# Parallel execution - all tasks run simultaneously
+# Parallel execution master task
+task=0
+type=parallel
+max_parallel=3
+tasks=10,11,12
+timeout=300
+retry_failed=true
+retry_count=2
+next=all_success
+on_success=1
+on_failure=99
+
+# Parallel worker tasks
 task=10
 hostname=web1
 command=deploy_application
 exec=pbrun
 
-task=10
+task=11
 hostname=web2
 command=deploy_application
 exec=pbrun
 
-task=10
+task=12
 hostname=web3
 command=deploy_application
 exec=pbrun
+
+task=1
+hostname=notification
+command=send_success_notification
+exec=local
+
+task=99
+hostname=notification
+command=send_failure_alert
+exec=local
 ```
 
 ### Conditional Execution Model
@@ -479,22 +667,55 @@ graph TD
 
 **Example**:
 ```
+# Environment detection
 task=0
 hostname=env-detector
 command=detect_environment
 exec=local
 
-# Production path
+# Conditional execution based on environment
 task=1
+type=conditional
 condition=@0_stdout@~production
+if_true_tasks=10,11
+if_false_tasks=20,21
+next=all_success
+on_success=2
+on_failure=99
+
+# Production deployment tasks
+task=10
 hostname=prod-deployer
 command=deploy_to_production
+exec=pbrun
 
-# Development path
-task=2
-condition=@0_stdout@~development
+task=11
+hostname=prod-lb
+command=update_load_balancer
+exec=pbrun
+
+# Development deployment tasks
+task=20
 hostname=dev-deployer
 command=deploy_to_development
+exec=pbrun
+
+task=21
+hostname=dev-tester
+command=run_integration_tests
+exec=pbrun
+
+# Success notification
+task=2
+hostname=notification
+command=send_deployment_success
+exec=local
+
+# Failure handler
+task=99
+hostname=notification
+command=send_deployment_failure
+exec=local
 ```
 
 ## Advanced Flow Control

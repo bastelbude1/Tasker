@@ -74,11 +74,13 @@ task=99
 hostname=notification
 command=send_alert
 arguments=Deployment failed on app-server
+next=never
 
 task=100
 hostname=notification
 command=send_success_report
 arguments=Deployment completed successfully
+next=never
 ```
 
 **Run it:** `tasker -r deployment.txt` ✨
@@ -640,7 +642,96 @@ exec=local
 
 ### Conditional Execution Model
 
-Dynamic workflow branching based on runtime conditions:
+Dynamic workflow branching based on runtime conditions - use ONLY when you need to evaluate data before choosing which tasks to execute.
+
+#### When to Use Conditional vs Sequential with on_success/on_failure
+
+**❓ Common Question**: "Why use conditional execution when I can achieve similar results with `on_success`/`on_failure`?"
+
+**Key Difference**:
+- **Sequential + on_success/on_failure**: Routes based on task execution **outcome** (success/failure)
+- **Conditional**: Routes based on **data evaluation** before task execution
+
+#### ✅ Use Conditional Model When:
+
+**1. Data-Driven Decisions (BEFORE execution)**
+```
+# Conditional: Choose deployment target based on environment variable
+task=1
+type=conditional
+condition=@ENVIRONMENT@=production
+if_true_tasks=10,11    # Production deployment tasks
+if_false_tasks=20,21   # Development deployment tasks
+```
+
+**2. Multiple Branch Logic**
+```
+# Conditional: Handle multiple environment types
+task=1
+type=conditional
+condition=@ENV_TYPE@=production
+if_true_tasks=100,101,102     # 3 production tasks
+if_false_tasks=200,201,202    # 3 development tasks
+```
+
+#### ✅ Use Sequential + on_success/on_failure When:
+
+**1. Outcome-Based Routing (AFTER execution)**
+```
+# Sequential: Route based on deployment result
+task=1
+hostname=app-server
+command=deploy_application
+on_success=2          # Continue if deployment succeeds
+on_failure=99         # Alert if deployment fails
+```
+
+**2. Simple Success/Failure Paths**
+```
+# Sequential: Basic error handling
+task=1
+hostname=backup-server
+command=create_backup
+on_success=2          # Continue to next step
+on_failure=90         # Jump to error handler
+```
+
+#### ❌ Wrong Model Choice Examples:
+
+**Don't use conditional for simple success/failure routing:**
+```
+# OVERCOMPLICATED - should use on_success/on_failure
+task=1
+hostname=app-server
+command=deploy_application
+
+task=2
+type=conditional
+condition=@1_success@=True
+if_true_tasks=10      # Continue deployment
+if_false_tasks=99     # Send error alert
+```
+
+**Don't use on_success/on_failure for data-driven decisions:**
+```
+# IMPOSSIBLE - can't evaluate data before task execution
+task=1
+condition=@ENVIRONMENT@=production  # This checks data
+hostname=prod-server
+command=deploy_to_production
+on_success=2          # This only handles execution outcome
+```
+
+#### Summary: Choose the Right Model
+
+| Scenario | Use Model | Why |
+|----------|-----------|-----|
+| Route based on variable values | **Conditional** | Evaluates data before execution |
+| Route based on task outcomes | **Sequential** | Handles success/failure after execution |
+| Multiple parallel branches | **Conditional** | Cleaner than complex on_success chains |
+| Simple linear workflow | **Sequential** | Simpler and more readable |
+| Environment-specific logic | **Conditional** | Data-driven decision making |
+| Error handling and retries | **Sequential** | Outcome-based flow control |
 
 ```mermaid
 graph TD
@@ -1315,6 +1406,210 @@ hostname=notification
 command=send_migration_success
 arguments=Database migration @DATABASE_MIGRATION_VERSION@ completed on @ENVIRONMENT@
 exec=local
+```
+
+### Example 3: Smart File Download with Port Detection
+
+**Real-world scenario**: Download a file via HTTP(80) or HTTPS(443) based on which ports are available.
+
+**Why conditional execution is perfect here**: We need to make decisions based on port scan results, not task outcomes.
+
+```mermaid
+graph TD
+    Start([🌐 Smart File Download<br/>Port-Based Protocol Selection]) --> T0[Task 0: Port Scan<br/>Check 80 & 443]
+    T0 --> Check{Port Status?<br/>80 open? 443 open?}
+
+    Check -->|✅ HTTPS Available<br/>443 open| Secure[Task 1: Conditional<br/>HTTPS Branch]
+    Check -->|⚠️ HTTP Only<br/>80 open, 443 closed| Basic[Task 2: Conditional<br/>HTTP Branch]
+    Check -->|❌ No Ports<br/>Both closed| Error[Task 3: Conditional<br/>Error Branch]
+
+    Secure --> T10[Task 10: Download via HTTPS<br/>🔒 Secure connection]
+    Secure --> T11[Task 11: Verify SSL cert<br/>🛡️ Security check]
+
+    Basic --> T20[Task 20: Download via HTTP<br/>⚠️ Warning: insecure]
+    Basic --> T21[Task 21: Log security risk<br/>📝 Audit trail]
+
+    Error --> T30[Task 30: Try alternative source<br/>🔄 Fallback option]
+    Error --> T31[Task 31: Send failure alert<br/>📧 Notify admin]
+
+    T10 --> Success[✅ Download Complete<br/>Secure method used]
+    T11 --> Success
+    T20 --> Success2[✅ Download Complete<br/>Insecure method logged]
+    T21 --> Success2
+    T30 --> Success3[⚠️ Download Complete<br/>Alternative source used]
+    T31 --> Failed[❌ Download Failed<br/>All methods exhausted]
+
+    style Start fill:#e1f5fe
+    style T0 fill:#f3e5f5
+    style Check fill:#fff3e0
+    style Secure fill:#e8f5e8
+    style Basic fill:#fff8e1
+    style Error fill:#ffebee
+    style Success fill:#e8f5e8
+    style Success2 fill:#fff8e1
+    style Success3 fill:#fff3e0
+    style Failed fill:#ffebee
+```
+
+**Configuration file**:
+```
+# smart_download.txt - Demonstrates conditional execution superiority
+# Global configuration
+TARGET_HOST=download.example.com
+FILENAME=installer.zip
+DOWNLOAD_PATH=/tmp/downloads
+
+# Task 0: Port scanning to determine available protocols
+task=0
+hostname=localhost
+command=nmap
+arguments=-p 80,443 --open @TARGET_HOST@
+timeout=30
+exec=local
+
+# Task 1: Conditional - HTTPS available (port 443 open)
+task=1
+type=conditional
+condition=@0_stdout@~443/tcp
+if_true_tasks=10,11
+timeout=60
+next=all_success
+on_success=100
+on_failure=90
+
+# Task 2: Conditional - HTTP only (port 80 open, 443 not mentioned)
+task=2
+type=conditional
+condition=@0_stdout@~80/tcp&@0_stdout@!~443/tcp
+if_true_tasks=20,21
+timeout=60
+next=all_success
+on_success=101
+on_failure=91
+
+# Task 3: Conditional - No ports available (emergency fallback)
+task=3
+type=conditional
+condition=@0_stdout@!~80/tcp&@0_stdout@!~443/tcp
+if_true_tasks=30,31
+timeout=120
+next=any_success
+on_success=102
+on_failure=92
+
+# === SUCCESS NOTIFICATIONS ===
+task=100
+hostname=localhost
+command=echo
+arguments=SECURE DOWNLOAD: Successfully downloaded @FILENAME@ via HTTPS
+exec=local
+next=never
+
+task=101
+hostname=localhost
+command=echo
+arguments=INSECURE DOWNLOAD: Downloaded @FILENAME@ via HTTP - security risk logged
+exec=local
+next=never
+
+task=102
+hostname=localhost
+command=echo
+arguments=FALLBACK DOWNLOAD: Used alternative source for @FILENAME@
+exec=local
+next=never
+
+# === FAILURE HANDLERS ===
+task=90
+hostname=localhost
+command=echo
+arguments=ERROR: HTTPS download failed despite port 443 being open
+exec=local
+return=1
+
+task=91
+hostname=localhost
+command=echo
+arguments=ERROR: HTTP download failed despite port 80 being open
+exec=local
+return=1
+
+task=92
+hostname=localhost
+command=echo
+arguments=ERROR: All download methods failed - both ports closed and fallback failed
+exec=local
+return=1
+
+# === FIREWALL ===
+task=99
+return=0
+
+# === HTTPS BRANCH (Secure download) ===
+task=10
+hostname=localhost
+command=curl
+arguments=--ssl-reqd --cert-status -o @DOWNLOAD_PATH@/@FILENAME@ https://@TARGET_HOST@/@FILENAME@
+timeout=300
+success=exit_0
+exec=local
+
+task=11
+hostname=localhost
+command=openssl
+arguments=s_client -connect @TARGET_HOST@:443 -verify_return_error
+timeout=30
+success=exit_0&stdout~Verification
+exec=local
+
+# === HTTP BRANCH (Insecure download with logging) ===
+task=20
+hostname=localhost
+command=curl
+arguments=-o @DOWNLOAD_PATH@/@FILENAME@ http://@TARGET_HOST@/@FILENAME@
+timeout=300
+success=exit_0
+exec=local
+
+task=21
+hostname=localhost
+command=logger
+arguments=-t TASKER_SECURITY "INSECURE DOWNLOAD: @FILENAME@ from @TARGET_HOST@ via HTTP"
+exec=local
+
+# === FALLBACK BRANCH (Alternative sources) ===
+task=30
+hostname=localhost
+command=curl
+arguments=-o @DOWNLOAD_PATH@/@FILENAME@ https://backup.mirror.com/@FILENAME@
+timeout=300
+success=exit_0
+exec=local
+
+task=31
+hostname=notification-server
+command=send_alert
+arguments=Download fallback used for @FILENAME@ - investigate @TARGET_HOST@ connectivity
+exec=local
+```
+
+**Why this example demonstrates conditional execution superiority:**
+
+1. **Multiple Decision Points**: Three different branches based on port scan results
+2. **Data-Driven Logic**: Decisions made on scan output, not task success/failure
+3. **Complex Conditions**: `@0_stdout@~80/tcp&@0_stdout@!~443/tcp` (HTTP only)
+4. **Impossible with Sequential**: Can't achieve this branching with `on_success`/`on_failure`
+5. **Real-World Value**: Practical example users will encounter
+
+**Try with on_success/on_failure (doesn't work)**:
+```
+# IMPOSSIBLE - sequential model can't handle 3-way branching based on data
+task=0
+hostname=localhost
+command=nmap
+arguments=-p 80,443 --open @TARGET_HOST@
+on_success=???    # Success doesn't tell us WHICH ports are open!
+on_failure=92     # Only handles scan failure, not port states
 ```
 
 ---

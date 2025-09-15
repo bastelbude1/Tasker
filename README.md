@@ -54,7 +54,7 @@ hostname=localhost
 command=./toggle_exit.sh
 exec=local
 next=exit_0|stderr~
-goto=6
+on_failure=6
 
 # if task 4 was next TRUE, then echo hello world
 task=4
@@ -292,7 +292,6 @@ Optional parameters include:
 - `timeout`: command timeout in seconds
 - `sleep`: pause after task completion
 - `loop`: number of additional iterations
-- `goto`: jump to specific task on failure
 - `on_success`: task ID to execute on success
 - `on_failure`: task ID to execute on failure
 - `return`: exit workflow with specific return code
@@ -467,27 +466,29 @@ Supported delimiters:
 - `pipe`: Split by pipes
 - `newline`: Split by newlines
 
-#### Error Handling with Goto
+#### Error Handling with Success/Failure Routing
 
-Jump to a specific task on failure:
+Jump to specific tasks based on success or failure:
 
 ```
 task=0
 hostname=serverA
 command=risky_command
 next=exit_0
-goto=2
+on_success=1
+on_failure=2
 
 task=1
 hostname=serverA
 command=success_command
+next=never
 
 task=2
 hostname=serverA
 command=error_handler
 ```
 
-Note: If `next=never` is specified, it takes precedence over any `goto` instruction.
+Note: If `next=never` is specified, it takes precedence over any `on_success`/`on_failure` instructions.
 
 #### Return Codes
 
@@ -498,13 +499,13 @@ task=0
 hostname=serverA
 command=check_condition
 next=exit_0
-goto=1
+on_failure=1
 
-# Success path
+# Success path - execution continues normally and exits with return code 0
 return=0
 
 task=1
-# Error path
+# Error path - jumped to on failure
 return=1
 ```
 
@@ -706,7 +707,7 @@ task=0
 hostname=server1
 command=check_status
 next=exit_0&stdout~running
-goto=2
+on_failure=2
 
 task=1
 hostname=server1
@@ -751,7 +752,7 @@ hostname=deploy-controller
 command=validate_deployment_readiness
 exec=local
 next=exit_0
-goto=99
+on_failure=99
 
 # Parallel service deployment
 task=5
@@ -761,7 +762,7 @@ retry_failed=true
 retry_count=2
 tasks=6,7,8
 next=all_success
-goto=90
+on_failure=90
 
 task=6
 hostname=web1.prod.com

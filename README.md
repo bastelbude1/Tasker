@@ -1,5 +1,3 @@
-[[_TOC_]]
-
 # TASK ExecutoR - TASKER 2.0
 
 A sophisticated Python-based task execution system for running commands on remote or local servers with comprehensive flow control, parallel execution capabilities, and enterprise-grade validation.
@@ -94,33 +92,61 @@ return 1
 
 ### TASKER 2.0 Execution Models
 
+#### Sequential Execution Model
+
+Task-by-task execution with flow control and conditions:
+
 ```mermaid
-graph TB
-    subgraph "SEQUENTIAL EXECUTION"
-        S1[Task 0] --> S2[Task 1]
-        S2 --> S3[Task 2]
-        S3 --> S4[Continue...]
-    end
+graph TD
+    Start([Start Workflow]) --> T0[Task 0: Check Prerequisites]
+    T0 --> T1[Task 1: Initialize Environment]
+    T1 --> T2[Task 2: Deploy Application]
+    T2 --> T3[Task 3: Verify Deployment]
+    T3 --> End([Workflow Complete])
+```
 
-    subgraph "PARALLEL EXECUTION"
-        PM[Master Task] --> P1[Task 1]
-        PM --> P2[Task 2]
-        PM --> P3[Task 3]
-        PM --> P4[Task 4]
-        P1 --> PA[Aggregation]
-        P2 --> PA
-        P3 --> PA
-        P4 --> PA
-    end
+#### Parallel Execution Model
 
-    subgraph "CONDITIONAL EXECUTION"
-        CC[Condition Check] --> CT[TRUE Branch]
-        CC --> CF[FALSE Branch]
-        CT --> CT1[Task 1]
-        CT --> CT2[Task 2]
-        CF --> CF1[Task 3]
-        CF --> CF2[Task 4]
-    end
+Multi-threaded execution with aggregation and retry logic:
+
+```mermaid
+graph TD
+    Master[Master Task: Deploy to Fleet] --> P1[Deploy to Server 1]
+    Master --> P2[Deploy to Server 2]
+    Master --> P3[Deploy to Server 3]
+    Master --> P4[Deploy to Server 4]
+    P1 --> Aggregate[Aggregate Results<br/>• Success Count<br/>• Failed Tasks<br/>• Retry Logic]
+    P2 --> Aggregate
+    P3 --> Aggregate
+    P4 --> Aggregate
+    Aggregate --> Success{All Successful?}
+    Success -->|Yes| Complete([Deployment Complete])
+    Success -->|No| Retry[Retry Failed Tasks]
+    Retry --> Aggregate
+```
+
+#### Conditional Execution Model
+
+Dynamic workflow branching based on runtime conditions:
+
+```mermaid
+graph TD
+    Start([Start Workflow]) --> Check[Condition Check<br/>Environment Ready?]
+    Check -->|TRUE| ProdBranch[Production Branch]
+    Check -->|FALSE| TestBranch[Test Branch]
+
+    ProdBranch --> P1[Deploy to Production]
+    ProdBranch --> P2[Update Load Balancer]
+    P1 --> ProdEnd[Production Complete]
+    P2 --> ProdEnd
+
+    TestBranch --> T1[Deploy to Test Environment]
+    TestBranch --> T2[Run Integration Tests]
+    T1 --> TestEnd[Test Complete]
+    T2 --> TestEnd
+
+    ProdEnd --> Final([Workflow Complete])
+    TestEnd --> Final
 ```
 
 #### Comprehensive Flow Control Logic
@@ -154,85 +180,166 @@ flowchart TD
     NEXTTASK[Next Task / End<br/>• Sequential: Next task ID<br/>• Parallel: Aggregate results<br/>• Conditional: Branch selection<br/>• End: Return with exit code]
 ```
 
-#### Execution Engine Interaction
-
-```mermaid
-graph TB
-    subgraph "INPUT LAYER"
-        INPUT[Task Input<br/>• task.txt<br/>• Global vars<br/>• CLI params]
-    end
-
-    subgraph "VALIDATION LAYER"
-        VALID[Validation<br/>• Syntax<br/>• Dependencies<br/>• Host check<br/>• Exec types]
-    end
-
-    subgraph "EXECUTION LAYER"
-        EXEC_SEL[Execution<br/>• Engine Selection<br/>• Context Setup]
-    end
-
-    subgraph "EXECUTION ENGINES"
-        SEQ[Sequential Engine<br/>• Task-by-task<br/>• Flow control<br/>• Loop support<br/>• Conditions]
-        PAR[Parallel Engine<br/>• Multi-threading<br/>• Retry logic<br/>• Aggregation<br/>• Timeout mgmt<br/>• Statistics]
-        COND[Conditional Engine<br/>• Branch logic<br/>• Dynamic flow<br/>• Condition evaluation<br/>• Task routing]
-    end
-
-    subgraph "OUTPUT LAYER"
-        RESULTS[Results<br/>• Task results<br/>• Exit codes<br/>• Output data<br/>• Statistics]
-        LOGGING[Logging<br/>• Structured<br/>• Debug levels<br/>• Performance<br/>• Validation]
-        OUTPUT[Output<br/>• Exit codes<br/>• Log files<br/>• Project summaries]
-    end
-
-    INPUT --> VALID
-    VALID --> EXEC_SEL
-    EXEC_SEL --> SEQ
-    EXEC_SEL --> PAR
-    EXEC_SEL --> COND
-    SEQ --> RESULTS
-    PAR --> RESULTS
-    COND --> RESULTS
-    RESULTS --> LOGGING
-    LOGGING --> OUTPUT
-```
-
 ## Modular Architecture
 
-TASKER 2.0 is built on a professional modular architecture that separates concerns and enables maintainable, scalable code:
+TASKER 2.0 follows a clean modular architecture where each file has a specific purpose and responsibility:
 
-```mermaid
-graph TD
-    MAIN[tasker.py<br/>Main Entry Point]
+### File Structure and Module Organization
 
-    subgraph "CORE FRAMEWORK"
-        EXEC[TaskExecutor<br/>• Lifecycle<br/>• Logging<br/>• Orchestration]
-        UTIL[Utilities<br/>• Exit Codes<br/>• Conversion<br/>• Formatting]
-        CTX[ExecutionContext<br/>• Callback Management<br/>• State Coordination<br/>• Debug Infrastructure]
-    end
-
-    subgraph "EXECUTION ENGINES"
-        SEQ_ENG[Sequential<br/>• Standard Flow<br/>• Loops & Logic<br/>• Error Handling]
-        PAR_ENG[Parallel<br/>• Multi-threading<br/>• Retry Systems<br/>• Aggregation]
-        COND_ENG[Conditional<br/>• Branch Logic<br/>• Dynamic Routing<br/>• Condition Evaluation]
-    end
-
-    subgraph "RUNTIME CORE COMPONENTS"
-        COND_VAL[Condition Evaluator<br/>• Variable Replacement<br/>• Expression Parsing<br/>• Boolean Logic]
-    end
-
-    subgraph "OPTIONAL VALIDATION SYSTEMS"
-        TASK_VAL[Task Validator<br/>• Syntax Check<br/>• Dependencies<br/>• Structure]
-        HOST_VAL[Host Validator<br/>• DNS Resolution<br/>• Connectivity<br/>• Exec Types]
-    end
-
-    MAIN --> EXEC
-    EXEC --> UTIL
-    EXEC --> CTX
-    EXEC --> COND_VAL
-    EXEC --> SEQ_ENG
-    EXEC --> PAR_ENG
-    EXEC --> COND_ENG
-    EXEC -.->|Optional| TASK_VAL
-    EXEC -.->|Optional| HOST_VAL
 ```
+TASKER 2.0 Project Structure
+./
+├── tasker.py                    # Main executable script (CLI entry point)
+├── task_validator.py            # Standalone validation utility
+├── tasker_orig.py              # Original monolithic version (reference)
+│
+├── tasker/                     # Core modular package
+│   ├── __init__.py             # Package initialization
+│   │
+│   ├── core/                   # Fundamental framework components
+│   │   ├── __init__.py         # Core package exports
+│   │   ├── utilities.py        # Shared utility functions & exit codes
+│   │   ├── execution_context.py # Unified callback and state management
+│   │   ├── condition_evaluator.py # Variable replacement & condition logic
+│   │   └── task_executor_main.py # Main TaskExecutor class
+│   │
+│   ├── executors/              # Task execution engines
+│   │   ├── __init__.py         # Executor package exports
+│   │   ├── base_executor.py    # Abstract base class for all executors
+│   │   ├── sequential_executor.py # Standard task-by-task execution
+│   │   ├── parallel_executor.py   # Multi-threaded parallel execution
+│   │   └── conditional_executor.py # Conditional branching logic
+│   │
+│   └── validation/             # Optional validation systems
+│       ├── __init__.py         # Validation package exports
+│       ├── task_validator.py   # Task file syntax & dependency validation
+│       └── host_validator.py   # Host connectivity & DNS validation
+│
+├── test_cases/                 # Comprehensive test suite
+│   ├── extended_verification_test.sh # Main verification framework
+│   ├── host_validation_test_runner.sh # Host validation testing
+│   └── *.txt                   # Test scenario files
+│
+└── test_scripts/               # Mock execution environments
+    ├── pbrun                   # Mock pbrun command for testing
+    ├── p7s                     # Mock p7s command for testing
+    └── wwrs_clir              # Mock wwrs_clir command for testing
+```
+
+#### Purpose and Design Rationale
+
+##### Main Scripts
+- **`tasker.py`** - **Main Entry Point**
+  - CLI interface and argument parsing
+  - Minimal logic - delegates to TaskExecutor
+  - Maintains backward compatibility
+  - **Why separate**: Clean separation between CLI and business logic
+
+- **`task_validator.py`** - **Standalone Validator**
+  - Independent validation utility
+  - Can be used separately from main workflow execution
+  - Comprehensive syntax and dependency checking
+  - **Why standalone**: Allows validation without execution overhead
+
+##### Core Framework (`tasker/core/`)
+
+- **`utilities.py`** - **Shared Infrastructure**
+  - Exit code constants and handling
+  - Data conversion and formatting functions
+  - Log directory management
+  - **Why separate**: Avoids code duplication across modules
+
+- **`execution_context.py`** - **State Coordination**
+  - Unified callback system for logging and debugging
+  - Shared state management across execution engines
+  - Clean interface for module communication
+  - **Why needed**: Prevents tight coupling between modules
+
+- **`condition_evaluator.py`** - **Runtime Logic Engine**
+  - Variable replacement (`@VARIABLE@` syntax)
+  - Boolean expression evaluation
+  - Output splitting and data processing
+  - **Why core**: Essential for all execution types, cannot be disabled
+
+- **`task_executor_main.py`** - **Main Orchestrator**
+  - Workflow lifecycle management
+  - Logging infrastructure and result storage
+  - Engine selection and coordination
+  - **Why central**: Single point of control for entire workflow
+
+##### Execution Engines (`tasker/executors/`)
+
+- **`base_executor.py`** - **Common Interface**
+  - Abstract base class defining execution contract
+  - Shared functionality (logging, output formatting)
+  - Consistent behavior across all execution types
+  - **Why abstract**: Ensures all executors follow same pattern
+
+- **`sequential_executor.py`** - **Standard Execution**
+  - Task-by-task execution with flow control
+  - Loop handling and condition evaluation
+  - Default execution model for most workflows
+  - **Why separate**: Clean, focused implementation of sequential logic
+
+- **`parallel_executor.py`** - **Concurrent Execution**
+  - Multi-threaded task execution
+  - Advanced retry logic and timeout management
+  - Result aggregation and success thresholds
+  - **Why complex**: Parallel execution requires sophisticated coordination
+
+- **`conditional_executor.py`** - **Dynamic Routing**
+  - Runtime branch selection based on conditions
+  - Dynamic workflow path determination
+  - Integration with condition evaluator
+  - **Why separate**: Conditional logic is fundamentally different from sequential
+
+##### Optional Validation (`tasker/validation/`)
+
+- **`task_validator.py`** - **Pre-execution Safety**
+  - Task file syntax validation
+  - Dependency chain verification
+  - Flow control logic validation
+  - **Why optional**: Safety check that can be bypassed for performance
+
+- **`host_validator.py`** - **Connectivity Verification**
+  - DNS resolution and ping connectivity
+  - Execution type compatibility testing
+  - Production environment safety checks
+  - **Why optional**: Not always needed (local execution, trusted environments)
+
+##### Testing Infrastructure
+
+- **`test_cases/`** - **Verification Framework**
+  - Comprehensive test scenarios covering all functionality
+  - Automated verification against reference implementation
+  - **Why comprehensive**: Ensures refactoring doesn't break functionality
+
+- **`test_scripts/`** - **Mock Environment**
+  - Simulated execution commands for testing
+  - Controlled success/failure scenarios
+  - **Why needed**: Enables testing without real infrastructure
+
+#### Design Benefits
+
+1. **Single Responsibility**: Each module has one clear purpose
+2. **Loose Coupling**: Modules interact through well-defined interfaces
+3. **High Cohesion**: Related functionality is grouped together
+4. **Testability**: Each module can be tested independently
+5. **Maintainability**: Changes are localized to specific modules
+6. **Extensibility**: New execution engines can be added easily
+7. **Optional Components**: Validation can be bypassed when not needed
+
+#### Migration from Monolithic Design
+
+The original `tasker_orig.py` was a single 3000+ line file with all functionality mixed together. The modular design provides:
+
+- **Easier debugging**: Issues are localized to specific modules
+- **Independent development**: Teams can work on different modules
+- **Selective loading**: Only required modules are imported
+- **Clear boundaries**: Well-defined interfaces prevent tight coupling
+- **Future extensibility**: New features can be added without touching core logic
+
+This structure enables TASKER to scale from simple sequential workflows to complex enterprise deployments while maintaining code clarity and reliability.
 
 ## Usage
 
@@ -533,7 +640,497 @@ Note: `loop=2` means the task will be executed 3 times total (original + 2 addit
 
 ### Special Features
 
-#### Variable Substitution
+#### Global Variables
+
+Global variables provide a powerful mechanism for configuration management, environment abstraction, and dynamic workflow customization in TASKER.
+
+##### What are Global Variables?
+
+Global variables are user-defined placeholders that can be referenced throughout your task file using the `@VARIABLE_NAME@` syntax. They enable:
+
+- **Environment Abstraction**: Write once, deploy anywhere
+- **Configuration Management**: Centralized parameter control
+- **Dynamic Workflows**: Runtime customization based on external input
+- **Template Reusability**: Same task file for multiple environments
+
+##### How to Define Global Variables
+
+Global variables are defined at the top of your task file using simple key-value pairs:
+
+```
+# Global variable definitions (at top of task file)
+ENVIRONMENT=production
+SERVICE_NAME=web-api
+DEPLOY_VERSION=v2.1.0
+DATABASE_HOST=prod-db.company.com
+BACKUP_RETENTION=30
+NOTIFICATION_EMAIL=ops-team@company.com
+
+# Tasks using global variables
+task=0
+hostname=@ENVIRONMENT@-deploy.company.com
+command=deploy_service
+arguments=@SERVICE_NAME@ @DEPLOY_VERSION@
+```
+
+##### When to Use Global Variables
+
+**1. Environment Management**
+```
+# Same task file works for dev, staging, production
+ENVIRONMENT=production
+DB_HOST=@ENVIRONMENT@-database.company.com
+API_ENDPOINT=https://@ENVIRONMENT@-api.company.com
+
+task=0
+hostname=@ENVIRONMENT@-server1
+command=configure_database
+arguments=--host=@DB_HOST@
+```
+
+**2. Version Control and Deployments**
+```
+# Easy version management
+APP_VERSION=v3.2.1
+DOCKER_TAG=@APP_VERSION@
+RELEASE_BRANCH=release/@APP_VERSION@
+
+task=0
+hostname=build-server
+command=docker
+arguments=build -t myapp:@DOCKER_TAG@ .
+```
+
+**3. Scaling Configurations**
+```
+# Dynamic scaling parameters
+MAX_INSTANCES=10
+INSTANCE_TYPE=m5.large
+REGION=us-west-2
+
+task=0
+hostname=orchestrator
+command=scale_cluster
+arguments=--instances=@MAX_INSTANCES@ --type=@INSTANCE_TYPE@ --region=@REGION@
+```
+
+**4. Security and Credentials Management**
+```
+# Centralized credential references (use with external secret management)
+SECRET_STORE=vault://production
+API_KEY_PATH=@SECRET_STORE@/api-keys/external-service
+DATABASE_CREDS=@SECRET_STORE@/database/primary
+
+task=0
+hostname=app-server
+command=configure_secrets
+arguments=--api-key-path=@API_KEY_PATH@
+```
+
+##### Advanced Global Variable Patterns
+
+**1. Hierarchical Configuration**
+```
+# Base configuration
+ENVIRONMENT=production
+REGION=us-west-2
+
+# Derived variables
+CLUSTER_NAME=@ENVIRONMENT@-@REGION@-cluster
+S3_BUCKET=@ENVIRONMENT@-backups-@REGION@
+LOG_GROUP=/aws/lambda/@ENVIRONMENT@/@REGION@
+
+task=0
+hostname=@CLUSTER_NAME@-master
+command=backup_to_s3
+arguments=--bucket=@S3_BUCKET@ --log-group=@LOG_GROUP@
+```
+
+**2. Multi-Environment Templates**
+```
+# Production values
+ENVIRONMENT=production
+DB_INSTANCE_CLASS=db.r5.xlarge
+BACKUP_WINDOW=02:00-03:00
+MAINTENANCE_WINDOW=sun:03:00-sun:04:00
+
+# Same task file with different variable files for dev/staging
+task=0
+hostname=@ENVIRONMENT@-db-admin
+command=configure_rds
+arguments=--class=@DB_INSTANCE_CLASS@ --backup-window=@BACKUP_WINDOW@
+```
+
+**3. Feature Flags and Conditional Deployment**
+```
+# Feature control
+ENABLE_NEW_FEATURE=true
+ROLLOUT_PERCENTAGE=25
+MONITORING_LEVEL=debug
+
+task=0
+hostname=feature-gate
+condition=@ENABLE_NEW_FEATURE@=true
+command=enable_feature
+arguments=--rollout=@ROLLOUT_PERCENTAGE@% --monitoring=@MONITORING_LEVEL@
+```
+
+##### Best Practices for Global Variables
+
+**1. Naming Conventions**
+```
+# Use UPPERCASE for global variables
+ENVIRONMENT=production          # ✅ Good
+environment=production          # ❌ Avoid lowercase
+
+# Use descriptive names
+DB_HOST=prod-db.company.com     # ✅ Clear
+HOST=prod-db.company.com        # ❌ Too generic
+
+# Group related variables
+DATABASE_HOST=prod-db.company.com
+DATABASE_PORT=5432
+DATABASE_NAME=production_app
+```
+
+**2. Documentation and Comments**
+```
+# Environment Configuration
+ENVIRONMENT=production          # Target environment: dev, staging, production
+REGION=us-west-2               # AWS region for deployment
+
+# Application Configuration
+APP_VERSION=v2.1.0             # Application version to deploy
+REPLICAS=3                     # Number of application replicas
+
+# Infrastructure Configuration
+INSTANCE_TYPE=m5.large         # EC2 instance type for workers
+DISK_SIZE=100                  # Root disk size in GB
+```
+
+**3. Validation and Error Handling**
+```
+# Use condition checks to validate required variables
+task=0
+hostname=validation-server
+condition=@ENVIRONMENT@!=
+command=echo
+arguments="Environment validation: @ENVIRONMENT@"
+on_failure=999
+
+# Error handling for missing variables
+task=999
+hostname=localhost
+command=echo
+arguments="ERROR: Required global variables not set"
+exec=local
+return=1
+```
+
+**4. External Variable Loading**
+```
+# Load variables from external files or systems
+task=0
+hostname=config-server
+command=load_config
+arguments=--environment=@ENVIRONMENT@ --output=/tmp/runtime_vars
+exec=local
+
+# Use loaded variables in subsequent tasks
+task=1
+hostname=@LOADED_HOSTNAME@
+command=deploy
+arguments=--config=/tmp/runtime_vars
+```
+
+##### Global Variables vs Task Output Variables
+
+| Global Variables | Task Output Variables |
+|-----------------|----------------------|
+| `@VARIABLE_NAME@` | `@TASK_ID_stdout@` |
+| Defined at task file start | Generated during execution |
+| Static throughout workflow | Dynamic based on task results |
+| Configuration & environment | Runtime data flow |
+| User-defined values | System-captured output |
+
+#### Task Result Storage and Referencing
+
+TASKER automatically captures and stores execution data from every task, making it available for use in subsequent tasks through variable substitution.
+
+##### What Data is Stored for Each Task
+
+For every executed task, TASKER captures and stores:
+
+| Data Type | Variable Format | Description | Storage Limit |
+|-----------|----------------|-------------|---------------|
+| **Standard Output** | `@TASK_ID_stdout@` | Complete stdout from command execution | 4,096 characters |
+| **Standard Error** | `@TASK_ID_stderr@` | Complete stderr from command execution | 4,096 characters |
+| **Exit Code** | `@TASK_ID_exit_code@` | Command exit code (0-255) | No limit |
+| **Hostname** | `@TASK_ID_hostname@` | Actual hostname used for execution | 256 characters |
+| **Success Status** | `@TASK_ID_success@` | Boolean success status (true/false) | No limit |
+| **Start Time** | `@TASK_ID_start_time@` | Task execution start timestamp | No limit |
+| **End Time** | `@TASK_ID_end_time@` | Task execution completion timestamp | No limit |
+| **Duration** | `@TASK_ID_duration@` | Execution time in seconds | No limit |
+
+##### Storage Limitations and Truncation
+
+**Output Truncation (4,096 character limit):**
+```
+# If command output exceeds 4,096 characters, it will be truncated
+task=0
+hostname=server1
+command=generate_large_report
+exec=local
+
+# Only first 4,096 characters of stdout/stderr are stored
+task=1
+hostname=server2
+command=echo
+arguments="Report summary: @0_stdout@"  # May be truncated
+```
+
+**Best Practices for Large Output:**
+```
+# Use output splitting to extract specific data
+task=0
+hostname=server1
+command=database_status
+stdout_split=newline,0    # Keep only first line
+exec=local
+
+# Or use grep/awk to filter output
+task=1
+hostname=server1
+command=ps aux | grep nginx | head -1
+exec=local
+```
+
+##### How to Reference Task Data
+
+**Basic Task Output Referencing:**
+```
+task=0
+hostname=web-server
+command=get_app_version
+exec=local
+
+task=1
+hostname=db-server
+command=echo
+arguments="Deploying app version: @0_stdout@"
+condition=@0_exit_code@=0    # Only run if previous task succeeded
+
+task=2
+hostname=monitor-server
+command=log_deployment
+arguments="Host: @0_hostname@, Version: @0_stdout@, Status: @0_success@"
+```
+
+**Using Exit Codes for Flow Control:**
+```
+task=0
+hostname=health-check
+command=curl -f http://api/health
+exec=local
+
+task=1
+hostname=notification
+condition=@0_exit_code@=0
+command=send_alert
+arguments="API is healthy"
+
+task=2
+hostname=notification
+condition=@0_exit_code@!=0
+command=send_alert
+arguments="API health check failed with exit code @0_exit_code@"
+```
+
+**Error Handling with stderr:**
+```
+task=0
+hostname=backup-server
+command=backup_database
+exec=local
+
+task=1
+hostname=notification
+condition=@0_stderr@!~
+command=send_error_alert
+arguments="Backup failed: @0_stderr@"
+on_failure=99
+
+task=99
+hostname=cleanup
+command=cleanup_failed_backup
+arguments="Error details: @0_stderr@"
+```
+
+##### Advanced Task Data Usage Patterns
+
+**1. Data Pipeline with Processing:**
+```
+# Extract data
+task=0
+hostname=data-source
+command=extract_user_count
+exec=local
+
+# Process data
+task=1
+hostname=processor
+command=calculate_metrics
+arguments="--user-count=@0_stdout@"
+condition=@0_exit_code@=0
+
+# Store results
+task=2
+hostname=database
+command=store_metrics
+arguments="--processed-data=@1_stdout@ --raw-count=@0_stdout@"
+condition=@1_exit_code@=0&@1_stdout@!~
+```
+
+**2. Multi-Task Aggregation:**
+```
+# Run multiple checks
+task=0
+hostname=web1
+command=service_status
+exec=local
+
+task=1
+hostname=web2
+command=service_status
+exec=local
+
+task=2
+hostname=web3
+command=service_status
+exec=local
+
+# Aggregate results
+task=10
+hostname=monitor
+command=aggregate_status
+arguments="web1:@0_exit_code@ web2:@1_exit_code@ web3:@2_exit_code@"
+```
+
+**3. Conditional Execution Based on Task Results:**
+```
+task=0
+hostname=env-check
+command=check_environment
+exec=local
+
+# Production path
+task=10
+hostname=prod-server
+condition=@0_stdout@~production
+command=deploy_to_production
+arguments="Environment confirmed: @0_stdout@"
+
+# Development path
+task=20
+hostname=dev-server
+condition=@0_stdout@~development
+command=deploy_to_development
+arguments="Environment confirmed: @0_stdout@"
+
+# Error path
+task=99
+hostname=notification
+condition=@0_exit_code@!=0
+command=send_alert
+arguments="Environment check failed: @0_stderr@"
+```
+
+**4. Time-based Processing:**
+```
+task=0
+hostname=batch-processor
+command=process_batch_job
+exec=local
+
+# Log execution metrics
+task=1
+hostname=metrics-server
+command=log_performance
+arguments="Duration: @0_duration@s, Start: @0_start_time@, End: @0_end_time@"
+
+# Alert on long-running tasks
+task=2
+hostname=alert-server
+condition=@0_duration@>300    # Alert if task took more than 5 minutes
+command=send_performance_alert
+arguments="Long-running task detected: @0_duration@ seconds"
+```
+
+##### Memory Management and Cleanup
+
+**Task Data Lifecycle:**
+- Task data is stored in memory during workflow execution
+- Data persists for the entire workflow duration
+- Memory is automatically cleaned up when workflow completes
+- Data is not shared between separate TASKER executions
+
+**Memory Considerations:**
+```
+# For workflows with many tasks, be mindful of memory usage
+# Each task stores up to ~8KB of output data (4KB stdout + 4KB stderr)
+# Plus metadata (timestamps, hostname, etc.)
+
+# Example: 100 tasks = ~800KB + metadata in memory
+# This is generally not a concern for typical workflows
+```
+
+##### Best Practices for Task Data Usage
+
+**1. Validate Data Before Use:**
+```
+task=0
+hostname=data-source
+command=get_config_value
+exec=local
+
+task=1
+hostname=processor
+condition=@0_stdout@!~&@0_exit_code@=0    # Ensure data exists and task succeeded
+command=use_config
+arguments="--value=@0_stdout@"
+```
+
+**2. Handle Truncated Output:**
+```
+# For commands that might produce large output
+task=0
+hostname=log-server
+command=tail -100 /var/log/app.log    # Limit output size
+exec=local
+
+# Or use splitting to extract key information
+task=1
+hostname=analysis-server
+command=analyze_logs
+stdout_split=newline,0    # Use only first line
+exec=local
+```
+
+**3. Error Context Preservation:**
+```
+task=0
+hostname=critical-server
+command=critical_operation
+exec=local
+
+task=1
+hostname=logger
+command=log_result
+arguments="Operation: critical_operation, Host: @0_hostname@, Exit: @0_exit_code@, Duration: @0_duration@s"
+# Always log regardless of success/failure
+```
+
+##### Variable Substitution
 
 Use output from previous tasks with dynamic variable replacement:
 
@@ -556,10 +1153,14 @@ arguments=@SERVICE_NAME@ version @DEPLOY_VERSION@
 ```
 
 **Variable Types:**
-- `@TASK_ID_stdout@`: Standard output from specific task
-- `@TASK_ID_stderr@`: Standard error from specific task
-- `@TASK_ID_exit_code@`: Exit code from specific task
-- `@TASK_ID_hostname@`: Hostname used by specific task
+- `@TASK_ID_stdout@`: Standard output from specific task (max 4,096 chars)
+- `@TASK_ID_stderr@`: Standard error from specific task (max 4,096 chars)
+- `@TASK_ID_exit_code@`: Exit code from specific task (0-255)
+- `@TASK_ID_hostname@`: Hostname used by specific task (max 256 chars)
+- `@TASK_ID_success@`: Boolean success status (true/false)
+- `@TASK_ID_start_time@`: Task execution start timestamp
+- `@TASK_ID_end_time@`: Task execution completion timestamp
+- `@TASK_ID_duration@`: Execution time in seconds
 - `@VARIABLE_NAME@`: Global variables defined in task file
 
 #### Output Splitting

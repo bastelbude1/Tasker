@@ -1417,27 +1417,24 @@ exec=local
 
 ```mermaid
 graph TD
-    Start([🌐 Smart File Download<br/>Simplified Protocol Selection]) --> T0[Task 0: Port Scan<br/>Check ports 80,443]
-    T0 --> T1[Task 1: Conditional<br/>Any port open?]
+    Start([🌐 Smart File Download<br/>Sequential Port Testing]) --> T0[Task 0: Check Port 443<br/>nmap -p 443]
+    T0 --> T1[Task 1: Try HTTPS Download<br/>condition: @0_stdout@~OPEN]
 
-    T1 -->|✅ At least one port OPEN<br/>80/tcp OR 443/tcp| T2[Task 2: Conditional<br/>Which protocol?]
-    T1 -->|❌ No ports OPEN<br/>Both closed| Failed[Task 99: Error<br/>❌ Download impossible]
+    T1 -->|✅ Port 443 OPEN<br/>HTTPS Download Success| Success[Task 100: Success<br/>✅ Download complete]
+    T1 -->|❌ Port 443 CLOSED or Failed<br/>on_failure=2| T2[Task 2: Check Port 80<br/>nmap -p 80]
 
-    T2 -->|✅ Port 443 OPEN<br/>Use HTTPS (preferred)| T10[Task 10: Download HTTPS<br/>🔒 curl https://...]
-    T2 -->|❌ Port 443 CLOSED<br/>Use HTTP (port 80 open)| T20[Task 20: Download HTTP<br/>⚠️ curl http://...]
+    T2 --> T3[Task 3: Try HTTP Download<br/>condition: @2_stdout@~OPEN]
+    T3 -->|✅ Port 80 OPEN<br/>HTTP Download Success| Success
+    T3 -->|❌ Port 80 CLOSED or Failed<br/>on_failure=99| Failed[Task 99: Error<br/>❌ No ports available]
 
-    T10 --> Success[Task 100: Success<br/>✅ Download complete]
-    T20 --> Success
-
-    Failed --> Stop([🛑 Workflow Failed<br/>Return code 1])
     Success --> Complete([✅ Workflow Complete<br/>File downloaded])
+    Failed --> Stop([🛑 Workflow Failed<br/>Return code 1])
 
     style Start fill:#e1f5fe
     style T0 fill:#f3e5f5
-    style T1 fill:#fff3e0
-    style T2 fill:#fff3e0
-    style T10 fill:#e8f5e8
-    style T20 fill:#fff8e1
+    style T1 fill:#e8f5e8
+    style T2 fill:#f3e5f5
+    style T3 fill:#fff8e1
     style Success fill:#e8f5e8
     style Failed fill:#ffebee
     style Complete fill:#e8f5e8
@@ -1452,30 +1449,45 @@ TARGET_HOST=download.example.com
 FILENAME=installer.zip
 DOWNLOAD_PATH=/tmp/downloads
 
-# Task 0: Check both ports to see if ANY are available
+# Task 0: Check HTTPS port 443 first (preferred)
 task=0
 hostname=localhost
 command=nmap
-arguments=-p 80,443 --open @TARGET_HOST@
-timeout=30
+arguments=-p 443 --open @TARGET_HOST@
+timeout=15
 exec=local
 
-# Task 1: Conditional - At least one port is open?
+# Task 1: Check if HTTPS is available
 task=1
-type=conditional
-condition=@0_stdout@~80/tcp|@0_stdout@~443/tcp
-if_true_tasks=2
-if_false_tasks=99
-next=success
-
-# Task 2: Conditional - Which protocol to use? (443 preferred)
-task=2
-type=conditional
-condition=@0_stdout@~443/tcp
-if_true_tasks=10
-if_false_tasks=20
-next=success
+condition=@0_stdout@~OPEN
+hostname=localhost
+command=curl
+arguments=--ssl-reqd -o @DOWNLOAD_PATH@/@FILENAME@ https://@TARGET_HOST@/@FILENAME@
+timeout=300
+success=exit_0
+exec=local
 on_success=100
+on_failure=2
+
+# Task 2: Check HTTP port 80 (fallback)
+task=2
+hostname=localhost
+command=nmap
+arguments=-p 80 --open @TARGET_HOST@
+timeout=15
+exec=local
+
+# Task 3: Check if HTTP is available
+task=3
+condition=@2_stdout@~OPEN
+hostname=localhost
+command=curl
+arguments=-o @DOWNLOAD_PATH@/@FILENAME@ http://@TARGET_HOST@/@FILENAME@
+timeout=300
+success=exit_0
+exec=local
+on_success=100
+on_failure=99
 
 # === SUCCESS NOTIFICATION (Same for all protocols) ===
 task=100

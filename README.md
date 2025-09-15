@@ -214,32 +214,24 @@ graph TD
         COND_ENG[Conditional<br/>• Branch Logic<br/>• Dynamic Routing<br/>• Condition Evaluation]
     end
 
-    subgraph "VALIDATION SYSTEMS"
+    subgraph "RUNTIME CORE COMPONENTS"
+        COND_VAL[Condition Evaluator<br/>• Variable Replacement<br/>• Expression Parsing<br/>• Boolean Logic]
+    end
+
+    subgraph "OPTIONAL VALIDATION SYSTEMS"
         TASK_VAL[Task Validator<br/>• Syntax Check<br/>• Dependencies<br/>• Structure]
         HOST_VAL[Host Validator<br/>• DNS Resolution<br/>• Connectivity<br/>• Exec Types]
-        COND_VAL[Condition Evaluator<br/>• Variable Replacement<br/>• Expression Parsing<br/>• Boolean Logic]
     end
 
     MAIN --> EXEC
     EXEC --> UTIL
     EXEC --> CTX
+    EXEC --> COND_VAL
     EXEC --> SEQ_ENG
     EXEC --> PAR_ENG
     EXEC --> COND_ENG
-    EXEC --> TASK_VAL
-    EXEC --> HOST_VAL
-    EXEC --> COND_VAL
-```
-
-## Installation
-
-Command is available on ALL WMPC **jumphosts** as **tasker**, which is a symbolic link to task_executor.py
-
-No special installation is required beyond Python 3.6.8 or higher. Simply download the `tasker.py` and `task_validator.py` scripts and make them executable.
-
-```bash
-chmod +x tasker.py task_validator.py
-ln -s /<path>/bin/tasker.py /usr/bin/tasker
+    EXEC -.->|Optional| TASK_VAL
+    EXEC -.->|Optional| HOST_VAL
 ```
 
 ## Usage
@@ -314,24 +306,29 @@ Note: Task file instructions override command line arguments, and arguments over
 
 ### Validation Controls
 
-TASKER 2.0 provides comprehensive validation capabilities:
+TASKER 2.0 provides two types of validation systems:
 
+**Pre-execution Validation** (Optional safety checks):
 ```bash
-# Full validation without execution
+# Recommended: Full validation before production execution
 tasker --validate-only production_deployment.txt
 
-# Skip task validation for faster resume
+# Extended validation with connectivity testing
+tasker -c --validate-only production_tasks.txt
+
+# Skip validation for faster resume (use after validation)
 tasker --start-from=5 --skip-task-validation deployment.txt
 
-# Skip host validation (use with caution!)
+# Emergency options (use with caution)
 tasker --skip-host-validation emergency_fix.txt
-
-# Skip all validation (emergency use only)
 tasker --skip-validation critical_fix.txt
-
-# Enable host connectivity testing
-tasker -c --validate-only production_tasks.txt
 ```
+
+**Runtime Components** (Always active):
+- Condition Evaluator handles variable replacement and flow control automatically
+- Cannot be disabled - essential for workflow execution
+
+*See [Validation Systems](#validation-systems) section for detailed usage guidance*
 
 ## Default LOG Directory Structure
 
@@ -796,13 +793,19 @@ Available execution types:
 - `()`: Grouping
 - Example: `exit_0&(stdout~Success|stderr~)`
 
-## Comprehensive Validation
+## Validation Systems
 
-TASKER 2.0 provides enterprise-grade validation systems:
+TASKER 2.0 provides two distinct types of validation:
 
-### Task Validation
+### 1. Optional Pre-execution Validation (Safety Checks)
 
-By default, TASKER validates task files for:
+These are **optional safety checks** performed **before task execution** to catch configuration errors early:
+
+#### Task Validation (`task_validator.py`)
+**When to use**: Before executing critical workflows, especially in production
+**Purpose**: Validates task file syntax, structure, and logic
+
+Checks for:
 - Required fields and syntax errors
 - Referenced but undefined tasks
 - Invalid conditions and flow control logic
@@ -810,27 +813,46 @@ By default, TASKER validates task files for:
 - Dependency chains and circular references
 - Variable usage and availability
 
-### Host Validation
+#### Host Validation (`host_validator.py`)
+**When to use**: Before executing on remote hosts, especially production servers
+**Purpose**: Validates hostname resolution, connectivity, and execution type compatibility
 
-By default, TASKER validates that all hostnames:
-1. Can be resolved to an IP address (via DNS)
-2. Are reachable (via ping)
+Checks:
+1. **Basic validation** (always): DNS resolution and ping connectivity
+2. **Extended validation** (with `-c` flag): Execution type connectivity testing
+   - For `pbrun`: Tests `pbrun -n -h {hostname} pbtest`
+   - For `p7s`: Tests `p7s {hostname} pbtest`
+   - For `wwrs`: Tests `wwrs_clir {hostname} wwrs_test`
 
-With the `-c` option, it also checks connectivity for the specific execution type:
-- For `pbrun`: Tests `pbrun -n -h {hostname} pbtest`
-- For `p7s`: Tests `p7s {hostname} pbtest`
-- For `wwrs`: Tests `wwrs_clir {hostname} wwrs_test`
+**Important**: If any validation fails, TASKER will not execute any task
 
-**If there is any validation issue, TASKER will not execute any task**
+### 2. Runtime Core Components (Always Active)
 
-### Validation Examples
+These are **core workflow components** that operate **during task execution**:
+
+#### Condition Evaluator
+**Purpose**: Handles variable replacement and condition evaluation during workflow execution
+**Always active**: Cannot be disabled - essential for flow control
+
+Functions:
+- Variable replacement (`@TASK_ID_stdout@`, `@VARIABLE_NAME@`)
+- Condition evaluation (`next=`, `condition=`, `success=`)
+- Expression parsing and boolean logic
+- Output splitting and processing
+
+### How to Use Validation Systems
+
+#### Pre-execution Validation (Recommended for Production)
 
 ```bash
-# Quick syntax validation
-tasker deployment.txt
+# 1. VALIDATE ONLY - Check everything before execution
+tasker --validate-only production_deployment.txt
 
-# Full validation with connectivity testing
-tasker -c --validate-only production_tasks.txt
+# 2. FULL VALIDATION with connectivity testing (recommended for production)
+tasker -c --validate-only critical_workflow.txt
+
+# 3. Execute with validation (default behavior)
+tasker -r deployment.txt  # Validates first, then executes
 
 # Validation output example:
 # ✅ Task file syntax validation passed
@@ -841,6 +863,27 @@ tasker -c --validate-only production_tasks.txt
 # ✅ Execution type validation passed (pbrun: 12, local: 3)
 # 🎉 All validations passed - ready for execution
 ```
+
+#### Skip Validation (Use with Caution)
+
+```bash
+# Skip task validation for faster resume (after previous validation)
+tasker --start-from=5 --skip-task-validation deployment.txt
+
+# Skip host validation (emergency use only)
+tasker --skip-host-validation emergency_fix.txt
+
+# Skip ALL validation (emergency use only - not recommended)
+tasker --skip-validation critical_fix.txt
+```
+
+#### Runtime Components (Always Active)
+
+The **Condition Evaluator** operates automatically during execution:
+- No special flags needed - always active
+- Handles `@variable@` replacement in real-time
+- Evaluates `next=`, `condition=`, `success=` parameters
+- Cannot be disabled - essential for workflow logic
 
 ## Project Summary Logging
 

@@ -682,28 +682,6 @@ next=all_success
 on_success=2
 on_failure=99
 
-# Production deployment tasks
-task=10
-hostname=prod-deployer
-command=deploy_to_production
-exec=pbrun
-
-task=11
-hostname=prod-lb
-command=update_load_balancer
-exec=pbrun
-
-# Development deployment tasks
-task=20
-hostname=dev-deployer
-command=deploy_to_development
-exec=pbrun
-
-task=21
-hostname=dev-tester
-command=run_integration_tests
-exec=pbrun
-
 # Success notification
 task=2
 hostname=notification
@@ -715,7 +693,204 @@ task=99
 hostname=notification
 command=send_deployment_failure
 exec=local
+
+# === FIREWALL: Prevents sequential execution ===
+task=9
+return=0
+
+# Production deployment tasks (executed only by conditional)
+task=10
+hostname=prod-deployer
+command=deploy_to_production
+exec=pbrun
+
+task=11
+hostname=prod-lb
+command=update_load_balancer
+exec=pbrun
+
+# Development deployment tasks (executed only by conditional)
+task=20
+hostname=dev-deployer
+command=deploy_to_development
+exec=pbrun
+
+task=21
+hostname=dev-tester
+command=run_integration_tests
+exec=pbrun
 ```
+
+## Workflow Organization Best Practices
+
+Understanding TASKER's sequential execution model is crucial for creating reliable workflows. Tasks are executed in numerical order, so proper organization prevents unexpected behavior.
+
+### The Golden Rule: Success Path First
+
+**Always organize your workflow with the success path in sequential order, and place error handling at the end.**
+
+#### ✅ GOOD: Success Path Sequential
+```
+# Success path flows naturally 1→2→3→4
+task=0
+hostname=app-server
+command=backup_database
+on_success=1
+on_failure=99
+
+task=1
+hostname=app-server
+command=deploy_application
+on_success=2
+on_failure=99
+
+task=2
+hostname=app-server
+command=start_services
+on_success=3
+on_failure=99
+
+task=3
+hostname=notification
+command=send_success_notification
+next=never          # FIREWALL: Prevents sequential execution into error handlers
+
+# Error handlers at the end
+task=99
+hostname=notification
+command=send_failure_alert
+```
+
+#### ❌ BAD: Mixed Success and Error Tasks
+```
+# This creates confusion and potential execution bugs
+task=0
+hostname=app-server
+command=backup_database
+on_success=2      # Jumps over error handler
+on_failure=1
+
+task=1            # Error handler in middle of workflow
+hostname=notification
+command=send_failure_alert
+return=1
+
+task=2            # Success continues here
+hostname=app-server
+command=deploy_application
+# Problem: If task=1 doesn't return, task=2 runs after error!
+```
+
+### Firewall Pattern
+
+Use "firewall" techniques to prevent sequential execution from flowing into conditional branches or error handlers:
+
+#### Method 1: `next=never` (Recommended)
+```
+task=5
+hostname=final-server
+command=complete_workflow
+next=never          # FIREWALL: Stops sequential execution immediately
+
+# Tasks below are only executed via explicit routing (on_success/on_failure)
+task=99
+hostname=notification
+command=send_error_alert
+
+task=100
+hostname=conditional-server
+command=special_operation
+```
+
+#### Method 2: `return=N` (Exit Workflow)
+```
+task=5
+hostname=final-server
+command=complete_workflow
+
+# === FIREWALL: Stops sequential execution and exits workflow ===
+task=98
+return=0            # Exit with success code 0
+
+# Tasks below are only executed via explicit routing (on_success/on_failure)
+task=99
+hostname=notification
+command=send_error_alert
+```
+
+**When to Use Each Method:**
+- **`next=never`**: Stop sequential execution but allow explicit routing to continue
+- **`return=N`**: Stop entire workflow and exit with specific return code
+
+### Complex Workflow Organization
+
+For workflows with multiple branches (parallel, conditional), organize sections clearly:
+
+```
+# === MAIN WORKFLOW (Sequential) ===
+task=0
+task=1
+task=2
+
+# === SUCCESS COMPLETION ===
+task=10
+hostname=notification
+command=send_success_report
+
+# === FIREWALL ===
+task=89
+return=0
+
+# === ERROR HANDLERS ===
+task=90
+task=91
+task=99
+
+# === CONDITIONAL BRANCHES ===
+task=100
+task=101
+task=102
+
+# === PARALLEL WORKER TASKS ===
+task=200
+task=201
+task=202
+```
+
+### Why This Organization Matters
+
+**Sequential Execution Risk**: After any task completes (including conditional or parallel tasks), TASKER continues with the next sequential task ID unless explicitly told otherwise.
+
+**Example Problem**:
+```
+task=1
+type=conditional
+if_true_tasks=10,11
+if_false_tasks=20,21
+
+task=10
+hostname=prod-server
+command=deploy_to_production
+
+task=11
+hostname=prod-lb
+command=update_load_balancer
+
+task=20  # DANGER: This runs after production tasks complete!
+hostname=dev-server
+command=deploy_to_development
+```
+
+**Solution**: Use firewalls and proper task numbering to prevent unintended sequential execution.
+
+### Task Numbering Best Practices
+
+- **0-9**: Main workflow (success path)
+- **10-89**: Success completion and notification tasks
+- **90-99**: Error handlers and failure notifications
+- **100+**: Conditional branches, parallel workers, special operations
+
+This creates clear separation and prevents accidental cross-execution between different workflow sections.
 
 ## Advanced Flow Control
 
@@ -1012,27 +1187,34 @@ exec=local
 
 # Parallel deployment to web servers
 task=1
+type=parallel
 condition=@0_success@=true
+max_parallel=3
+tasks=10,11,12
+timeout=300
+retry_failed=true
+retry_count=2
+next=all_success
+on_success=2
+on_failure=90
+
+# Parallel deployment worker tasks
+task=10
 hostname=@ENVIRONMENT@-web1
 command=deploy_application
 arguments=--version=@APP_VERSION@
-on_failure=90
 exec=pbrun
 
-task=1
-condition=@0_success@=true
+task=11
 hostname=@ENVIRONMENT@-web2
 command=deploy_application
 arguments=--version=@APP_VERSION@
-on_failure=90
 exec=pbrun
 
-task=1
-condition=@0_success@=true
+task=12
 hostname=@ENVIRONMENT@-web3
 command=deploy_application
 arguments=--version=@APP_VERSION@
-on_failure=90
 exec=pbrun
 
 # Post-deployment verification
@@ -1476,6 +1658,55 @@ on_failure=99
 - **Reduce Runtime Issues**: Prevent unexpected workflow behavior
 
 **Current Workaround**: Manually review task files for logical consistency.
+
+### Unconditional Flow Control (goto Parameter)
+
+**Current Limitation**: Flow control depends on task success/failure state, requiring complex combinations of `on_success` and `on_failure` to achieve unconditional jumps.
+
+**Example Problem - Current Workaround**:
+```
+# Want to always go to task 50 regardless of success/failure
+task=10
+hostname=app-server
+command=deploy_application
+on_success=50
+on_failure=50      # Redundant but necessary
+```
+
+**Proposed Enhancement**: Add `goto` parameter for unconditional task routing that always executes regardless of task outcome.
+
+**Proposed Implementation**:
+```bash
+# Proposed syntax (NOT currently supported)
+task=10
+hostname=app-server
+command=deploy_application
+goto=50             # Always jump to task 50, regardless of success/failure
+
+# Alternative syntax option
+task=20
+hostname=app-server
+command=cleanup_operation
+next=always
+goto=100            # Unconditional jump after any outcome
+```
+
+**Use Cases**:
+- **Cleanup Operations**: Always proceed to cleanup regardless of deployment success/failure
+- **Workflow Convergence**: Multiple branches that always merge at a common point
+- **Mandatory Notifications**: Always send status updates regardless of outcome
+- **Simplified Flow Control**: Reduce redundant `on_success=X on_failure=X` patterns
+
+**Benefits**:
+- **Cleaner Configuration**: Eliminate redundant success/failure routing
+- **Improved Readability**: Clear intent for unconditional flow
+- **Simplified Workflow Organization**: Easier to create convergent workflows
+- **Reduced Configuration Errors**: Less duplication of routing parameters
+
+**Current Workarounds**:
+- Use identical `on_success` and `on_failure` parameters
+- Create intermediate tasks that always succeed and route appropriately
+- Rely on sequential execution with careful task numbering
 
 ### JSON and YAML Task File Support
 

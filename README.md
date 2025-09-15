@@ -369,6 +369,15 @@ arguments=First error: @3_stderr@  # Uses split stderr
 
 Define reusable variables at the top of your task file for configuration management and environment abstraction.
 
+**Important:** TASKER automatically treats ANY key=value pair that is not a recognized task parameter as a global variable. This means you can define custom variables anywhere in the file, though it's best practice to place them at the top for clarity.
+
+### How Global Variables Work
+
+1. **Automatic Creation**: Any `KEY=VALUE` line that doesn't match a known task parameter becomes a global variable
+2. **Case Sensitive**: Variable names are case-sensitive (`Environment` ≠ `ENVIRONMENT`)
+3. **No Declaration Needed**: Simply write `MYVAR=value` and it's available as `@MYVAR@`
+4. **Scope**: Global variables are read-only and available throughout the entire task file
+
 ### Basic Global Variables
 
 ```
@@ -376,6 +385,7 @@ Define reusable variables at the top of your task file for configuration managem
 ENVIRONMENT=production
 SERVICE_NAME=web-api
 VERSION=v2.1.0
+CUSTOM_PATH=/opt/myapp      # Any name works - automatically becomes a global variable
 
 # Tasks using global variables
 task=0
@@ -562,13 +572,8 @@ condition=@0_success@=true|@1_success@=true       # OR condition
 condition=@0_exit_code@=0&(@0_stdout@~done|@0_stdout@~finished)  # Nested conditions
 ```
 
-**Special Output Count Conditions:**
-```
-# Count lines in stdout/stderr
-condition=stdout_count>10           # More than 10 lines in stdout
-condition=stderr_count=0            # No error output
-condition=stdout_count<100          # Less than 100 lines of output
-```
+**Note on Output Count Conditions:**
+The `stdout_count` and `stderr_count` parameters are planned features but not yet implemented. They are reserved for future versions that will support counting lines in command output.
 
 ### Retry Parameters for Parallel and Conditional Tasks
 
@@ -616,6 +621,135 @@ retry_delay=5        # 5 second retry delay
 - Each retry uses the same parameters as the original task
 - Variables are re-evaluated on each retry attempt
 - Master timeout still applies to all retry attempts combined
+
+## Complete Parameter Field Reference
+
+This section provides a comprehensive reference of all valid task parameters in TASKER.
+
+### Core Task Parameters
+
+| Parameter | Required | Type | Description | Valid Values/Range |
+|-----------|----------|------|-------------|-------------------|
+| `task` | **Yes** | Integer | Unique task identifier | 0, 1, 2, ... (sequential recommended) |
+| `hostname` | Yes* | String | Target server hostname | Any valid hostname, IP, or `@VARIABLE@` |
+| `command` | Yes* | String | Command to execute | Any executable command |
+| `arguments` | No | String | Command arguments | Any valid arguments |
+| `exec` | No | String | Execution method | `pbrun`, `p7s`, `local`, `wwrs` (default: pbrun for remote) |
+| `timeout` | No | Integer | Command timeout in seconds | 5-3600 (default: 30) |
+| `sleep` | No | Integer | Delay after task completion | 0-300 seconds |
+
+*Required for normal tasks, not required for `return` tasks or special task types
+
+### Flow Control Parameters
+
+| Parameter | Type | Description | Example Values |
+|-----------|------|-------------|----------------|
+| `on_success` | Integer | Task ID to jump to on success | Any valid task ID |
+| `on_failure` | Integer | Task ID to jump to on failure | Any valid task ID |
+| `next` | String | Conditional flow control | `exit_0`, `never`, `all_success`, etc. |
+| `return` | Integer | Exit workflow with return code | 0-255 |
+| `condition` | String | Pre-execution condition | `@VAR@=value`, boolean expressions |
+| `success` | String | Custom success criteria | `exit_0`, `stdout~text`, combinations |
+
+### Loop Control Parameters
+
+| Parameter | Type | Description | Valid Range |
+|-----------|------|-------------|-------------|
+| `loop` | Integer | Additional execution iterations | 1-100 (total = original + loop count) |
+| `loop_break` | String | Condition to break loop early | Any valid condition expression |
+
+### Parallel Execution Parameters
+
+| Parameter | Type | Description | Valid Values |
+|-----------|------|-------------|-------------|
+| `type` | String | Task execution type | `parallel`, `conditional` |
+| `max_parallel` | Integer | Max concurrent tasks | 1-50 (for parallel tasks) |
+| `tasks` | String | Comma-separated task IDs | Valid task IDs (e.g., "10,11,12") |
+| `retry_failed` | Boolean | Enable retry for failed tasks | `true`, `false` |
+| `retry_count` | Integer | Number of retry attempts | 0-10 (default: 1) |
+| `retry_delay` | Integer | Delay between retries (seconds) | 0-300 (default: 1) |
+
+### Conditional Execution Parameters
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|----------|
+| `type` | String | Must be "conditional" | `conditional` |
+| `condition` | String | Boolean expression to evaluate | `@ENV@=prod&@0_success@=true` |
+| `if_true_tasks` | String | Tasks for TRUE condition | "100,101,102" |
+| `if_false_tasks` | String | Tasks for FALSE condition | "200,201" |
+
+### Output Processing Parameters
+
+| Parameter | Type | Description | Format |
+|-----------|------|-------------|--------|
+| `stdout_split` | String | Split stdout and select element | `DELIMITER,INDEX` |
+| `stderr_split` | String | Split stderr and select element | `DELIMITER,INDEX` |
+
+**Valid Delimiters:** `space`, `newline`, `comma`, `colon`, `semicolon`, `pipe`, `tab`, or any custom string
+
+### Reserved/Planned Parameters
+
+The following parameters are recognized but **not yet implemented**:
+
+| Parameter | Planned Purpose | Status |
+|-----------|----------------|--------|
+| `stdout_count` | Count lines in stdout for conditions | Reserved for future use |
+| `stderr_count` | Count lines in stderr for conditions | Reserved for future use |
+
+### Parameter Validation Rules
+
+1. **Task ID Uniqueness**: Each `task` ID must be unique within the file
+2. **Parameter Precedence**: Task-level parameters override command-line defaults
+3. **Variable Resolution**: `@VARIABLE@` references are resolved before execution
+4. **Type Validation**:
+   - Numeric parameters must be valid integers
+   - Boolean parameters accept `true` or `false` (case-insensitive)
+   - String parameters can contain spaces if properly formatted
+
+### Examples of Parameter Combinations
+
+```
+# Minimal task
+task=0
+hostname=server1
+command=date
+
+# Full-featured task
+task=1
+hostname=prod-server
+command=deploy_application
+arguments=--version=2.0 --environment=production
+exec=pbrun
+timeout=300
+sleep=10
+condition=@READY@=true
+success=exit_0&stdout~deployed
+on_success=2
+on_failure=99
+loop=3
+loop_break=stdout~success
+
+# Parallel task
+task=2
+type=parallel
+max_parallel=5
+tasks=10,11,12,13,14
+retry_failed=true
+retry_count=2
+retry_delay=5
+next=min_success=3
+
+# Conditional task
+task=3
+type=conditional
+condition=@ENVIRONMENT@=production
+if_true_tasks=20,21
+if_false_tasks=30,31
+
+# Return task
+task=99
+return=1
+```
 
 ## Simple Examples
 

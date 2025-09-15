@@ -1417,47 +1417,31 @@ exec=local
 
 ```mermaid
 graph TD
-    Start([🌐 Smart File Download<br/>Priority-Based Protocol Selection]) --> T0[Task 0: Check HTTPS Port 443<br/>🔒 Preferred secure protocol]
-    T0 --> T1[Task 1: Conditional<br/>HTTPS Available?]
+    Start([🌐 Smart File Download<br/>Simplified Protocol Selection]) --> T0[Task 0: Port Scan<br/>Check ports 80,443]
+    T0 --> T1[Task 1: Conditional<br/>Any port open?]
 
-    T1 -->|✅ HTTPS Available<br/>443 OPEN| Secure[HTTPS Branch<br/>Tasks 10,11]
-    T1 -->|❌ HTTPS Not Available<br/>443 CLOSED| T2[Task 2: Check HTTP Port 80<br/>⚠️ Fallback protocol]
+    T1 -->|✅ At least one port OPEN<br/>80/tcp OR 443/tcp| T2[Task 2: Conditional<br/>Which protocol?]
+    T1 -->|❌ No ports OPEN<br/>Both closed| Failed[Task 99: Error<br/>❌ Download impossible]
 
-    T2 --> T3[Task 3: Conditional<br/>HTTP Available?]
-    T3 -->|✅ HTTP Available<br/>80 OPEN| Basic[HTTP Branch<br/>Tasks 20,21]
-    T3 -->|❌ HTTP Not Available<br/>80 CLOSED| T4[Task 4: Emergency Fallback<br/>Alternative sources]
+    T2 -->|✅ Port 443 OPEN<br/>Use HTTPS (preferred)| T10[Task 10: Download HTTPS<br/>🔒 curl https://...]
+    T2 -->|❌ Port 443 CLOSED<br/>Use HTTP (port 80 open)| T20[Task 20: Download HTTP<br/>⚠️ curl http://...]
 
-    T4 --> Error[Fallback Branch<br/>Tasks 30,31]
+    T10 --> Success[Task 100: Success<br/>✅ Download complete]
+    T20 --> Success
 
-    Secure --> T10[Task 10: Download via HTTPS<br/>🔒 Secure connection]
-    Secure --> T11[Task 11: Verify SSL cert<br/>🛡️ Security validation]
-
-    Basic --> T20[Task 20: Download via HTTP<br/>⚠️ Insecure but functional]
-    Basic --> T21[Task 21: Log security risk<br/>📝 Security audit trail]
-
-    Error --> T30[Task 30: Alternative source<br/>🔄 Mirror/backup server]
-    Error --> T31[Task 31: Send failure alert<br/>📧 Admin notification]
-
-    T10 --> Success[✅ Download Complete<br/>🔒 Secure HTTPS used]
-    T11 --> Success
-    T20 --> Success2[✅ Download Complete<br/>⚠️ HTTP used - logged]
-    T21 --> Success2
-    T30 --> Success3[⚠️ Download Complete<br/>🔄 Alternative source]
-    T31 --> Failed[❌ Download Failed<br/>All methods exhausted]
+    Failed --> Stop([🛑 Workflow Failed<br/>Return code 1])
+    Success --> Complete([✅ Workflow Complete<br/>File downloaded])
 
     style Start fill:#e1f5fe
     style T0 fill:#f3e5f5
     style T1 fill:#fff3e0
-    style T2 fill:#f3e5f5
-    style T3 fill:#fff3e0
-    style T4 fill:#fff3e0
-    style Secure fill:#e8f5e8
-    style Basic fill:#fff8e1
-    style Error fill:#ffebee
+    style T2 fill:#fff3e0
+    style T10 fill:#e8f5e8
+    style T20 fill:#fff8e1
     style Success fill:#e8f5e8
-    style Success2 fill:#fff8e1
-    style Success3 fill:#fff3e0
     style Failed fill:#ffebee
+    style Complete fill:#e8f5e8
+    style Stop fill:#ffebee
 ```
 
 **Configuration file**:
@@ -1468,145 +1452,67 @@ TARGET_HOST=download.example.com
 FILENAME=installer.zip
 DOWNLOAD_PATH=/tmp/downloads
 
-# Task 0: Check HTTPS port 443 first (preferred protocol)
+# Task 0: Check both ports to see if ANY are available
 task=0
 hostname=localhost
 command=nmap
-arguments=-p 443 --open @TARGET_HOST@
-timeout=15
+arguments=-p 80,443 --open @TARGET_HOST@
+timeout=30
 exec=local
 
-# Task 1: Conditional - HTTPS available (port 443 open) - HIGHEST PRIORITY
+# Task 1: Conditional - At least one port is open?
 task=1
 type=conditional
-condition=@0_stdout@~443/tcp
-if_true_tasks=10,11
-timeout=60
-next=all_success
-on_success=100
-on_failure=2
+condition=@0_stdout@~80/tcp|@0_stdout@~443/tcp
+if_true_tasks=2
+if_false_tasks=99
+next=success
 
-# Task 2: Check HTTP port 80 (fallback protocol)
+# Task 2: Conditional - Which protocol to use? (443 preferred)
 task=2
-hostname=localhost
-command=nmap
-arguments=-p 80 --open @TARGET_HOST@
-timeout=15
-exec=local
-
-# Task 3: Conditional - HTTP available (port 80 open) - FALLBACK
-task=3
 type=conditional
-condition=@2_stdout@~80/tcp
-if_true_tasks=20,21
-timeout=60
-next=all_success
-on_success=101
-on_failure=4
+condition=@0_stdout@~443/tcp
+if_true_tasks=10
+if_false_tasks=20
+next=success
+on_success=100
 
-# Task 4: No ports available - emergency fallback
-task=4
-type=conditional
-condition=always
-if_true_tasks=30,31
-timeout=120
-next=any_success
-on_success=102
-on_failure=92
-
-# === SUCCESS NOTIFICATIONS ===
+# === SUCCESS NOTIFICATION (Same for all protocols) ===
 task=100
 hostname=localhost
 command=echo
-arguments=SECURE DOWNLOAD: Successfully downloaded @FILENAME@ via HTTPS
+arguments=SUCCESS: Downloaded @FILENAME@ from @TARGET_HOST@ - check @DOWNLOAD_PATH@/@FILENAME@
 exec=local
 next=never
 
-task=101
+# === FAILURE HANDLER ===
+task=99
 hostname=localhost
 command=echo
-arguments=INSECURE DOWNLOAD: Downloaded @FILENAME@ via HTTP - security risk logged
-exec=local
-next=never
-
-task=102
-hostname=localhost
-command=echo
-arguments=FALLBACK DOWNLOAD: Used alternative source for @FILENAME@
-exec=local
-next=never
-
-# === FAILURE HANDLERS ===
-task=90
-hostname=localhost
-command=echo
-arguments=ERROR: HTTPS download failed despite port 443 being open
-exec=local
-return=1
-
-task=91
-hostname=localhost
-command=echo
-arguments=ERROR: HTTP download failed despite port 80 being open
-exec=local
-return=1
-
-task=92
-hostname=localhost
-command=echo
-arguments=ERROR: All download methods failed - both ports closed and fallback failed
+arguments=ERROR: No ports (80,443) are open on @TARGET_HOST@ - download impossible
 exec=local
 return=1
 
 # === FIREWALL ===
-task=99
+task=98
 return=0
 
-# === HTTPS BRANCH (Secure download) ===
+# === HTTPS DOWNLOAD (Preferred - port 443) ===
 task=10
 hostname=localhost
 command=curl
-arguments=--ssl-reqd --cert-status -o @DOWNLOAD_PATH@/@FILENAME@ https://@TARGET_HOST@/@FILENAME@
+arguments=--ssl-reqd -o @DOWNLOAD_PATH@/@FILENAME@ https://@TARGET_HOST@/@FILENAME@
 timeout=300
 success=exit_0
 exec=local
 
-task=11
-hostname=localhost
-command=openssl
-arguments=s_client -connect @TARGET_HOST@:443 -verify_return_error
-timeout=30
-success=exit_0&stdout~Verification
-exec=local
-
-# === HTTP BRANCH (Insecure download with logging) ===
+# === HTTP DOWNLOAD (Fallback - port 80) ===
 task=20
 hostname=localhost
 command=curl
 arguments=-o @DOWNLOAD_PATH@/@FILENAME@ http://@TARGET_HOST@/@FILENAME@
 timeout=300
 success=exit_0
-exec=local
-
-task=21
-hostname=localhost
-command=logger
-arguments=-t TASKER_SECURITY "INSECURE DOWNLOAD: @FILENAME@ from @TARGET_HOST@ via HTTP"
-exec=local
-
-# === FALLBACK BRANCH (Alternative sources) ===
-task=30
-hostname=localhost
-command=curl
-arguments=-o @DOWNLOAD_PATH@/@FILENAME@ https://backup.mirror.com/@FILENAME@
-timeout=300
-success=exit_0
-exec=local
-
-task=31
-hostname=notification-server
-command=send_alert
-arguments=Download fallback used for @FILENAME@ - investigate @TARGET_HOST@ connectivity
 exec=local
 ```
 

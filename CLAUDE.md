@@ -367,23 +367,29 @@ test_scripts/                    # Mock execution commands for testing
 - [x] Updated `tasker.py` to use `HostValidator.validate_hosts()`
 - [x] **VERIFIED:** Comprehensive testing completed - functional behavior matches `tasker_orig.py` exactly (with acceptable additional debug output)
 
-### 🔄 Phase 4: Task Validation Integration
-- [ ] Create `tasker/validation/task_validator_integration.py`
-- [ ] Extract validation methods:
-  - `validate_tasks()`
-  - `validate_task_dependencies()`
-  - `validate_start_from_task()`
+### ✅ Phase 4: Task Validation Integration (COMPLETED)
+- [x] Integrated existing `tasker/validation/task_validator.py` module with TaskExecutor
+- [x] **Implementation approach:** Used existing TaskValidator class with static method `validate_task_file()`
+- [x] **Integration method:** TaskExecutor.validate_tasks() calls TaskValidator.validate_task_file() with proper callbacks
+- [x] **Note:** Different from original plan - instead of creating separate `task_validator_integration.py`,
+      we leveraged the existing comprehensive TaskValidator module and integrated it cleanly
+- [x] Task file syntax validation, dependency validation, and comprehensive task structure validation
+- [x] **VERIFIED:** Full integration with main TaskExecutor class through clean callback architecture
 
-### 🔄 Phase 5: Execution Engines
-- [ ] Create base executor class
-- [ ] Extract sequential execution logic
-- [ ] Extract parallel execution logic
-- [ ] Extract conditional execution logic
+### ✅ Phase 5: Execution Engines (COMPLETED)
+- [x] Created `tasker/executors/base_executor.py` - Abstract base class for all executors
+- [x] Created `tasker/executors/sequential_executor.py` - Normal sequential task execution
+- [x] Created `tasker/executors/parallel_executor.py` - Parallel task execution with retry logic
+- [x] Created `tasker/executors/conditional_executor.py` - Conditional task execution
+- [x] **CRITICAL FIX:** Fixed race condition in parallel execution with sleep handling
+- [x] **VERIFIED:** All execution engines working correctly with comprehensive testing
 
-### 🔄 Phase 6: Main Executor Refactoring
-- [ ] Create `tasker/core/task_executor_main.py`
-- [ ] Refactor main TaskExecutor class
-- [ ] Update `tasker.py` to use new modular structure
+### ✅ Phase 6: Main Executor Refactoring (COMPLETED)
+- [x] Created `tasker/core/task_executor_main.py` - Main TaskExecutor class
+- [x] Created `tasker/core/execution_context.py` - ExecutionContext for unified callbacks
+- [x] Refactored main TaskExecutor class with proper modular structure
+- [x] Updated `tasker.py` to use new modular structure
+- [x] **VERIFIED:** All functionality preserved with improved maintainability
 
 ## Design Principles
 
@@ -408,6 +414,42 @@ test_scripts/                    # Mock execution commands for testing
 - `tasker.py` - Main executable script (structure changes only)
 - `task_validator.py` - Existing validation script
 - All test cases and configuration files
+
+## Usage: Validation Options
+
+TASKER 2.0 provides comprehensive validation capabilities through two separate modules:
+
+### Task Validation (`task_validator.py`)
+Validates task file syntax, structure, dependencies, and flow control logic.
+
+### Host Validation (`host_validator.py`)
+Validates hostname resolution, connectivity, and execution type compatibility.
+
+### Command Line Options
+
+**Enable/Disable Validation:**
+- `--validate-only` - Perform complete validation (task + host) and exit - no task execution
+- `--skip-task-validation` - Skip task file and dependency validation (faster resume)
+- `--skip-host-validation` - Skip host validation and use hostnames as-is (WARNING: risky!)
+- `--skip-validation` - Skip ALL validation (same as --skip-task-validation --skip-host-validation)
+
+**Host Connectivity Testing:**
+- `-c, --connection-test` - Check connectivity for pbrun,p7s,wwrs hosts (enables host validation)
+
+**Examples:**
+```bash
+# Full validation without execution
+./tasker.py tasks.txt --validate-only
+
+# Skip task validation for faster resume
+./tasker.py tasks.txt --start-from=5 --skip-task-validation
+
+# Skip risky host validation (not recommended)
+./tasker.py tasks.txt --skip-host-validation
+
+# Enable host connectivity testing
+./tasker.py tasks.txt -c -r
+```
 
 ## Success Criteria
 

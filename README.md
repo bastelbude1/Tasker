@@ -286,15 +286,43 @@ Each task must have at least:
 - `command`: the command to execute
 
 Optional parameters include:
+
+**Basic Task Control:**
 - `arguments`: command arguments
+- `exec`: execution type for this specific task (`pbrun`, `p7s`, `local`, `wwrs`)
+- `timeout`: command timeout in seconds (5-3600)
+- `sleep`: pause after task completion (0-300 seconds)
+
+**Flow Control:**
 - `condition`: pre-execution condition (task is skipped if condition is false)
 - `next`: condition for proceeding to next task (evaluated after execution)
-- `exec`: execution type for this specific task
-- `timeout`: command timeout in seconds
-- `sleep`: pause after task completion
-- `loop`: number of additional iterations
+- `success`: custom success criteria (overrides default exit code 0 success)
 - `on_success`: task ID to execute on success
 - `on_failure`: task ID to execute on failure
+
+**Loop Control:**
+- `loop`: number of additional iterations
+- `loop_break`: condition to break out of loop early
+
+**Output Processing:**
+- `stdout_split`: split stdout by delimiter and select element (`delimiter,index`)
+- `stderr_split`: split stderr by delimiter and select element (`delimiter,index`)
+- `stdout_count`: expected number of lines in stdout
+- `stderr_count`: expected number of lines in stderr
+
+**Parallel Task Parameters:**
+- `type`: task type (`parallel` or `conditional`)
+- `max_parallel`: maximum concurrent executions (for parallel tasks)
+- `tasks`: comma-separated list of task IDs to execute in parallel
+- `retry_failed`: enable retry for failed parallel tasks (`true`/`false`)
+- `retry_count`: number of retry attempts (1-10)
+- `retry_delay`: delay between retries in seconds (1-60)
+
+**Conditional Task Parameters:**
+- `if_true_tasks`: comma-separated list of task IDs to execute when condition is true
+- `if_false_tasks`: comma-separated list of task IDs to execute when condition is false
+
+**Workflow Control:**
 - `return`: exit workflow with specific return code
 
 ### Execution Types
@@ -499,6 +527,61 @@ exec=local
 - If condition evaluates to false, task is skipped entirely
 - Same condition syntax as `next` parameter
 - Useful for conditional task execution based on previous results or global variables
+
+#### Custom Success Criteria
+
+Define custom success conditions instead of relying on exit code 0:
+
+```
+task=0
+hostname=serverA
+command=grep
+arguments=ERROR logfile.txt
+exec=local
+success=exit_1&stdout~
+# This task succeeds when grep finds no errors (exit_1 + empty stdout)
+
+task=1
+hostname=serverA
+command=database_backup
+exec=local
+success=exit_0&stdout~backup_complete&stderr~
+# This task succeeds only when exit code is 0, stdout contains "backup_complete", and stderr is empty
+```
+
+**Custom Success Features:**
+- Overrides default success criteria (exit code 0)
+- Uses same condition syntax as `next` and `condition` parameters
+- Enables complex success logic based on exit codes, output content, and line counts
+- Essential for commands where exit code 0 doesn't indicate success
+
+#### Loop Control and Early Termination
+
+Control loop execution with break conditions:
+
+```
+task=0
+hostname=serverA
+command=check_service_status
+exec=local
+loop=10
+loop_break=stdout~running
+# Loop up to 10 times, but exit early if service is running
+
+task=1
+hostname=serverA
+command=process_queue_item
+exec=local
+loop=100
+loop_break=stdout~queue_empty
+# Process up to 100 items, but stop if queue becomes empty
+```
+
+**Loop Control Features:**
+- `loop`: number of additional iterations (task runs `loop + 1` times total)
+- `loop_break`: condition to exit loop early
+- Loop break uses same syntax as other condition parameters
+- Useful for polling, queue processing, and iterative operations
 
 #### Error Handling with Success/Failure Routing
 

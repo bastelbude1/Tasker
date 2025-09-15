@@ -264,6 +264,87 @@ success=exit_0                  # Custom success criteria
 - `loop_break=CONDITION`: Condition to break out of loop early
 - `sleep=N`: Delay between loop iterations
 
+### Output Processing Parameters
+
+Extract specific data from command output using split operations:
+
+```
+task=0
+hostname=server1
+command=df -h /data
+stdout_split=newline,1          # Get second line (data row)
+exec=local
+
+task=1
+hostname=server2
+command=echo "key1=value1 key2=value2 key3=value3"
+stdout_split=space,1            # Get "key2=value2"
+exec=local
+
+task=2
+condition=@1_stdout@~key2=value2
+hostname=server3
+command=process_data
+arguments=--config=@1_stdout@   # Uses "key2=value2" from split
+```
+
+**Output Split Parameters:**
+- `stdout_split=DELIMITER,INDEX`: Split stdout and select element at INDEX
+- `stderr_split=DELIMITER,INDEX`: Split stderr and select element at INDEX
+
+**Delimiter Options:**
+- `space`: Split by spaces
+- `newline`: Split by line breaks
+- `comma`: Split by commas
+- `colon`: Split by colons
+- `semicolon`: Split by semicolons
+- `pipe`: Split by pipe character (|)
+- `tab`: Split by tabs
+- Any custom string: Split by that exact string
+
+**Index Selection:**
+- `0`: First element (zero-based indexing)
+- `1`: Second element
+- `-1`: Last element (negative indexing supported)
+- Out of bounds: Returns original output with warning
+
+**Practical Examples:**
+
+```
+# Extract disk usage percentage from df output
+task=0
+hostname=server1
+command=df -h /data
+stdout_split=newline,1          # Get data row (skip header)
+exec=local
+
+task=1
+command=echo
+arguments=Disk usage line: @0_stdout@
+condition=@0_stdout@~%          # Check if percentage exists
+stdout_split=space,4            # Extract 5th column (usage%)
+exec=local
+
+# Parse JSON-like output
+task=2
+hostname=api-server
+command=curl -s http://api/status
+stdout_split=comma,1            # Get second key-value pair
+exec=local
+
+# Extract specific error from multi-line stderr
+task=3
+hostname=app-server
+command=deploy_application
+stderr_split=newline,0          # Get first error line only
+on_failure=99
+
+task=99
+hostname=notification
+command=send_alert
+arguments=First error: @3_stderr@  # Uses split stderr
+```
+
 ### Parameter Details
 
 #### Execution Types (`exec`)
@@ -444,6 +525,97 @@ condition=@0_success@=true  # Only run if backup actually completed
 hostname=notification
 command=send_success_alert
 ```
+
+### Advanced Condition Operators
+
+TASKER supports comprehensive comparison operators for sophisticated condition evaluation:
+
+**Comparison Operators:**
+- `=` : Equal to (string or numeric)
+- `!=` : Not equal to
+- `~` : Contains (substring search)
+- `!~` : Does not contain
+- `<` : Less than (numeric)
+- `<=` : Less than or equal to
+- `>` : Greater than (numeric)
+- `>=` : Greater than or equal to
+
+**Examples:**
+```
+# Numeric comparisons
+condition=@0_exit_code@=0           # Exit code equals 0
+condition=@0_exit_code@!=0          # Exit code not 0
+condition=@RETRY_COUNT@<5           # Less than 5 retries
+condition=@CPU_USAGE@<=80           # CPU usage at or below 80%
+condition=@QUEUE_SIZE@>100          # Queue size exceeds 100
+condition=@MEMORY_PCT@>=90          # Memory at or above 90%
+
+# String operations
+condition=@0_stdout@~success        # Output contains "success"
+condition=@0_stderr@!~error         # Stderr doesn't contain "error"
+condition=@ENVIRONMENT@=production   # Environment equals "production"
+condition=@HOSTNAME@!=localhost     # Hostname is not "localhost"
+
+# Complex conditions with boolean operators
+condition=@0_exit_code@=0&@0_stdout@~complete     # AND condition
+condition=@0_success@=true|@1_success@=true       # OR condition
+condition=@0_exit_code@=0&(@0_stdout@~done|@0_stdout@~finished)  # Nested conditions
+```
+
+**Special Output Count Conditions:**
+```
+# Count lines in stdout/stderr
+condition=stdout_count>10           # More than 10 lines in stdout
+condition=stderr_count=0            # No error output
+condition=stdout_count<100          # Less than 100 lines of output
+```
+
+### Retry Parameters for Parallel and Conditional Tasks
+
+Advanced retry logic for robust task execution in parallel and conditional workflows:
+
+**Retry Configuration Parameters:**
+- `retry_failed=true/false` : Enable retry for failed tasks
+- `retry_count=N` : Number of retry attempts (0-10, default: 1)
+- `retry_delay=N` : Delay between retries in seconds (0-300, default: 1)
+
+**Parallel Task Retries:**
+```
+# Parallel deployment with automatic retry
+task=10
+type=parallel
+max_parallel=3
+tasks=20,21,22
+retry_failed=true
+retry_count=3        # Retry each failed task up to 3 times
+retry_delay=10       # Wait 10 seconds between retries
+next=majority_success  # Continue if majority succeed
+```
+
+**Conditional Task Retries:**
+```
+# Conditional execution with retry
+task=30
+type=conditional
+condition=@ENVIRONMENT@=production
+if_true_tasks=40,41,42
+if_false_tasks=50,51
+retry_failed=true
+retry_count=2        # Retry failed branch tasks
+retry_delay=5        # 5 second retry delay
+```
+
+**Retry Display in Logs:**
+- Initial attempt: `Task 10-20: Executing`
+- First retry: `Task 10-20.2: Retrying (attempt 2/4)`
+- Second retry: `Task 10-20.3: Retrying (attempt 3/4)`
+- Final retry: `Task 10-20.4: Final attempt (4/4)`
+
+**Important Notes:**
+- Retries only apply to tasks that fail execution (not validation/skipped tasks)
+- Each retry uses the same parameters as the original task
+- Variables are re-evaluated on each retry attempt
+- Master timeout still applies to all retry attempts combined
 
 ## Simple Examples
 
@@ -1064,12 +1236,40 @@ For every executed task, TASKER captures:
 
 | Data Type | Variable Format | Description | Storage Limit |
 |-----------|----------------|-------------|---------------|
-| **Standard Output** | `@TASK_ID_stdout@` | Complete stdout from command | 4,096 characters |
-| **Standard Error** | `@TASK_ID_stderr@` | Complete stderr from command | 4,096 characters |
+| **Standard Output** | `@TASK_ID_stdout@` | Complete stdout from command (or split result) | 4,096 characters |
+| **Standard Error** | `@TASK_ID_stderr@` | Complete stderr from command (or split result) | 4,096 characters |
 | **Exit Code** | `@TASK_ID_exit_code@` | Command exit code (0-255) | No limit |
-| **Hostname** | `@TASK_ID_hostname@` | Actual hostname used | 256 characters |
-| **Success Status** | `@TASK_ID_success@` | Boolean success status | No limit |
-| **Timing Data** | `@TASK_ID_duration@` | Execution time in seconds | No limit |
+| **Hostname** | `@TASK_ID_hostname@` | Actual hostname used (resolved from @HOSTNAME@) | 256 characters |
+| **Success Status** | `@TASK_ID_success@` | Boolean success status (True/False) | No limit |
+| **Timing Data** | `@TASK_ID_duration@` | Execution time in seconds (decimal) | No limit |
+
+### Complete Variable Reference
+
+#### Global Variables
+- **Definition**: `VARIABLE=value` at top of task file
+- **Usage**: `@VARIABLE@` anywhere in task parameters
+- **Scope**: Read-only during execution
+- **Example**: `ENVIRONMENT=production`, use as `@ENVIRONMENT@`
+
+#### Task Result Variables
+- **`@X_stdout@`**: Standard output from task X (affected by stdout_split)
+- **`@X_stderr@`**: Standard error from task X (affected by stderr_split)
+- **`@X_exit_code@`**: Exit code from task X (0-255)
+- **`@X_hostname@`**: Actual hostname used by task X
+- **`@X_success@`**: Success status of task X (True/False string)
+- **`@X_duration@`**: Execution time of task X in seconds (e.g., "5.234")
+
+#### Special Variables for Parallel Tasks
+When using `type=parallel`, additional aggregated variables are available:
+- **`@X_success_count@`**: Number of successful parallel subtasks
+- **`@X_failed_count@`**: Number of failed parallel subtasks
+- **`@X_total_count@`**: Total number of parallel subtasks executed
+
+#### Variable Resolution Notes
+- Variables are resolved at task execution time
+- Undefined variables remain as literal text (e.g., `@UNDEFINED@`)
+- Task result variables are only available after the task completes
+- Variables can be nested: `@TASK_@ID@_stdout@` where ID is another variable
 
 ### Using Task Data
 
@@ -1581,18 +1781,31 @@ tasker -r --start-from=15 --skip-validation tasks.txt
 
 ### Command Line Options
 
+#### Execution Control
 | Option | Description | Example |
 |--------|-------------|---------|
 | `-r, --run` | Execute commands (not dry run) | `tasker -r tasks.txt` |
-| `-p, --project` | Project name for logging | `tasker -r -p DEPLOY_2024 tasks.txt` |
-| `-l, --log-dir` | Custom log directory | `tasker -r -l /custom/logs tasks.txt` |
+| `-p, --project` | Project name for summary logging and tracking | `tasker -r -p DEPLOY_2024 tasks.txt` |
+| `-l, --log-dir` | Custom log directory (default: ~/TASKER/) | `tasker -r -l /custom/logs tasks.txt` |
 | `--log-level` | Logging level (ERROR/WARN/INFO/DEBUG) | `tasker -r --log-level=DEBUG tasks.txt` |
-| `-t, --type` | Default execution type | `tasker -r -t pbrun tasks.txt` |
-| `-o, --timeout` | Default timeout in seconds | `tasker -r -o 60 tasks.txt` |
-| `-c, --connection-test` | Enable connectivity testing | `tasker -r -c tasks.txt` |
-| `--start-from` | Resume from task ID | `tasker -r --start-from=5 tasks.txt` |
-| `--validate-only` | Validate without execution | `tasker --validate-only tasks.txt` |
-| `--skip-validation` | Skip all validation | `tasker -r --skip-validation tasks.txt` |
+| `-d, --debug` | Shorthand for --log-level=DEBUG | `tasker -r -d tasks.txt` |
+| `-t, --type` | Default execution type (pbrun/p7s/local/wwrs) | `tasker -r -t pbrun tasks.txt` |
+| `-o, --timeout` | Default timeout in seconds (5-1000, default: 30) | `tasker -r -o 60 tasks.txt` |
+
+#### Planning and Validation
+| Option | Description | Example |
+|--------|-------------|---------|
+| `--show-plan` | Display execution plan and ask for confirmation | `tasker --show-plan -r tasks.txt` |
+| `--validate-only` | Perform full validation without execution | `tasker --validate-only tasks.txt` |
+| `-c, --connection-test` | Enable host connectivity testing | `tasker -r -c tasks.txt` |
+| `--skip-task-validation` | Skip task file validation (faster resume) | `tasker -r --skip-task-validation tasks.txt` |
+| `--skip-host-validation` | Skip host validation (WARNING: risky!) | `tasker -r --skip-host-validation tasks.txt` |
+| `--skip-validation` | Skip ALL validation (task + host) | `tasker -r --skip-validation tasks.txt` |
+
+#### Resume and Recovery
+| Option | Description | Example |
+|--------|-------------|---------|
+| `--start-from` | Resume execution from specific task ID | `tasker -r --start-from=5 tasks.txt` |
 
 ## Log Directory Structure
 
@@ -1743,6 +1956,67 @@ Configure TASKER behavior using environment variables:
    # Execute with project tracking
    tasker -r -p PRODUCTION_DEPLOY_2024 production_workflow.txt
    ```
+
+## Exit Codes Reference
+
+TASKER uses specific exit codes to indicate different types of failures:
+
+### Standard Exit Codes
+
+| Exit Code | Constant | Description | Resolution |
+|-----------|----------|-------------|------------|
+| 0 | SUCCESS | Task execution completed successfully | N/A |
+| 1 | GENERAL_ERROR | General task execution failure | Check task logs for details |
+| 124 | TIMEOUT | Task exceeded timeout limit | Increase timeout or optimize task |
+| 130 | SIGNAL_INTERRUPT | Execution interrupted (Ctrl+C) | N/A - User initiated |
+
+### TASKER-Specific Exit Codes
+
+| Exit Code | Constant | Description | Resolution |
+|-----------|----------|-------------|------------|
+| 10 | INVALID_ARGUMENTS | Invalid command-line arguments | Check command syntax |
+| 11 | TASK_FILE_NOT_FOUND | Task file doesn't exist | Verify file path |
+| 12 | TASK_FILE_EMPTY | Task file is empty | Add task definitions |
+| 13 | TASK_FILE_PARSE_ERROR | Cannot parse task file | Check file syntax |
+| 14 | CONDITIONAL_EXECUTION_FAILED | Conditional 'next' condition not met | Review condition logic |
+| 15 | SIGNAL_INTERRUPT | Interrupted by signal (SIGINT/SIGTERM) | N/A - System initiated |
+| 16 | PARALLEL_EXECUTION_FAILURE | Parallel task execution failed | Check individual task logs |
+| 17 | CONDITIONAL_TASK_FAILURE | Conditional branch execution failed | Review branch logic |
+| 18 | TASK_FAILED | Individual task execution failed | Check task configuration |
+| 19 | TASK_DEPENDENCY_FAILED | Task dependency not satisfied | Verify task dependencies |
+| 20 | TASK_FILE_VALIDATION_FAILED | Task file validation errors | Fix validation errors |
+| 21 | HOST_VALIDATION_FAILED | Host connectivity validation failed | Verify host accessibility |
+| 22 | HOST_CONNECTION_FAILED | Cannot connect to remote host | Check network/credentials |
+| 23 | HOST_RESOLUTION_FAILED | Cannot resolve hostname | Verify DNS/hostname |
+| 24 | EXEC_TYPE_VALIDATION_FAILED | Execution type validation failed | Check pbrun/p7s/wwrs setup |
+
+### Using Exit Codes in Workflows
+
+```
+# Return specific exit code from workflow
+task=99
+return=20    # Exit with validation failure code
+
+# Check for specific exit codes in conditions
+task=10
+condition=@0_exit_code@=124   # Previous task timed out
+hostname=notification
+command=send_timeout_alert
+
+# Success criteria based on exit codes
+task=20
+hostname=app-server
+command=health_check
+success=exit_0|exit_3     # Success on 0 or 3 (3 = service already running)
+```
+
+### Exit Code Precedence
+
+1. **Return parameter**: Explicit `return=N` in task
+2. **Task execution result**: Actual command exit code
+3. **Workflow completion**: Final task's exit code
+4. **Validation failures**: TASKER-specific codes (20-24)
+5. **System interrupts**: Signal codes (130, 15)
 
 ## Troubleshooting
 

@@ -94,185 +94,141 @@ return 1
 
 ### TASKER 2.0 Execution Models
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          TASKER 2.0 Workflow Types                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌─── SEQUENTIAL ───┐    ┌──── PARALLEL ────┐    ┌── CONDITIONAL ──┐       │
-│  │                  │    │                  │    │                 │       │
-│  │  Task 0          │    │  Master Task     │    │  Condition      │       │
-│  │    ↓             │    │       ├──── T1   │    │     ├─ TRUE     │       │
-│  │  Task 1          │    │       ├──── T2   │    │     │   ├─ T1   │       │
-│  │    ↓             │    │       ├──── T3   │    │     │   └─ T2   │       │
-│  │  Task 2          │    │       └──── T4   │    │     └─ FALSE    │       │
-│  │    ↓             │    │           ↓      │    │         ├─ T3   │       │
-│  │  Continue        │    │    Aggregation   │    │         └─ T4   │       │
-│  │                  │    │                  │    │                 │       │
-│  └──────────────────┘    └──────────────────┘    └─────────────────┘       │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "SEQUENTIAL EXECUTION"
+        S1[Task 0] --> S2[Task 1]
+        S2 --> S3[Task 2]
+        S3 --> S4[Continue...]
+    end
+
+    subgraph "PARALLEL EXECUTION"
+        PM[Master Task] --> P1[Task 1]
+        PM --> P2[Task 2]
+        PM --> P3[Task 3]
+        PM --> P4[Task 4]
+        P1 --> PA[Aggregation]
+        P2 --> PA
+        P3 --> PA
+        P4 --> PA
+    end
+
+    subgraph "CONDITIONAL EXECUTION"
+        CC[Condition Check] --> CT[TRUE Branch]
+        CC --> CF[FALSE Branch]
+        CT --> CT1[Task 1]
+        CT --> CT2[Task 2]
+        CF --> CF1[Task 3]
+        CF --> CF2[Task 4]
+    end
 ```
 
 #### Comprehensive Flow Control Logic
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        TASKER 2.0 Flow Control                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌───────────┐                                                             │
-│  │   START   │                                                             │
-│  └─────┬─────┘                                                             │
-│        │                                                                   │
-│        ▼                                                                   │
-│  ┌──────────────────┐                                                      │
-│  │ PRE-EXECUTION    │──── condition=false ────┐                           │
-│  │ CONDITION CHECK  │                         │                           │
-│  │ (condition=)     │──── condition=true ─────┼─────┐                     │
-│  └──────────────────┘                         │     │                     │
-│                                               │     ▼                     │
-│                                               │  ┌──────────────────┐     │
-│                                               │  │  EXECUTE TASK    │     │
-│                                               │  │  • Run command   │     │
-│                                               │  │  • Capture output│     │
-│                                               │  │  • Record timing │     │
-│                                               │  └────────┬─────────┘     │
-│                                               │           │               │
-│                                               │           ▼               │
-│                                               │  ┌──────────────────┐     │
-│                                               │  │ SUCCESS CHECK    │     │
-│                                               │  │ (success= or     │     │
-│                                               │  │  default exit_0) │     │
-│                                               │  └────┬─────────────┘     │
-│                                               │       │                   │
-│                                               │       ├─ Success ─────────┼─┐
-│                                               │       │                   │ │
-│                                               │       └─ Failure ─────────┼─┼─┐
-│                                               │                           │ │ │
-│  ┌─────────────────┐                          │  ┌──────────────────┐     │ │ │
-│  │   SKIP TASK     │◄─────────────────────────┘  │ POST-EXECUTION   │◄────┘ │ │
-│  │ • Log skip      │                             │ FLOW CONTROL     │       │ │
-│  │ • Continue flow │                             │ (next=)          │       │ │
-│  └─────┬───────────┘                             └────┬─────────────┘       │ │
-│        │                                              │                     │ │
-│        │  ┌─────────────────┐                         ├─ next=true ─────────┘ │
-│        │  │    SLEEP        │◄────────────────────────┤                       │
-│        │  │ (sleep=N sec)   │                         │                       │
-│        │  └─────┬───────────┘                         ├─ next=false ──────────┘
-│        │        │                                     │
-│        │        │  ┌─────────────────┐                ├─ next=loop ─────┐
-│        │        │  │   LOOP CHECK    │◄───────────────┤                 │
-│        │        │  │ (loop= count    │                │                 │
-│        │        │  │  loop_break=)   │                ├─ next=never ────┼─┐
-│        │        │  └─────┬───────────┘                │                 │ │
-│        │        │        │                            │                 │ │
-│        │        │        ├─ Continue Loop ────────────┼─────────────────┘ │
-│        │        │        │                            │                   │
-│        │        │        └─ Exit Loop ────────────────┤                   │
-│        │        │                                     │                   │
-│        │        │  ┌─────────────────┐                ├─ on_success=ID ──┼─┐
-│        │        │  │ SUCCESS/FAILURE │◄───────────────┤                   │ │
-│        │        │  │   ROUTING       │                │                   │ │
-│        │        │  │ (on_success=    │                ├─ on_failure=ID ──┼─┼─┐
-│        │        │  │  on_failure=)   │                │                   │ │ │
-│        │        │  └─────┬───────────┘                │                   │ │ │
-│        │        │        │                            │                   │ │ │
-│        └────────┼────────┼────────────────────────────┘                   │ │ │
-│                 │        │                                                │ │ │
-│                 │        ▼                                                │ │ │
-│  ┌─────────────────────────────────────┐                                  │ │ │
-│  │          NEXT TASK / END            │◄─────────────────────────────────┘ │ │
-│  │  • Sequential: Next task ID         │                                    │ │
-│  │  • Parallel: Aggregate results      │◄───────────────────────────────────┘ │
-│  │  • Conditional: Branch selection    │                                      │
-│  │  • End: Return with exit code       │◄─────────────────────────────────────┘
-│  └─────────────────────────────────────┘                                      │
-│                                                                               │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    START([START]) --> PRECOND{Pre-execution<br/>Condition Check}
+
+    PRECOND -->|condition=false| SKIP[Skip Task<br/>• Log skip<br/>• Continue flow]
+    PRECOND -->|condition=true| EXEC[Execute Task<br/>• Run command<br/>• Capture output<br/>• Record timing]
+
+    EXEC --> SUCCESS{Success Check<br/>success= or<br/>default exit_0}
+
+    SUCCESS -->|Success| POSTFLOW[Post-execution<br/>Flow Control<br/>next=]
+    SUCCESS -->|Failure| POSTFLOW
+
+    POSTFLOW -->|next=true| SLEEP[Sleep<br/>N seconds]
+    POSTFLOW -->|next=false| NEXTTASK
+    POSTFLOW -->|next=loop| LOOPCHECK{Loop Check<br/>loop= count<br/>loop_break=}
+    POSTFLOW -->|next=never| NEXTTASK
+    POSTFLOW -->|on_success=ID| ROUTING[Success/Failure<br/>Routing]
+    POSTFLOW -->|on_failure=ID| ROUTING
+
+    LOOPCHECK -->|Continue Loop| EXEC
+    LOOPCHECK -->|Exit Loop| NEXTTASK
+
+    SLEEP --> NEXTTASK
+    SKIP --> NEXTTASK
+    ROUTING --> NEXTTASK
+
+    NEXTTASK[Next Task / End<br/>• Sequential: Next task ID<br/>• Parallel: Aggregate results<br/>• Conditional: Branch selection<br/>• End: Return with exit code]
 ```
 
 #### Execution Engine Interaction
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                    TASKER 2.0 Engine Architecture                          │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐      │
-│  │   TASK INPUT    │      │   VALIDATION    │      │   EXECUTION     │      │
-│  │                 │      │                 │      │                 │      │
-│  │  • task.txt     │──────│  • Syntax       │──────│  • Engine       │      │
-│  │  • Global vars  │      │  • Dependencies │      │    Selection    │      │
-│  │  • CLI params   │      │  • Host check   │      │  • Context      │      │
-│  │                 │      │  • Exec types   │      │    Setup        │      │
-│  └─────────────────┘      └─────────────────┘      └─────┬───────────┘      │
-│                                                          │                  │
-│                                                          ▼                  │
-│  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │                     EXECUTION ENGINES                               │   │
-│  │                                                                      │   │
-│  │  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐        │   │
-│  │  │  SEQUENTIAL    │  │   PARALLEL     │  │  CONDITIONAL   │        │   │
-│  │  │                │  │                │  │                │        │   │
-│  │  │ • Task-by-task │  │ • Multi-thread │  │ • Branch logic │        │   │
-│  │  │ • Flow control │  │ • Retry logic  │  │ • Dynamic flow │        │   │
-│  │  │ • Loop support │  │ • Aggregation  │  │ • Condition    │        │   │
-│  │  │ • Conditions   │  │ • Timeout mgmt │  │   evaluation   │        │   │
-│  │  │                │  │ • Statistics   │  │ • Task routing │        │   │
-│  │  └────────────────┘  └────────────────┘  └────────────────┘        │   │
-│  │                                                                      │   │
-│  └──────────────────────────────────────────────────────────────────────┘   │
-│                                                                             │
-│  ┌─────────────────┐      ┌─────────────────┐      ┌─────────────────┐      │
-│  │    RESULTS      │      │     LOGGING     │      │     OUTPUT      │      │
-│  │                 │      │                 │      │                 │      │
-│  │  • Task results │──────│  • Structured   │──────│  • Exit codes   │      │
-│  │  • Exit codes   │      │  • Debug levels │      │  • Log files    │      │
-│  │  • Output data  │      │  • Performance  │      │  • Project      │      │
-│  │  • Statistics   │      │  • Validation   │      │    summaries    │      │
-│  └─────────────────┘      └─────────────────┘      └─────────────────┘      │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "INPUT LAYER"
+        INPUT[Task Input<br/>• task.txt<br/>• Global vars<br/>• CLI params]
+    end
+
+    subgraph "VALIDATION LAYER"
+        VALID[Validation<br/>• Syntax<br/>• Dependencies<br/>• Host check<br/>• Exec types]
+    end
+
+    subgraph "EXECUTION LAYER"
+        EXEC_SEL[Execution<br/>• Engine Selection<br/>• Context Setup]
+    end
+
+    subgraph "EXECUTION ENGINES"
+        SEQ[Sequential Engine<br/>• Task-by-task<br/>• Flow control<br/>• Loop support<br/>• Conditions]
+        PAR[Parallel Engine<br/>• Multi-threading<br/>• Retry logic<br/>• Aggregation<br/>• Timeout mgmt<br/>• Statistics]
+        COND[Conditional Engine<br/>• Branch logic<br/>• Dynamic flow<br/>• Condition evaluation<br/>• Task routing]
+    end
+
+    subgraph "OUTPUT LAYER"
+        RESULTS[Results<br/>• Task results<br/>• Exit codes<br/>• Output data<br/>• Statistics]
+        LOGGING[Logging<br/>• Structured<br/>• Debug levels<br/>• Performance<br/>• Validation]
+        OUTPUT[Output<br/>• Exit codes<br/>• Log files<br/>• Project summaries]
+    end
+
+    INPUT --> VALID
+    VALID --> EXEC_SEL
+    EXEC_SEL --> SEQ
+    EXEC_SEL --> PAR
+    EXEC_SEL --> COND
+    SEQ --> RESULTS
+    PAR --> RESULTS
+    COND --> RESULTS
+    RESULTS --> LOGGING
+    LOGGING --> OUTPUT
 ```
 
 ## Modular Architecture
 
 TASKER 2.0 is built on a professional modular architecture that separates concerns and enables maintainable, scalable code:
 
-```
-TASKER 2.0 Architecture
-┌─────────────────────────────────────────────────────────────────┐
-│                         tasker.py                              │
-│                    (Main Entry Point)                          │
-└─────────────────────┬───────────────────────────────────────────┘
-                      │
-┌─────────────────────────────────────────────────────────────────┐
-│                   Core Framework                               │
-├─────────────────────────────────────────────────────────────────┤
-│ TaskExecutor     │ Utilities         │ ExecutionContext        │
-│ • Lifecycle      │ • Exit Codes      │ • Callback Management   │
-│ • Logging        │ • Conversion      │ • State Coordination    │
-│ • Orchestration  │ • Formatting      │ • Debug Infrastructure  │
-└─────────────────────────────────────────────────────────────────┘
-                      │
-┌─────────────────────────────────────────────────────────────────┐
-│                 Execution Engines                              │
-├─────────────────────────────────────────────────────────────────┤
-│ Sequential       │ Parallel          │ Conditional             │
-│ • Standard Flow  │ • Multi-threading │ • Branch Logic          │
-│ • Loops & Logic  │ • Retry Systems   │ • Dynamic Routing       │
-│ • Error Handling │ • Aggregation     │ • Condition Evaluation  │
-└─────────────────────────────────────────────────────────────────┘
-                      │
-┌─────────────────────────────────────────────────────────────────┐
-│                 Validation Systems                             │
-├─────────────────────────────────────────────────────────────────┤
-│ Task Validator   │ Host Validator    │ Condition Evaluator     │
-│ • Syntax Check   │ • DNS Resolution  │ • Variable Replacement  │
-│ • Dependencies   │ • Connectivity    │ • Expression Parsing    │
-│ • Structure      │ • Exec Types      │ • Boolean Logic         │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    MAIN[tasker.py<br/>Main Entry Point]
+
+    subgraph "CORE FRAMEWORK"
+        EXEC[TaskExecutor<br/>• Lifecycle<br/>• Logging<br/>• Orchestration]
+        UTIL[Utilities<br/>• Exit Codes<br/>• Conversion<br/>• Formatting]
+        CTX[ExecutionContext<br/>• Callback Management<br/>• State Coordination<br/>• Debug Infrastructure]
+    end
+
+    subgraph "EXECUTION ENGINES"
+        SEQ_ENG[Sequential<br/>• Standard Flow<br/>• Loops & Logic<br/>• Error Handling]
+        PAR_ENG[Parallel<br/>• Multi-threading<br/>• Retry Systems<br/>• Aggregation]
+        COND_ENG[Conditional<br/>• Branch Logic<br/>• Dynamic Routing<br/>• Condition Evaluation]
+    end
+
+    subgraph "VALIDATION SYSTEMS"
+        TASK_VAL[Task Validator<br/>• Syntax Check<br/>• Dependencies<br/>• Structure]
+        HOST_VAL[Host Validator<br/>• DNS Resolution<br/>• Connectivity<br/>• Exec Types]
+        COND_VAL[Condition Evaluator<br/>• Variable Replacement<br/>• Expression Parsing<br/>• Boolean Logic]
+    end
+
+    MAIN --> EXEC
+    EXEC --> UTIL
+    EXEC --> CTX
+    EXEC --> SEQ_ENG
+    EXEC --> PAR_ENG
+    EXEC --> COND_ENG
+    EXEC --> TASK_VAL
+    EXEC --> HOST_VAL
+    EXEC --> COND_VAL
 ```
 
 ## Installation
@@ -383,18 +339,16 @@ The task executor creates and uses the following directory structure by default:
 
 ```
 ~/TASKER/
-├── logs/
-│   ├── tasker_20240115_143015.log          # Detailed execution log
-│   ├── project_DEPLOYMENT_2024_summary.log # Project summary
-│   └── validation_report_20240115.log      # Validation details
-└── tasks/
-    ├── deployment_20240115_143015.txt      # Task file backup
-    └── maintenance_20240115_143015.txt     # Task file backup
+├── tasker_20240115_143015.log              # Detailed execution log
+├── project_DEPLOYMENT_2024_summary.log     # Project summary
+├── validation_report_20240115.log          # Validation details
+├── deployment_20240115_143015.txt          # Task file backup
+└── maintenance_20240115_143015.txt         # Task file backup
 ```
 
 Each task file execution creates:
-1. A timestamped log file in the logs directory
-2. A timestamped copy of the task file in the tasks directory
+1. A timestamped log file in the TASKER directory
+2. A timestamped copy of the task file in the TASKER directory
 
 If used with `-p <project>`, you will also find:
 - A project summary file of all tasks run under this project ID (append mode)

@@ -35,21 +35,21 @@ graph TD
 task=0
 hostname=web-server
 command=ping -c 1 api.service
-next=success          # Continue only if ping succeeds
-on_success=1          # If success, go to task 1
-on_failure=2          # If failure, go to task 2
+next=exit_0           # Continue only if exit code is 0 (success)
+on_success=1          # If exit code is 0, go to task 1
+on_failure=2          # If exit code is not 0, go to task 2
 
 # Task 1: Log successful status
 task=1
 hostname=log-server
 command=echo "Service is healthy"
-# No next condition - workflow ends here
+next=never            # STOP here - don't continue to task 2
 
-# Task 2: Alert about failure
+# Task 2: Alert about failure (only reached via on_failure=2)
 task=2
 hostname=alert-server
 command=send_alert "Service is down!"
-# After alert, continue to task 3
+# After alert, continue to task 3 (default sequential flow)
 
 # Task 3: Try to restart the service
 task=3
@@ -61,10 +61,11 @@ command=restart_service.sh
 **Run it:** `tasker -r health_check.txt` ✨
 
 **🎯 What This Example Shows:**
-- **`next=success`**: Continue to next task only if current task succeeds
-- **`on_success=1`**: Jump to task 1 if the success criteria is met
-- **`on_failure=2`**: Jump to task 2 if the task fails
-- **Sequential flow**: Task 2 continues to task 3 automatically (no `next` condition)
+- **`next=exit_0`**: Continue to next task only if exit code is 0
+- **`on_success=1`**: Jump to task 1 if exit code is 0
+- **`on_failure=2`**: Jump to task 2 if exit code is not 0
+- **`next=never`**: Stop sequential execution (firewall)
+- **Default flow**: Task 2 continues to task 3 automatically (no `next` condition)
 
 **🚀 Why TASKER?**
 - **Zero Coding Required**: Write workflows in simple text files
@@ -137,92 +138,99 @@ That's it! You've just executed your first TASKER workflow.
 
 ## Task File Format
 
-TASKER uses a simple key-value format where each task is defined by parameters. Tasks are executed in order by their `task` ID.
+TASKER uses a simple key-value format where each task is defined by parameters. Tasks are executed based on their execution model (sequential by default, parallel, or conditional).
 
-### Required Parameters
+### Sequential Execution Parameters (Default Mode)
 
-Every task needs these essential parameters:
-
-```
-task=0                    # Unique task ID (0, 1, 2, ...)
-hostname=server1          # Target server hostname
-command=deploy            # Command to execute
-```
-
-### Optional Parameters
-
-Enhance your tasks with these optional parameters:
+Standard task-by-task execution with flow control:
 
 ```
-task=0
-hostname=server1
-command=deploy
-arguments=--version=1.2.3         # Command arguments
-exec=pbrun                        # Execution type (pbrun, p7s, local, wwrs)
-timeout=120                       # Command timeout in seconds (5-3600)
-sleep=10                          # Sleep after task execution (0-300)
-condition=@ENVIRONMENT@=production # Pre-execution condition
-success=exit_0&stdout~complete    # Custom success criteria
-next=exit_0                       # Flow control condition
-on_success=5                      # Jump to task 5 on success
-on_failure=99                     # Jump to task 99 on failure
-loop=3                            # Repeat task 3 additional times
-return=0                          # Exit workflow with return code
+# Sequential task example with all supported parameters
+task=0                           # § Unique task ID (required)
+hostname=server1                 # § Target server hostname (required)
+command=deploy                   # § Command to execute (required)
+arguments=--version=1.2.3        # Command arguments
+exec=pbrun                       # Execution type (pbrun, p7s, local, wwrs)
+timeout=120                      # Command timeout in seconds (5-3600)
+sleep=10                         # Sleep after task execution (0-300)
+success=exit_0&stdout~complete   # Custom success criteria (default: exit_0)
+condition=@ENVIRONMENT@=prod     # Pre-execution condition (skip if false)
+next=exit_0                      # Post-execution flow control
+on_success=5                     # Jump to task 5 on success
+on_failure=99                    # Jump to task 99 on failure
+loop=3                           # Repeat task 3 additional times (sequential only)
+loop_break=@0_stdout@~done       # Break loop condition (sequential only)
+stdout_split=space,0             # Split output and select element
+stderr_split=\n,1               # Split error output by newline (using literal \n)
+```
+
+§ = Required for tasks that execute commands
+
+**Special Sequential Tasks:**
+```
+# Return task (exits workflow)
+task=99
+return=0                         # Exit with code 0-255 (no hostname/command needed)
 ```
 
 ### Parallel Execution Parameters
 
-Execute multiple tasks simultaneously with sophisticated control and retry logic:
+Execute multiple tasks simultaneously with sophisticated control:
 
 ```
-# Parallel execution example
+# Parallel task example with all supported parameters
 task=1
-type=parallel                   # Enable parallel execution mode
-max_parallel=5                  # Maximum concurrent tasks
-tasks=100,101,102,103,104       # Task IDs to execute in parallel
-timeout=30                      # Master timeout for all parallel tasks
-retry_failed=true               # Enable retry for failed tasks
-retry_count=3                   # Number of retry attempts (1-10)
-retry_delay=2                   # Delay between retries in seconds (1-300)
-next=min_success=3              # Require at least 3 tasks to succeed
-on_success=10                   # Jump to task 10 if condition met
-on_failure=99                   # Jump to task 99 if condition failed
+type=parallel                    # § Required: Must be "parallel"
+tasks=100,101,102,103,104        # § Required: Task IDs to execute
+max_parallel=5                   # Maximum concurrent tasks (default: all)
+timeout=30                       # Master timeout for all tasks
+retry_failed=true                # Enable retry for failed tasks
+retry_count=3                    # Number of retry attempts (0-10)
+retry_delay=2                    # Delay between retries (0-300)
+next=min_success=3               # Success evaluation condition
+on_success=10                    # Jump if next condition met
+on_failure=99                    # Jump if next condition not met
+# Note: loop and loop_break are NOT supported for parallel tasks
 ```
 
-**Parallel Task Control:**
-- `type=parallel`: Enable parallel execution mode
-- `max_parallel=N`: Maximum concurrent tasks (1-50)
-- `tasks=X,Y,Z`: Comma-separated task IDs to execute in parallel
-- `timeout=N`: Master timeout applies to ALL parallel tasks
-- `retry_failed=true/false`: Enable automatic retry for failed tasks
-- `retry_count=N`: Number of retry attempts per failed task (1-10)
-- `retry_delay=N`: Seconds to wait between retry attempts (1-300)
+§ = Required for parallel tasks
 
-**Parallel Success Conditions:**
-- `next=min_success=N`: Minimum number of tasks that must succeed
-- `next=max_failed=N`: Maximum number of tasks allowed to fail
-- `next=all_success`: All parallel tasks must succeed
-- `next=any_success`: At least one task must succeed
-- `next=majority_success`: More than 50% of tasks must succeed
+**Parallel `next` Conditions:**
+- `min_success=N`: At least N tasks must succeed
+- `max_failed=N`: At most N tasks can fail
+- `all_success`: All tasks must succeed (default)
+- `any_success`: At least one task must succeed
+- `majority_success`: More than 50% must succeed
+
+**Referenced Tasks:**
+Tasks referenced in `tasks=` parameter use their own parameters including:
+- Individual `success` criteria (respected for retry decisions)
+- Individual `timeout` (overridden by master timeout)
+- Individual `hostname`, `command`, `arguments`, etc.
 
 ### Conditional Execution Parameters
 
-Execute different task branches based on runtime conditions with **custom execution sequences**:
+Branch execution based on runtime conditions with custom task sequences:
 
 ```
-# Conditional execution example
+# Conditional task example with all supported parameters
 task=5
-type=conditional                # Enable conditional execution mode
-condition=@ENVIRONMENT@=production&@0_success@=True
-if_true_tasks=200,201,202       # Tasks to execute if condition is TRUE
-if_false_tasks=300,301          # Tasks to execute if condition is FALSE
-timeout=60                      # Master timeout for all conditional tasks
-retry_failed=true               # Enable retry for individual failed tasks in the branch
-retry_count=2                   # Retry attempts per failed task (not the whole branch)
-next=all_success                # All conditional tasks must succeed
-on_success=10                   # Jump to task 10 if condition met
-on_failure=99                   # Jump to task 99 if condition failed
+type=conditional                 # § Required: Must be "conditional"
+condition=@ENV@=production       # § Required: Boolean expression to evaluate
+if_true_tasks=200,201,202        # Task IDs for TRUE branch (custom order)
+if_false_tasks=300,301           # Task IDs for FALSE branch (custom order)
+timeout=60                       # Master timeout for branch tasks
+retry_failed=true                # Enable retry for failed tasks in branch
+retry_count=2                    # Retry attempts per failed task
+retry_delay=5                    # Delay between retries (0-300)
+next=all_success                 # Success evaluation (like parallel)
+on_success=10                    # Jump if next condition met
+on_failure=99                    # Jump if next condition not met
+# Note: loop and loop_break are NOT supported for conditional tasks
 ```
+
+§ = Required for conditional tasks
+Note: At least one of `if_true_tasks` or `if_false_tasks` must be specified
 
 **The Power of Task Lists in Conditional Execution:**
 
@@ -321,13 +329,13 @@ success=exit_0                  # Custom success criteria
 
 ### Output Processing Parameters
 
-Extract specific data from command output using split operations:
+Extract specific data from command output using simple split operations. These are basic functions for common extraction needs.
 
 ```
 task=0
 hostname=server1
 command=df -h /data
-stdout_split=newline,1          # Get second line (data row)
+stdout_split=\n,1               # Get second line (split by literal newline)
 exec=local
 
 task=1
@@ -343,25 +351,56 @@ command=process_data
 arguments=--config=@1_stdout@   # Uses "key2=value2" from split
 ```
 
+**For Complex Processing:**
+
+If you need more sophisticated text processing beyond simple splits, use `exec=local` with command-line tools:
+
+```
+# Using awk for complex extraction
+task=10
+hostname=localhost
+command=echo "@5_stdout@" | awk '{print $3 "/" $4}'
+exec=local
+
+# Using sed for pattern replacement
+task=11
+hostname=localhost
+command=echo "@5_stdout@" | sed 's/error/warning/gi'
+exec=local
+
+# Using perl one-liner for advanced processing
+task=12
+hostname=localhost
+command=echo "@5_stdout@" | perl -pe 's/(\d+)\.(\d+)/v$1.$2/g'
+exec=local
+
+# Using external script for complex logic
+task=13
+hostname=localhost
+command=/usr/local/bin/process_output.sh
+arguments="@5_stdout@"
+exec=local
+```
+
 **Output Split Parameters:**
 - `stdout_split=DELIMITER,INDEX`: Split stdout and select element at INDEX
 - `stderr_split=DELIMITER,INDEX`: Split stderr and select element at INDEX
 
 **Delimiter Options:**
-- `space`: Split by spaces
-- `newline`: Split by line breaks
+- `space`: Split by any whitespace (spaces, tabs, newlines)
+- `tab`: Split by tab characters
 - `comma`: Split by commas
-- `colon`: Split by colons
-- `semicolon`: Split by semicolons
+- `semi`: Split by semicolons
 - `pipe`: Split by pipe character (|)
-- `tab`: Split by tabs
-- Any custom string: Split by that exact string
+- Any other string: Split by that exact string (e.g., ":", ";;", "---")
 
 **Index Selection:**
 - `0`: First element (zero-based indexing)
 - `1`: Second element
 - `-1`: Last element (negative indexing supported)
 - Out of bounds: Returns original output with warning
+
+**Note:** For newlines use literal `\n`, for colons use `:`, etc. The `space` keyword matches any whitespace including newlines and tabs.
 
 **Practical Examples:**
 
@@ -370,7 +409,7 @@ arguments=--config=@1_stdout@   # Uses "key2=value2" from split
 task=0
 hostname=server1
 command=df -h /data
-stdout_split=newline,1          # Get data row (skip header)
+stdout_split=\n,1               # Get data row (split by literal newline)
 exec=local
 
 task=1
@@ -391,7 +430,7 @@ exec=local
 task=3
 hostname=app-server
 command=deploy_application
-stderr_split=newline,0          # Get first error line only
+stderr_split=\n,0               # Get first error line (split by literal newline)
 on_failure=99
 
 task=99
@@ -451,37 +490,85 @@ arguments=@SERVICE_NAME@ @VERSION@
 
 ### When to Use Global Variables
 
-**Environment Management:**
+**Primary Rule: Use a global variable when the same value appears in multiple tasks.**
+
+This makes your task files work like templates - update one variable, all tasks using it are updated automatically.
+
+**Common Use Cases:**
+
+**1. Template-Based Task Files:**
 ```
-ENVIRONMENT=production
-DB_HOST=@ENVIRONMENT@-database.company.com
+# Define once, use many times
+TARGET_HOST=prod-db-01
+PACKAGE_NAME=nginx
+SERVICE_NAME=nginx
+
+# All these tasks now use the same values
+task=0
+hostname=@TARGET_HOST@
+command=check_package
+arguments=@PACKAGE_NAME@
+
+task=1
+hostname=@TARGET_HOST@
+command=stop_service
+arguments=@SERVICE_NAME@
+
+task=2
+hostname=@TARGET_HOST@
+command=update_package
+arguments=@PACKAGE_NAME@
+
+task=3
+hostname=@TARGET_HOST@
+command=start_service
+arguments=@SERVICE_NAME@
+
+# To run on different host/package: just change the global variables!
+```
+
+**2. Environment-Specific Deployments:**
+```
+# Switch entire workflow by changing one variable
+ENVIRONMENT=staging    # Change to 'production' for prod deployment
+APP_VERSION=v2.3.1
 
 task=0
-hostname=@ENVIRONMENT@-server1
-command=connect_database
-arguments=--host=@DB_HOST@
+hostname=@ENVIRONMENT@-web-01
+command=deploy
+arguments=--version=@APP_VERSION@
+
+task=1
+hostname=@ENVIRONMENT@-web-02
+command=deploy
+arguments=--version=@APP_VERSION@
+
+task=2
+hostname=@ENVIRONMENT@-db-01
+command=migrate_database
+arguments=--version=@APP_VERSION@
 ```
 
-**Version Control:**
+**3. Repeated Command Arguments:**
 ```
-APP_VERSION=v3.2.1
-DOCKER_TAG=@APP_VERSION@
+# Same options used across multiple tasks
+BACKUP_OPTIONS=--compress --encrypt --verify
+BACKUP_PATH=/backup/2024
 
 task=0
-hostname=build-server
-command=docker
-arguments=build -t myapp:@DOCKER_TAG@ .
-```
+hostname=server1
+command=backup_database
+arguments=@BACKUP_OPTIONS@ --dest=@BACKUP_PATH@/db
 
-**Scaling Configurations:**
-```
-MAX_INSTANCES=10
-REGION=us-west-2
+task=1
+hostname=server2
+command=backup_files
+arguments=@BACKUP_OPTIONS@ --dest=@BACKUP_PATH@/files
 
-task=0
-hostname=orchestrator
-command=scale_cluster
-arguments=--instances=@MAX_INSTANCES@ --region=@REGION@
+task=2
+hostname=server3
+command=backup_configs
+arguments=@BACKUP_OPTIONS@ --dest=@BACKUP_PATH@/config
 ```
 
 ### Global Variable Limitations
@@ -507,9 +594,9 @@ command=connect_database
 
 Control when and how tasks execute using conditions and flow control parameters.
 
-### Simple Conditions
+### Task Skipping with Conditions
 
-Execute tasks only when conditions are met:
+Use `condition` parameter to skip tasks when certain conditions aren't met:
 
 ```
 task=0
@@ -519,19 +606,49 @@ exec=local
 
 task=1
 hostname=web-server
-condition=@0_exit_code@=0  # Only run if previous task succeeded
+condition=@0_exit_code@=0  # Skip this task if service check failed
 command=restart_service
+
+task=2
+hostname=web-server
+condition=@0_exit_code@!=0  # Skip this task if service check succeeded
+command=send_alert
+arguments=Service check failed
 ```
+
+**Note:** `condition` determines whether a task runs or is skipped. For controlling workflow flow (stop/continue/jump), use `next`, `on_success`, and `on_failure`.
 
 ### Exit Code Conditions
 
 Exit codes are numeric values (0-255) returned by commands. **Exit code 0 means success**, non-zero indicates failure.
 
-**Common conditions:**
-- `exit_0`: Command succeeded (standard success)
-- `exit_1`: Command failed (general error)
-- `exit_127`: Command not found
+**Common flow control with exit codes:**
+- `next=exit_0`: Continue only if command succeeded
+- `next=exit_1`: Continue only if command failed with code 1
+- `next=exit_127`: Continue only if command not found
 
+**Using `next` for flow control based on exit codes:**
+```
+task=0
+hostname=health-check
+command=curl -f http://api/health
+exec=local
+next=exit_0           # Continue to task 1 only if health check passed
+on_failure=2          # Jump to task 2 if health check failed
+
+task=1
+hostname=notification
+command=send_alert
+arguments=API is healthy
+next=never            # Stop here - don't continue to task 2
+
+task=2
+hostname=notification
+command=send_alert
+arguments=API health check failed
+```
+
+**Using `condition` to skip tasks based on previous exit codes:**
 ```
 task=0
 hostname=health-check
@@ -539,39 +656,64 @@ command=curl -f http://api/health
 exec=local
 
 task=1
-condition=@0_exit_code@=0    # Proceed only if health check passed
-hostname=notification
-command=send_alert
-arguments=API is healthy
+condition=@0_exit_code@=0    # Skip this task if health check failed
+hostname=deployment
+command=deploy_new_version
 
 task=2
-condition=@0_exit_code@!=0   # Proceed only if health check failed
+condition=@0_exit_code@!=0   # Skip this task if health check succeeded
 hostname=notification
-command=send_alert
-arguments=API health check failed
+command=send_failure_alert
 ```
 
 ### Output Pattern Matching
 
-Use task output in conditions and subsequent tasks:
+Use task output for conditional execution and flow control:
 
+**Flow Control with Output Patterns (using `next`):**
+```
+task=0
+hostname=env-check
+command=detect_environment
+exec=local
+next=stdout~production     # Continue only if output contains "production"
+on_success=10              # Jump to production tasks
+on_failure=20              # Jump to non-production tasks
+
+# Production workflow
+task=10
+hostname=prod-server
+command=deploy_to_production
+next=never                 # Stop here - don't fall through to task 20
+
+# Non-production workflow
+task=20
+hostname=dev-server
+command=deploy_to_development
+```
+
+**Selective Task Execution (using `condition`):**
 ```
 task=0
 hostname=env-check
 command=detect_environment
 exec=local
 
-# Production deployment
+# These tasks run sequentially but skip based on conditions
 task=1
-condition=@0_stdout@~production
+condition=@0_stdout@~production    # Skip unless output contains "production"
 hostname=prod-server
 command=deploy_to_production
 
-# Development deployment
 task=2
-condition=@0_stdout@~development
+condition=@0_stdout@~development   # Skip unless output contains "development"
 hostname=dev-server
 command=deploy_to_development
+
+task=3
+condition=@0_stdout@~staging       # Skip unless output contains "staging"
+hostname=staging-server
+command=deploy_to_staging
 ```
 
 ### Success Criteria
@@ -582,24 +724,30 @@ Define custom success conditions beyond just exit codes:
 task=0
 hostname=backup-server
 command=backup_database
-success=exit_0&stdout~backup_complete
-exec=local
+success=exit_0&stdout~backup_complete    # Must exit 0 AND output contain "backup_complete"
+next=success                              # Use custom success criteria for flow control
+on_success=1                              # If success criteria met, go to task 1
+on_failure=99                             # If success criteria not met, go to task 99
 
 task=1
-condition=@0_success@=true  # Only run if backup actually completed
 hostname=notification
 command=send_success_alert
+arguments=Backup completed successfully
+next=never                                # Stop here
+
+task=99
+hostname=notification
+command=send_failure_alert
+arguments=Backup failed or incomplete
 ```
 
 ### Sequential Execution Flow with Success Criteria
 
-In sequential execution, the `next` parameter controls whether to continue to the next task. When you use `next=success`, it evaluates to the task's success status:
+When you use `next=success`, it simply evaluates to whatever the task's success criteria evaluates to:
 
-**How `next=success` works:**
-1. If a `success` parameter is defined: Uses that criteria (e.g., `success=exit_0&stdout~complete`)
-2. If no `success` parameter: Defaults to `exit_0` (task succeeds if exit code is 0)
-3. If the success criteria is met: Continues to next sequential task
-4. If the success criteria is NOT met: Stops sequential execution (unless `on_failure` is specified)
+- If `success` is defined: Uses that custom criteria
+- If `success` is not defined: Defaults to `exit_0`
+- Result: Continue if success=true, stop if success=false
 
 **Example - Custom Success with Flow Control:**
 ```
@@ -665,12 +813,10 @@ condition=@0_exit_code@!=0          # Exit code not 0
 condition=@1_exit_code@<5           # Previous task exit code less than 5
 condition=@2_exit_code@>=2          # Task 2's exit code >= 2
 
-# Numeric comparisons with predefined global variables
-# (Define these at the top of your task file)
-# MAX_RETRIES=5
-# THRESHOLD=80
-condition=@MAX_RETRIES@<10          # Global variable comparison
-condition=@THRESHOLD@<=100          # Global threshold check
+# Numeric comparisons with task results
+condition=@0_exit_code@<5           # Previous task exit code less than 5
+condition=@1_exit_code@>=2          # Task 1's exit code >= 2
+condition=@2_exit_code@!=0          # Task 2 failed (non-zero exit)
 
 # String operations with task output
 condition=@0_stdout@~success        # Output contains "success"
@@ -678,10 +824,10 @@ condition=@0_stderr@!~error         # Stderr doesn't contain "error"
 condition=@1_stdout@~complete       # Task 1's output contains "complete"
 condition=@2_stderr@=               # Task 2 had empty stderr
 
-# String operations with global variables
-condition=@ENVIRONMENT@=production   # Environment equals "production"
-condition=@HOSTNAME@!=localhost     # Hostname is not "localhost"
-condition=@SERVICE_TYPE@~web        # Service type contains "web"
+# Mixed comparisons with task results
+condition=@0_success@=true          # Task 0 met its success criteria
+condition=@1_stdout@!=@2_stdout@    # Compare outputs of two tasks
+condition=@3_exit_code@=0|@4_exit_code@=0  # Either task succeeded
 
 # Complex conditions with boolean operators
 condition=@0_exit_code@=0&@0_stdout@~complete     # AND condition
@@ -721,7 +867,7 @@ next=majority_success  # Continue if majority succeed
 # Conditional execution with retry
 task=30
 type=conditional
-condition=@ENVIRONMENT@=production
+condition=@29_stdout@~production   # Based on previous task output
 if_true_tasks=40,41,42
 if_false_tasks=50,51
 retry_failed=true
@@ -826,20 +972,37 @@ Parameters for branching based on runtime conditions:
 
 ### Output Processing Parameters (All Standard Tasks)
 
-Available for any task that executes a command:
+Simple extraction functions for any task that executes a command:
 
 | Parameter | Type | Description | Format |
 |-----------|------|-------------|--------|
 | `stdout_split` | String | Split stdout and select element | `DELIMITER,INDEX` |
 | `stderr_split` | String | Split stderr and select element | `DELIMITER,INDEX` |
 
-**Valid Delimiters:** `space`, `newline`, `comma`, `colon`, `semicolon`, `pipe`, `tab`, or any custom string
+**Valid Delimiters:** `space` (any whitespace), `tab`, `comma`, `semi`, `pipe`, or any custom string (e.g., `\n` for newline, `:` for colon)
 
-**Example:**
+**Simple Example:**
 ```
 task=0
 command=echo "apple,banana,cherry"
 stdout_split=comma,1    # Result: @0_stdout@ = "banana"
+```
+
+**Complex Processing Recommendation:**
+
+For advanced text processing beyond simple splits, use `exec=local` with Unix tools:
+```
+# Complex extraction with awk/sed/perl
+task=1
+hostname=localhost
+command=echo "@0_stdout@" | awk -F',' '{print $2 "=" $3}'
+exec=local
+
+# Or call external processing script
+task=2
+hostname=localhost
+command=/path/to/parser.py "@0_stdout@"
+exec=local
 ```
 
 ### Reserved/Planned Parameters
@@ -897,7 +1060,7 @@ next=min_success=3
 # Conditional task
 task=3
 type=conditional
-condition=@ENVIRONMENT@=production
+condition=@2_success@=true         # Based on task 2's success
 if_true_tasks=20,21,25    # Execute 20→21→25 (skip 22-24)
 if_false_tasks=30,35,31   # Execute 30→35→31 (custom order!)
 
@@ -1118,10 +1281,15 @@ Dynamic workflow branching based on runtime conditions - use ONLY when you need 
 
 **1. Data-Driven Decisions (BEFORE execution)**
 ```
-# Conditional: Choose deployment target based on environment variable
+# Conditional: Choose deployment based on previous detection
+task=0
+hostname=detector
+command=detect_environment
+exec=local
+
 task=1
 type=conditional
-condition=@ENVIRONMENT@=production
+condition=@0_stdout@~production    # Based on detected environment
 if_true_tasks=10,11    # Production deployment tasks
 if_false_tasks=20,21   # Development deployment tasks
 ```
@@ -1177,14 +1345,14 @@ if_true_tasks=10      # Continue deployment
 if_false_tasks=99     # Send error alert
 ```
 
-**Don't use on_success/on_failure for data-driven decisions:**
+**Don't use on_success/on_failure for pre-determined routing:**
 ```
-# IMPOSSIBLE - can't evaluate data before task execution
+# WRONG - on_success/on_failure respond to execution results, not pre-existing data
 task=1
-condition=@ENVIRONMENT@=production  # This checks data
-hostname=prod-server
-command=deploy_to_production
-on_success=2          # This only handles execution outcome
+hostname=server
+command=deploy
+on_success=2          # This only triggers based on deploy success/failure
+# Can't use on_success to route based on pre-existing conditions
 ```
 
 #### Summary: Choose the Right Model
@@ -1617,7 +1785,7 @@ exec=local
 task=0
 hostname=log-server
 command=tail -10 /var/log/app.log  # Limit output size
-stdout_split=newline,0             # Keep only first line
+stdout_split=\n,0               # Keep only first line (split by literal newline)
 exec=local
 ```
 
@@ -2372,6 +2540,61 @@ tasker --start-from=15 --validate-only workflow.txt
 ## Feature Requests
 
 This section documents potential enhancements that could improve TASKER's functionality in future versions.
+
+### Simplify Retry Configuration
+
+**Current Limitation**: Retry logic requires both `retry_failed=true` AND `retry_count=N` to be set, which is redundant.
+
+**Proposed Enhancement**: Automatically enable retry when `retry_count` is specified:
+```bash
+# Current (redundant):
+task=1
+type=parallel
+tasks=10,11,12
+retry_failed=true    # Why needed if retry_count is set?
+retry_count=3
+
+# Proposed (simplified):
+task=1
+type=parallel
+tasks=10,11,12
+retry_count=3        # Setting this automatically enables retry
+```
+
+**Benefits**:
+- Less verbose configuration
+- More intuitive - setting retry_count clearly indicates retry is desired
+- Reduces configuration errors from forgetting `retry_failed=true`
+
+**Backward Compatibility**: Keep `retry_failed` as optional override:
+- `retry_failed=false` with `retry_count=3` - explicitly disable despite count
+- No `retry_failed` with `retry_count=3` - automatically enable retry
+
+### Additional Delimiter Keywords for Output Splitting
+
+**Current Limitation**: The `newline` keyword is not recognized as a delimiter. Users must use literal `\n` to split by newlines.
+
+**Proposed Enhancement**: Add more intuitive delimiter keywords:
+- `newline` - Split by line breaks (\n)
+- `colon` - Split by colons (:)
+- `semicolon` - Split by semicolons (;) - currently must use `semi`
+
+**Example of Proposed Usage**:
+```bash
+# Proposed syntax (NOT currently supported)
+task=0
+hostname=server
+command=df -h
+stdout_split=newline,1    # More intuitive than \n,1
+
+# Currently must use:
+stdout_split=\n,1          # Works but less readable
+```
+
+**Benefits**:
+- More readable and intuitive task files
+- Consistent with other delimiter keywords like `space` and `comma`
+- Easier for users unfamiliar with escape sequences
 
 ### Global Variable Updates During Execution
 

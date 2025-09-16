@@ -2,89 +2,75 @@
 
 **No-Code Workflow Automation** - Transform complex operations into simple configuration files
 
+## Your First Workflow: Service Health Check
+
+Let's start with a simple example that checks if a service is running and takes action based on the result:
+
 ```mermaid
 graph TD
-    Start([📋 No-Code Workflow Automation<br/>Simple Text Config]) --> T1[Task 1: Deploy App<br/>🔄 Running...]
-    T1 --> Check1{Exit Code?<br/>stdout? stderr?}
+    Start([Start]) --> T0[Task 0: Check Service<br/>🔍 ping service]
+    T0 --> Check{Service<br/>Running?}
 
-    Check1 -->|✅ Success<br/>exit_0 & stdout~deployed| T2[Task 2: Start Service<br/>🔄 Running...]
-    Check1 -->|❌ Failure<br/>exit_1 or stderr~error| Error[Task 99: Send Alert<br/>📧 Notify team]
+    Check -->|✅ Success<br/>exit_0| T1[Task 1: Log Status<br/>✓ Service is healthy]
+    Check -->|❌ Failure<br/>exit_1| T2[Task 2: Alert Team<br/>⚠️ Service is down]
 
-    T2 --> Check2{Exit Code?<br/>stdout? stderr?}
-    Check2 -->|✅ Success<br/>exit_0 & stdout~started| T3[Task 3: Verify Health<br/>🔄 Running...]
-    Check2 -->|❌ Failure<br/>exit_1| Rollback[Task 10: Rollback<br/>⏪ Restore previous version]
-
-    T3 --> Check3{Exit Code?<br/>stdout? stderr?}
-    Check3 -->|✅ Success<br/>stdout~healthy| Success[🎉 Send Success Report<br/>📊 Notify completion]
-    Check3 -->|❌ Failure<br/>stdout~unhealthy| Rollback
-
-    Error --> End([🛑 Workflow Failed])
-    Success --> Complete([✅ Workflow Complete])
-    Rollback --> End
+    T1 --> End([End])
+    T2 --> T3[Task 3: Restart Service<br/>🔄 Attempting restart]
+    T3 --> End
 
     style Start fill:#e1f5fe
-    style T1 fill:#f3e5f5
-    style T2 fill:#f3e5f5
-    style T3 fill:#f3e5f5
-    style Check1 fill:#fff3e0
-    style Check2 fill:#fff3e0
-    style Check3 fill:#fff3e0
-    style Success fill:#e8f5e8
-    style Error fill:#ffebee
-    style Rollback fill:#fff3e0
-    style Complete fill:#e8f5e8
+    style T0 fill:#fff3e0
+    style Check fill:#ffebee
+    style T1 fill:#e8f5e8
+    style T2 fill:#ffebee
+    style T3 fill:#fff3e0
+    style End fill:#e1f5fe
 ```
+
+**The simple text configuration:**
+```
+# health_check.txt - Your first TASKER workflow!
+
+# Task 0: Check if service is running
+task=0
+hostname=web-server
+command=ping -c 1 api.service
+next=success          # Continue only if ping succeeds
+on_success=1          # If success, go to task 1
+on_failure=2          # If failure, go to task 2
+
+# Task 1: Log successful status
+task=1
+hostname=log-server
+command=echo "Service is healthy"
+# No next condition - workflow ends here
+
+# Task 2: Alert about failure
+task=2
+hostname=alert-server
+command=send_alert "Service is down!"
+# After alert, continue to task 3
+
+# Task 3: Try to restart the service
+task=3
+hostname=web-server
+command=restart_service.sh
+# Workflow ends after restart attempt
+```
+
+**Run it:** `tasker -r health_check.txt` ✨
+
+**🎯 What This Example Shows:**
+- **`next=success`**: Continue to next task only if current task succeeds
+- **`on_success=1`**: Jump to task 1 if the success criteria is met
+- **`on_failure=2`**: Jump to task 2 if the task fails
+- **Sequential flow**: Task 2 continues to task 3 automatically (no `next` condition)
 
 **🚀 Why TASKER?**
 - **Zero Coding Required**: Write workflows in simple text files
 - **Smart Decision Making**: Automatic routing based on command results
 - **Built-in Intelligence**: Detects success/failure from exit codes, stdout, stderr
 - **Enterprise Ready**: Scales from 1 to 1000+ servers effortlessly
-
-**The workflow above is created with this simple text file:**
-```
-# deployment.txt - No programming required!
-task=1
-hostname=app-server
-command=deploy_application
-success=exit_0&stdout~deployed
-on_success=2
-on_failure=99
-
-task=2
-hostname=app-server
-command=start_service
-success=exit_0&stdout~started
-on_success=3
-on_failure=10
-
-task=3
-hostname=app-server
-command=health_check
-success=stdout~healthy
-on_success=100
-on_failure=10
-
-task=10
-hostname=app-server
-command=rollback_deployment
-on_success=100
-next=never
-
-task=99
-hostname=notification
-command=send_alert
-arguments=Deployment failed on app-server
-next=never
-
-task=100
-hostname=notification
-command=send_success_report
-arguments=Deployment completed successfully
-next=never
-```
-
-**Run it:** `tasker -r deployment.txt` ✨
 
 ---
 
@@ -221,7 +207,7 @@ on_failure=99                   # Jump to task 99 if condition failed
 
 ### Conditional Execution Parameters
 
-Execute different task branches based on runtime conditions:
+Execute different task branches based on runtime conditions with **custom execution sequences**:
 
 ```
 # Conditional execution example
@@ -230,12 +216,81 @@ type=conditional                # Enable conditional execution mode
 condition=@ENVIRONMENT@=production&@0_success@=True
 if_true_tasks=200,201,202       # Tasks to execute if condition is TRUE
 if_false_tasks=300,301          # Tasks to execute if condition is FALSE
-timeout=60                      # Master timeout for conditional tasks
-retry_failed=true               # Enable retry for failed conditional tasks
-retry_count=2                   # Retry attempts for failed tasks
+timeout=60                      # Master timeout for all conditional tasks
+retry_failed=true               # Enable retry for individual failed tasks in the branch
+retry_count=2                   # Retry attempts per failed task (not the whole branch)
 next=all_success                # All conditional tasks must succeed
 on_success=10                   # Jump to task 10 if condition met
 on_failure=99                   # Jump to task 99 if condition failed
+```
+
+**The Power of Task Lists in Conditional Execution:**
+
+When you specify multiple tasks in `if_true_tasks` or `if_false_tasks`, TASKER creates a **forced sequential execution** that:
+1. **Ignores individual task flow control** (on_success, on_failure, next)
+2. **Respects individual task success criteria** for determining success/failure
+3. **Executes tasks in the exact order listed**
+4. **Allows non-sequential task IDs** for custom execution paths
+
+**Example - Custom Execution Sequences:**
+```
+# Define reusable task groups out of numerical order
+task=5
+type=conditional
+condition=@DEPLOY_TYPE@=emergency
+if_true_tasks=100,300,150,400    # Skip tasks 101-149, 151-299, 301-399!
+if_false_tasks=200,201,202        # Normal sequential deployment
+
+# Emergency path executes: 100 → 300 → 150 → 400 (custom order!)
+# Normal path executes: 200 → 201 → 202 (sequential)
+
+# Individual task parameters when executed via conditional:
+task=100
+hostname=server1
+command=emergency_stop
+success=exit_0&stdout~stopped    # RESPECTED - determines success/failure and retry
+on_success=999    # IGNORED when executed via conditional!
+on_failure=888    # IGNORED when executed via conditional!
+
+task=300
+hostname=server2
+command=force_backup
+success=exit_0     # RESPECTED - defaults to exit_0 if not specified
+next=never        # IGNORED when executed via conditional!
+```
+
+**Why List Multiple Tasks?**
+- **Create custom workflows**: `if_true_tasks=100,500,200` executes out of order
+- **Skip intermediate tasks**: `if_true_tasks=100,110,120` skips 101-109, 111-119
+- **Build reusable groups**: Define task groups that can be called from multiple conditions
+- **Override flow control**: Force specific execution paths regardless of individual task settings
+
+**Retry Logic in Conditional Tasks:**
+
+When `retry_failed=true` is set on a conditional task:
+- **Applies to individual tasks** within the chosen branch (not the condition evaluation)
+- **Each failed task** is retried independently up to `retry_count` times
+- **Uses task's own `success` criteria** to determine if retry is needed (defaults to `exit_0` if not specified)
+- **Sequential retry**: Task 201 fails → retry 201 → if still fails, continue to 202
+- **Use cases**: Flaky network operations, transient service issues, resource contention
+
+Example:
+```
+task=5
+type=conditional
+condition=@ENV@=production
+if_true_tasks=100,101,102    # Deploy tasks that might fail
+retry_failed=true             # Retry each failed task
+retry_count=3                 # Up to 3 attempts per task
+retry_delay=5                 # Wait 5 seconds between retries
+
+# Individual task success criteria IS respected:
+task=101
+hostname=deploy-server
+command=deploy_service
+success=exit_0&stdout~deployed    # THIS criteria determines if retry is needed!
+# If task 101 doesn't meet success criteria: Retry up to 3 times
+# The task's on_success/on_failure are IGNORED, but success criteria is USED
 ```
 
 **Conditional Task Control:**
@@ -536,6 +591,58 @@ hostname=notification
 command=send_success_alert
 ```
 
+### Sequential Execution Flow with Success Criteria
+
+In sequential execution, the `next` parameter controls whether to continue to the next task. When you use `next=success`, it evaluates to the task's success status:
+
+**How `next=success` works:**
+1. If a `success` parameter is defined: Uses that criteria (e.g., `success=exit_0&stdout~complete`)
+2. If no `success` parameter: Defaults to `exit_0` (task succeeds if exit code is 0)
+3. If the success criteria is met: Continues to next sequential task
+4. If the success criteria is NOT met: Stops sequential execution (unless `on_failure` is specified)
+
+**Example - Custom Success with Flow Control:**
+```
+task=0
+hostname=database-server
+command=backup_database
+success=exit_0&stdout~100%       # Must complete AND show 100%
+next=success                      # Continue ONLY if success criteria met
+# If backup succeeds (exit 0 AND output contains "100%"), continue to task 1
+# If backup fails, stop here (no task 1 execution)
+
+task=1
+hostname=notification-server
+command=send_backup_complete
+# This task only runs if task 0's success criteria was met
+```
+
+**Example - Using on_failure with next=success:**
+```
+task=0
+hostname=critical-server
+command=critical_operation
+success=exit_0&stderr!~error     # Success: exit 0 AND no errors in stderr
+next=success                      # Evaluate using success criteria
+on_failure=99                     # If success criteria not met, jump to task 99
+
+task=1
+hostname=next-server
+command=continue_workflow
+# Only reached if task 0's success criteria was met
+
+task=99
+hostname=alert-server
+command=send_failure_alert
+# Only reached if task 0's success criteria was NOT met
+```
+
+**Important Notes:**
+- Without `next=success`, tasks continue regardless of custom success criteria (backward compatibility)
+- `next=success` respects your custom `success` parameter if defined
+- Combines well with `on_success` and `on_failure` for complex branching
+- Default behavior (no `next` parameter): Continue to next task
+
 ### Advanced Condition Operators
 
 TASKER supports comprehensive comparison operators for sophisticated condition evaluation:
@@ -552,25 +659,37 @@ TASKER supports comprehensive comparison operators for sophisticated condition e
 
 **Examples:**
 ```
-# Numeric comparisons
+# Numeric comparisons with task results
 condition=@0_exit_code@=0           # Exit code equals 0
 condition=@0_exit_code@!=0          # Exit code not 0
-condition=@RETRY_COUNT@<5           # Less than 5 retries
-condition=@CPU_USAGE@<=80           # CPU usage at or below 80%
-condition=@QUEUE_SIZE@>100          # Queue size exceeds 100
-condition=@MEMORY_PCT@>=90          # Memory at or above 90%
+condition=@1_exit_code@<5           # Previous task exit code less than 5
+condition=@2_exit_code@>=2          # Task 2's exit code >= 2
 
-# String operations
+# Numeric comparisons with predefined global variables
+# (Define these at the top of your task file)
+# MAX_RETRIES=5
+# THRESHOLD=80
+condition=@MAX_RETRIES@<10          # Global variable comparison
+condition=@THRESHOLD@<=100          # Global threshold check
+
+# String operations with task output
 condition=@0_stdout@~success        # Output contains "success"
 condition=@0_stderr@!~error         # Stderr doesn't contain "error"
+condition=@1_stdout@~complete       # Task 1's output contains "complete"
+condition=@2_stderr@=               # Task 2 had empty stderr
+
+# String operations with global variables
 condition=@ENVIRONMENT@=production   # Environment equals "production"
 condition=@HOSTNAME@!=localhost     # Hostname is not "localhost"
+condition=@SERVICE_TYPE@~web        # Service type contains "web"
 
 # Complex conditions with boolean operators
 condition=@0_exit_code@=0&@0_stdout@~complete     # AND condition
 condition=@0_success@=true|@1_success@=true       # OR condition
 condition=@0_exit_code@=0&(@0_stdout@~done|@0_stdout@~finished)  # Nested conditions
 ```
+
+**Note:** Global variables must be defined at the start of your task file and are read-only during execution. Dynamic variable updates during task execution are not yet supported (see Feature Requests section).
 
 **Note on Output Count Conditions:**
 The `stdout_count` and `stderr_count` parameters are planned features but not yet implemented. They are reserved for future versions that will support counting lines in command output.
@@ -624,9 +743,11 @@ retry_delay=5        # 5 second retry delay
 
 ## Complete Parameter Field Reference
 
-This section provides a comprehensive reference of all valid task parameters in TASKER.
+This section provides a comprehensive reference of all valid task parameters in TASKER, organized by execution model.
 
-### Core Task Parameters
+### Core Task Parameters (All Execution Models)
+
+These parameters are fundamental to all task types:
 
 | Parameter | Required | Type | Description | Valid Values/Range |
 |-----------|----------|------|-------------|-------------------|
@@ -637,48 +758,75 @@ This section provides a comprehensive reference of all valid task parameters in 
 | `exec` | No | String | Execution method | `pbrun`, `p7s`, `local`, `wwrs` (default: pbrun for remote) |
 | `timeout` | No | Integer | Command timeout in seconds | 5-3600 (default: 30) |
 | `sleep` | No | Integer | Delay after task completion | 0-300 seconds |
+| `success` | No | String | Custom success criteria | `exit_0` (default), `stdout~text`, combinations |
 
-*Required for normal tasks, not required for `return` tasks or special task types
+*Required for standard tasks executing commands. Not required for `type=parallel`, `type=conditional`, or `return` tasks.
 
-### Flow Control Parameters
+### Sequential Execution Parameters (Default Mode)
+
+Parameters specific to sequential task execution:
 
 | Parameter | Type | Description | Example Values |
 |-----------|------|-------------|----------------|
+| `condition` | String | Pre-execution condition (skip if false) | `@VAR@=value`, boolean expressions |
+| `next` | String | Post-execution flow control | `exit_0`, `success`, `never`, `loop` |
 | `on_success` | Integer | Task ID to jump to on success | Any valid task ID |
 | `on_failure` | Integer | Task ID to jump to on failure | Any valid task ID |
-| `next` | String | Conditional flow control | `exit_0`, `never`, `all_success`, etc. |
 | `return` | Integer | Exit workflow with return code | 0-255 |
-| `condition` | String | Pre-execution condition | `@VAR@=value`, boolean expressions |
-| `success` | String | Custom success criteria | `exit_0`, `stdout~text`, combinations |
+| `loop` | Integer | Additional execution iterations | 1-100 (sequential tasks only) |
+| `loop_break` | String | Condition to break loop early | Any valid condition (sequential only) |
 
-### Loop Control Parameters
-
-| Parameter | Type | Description | Valid Range |
-|-----------|------|-------------|-------------|
-| `loop` | Integer | Additional execution iterations | 1-100 (total = original + loop count) |
-| `loop_break` | String | Condition to break loop early | Any valid condition expression |
+**Note:** Loop control (`loop`, `loop_break`) is ONLY available for sequential tasks, not for parallel or conditional execution.
 
 ### Parallel Execution Parameters
 
-| Parameter | Type | Description | Valid Values |
-|-----------|------|-------------|-------------|
-| `type` | String | Task execution type | `parallel`, `conditional` |
-| `max_parallel` | Integer | Max concurrent tasks | 1-50 (for parallel tasks) |
-| `tasks` | String | Comma-separated task IDs | Valid task IDs (e.g., "10,11,12") |
-| `retry_failed` | Boolean | Enable retry for failed tasks | `true`, `false` |
-| `retry_count` | Integer | Number of retry attempts | 0-10 (default: 1) |
-| `retry_delay` | Integer | Delay between retries (seconds) | 0-300 (default: 1) |
+Parameters for executing multiple tasks concurrently:
+
+| Parameter | Type | Required | Description | Valid Values |
+|-----------|------|----------|-------------|-------------|
+| `type` | String | **Yes** | Must be "parallel" | `parallel` |
+| `tasks` | String | **Yes** | Comma-separated task IDs to execute | "10,11,12" |
+| `max_parallel` | Integer | No | Max concurrent tasks | 1-50 (default: all) |
+| `timeout` | Integer | No | Master timeout for all tasks | 5-3600 seconds |
+| `retry_failed` | Boolean | No | Enable retry for failed tasks | `true`, `false` |
+| `retry_count` | Integer | No | Number of retry attempts | 0-10 (default: 1) |
+| `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |
+| `next` | String | No | Success evaluation condition | See below |
+| `on_success` | Integer | No | Task ID if next condition met | Any valid task ID |
+| `on_failure` | Integer | No | Task ID if next condition not met | Any valid task ID |
+
+**Parallel `next` Conditions:**
+- `min_success=N`: At least N tasks must succeed
+- `max_failed=N`: At most N tasks can fail
+- `all_success`: All tasks must succeed
+- `any_success`: At least one task must succeed
+- `majority_success`: More than 50% must succeed
 
 ### Conditional Execution Parameters
 
-| Parameter | Type | Description | Example |
-|-----------|------|-------------|----------|
-| `type` | String | Must be "conditional" | `conditional` |
-| `condition` | String | Boolean expression to evaluate | `@ENV@=prod&@0_success@=true` |
-| `if_true_tasks` | String | Tasks for TRUE condition | "100,101,102" |
-| `if_false_tasks` | String | Tasks for FALSE condition | "200,201" |
+Parameters for branching based on runtime conditions:
 
-### Output Processing Parameters
+| Parameter | Type | Required | Description | Example |
+|-----------|------|----------|-------------|----------|
+| `type` | String | **Yes** | Must be "conditional" | `conditional` |
+| `condition` | String | **Yes** | Boolean expression to evaluate | `@ENV@=prod&@0_success@=true` |
+| `if_true_tasks` | String | No* | Task IDs for TRUE branch | "100,300,150" (custom order) |
+| `if_false_tasks` | String | No* | Task IDs for FALSE branch | "200,205,210" (skip tasks) |
+| `timeout` | Integer | No | Master timeout for branch tasks | 5-3600 seconds |
+| `retry_failed` | Boolean | No | Enable retry for failed tasks | `true`, `false` |
+| `retry_count` | Integer | No | Number of retry attempts | 0-10 (default: 1) |
+| `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |
+| `next` | String | No | Success evaluation (like parallel) | Same as parallel conditions |
+| `on_success` | Integer | No | Task ID if next condition met | Any valid task ID |
+| `on_failure` | Integer | No | Task ID if next condition not met | Any valid task ID |
+
+*At least one of `if_true_tasks` or `if_false_tasks` must be specified.
+
+**Important:** Tasks listed in `if_true_tasks`/`if_false_tasks` have their flow control (`on_success`, `on_failure`, `next`) ignored, but their `success` criteria is respected.
+
+### Output Processing Parameters (All Standard Tasks)
+
+Available for any task that executes a command:
 
 | Parameter | Type | Description | Format |
 |-----------|------|-------------|--------|
@@ -686,6 +834,13 @@ This section provides a comprehensive reference of all valid task parameters in 
 | `stderr_split` | String | Split stderr and select element | `DELIMITER,INDEX` |
 
 **Valid Delimiters:** `space`, `newline`, `comma`, `colon`, `semicolon`, `pipe`, `tab`, or any custom string
+
+**Example:**
+```
+task=0
+command=echo "apple,banana,cherry"
+stdout_split=comma,1    # Result: @0_stdout@ = "banana"
+```
 
 ### Reserved/Planned Parameters
 
@@ -743,8 +898,8 @@ next=min_success=3
 task=3
 type=conditional
 condition=@ENVIRONMENT@=production
-if_true_tasks=20,21
-if_false_tasks=30,31
+if_true_tasks=20,21,25    # Execute 20→21→25 (skip 22-24)
+if_false_tasks=30,35,31   # Execute 30→35→31 (custom order!)
 
 # Return task
 task=99
@@ -971,14 +1126,17 @@ if_true_tasks=10,11    # Production deployment tasks
 if_false_tasks=20,21   # Development deployment tasks
 ```
 
-**2. Multiple Branch Logic**
+**2. Custom Task Sequences with Non-Sequential IDs**
 ```
-# Conditional: Handle multiple environment types
+# Conditional: Execute tasks in custom order, skipping others
 task=1
 type=conditional
 condition=@ENV_TYPE@=production
-if_true_tasks=100,101,102     # 3 production tasks
-if_false_tasks=200,201,202    # 3 development tasks
+if_true_tasks=100,105,110,200    # Skip 101-104, 106-109, 111-199!
+if_false_tasks=300,250,400       # Execute out of numerical order!
+
+# Production executes: 100 → 105 → 110 → 200 (custom path)
+# Non-production executes: 300 → 250 → 400 (reverse order!)
 ```
 
 #### ✅ Use Sequential + on_success/on_failure When:

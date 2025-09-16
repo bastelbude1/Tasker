@@ -498,3 +498,274 @@ Validates hostname resolution, connectivity, and execution type compatibility.
 ```
 
 **Result**: The refactored version fixes a critical race condition and represents the correct implementation. This bug fix improves the reliability of parallel task execution with sleep parameters.
+
+---
+
+## 📋 FUTURE ENHANCEMENT: JSON/YAML FORMAT SUPPORT
+
+### Implementation Plan for Multi-Format Task Files
+
+**Objective**: Support JSON, YAML, and TXT formats while leveraging structured data capabilities of JSON/YAML for enhanced readability and complex conditions.
+
+### Phase 1: Multi-Format Parser (Low Risk)
+
+**Strategy**: Enhanced parser that produces identical internal data structures regardless of input format.
+
+```python
+def parse_task_file(self):
+    """Enhanced parser supporting TXT, JSON, YAML with structured conditions."""
+
+    # 1. Format detection and basic parsing (low risk)
+    if self.task_file.endswith('.json'):
+        raw_data = self._parse_json()
+    elif self.task_file.endswith(('.yaml', '.yml')):
+        raw_data = self._parse_yaml()
+    else:
+        raw_data = self._parse_txt()  # Existing logic unchanged
+
+    # 2. Enhanced condition parsing (new feature, backward compatible)
+    for task in raw_data['tasks']:
+        if 'condition' in task:
+            task['condition'] = self._normalize_condition(task['condition'])
+        if 'next' in task:
+            task['next'] = self._normalize_next(task['next'])
+        if 'success' in task:
+            task['success'] = self._normalize_success(task['success'])
+
+    # 3. Same internal structures as before (zero risk)
+    self.global_vars = raw_data['global_vars']
+    self.tasks = raw_data['tasks']
+```
+
+### Benefits
+
+**Immediate Benefits:**
+- Support for JSON/YAML formats with zero risk to existing execution logic
+- Better readability for complex workflows
+- Structured conditions instead of complex single-line strings
+- Backward compatibility with all existing TXT files
+
+**Enhanced Condition Examples:**
+
+**Current TXT (hard to read):**
+```
+condition=(@0_exit_code@=0|@0_exit_code@=2)&@0_stdout@~deployed&(@1_stderr@=|@1_exit_code@<5)
+next=(exit_1|exit_255)&stdout~OK
+```
+
+**Enhanced YAML (much clearer):**
+```yaml
+condition:
+  and:
+    - or: [{"@0_exit_code@": 0}, {"@0_exit_code@": 2}]
+    - "@0_stdout@": {contains: "deployed"}
+    - or: [{"@1_stderr@": {empty: true}}, {"@1_exit_code@": {less_than: 5}}]
+
+next:
+  and:
+    - or: [exit_1, exit_255]
+    - stdout: {contains: "OK"}
+```
+
+### Implementation Requirements
+
+**Dependencies:**
+- JSON: Built-in `json` module (no new dependencies)
+- YAML: `pyyaml` library (new dependency, but optional)
+
+**Core Changes:**
+- Enhanced `parse_task_file()` method in `task_executor_main.py`
+- New structured condition parser methods
+- Backward-compatible condition normalization
+
+**Risk Assessment:**
+| Component | Risk Level | Impact |
+|-----------|------------|---------|
+| Execution Engines | **None** | Same input data structures |
+| Validation | **None** | Same task objects |
+| Flow Control | **None** | Same next/condition evaluation |
+| Parser Only | **Low** | Isolated changes, well-testable |
+
+### Backward Compatibility Strategy
+
+**Dual Support:**
+```python
+def _normalize_condition(self, condition_value):
+    if isinstance(condition_value, str):
+        # TXT format: "(exit_1|exit_255)&stdout~OK"
+        return condition_value  # Use existing parser
+    elif isinstance(condition_value, dict):
+        # JSON/YAML format: {"and": [{"or": ["exit_1", "exit_255"]}, ...]}
+        return self._convert_structured_to_string(condition_value)
+
+    # Both approaches produce same internal string for existing logic
+```
+
+### Testing Strategy
+
+**Verification Approach:**
+```bash
+# All existing TXT files continue working unchanged
+./tasker existing_workflow.txt
+
+# New structured files work with identical behavior
+./tasker enhanced_workflow.yaml
+./tasker enhanced_workflow.json
+
+# Verification: All three produce identical execution results
+```
+
+### Phase 2: Advanced Features (Future)
+
+Once basic multi-format support is stable, consider:
+
+**Complex Data Structures:**
+- Nested global variables with dot notation
+- Template engine for dynamic variable resolution
+- Dynamic task generation from loops
+
+**Advanced Conditional Logic:**
+- Multi-path next conditions
+- Conditional task chains
+- Complex data filtering and transformation
+
+**Dependencies for Advanced Features:**
+- Template engine (Jinja2 or similar)
+- Expression parser for complex conditionals
+
+### Success Criteria
+
+**Phase 1 Complete When:**
+- [x] JSON files parse correctly and execute identically to TXT equivalents
+- [x] YAML files parse correctly and execute identically to TXT equivalents
+- [x] All existing TXT files continue working without changes
+- [x] Structured conditions in JSON/YAML provide enhanced readability
+- [x] 100% test coverage maintained with new format support
+- [x] Documentation updated with format examples
+
+**Key Principle:** Parser-only changes ensure execution logic remains untouched and risk-free.
+
+---
+
+## 🚀 FEATURE IMPLEMENTATION PRIORITY PLAN
+
+### Implementation Order Recommendation
+
+Based on complexity analysis, risk assessment, and dependency mapping, implement features in this optimal order:
+
+### **Phase 0: Quick Wins (Priority 1 - Do FIRST)**
+
+**Total Time**: 1-2 days | **Risk**: Minimal | **Value**: High
+
+#### 1. **Additional Delimiter Keywords** ⭐ **EASIEST** (30 minutes)
+**Location**: `tasker/core/condition_evaluator.py`
+**Change Required**:
+```python
+# Just add these lines to delimiter_map:
+delimiter_map = {
+    'space': r'\s+',
+    'tab': r'\t+',
+    'newline': r'\n',        # NEW - more intuitive than \n
+    'colon': ':',            # NEW - more intuitive than :
+    'semicolon': ';',        # NEW - replace 'semi'
+    'semi': ';',             # Keep for backward compatibility
+    'comma': ',',
+    'pipe': '|'
+}
+```
+**Benefits**: Immediate readability improvement, zero risk
+
+#### 2. **Simplify Retry Configuration** ⭐ **VERY EASY** (1-2 hours)
+**Location**: `tasker/core/task_executor_main.py:parse_retry_config()`
+**Change Required**: Auto-enable retry when `retry_count` is specified
+```python
+def parse_retry_config(self, parallel_task):
+    # NEW LOGIC: Auto-enable if retry_count is set
+    retry_count = parallel_task.get('retry_count', '')
+    retry_failed = parallel_task.get('retry_failed', '').lower()
+
+    if retry_count and retry_count != '0':
+        # Auto-enable retry if retry_count > 0
+        if retry_failed == 'false':
+            return None  # Explicit disable
+        # Continue with retry logic...
+    elif retry_failed != 'true':
+        return None  # Original behavior
+```
+**Benefits**: Better UX, less verbose config, prevents user errors
+
+**Why Quick Wins First:**
+- ✅ Build momentum with easy successes
+- ✅ Zero risk - get familiar with codebase changes safely
+- ✅ Immediate user value and feedback
+- ✅ Foundation for more complex features
+
+### **Phase 1: Format Enhancement (Priority 2 - After Quick Wins)**
+
+#### 3. **JSON/YAML Format Support** (1-2 weeks)
+**Implementation**: As detailed in previous section
+**Benefits**: Foundation for all advanced features, better readability
+**Dependencies**: pyyaml library (optional)
+
+### **Phase 2: Advanced Features (Priority 3 - After JSON/YAML)**
+
+**⚠️ IMPORTANT**: Implement these ONLY after JSON/YAML support is complete and stable.
+
+#### 4. **Logical Parameter Validation** (1-2 days)
+**Why After JSON/YAML**: Can validate both structured and text formats
+**Benefits**: Prevent configuration errors, better debugging
+
+#### 5. **Unconditional Flow Control (goto)** (2-3 days)
+**Why After JSON/YAML**: Cleaner syntax options in structured formats
+```yaml
+# Much cleaner in YAML:
+task: 10
+command: deploy
+goto: 50  # Clear and simple
+
+# vs TXT workaround:
+on_success=50
+on_failure=50
+```
+
+#### 6. **Global Variable Updates During Execution** (2-4 weeks)
+**Why Last**: Most complex, benefits from all previous enhancements
+**Risk**: Highest - affects core variable resolution system
+
+### **Phase Dependencies**
+
+```
+Quick Wins → JSON/YAML → Advanced Features
+    ↓           ↓              ↓
+No deps    Foundation    Benefits from
+           for all       everything
+```
+
+### **Success Metrics Per Phase**
+
+**Phase 0 Complete:**
+- [ ] `newline`, `colon`, `semicolon` delimiters work
+- [ ] `retry_count=N` enables retry without `retry_failed=true`
+- [ ] All existing functionality unchanged
+- [ ] 100% test coverage maintained
+
+**Phase 1 Complete:**
+- [ ] JSON/YAML files parse and execute identically to TXT
+- [ ] Structured conditions provide enhanced readability
+- [ ] All existing TXT files continue working
+
+**Phase 2 Complete:**
+- [ ] Each advanced feature works in all formats (TXT, JSON, YAML)
+- [ ] Logical validation catches parameter conflicts
+- [ ] `goto` parameter eliminates redundant routing
+- [ ] Dynamic global variables enable runtime configuration
+
+### **Key Principles**
+
+1. **Start Small**: Quick wins build confidence and familiarity
+2. **Foundation First**: JSON/YAML enables better syntax for everything else
+3. **Test Continuously**: 100% verification at each phase
+4. **Backward Compatible**: Never break existing functionality
+5. **Risk Management**: Complex features after simple ones prove the approach
+
+---

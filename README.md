@@ -140,173 +140,75 @@ That's it! You've just executed your first TASKER workflow.
 
 TASKER uses a simple key-value format where each task is defined by parameters. Tasks are executed based on their execution model (sequential by default, parallel, or conditional).
 
-### Sequential Execution Parameters (Default Mode)
+### Sequential Execution (Default)
 
-Standard task-by-task execution with flow control:
-
+**Example - Sequential task with flow control:**
 ```
-# Sequential task example with all supported parameters
-task=0                           # § Unique task ID (required)
-hostname=server1                 # § Target server hostname (required)
-command=deploy                   # § Command to execute (required)
-arguments=--version=1.2.3        # Command arguments
-exec=pbrun                       # Execution type (pbrun, p7s, local, wwrs)
-timeout=120                      # Command timeout in seconds (5-3600)
-sleep=10                         # Sleep after task execution (0-300)
-success=exit_0&stdout~complete   # Custom success criteria (default: exit_0)
-condition=@ENVIRONMENT@=prod     # Pre-execution condition (skip if false)
-next=exit_0                      # Post-execution flow control
+# Standard sequential task
+task=0
+hostname=server1
+command=deploy
+arguments=--version=1.2.3
+success=exit_0&stdout~complete   # Custom success criteria
+next=success                      # Continue if success criteria met
 on_success=5                     # Jump to task 5 on success
 on_failure=99                    # Jump to task 99 on failure
-loop=3                           # Repeat task 3 additional times (sequential only)
-loop_break=@0_stdout@~done       # Break loop condition (sequential only)
-stdout_split=space,0             # Split output and select element
-stderr_split=\n,1               # Split error output by newline (using literal \n)
-```
 
-§ = Required for tasks that execute commands
+# Task with loop (sequential only)
+task=1
+hostname=server2
+command=check_status
+loop=3                           # Repeat 3 additional times
+loop_break=@1_stdout@~ready      # Break loop early if ready
 
-**Special Sequential Tasks:**
-```
 # Return task (exits workflow)
 task=99
-return=0                         # Exit with code 0-255 (no hostname/command needed)
+return=0                         # Exit with code 0-255
 ```
 
-### Parallel Execution Parameters
+**Parameters:** See [Sequential Execution Parameters](#sequential-execution-parameters-default-mode) table below
 
-Execute multiple tasks simultaneously with sophisticated control:
+### Parallel Execution
 
+**Example - Parallel task with retry:**
 ```
-# Parallel task example with all supported parameters
 task=1
-type=parallel                    # § Required: Must be "parallel"
-tasks=100,101,102,103,104        # § Required: Task IDs to execute
-max_parallel=5                   # Maximum concurrent tasks (default: all)
-timeout=30                       # Master timeout for all tasks
-retry_failed=true                # Enable retry for failed tasks
-retry_count=3                    # Number of retry attempts (0-10)
-retry_delay=2                    # Delay between retries (0-300)
-next=min_success=3               # Success evaluation condition
-on_success=10                    # Jump if next condition met
-on_failure=99                    # Jump if next condition not met
-# Note: loop and loop_break are NOT supported for parallel tasks
+type=parallel                    # Required
+tasks=100,101,102,103,104        # Required: Task IDs to execute
+max_parallel=5                   # Limit concurrent execution
+retry_failed=true                # Enable retry
+retry_count=3                    # Retry failed tasks up to 3 times
+next=min_success=3               # At least 3 must succeed
+on_success=10                    # Jump if condition met
+on_failure=99                    # Jump if condition not met
 ```
 
-§ = Required for parallel tasks
+**Parameters:** See [Parallel Execution Parameters](#parallel-execution-parameters) table below
 
-**Parallel `next` Conditions:**
-- `min_success=N`: At least N tasks must succeed
-- `max_failed=N`: At most N tasks can fail
-- `all_success`: All tasks must succeed (default)
-- `any_success`: At least one task must succeed
-- `majority_success`: More than 50% must succeed
+**Note:** Referenced tasks use their individual parameters but flow control is ignored
 
-**Referenced Tasks:**
-Tasks referenced in `tasks=` parameter use their own parameters including:
-- Individual `success` criteria (respected for retry decisions)
-- Individual `timeout` (overridden by master timeout)
-- Individual `hostname`, `command`, `arguments`, etc.
+### Conditional Execution
 
-### Conditional Execution Parameters
-
-Branch execution based on runtime conditions with custom task sequences:
-
-```
-# Conditional task example with all supported parameters
-task=5
-type=conditional                 # § Required: Must be "conditional"
-condition=@ENV@=production       # § Required: Boolean expression to evaluate
-if_true_tasks=200,201,202        # Task IDs for TRUE branch (custom order)
-if_false_tasks=300,301           # Task IDs for FALSE branch (custom order)
-timeout=60                       # Master timeout for branch tasks
-retry_failed=true                # Enable retry for failed tasks in branch
-retry_count=2                    # Retry attempts per failed task
-retry_delay=5                    # Delay between retries (0-300)
-next=all_success                 # Success evaluation (like parallel)
-on_success=10                    # Jump if next condition met
-on_failure=99                    # Jump if next condition not met
-# Note: loop and loop_break are NOT supported for conditional tasks
-```
-
-§ = Required for conditional tasks
-Note: At least one of `if_true_tasks` or `if_false_tasks` must be specified
-
-**The Power of Task Lists in Conditional Execution:**
-
-When you specify multiple tasks in `if_true_tasks` or `if_false_tasks`, TASKER creates a **forced sequential execution** that:
-1. **Ignores individual task flow control** (on_success, on_failure, next)
-2. **Respects individual task success criteria** for determining success/failure
-3. **Executes tasks in the exact order listed**
-4. **Allows non-sequential task IDs** for custom execution paths
-
-**Example - Custom Execution Sequences:**
-```
-# Define reusable task groups out of numerical order
-task=5
-type=conditional
-condition=@DEPLOY_TYPE@=emergency
-if_true_tasks=100,300,150,400    # Skip tasks 101-149, 151-299, 301-399!
-if_false_tasks=200,201,202        # Normal sequential deployment
-
-# Emergency path executes: 100 → 300 → 150 → 400 (custom order!)
-# Normal path executes: 200 → 201 → 202 (sequential)
-
-# Individual task parameters when executed via conditional:
-task=100
-hostname=server1
-command=emergency_stop
-success=exit_0&stdout~stopped    # RESPECTED - determines success/failure and retry
-on_success=999    # IGNORED when executed via conditional!
-on_failure=888    # IGNORED when executed via conditional!
-
-task=300
-hostname=server2
-command=force_backup
-success=exit_0     # RESPECTED - defaults to exit_0 if not specified
-next=never        # IGNORED when executed via conditional!
-```
-
-**Why List Multiple Tasks?**
-- **Create custom workflows**: `if_true_tasks=100,500,200` executes out of order
-- **Skip intermediate tasks**: `if_true_tasks=100,110,120` skips 101-109, 111-119
-- **Build reusable groups**: Define task groups that can be called from multiple conditions
-- **Override flow control**: Force specific execution paths regardless of individual task settings
-
-**Retry Logic in Conditional Tasks:**
-
-When `retry_failed=true` is set on a conditional task:
-- **Applies to individual tasks** within the chosen branch (not the condition evaluation)
-- **Each failed task** is retried independently up to `retry_count` times
-- **Uses task's own `success` criteria** to determine if retry is needed (defaults to `exit_0` if not specified)
-- **Sequential retry**: Task 201 fails → retry 201 → if still fails, continue to 202
-- **Use cases**: Flaky network operations, transient service issues, resource contention
-
-Example:
+**Example - Conditional branching:**
 ```
 task=5
-type=conditional
-condition=@ENV@=production
-if_true_tasks=100,101,102    # Deploy tasks that might fail
-retry_failed=true             # Retry each failed task
-retry_count=3                 # Up to 3 attempts per task
-retry_delay=5                 # Wait 5 seconds between retries
-
-# Individual task success criteria IS respected:
-task=101
-hostname=deploy-server
-command=deploy_service
-success=exit_0&stdout~deployed    # THIS criteria determines if retry is needed!
-# If task 101 doesn't meet success criteria: Retry up to 3 times
-# The task's on_success/on_failure are IGNORED, but success criteria is USED
+type=conditional                 # Required
+condition=@4_stdout@~production  # Required: Expression to evaluate
+if_true_tasks=200,201,202        # Execute if TRUE (custom order)
+if_false_tasks=300,301           # Execute if FALSE (custom order)
+retry_failed=true                # Enable retry for branch tasks
+retry_count=2                    # Retry failed tasks
+next=all_success                 # All branch tasks must succeed
+on_success=10                    # Jump if condition met
 ```
 
-**Conditional Task Control:**
-- `type=conditional`: Enable conditional execution mode
-- `condition=EXPR`: Boolean expression to evaluate
-- `if_true_tasks=X,Y`: Tasks to execute when condition is TRUE
-- `if_false_tasks=A,B`: Tasks to execute when condition is FALSE
-- Note: Either `if_true_tasks` OR `if_false_tasks` can be omitted
+**Parameters:** See [Conditional Execution Parameters](#conditional-execution-parameters) table below
+
+**Important Conditional Execution Behavior:**
+- Tasks in branches execute in the exact order listed (e.g., `100,300,150` executes in that order)
+- Individual task flow control (`on_success`, `on_failure`, `next`) is IGNORED
+- Individual task `success` criteria IS RESPECTED for determining success/retry
+- Retry applies to individual tasks within the branch, not the condition evaluation
 
 ### Enhanced Loop Control
 
@@ -322,10 +224,7 @@ sleep=5                         # Wait 5 seconds between loop iterations
 success=exit_0                  # Custom success criteria
 ```
 
-**Loop Control Parameters:**
-- `loop=N`: Execute N additional times (total = original + N loops)
-- `loop_break=CONDITION`: Condition to break out of loop early
-- `sleep=N`: Delay between loop iterations
+**Note:** Loop control is only available for sequential tasks. See [Sequential Execution Parameters](#sequential-execution-parameters-default-mode) table below.
 
 ### Output Processing Parameters
 
@@ -382,25 +281,9 @@ arguments="@5_stdout@"
 exec=local
 ```
 
-**Output Split Parameters:**
-- `stdout_split=DELIMITER,INDEX`: Split stdout and select element at INDEX
-- `stderr_split=DELIMITER,INDEX`: Split stderr and select element at INDEX
+**Parameters:** See [Output Processing Parameters](#output-processing-parameters-all-standard-tasks) table below.
 
-**Delimiter Options:**
-- `space`: Split by any whitespace (spaces, tabs, newlines)
-- `tab`: Split by tab characters
-- `comma`: Split by commas
-- `semi`: Split by semicolons
-- `pipe`: Split by pipe character (|)
-- Any other string: Split by that exact string (e.g., ":", ";;", "---")
-
-**Index Selection:**
-- `0`: First element (zero-based indexing)
-- `1`: Second element
-- `-1`: Last element (negative indexing supported)
-- Out of bounds: Returns original output with warning
-
-**Note:** For newlines use literal `\n`, for colons use `:`, etc. The `space` keyword matches any whitespace including newlines and tabs.
+**Supported delimiters:** `space` (any whitespace), `tab`, `comma`, `semi`, `pipe`, or any literal string (e.g., `\n` for newline, `:` for colon)
 
 **Practical Examples:**
 
@@ -439,25 +322,14 @@ command=send_alert
 arguments=First error: @3_stderr@  # Uses split stderr
 ```
 
-### Parameter Details
+### Complete Parameter Reference
 
-#### Execution Types (`exec`)
-- `pbrun`: Execute via pbrun (default for remote hosts)
-- `p7s`: Execute via p7s
-- `local`: Execute locally on current machine
-- `wwrs`: Execute via wwrs_clir
-
-#### Flow Control
-- `condition`: Pre-execution condition (task skipped if false)
-- `success`: Custom success criteria (default: `exit_0`)
-- `next`: Post-execution flow control
-- `on_success`/`on_failure`: Jump to specific task IDs
-- `loop`: Repeat task execution
-- `return`: Exit workflow with specific return code
-
-#### Timeouts and Delays
-- `timeout`: Individual task timeout (5-3600 seconds, default: 30)
-- `sleep`: Delay after task completion (0-300 seconds)
+For detailed parameter specifications and valid ranges, see the [Complete Parameter Field Reference](#complete-parameter-field-reference) section below, which includes:
+- [Core Task Parameters](#core-task-parameters-all-execution-models) - Common to all tasks
+- [Sequential Execution Parameters](#sequential-execution-parameters-default-mode) - Default mode with flow control
+- [Parallel Execution Parameters](#parallel-execution-parameters) - Concurrent task execution
+- [Conditional Execution Parameters](#conditional-execution-parameters) - Branch-based execution
+- [Output Processing Parameters](#output-processing-parameters-all-standard-tasks) - Text extraction utilities
 
 ## Global Variables
 

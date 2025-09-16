@@ -169,7 +169,6 @@ class BaseExecutor(ABC):
                 task_timeout = execution_context.get_task_timeout(task)
 
             # 6. Log execution details
-            execution_context.log(f"Task {task_display_id}: Using execution type from task: {exec_type}")
             execution_context.log(f"Task {task_display_id}: Executing [{exec_type}]: {full_command_display}")
 
             # 7. Execute or dry run

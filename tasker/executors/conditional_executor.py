@@ -59,7 +59,7 @@ class ConditionalExecutor(BaseExecutor):
         condition_result = ConditionEvaluator.evaluate_condition(condition, 0, "", "", executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
         branch = "TRUE" if condition_result else "FALSE"
         
-        executor_instance.log(f"Task {task_id}: Conditional condition '{condition}' evaluated to {branch}")
+        executor_instance.log_debug(f"Task {task_id}: Conditional condition '{condition}' evaluated to {branch}")
         
         # Determine which tasks to execute
         if condition_result and 'if_true_tasks' in conditional_task:
@@ -163,7 +163,7 @@ class ConditionalExecutor(BaseExecutor):
         # Overall success determination
         overall_success = successful_count == len(results)
         success_text = "Success: True" if overall_success else "Success: False"
-        executor_instance.log(f"Task {task_id}: Overall result - {success_text} ({successful_count}/{len(results)} tasks succeeded)")
+        executor_instance.log_debug(f"Task {task_id}: Overall result - {success_text} ({successful_count}/{len(results)} tasks succeeded)")
         
         # Create aggregated output
         aggregated_stdout = f"Conditional {branch} branch: {successful_count}/{len(results)} successful"
@@ -211,7 +211,7 @@ class ConditionalExecutor(BaseExecutor):
         if should_continue and 'on_success' in conditional_task:
             try:
                 on_success_task = int(conditional_task['on_success'])
-                executor_instance.log(f"Task {task_id}: Conditional execution succeeded, jumping to Task {on_success_task}")
+                executor_instance.log(f"Task {task_id}: Conditional success ({successful_count}/{len(results)}), jumping to Task {on_success_task}")
                 return on_success_task
             except ValueError:
                 executor_instance.log(f"Task {task_id}: Invalid 'on_success' task. Continuing to next task.")
@@ -220,7 +220,7 @@ class ConditionalExecutor(BaseExecutor):
         if not should_continue and 'on_failure' in conditional_task:
             try:
                 on_failure_task = int(conditional_task['on_failure'])
-                executor_instance.log(f"Task {task_id}: Conditional execution failed, jumping to Task {on_failure_task}")
+                executor_instance.log(f"Task {task_id}: Conditional failure ({successful_count}/{len(results)}), jumping to Task {on_failure_task}")
                 return on_failure_task
             except ValueError:
                 executor_instance.log(f"Task {task_id}: Invalid 'on_failure' task. Stopping.")

@@ -933,7 +933,7 @@ class TaskExecutor:
         """Determine which execution type to use, respecting priority order."""
         if 'exec' in task:
             exec_type, _ = ConditionEvaluator.replace_variables(task['exec'], self.global_vars, self.task_results, self.log_debug)
-            self.log_info(f"Task {task_display_id}{loop_display}: Using execution type from task: {exec_type}")
+            self.log_debug(f"Task {task_display_id}{loop_display}: Using execution type from task: {exec_type}")
         elif self.exec_type:
             exec_type = self.exec_type
             self.log_debug(f"Task {task_display_id}{loop_display}: Using execution type from args: {exec_type}")
@@ -1084,7 +1084,7 @@ class TaskExecutor:
             return should_continue
             
         next_condition = parallel_task['next']
-        self.log_info(f"Task {task_id}: Evaluating 'next' condition: {next_condition}")
+        self.log_debug(f"Task {task_id}: Evaluating 'next' condition: {next_condition}")
         
         # Special cases
         if next_condition == 'never':
@@ -1104,7 +1104,7 @@ class TaskExecutor:
             self.log_info(f"Task {task_id}: Legacy 'success' condition treated as 'all_success'")
             result = ParallelExecutor.evaluate_parallel_next_condition(
                 'all_success', results, self.log_debug, self.log_info)
-            self.log_info(f"Task {task_id}: Condition 'success' (→ all_success) evaluated to: {result}")
+            self.log_debug(f"Task {task_id}: Condition 'success' (→ all_success) evaluated to: {result}")
             return result
         
         # Handle parallel-specific conditions (simplified syntax)
@@ -1112,7 +1112,7 @@ class TaskExecutor:
         if next_condition in parallel_conditions or '=' in next_condition:
             result = ParallelExecutor.evaluate_parallel_next_condition(
                 next_condition, results, self.log_debug, self.log_info)
-            self.log_info(f"Task {task_id}: Condition '{next_condition}' evaluated to: {result}")
+            self.log_debug(f"Task {task_id}: Condition '{next_condition}' evaluated to: {result}")
             return result
         
         # Handle complex condition expressions (delegate to existing logic)
@@ -1168,7 +1168,7 @@ class TaskExecutor:
         self.loop_counter[task_id] -= 1
         
         if self.loop_counter[task_id] >= 0:
-            self.log_info(f"Task {task_id}: Looping (iteration {self.loop_iterations[task_id]}, "
+            self.log_debug(f"Task {task_id}: Looping (iteration {self.loop_iterations[task_id]}, "
                     f"{self.loop_counter[task_id]} remaining)")
             return "LOOP"
         else:
@@ -1202,8 +1202,7 @@ class TaskExecutor:
             return True  # Default to True if not specified
             
         next_condition = task['next']
-        self.log_info(f"Task {task_id}{loop_display}: 'next' evaluating condition: {next_condition}")
-        
+
         # Special cases
         if next_condition == 'never':
             self.log_info(f"Task {task_id}{loop_display}: 'next=never' found, stopping execution")
@@ -1243,7 +1242,7 @@ class TaskExecutor:
             
             # If counter is still >= 0, continue looping
             if self.loop_counter[task_id] >= 0:
-                self.log_info(f"Task {task_id}: Looping (iteration {self.loop_iterations[task_id]}, "
+                self.log_debug(f"Task {task_id}: Looping (iteration {self.loop_iterations[task_id]}, "
                         f"{self.loop_counter[task_id]} remaining)")
                 return "LOOP"  # Trigger the loop
             else:
@@ -1258,11 +1257,9 @@ class TaskExecutor:
             next_condition, exit_code, stdout, stderr, self.global_vars, 
             self.task_results, self.log_debug, current_task_success)
         if result:
-            self.log_info(f"Task {task_id}{loop_display}: 'next' condition evaluated to TRUE, "
-                    f"proceeding to next task")
+            self.log_info(f"Task {task_id}{loop_display}: Proceeding to next task ({next_condition}=TRUE)")
         else:
-            self.log_info(f"Task {task_id}{loop_display}: 'next' condition evaluated to FALSE, "
-                    f"stopping")
+            self.log_info(f"Task {task_id}{loop_display}: Stopping execution ({next_condition}=FALSE)")
 
         return result
 

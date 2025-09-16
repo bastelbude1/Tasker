@@ -14,8 +14,7 @@ command=rm
 arguments=-f $HOME/.my_counter
 exec=local
 success=exit_0
-next=exit_0
-on_success=1
+next=success
 
 # Task 1: Loop with counter script and output processing
 task=1

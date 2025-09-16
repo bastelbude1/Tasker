@@ -374,7 +374,7 @@ class ParallelExecutor(BaseExecutor):
         # IMPROVED: Overall success determination and logging
         overall_success = successful_count == len(results)
         success_text = "Success: True" if overall_success else "Success: False"
-        executor_instance.log(f"Task {task_id}: Overall result - {success_text} ({successful_count}/{len(results)} tasks succeeded)")
+        executor_instance.log_debug(f"Task {task_id}: Overall result - {success_text} ({successful_count}/{len(results)} tasks succeeded)")
         
         # NEW: Enhanced retry statistics logging
         if retry_config:
@@ -382,7 +382,7 @@ class ParallelExecutor(BaseExecutor):
             successful_after_potential_retry = [r for r in results if r['success']]
             
             if len(retry_eligible_tasks) > 0 or len(successful_after_potential_retry) > 0:
-                executor_instance.log(f"Task {task_id}: RETRY SUMMARY - Retry enabled with {retry_config['count']} max attempts, {retry_config['delay']}s delay")
+                executor_instance.log_debug(f"Task {task_id}: RETRY SUMMARY - Retry enabled with {retry_config['count']} max attempts, {retry_config['delay']}s delay")
                 
                 if len(successful_after_potential_retry) > 0:
                     executor_instance.log_debug(f"Task {task_id}: RETRY SUCCESS - {len(successful_after_potential_retry)} task(s) completed successfully (some may have used retries)")
@@ -453,7 +453,7 @@ class ParallelExecutor(BaseExecutor):
         if should_continue and 'on_success' in parallel_task:
             try:
                 on_success_task = int(parallel_task['on_success'])
-                executor_instance.log(f"Task {task_id}: Parallel execution succeeded, jumping to Task {on_success_task}")
+                executor_instance.log(f"Task {task_id}: Parallel success ({successful_count}/{len(results)}), jumping to Task {on_success_task}")
                 return on_success_task
             except ValueError:
                 executor_instance.log(f"Task {task_id}: Invalid 'on_success' task. Continuing to next task.")
@@ -462,7 +462,7 @@ class ParallelExecutor(BaseExecutor):
         if not should_continue and 'on_failure' in parallel_task:
             try:
                 on_failure_task = int(parallel_task['on_failure'])
-                executor_instance.log(f"Task {task_id}: Parallel execution failed, jumping to Task {on_failure_task}")
+                executor_instance.log(f"Task {task_id}: Parallel failure ({successful_count}/{len(results)}), jumping to Task {on_failure_task}")
                 return on_failure_task
             except ValueError:
                 executor_instance.log(f"Task {task_id}: Invalid 'on_failure' task. Stopping.")

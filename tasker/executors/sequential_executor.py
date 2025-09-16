@@ -217,7 +217,9 @@ class SequentialExecutor(BaseExecutor):
         if should_continue and 'on_success' in task:
             try:
                 on_success_task = int(task['on_success'])
-                executor_instance.log(f"Task {task_id}{loop_display}: 'next' condition succeeded, jumping to Task {on_success_task}")
+                # Use main task ID (without loop display) if loop is completed
+                display_id = task_id if task_id not in executor_instance.loop_iterations else f"{task_id}{loop_display}"
+                executor_instance.log(f"Task {display_id}: 'next' condition succeeded, jumping to Task {on_success_task}")
                 return on_success_task
             except ValueError:
                 executor_instance.log(f"Task {task_id}{loop_display}: Invalid 'on_success' task '{task['on_success']}'. Continuing to next task.")

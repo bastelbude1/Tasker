@@ -1,30 +1,14 @@
 #!/bin/bash
+# Simple script that alternates between exit codes 0 and 1 based on timestamp
 
-# Define the file to store the toggle value
-TOGGLE_FILE="$HOME/.toggle_value"
+# Get current second
+SECOND=$(date +%S)
 
-# Check if the file exists, if not, create it with initial value 0
-if [ ! -f "$TOGGLE_FILE" ]; then
-    echo 0 > "$TOGGLE_FILE"
-fi
-
-# Read the current value from the file
-current_value=$(cat "$TOGGLE_FILE")
-
-# Toggle the value between 0 and 1
-if [ "$current_value" -eq 0 ]; then
-    new_value=1
+# Exit 0 for even seconds, exit 1 for odd seconds
+if [ $((SECOND % 2)) -eq 0 ]; then
+    echo "Toggle: SUCCESS (even second: $SECOND)"
+    exit 0
 else
-    new_value=0
+    echo "Toggle: FAILURE (odd second: $SECOND)"
+    exit 1
 fi
-
-# Save the new value back to the file
-echo $new_value > "$TOGGLE_FILE"
-
-# Print the new value
-echo $new_value >&2
-
-# Force flush
-(>&1)
-
-exit $new_value

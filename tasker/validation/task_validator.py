@@ -729,6 +729,10 @@ class TaskValidator:
             except ValueError:
                 self.errors.append(f"Line {line_number}: Task {task_id} has invalid loop count: '{loop_clean}'.")
 
+            # Critical validation: loop parameter requires next=loop to function
+            if 'next' not in task or task['next'] != 'loop':
+                self.errors.append(f"Line {line_number}: Task {task_id} has 'loop' parameter but missing 'next=loop'. Loops require 'next=loop' to function.")
+
         # Validate 'sleep' field
         if 'sleep' in task:
             sleep_resolved = self.resolve_global_variables_for_validation(task['sleep'])

@@ -1,0 +1,134 @@
+# TASKER 2.0 Comprehensive Demo - Copy & Paste Ready!
+# Features: loops, conditionals, parallel execution, output processing, flow control
+# Uses existing scripts: toggle_exit.sh and increment_counter.sh
+
+# Global variables for configuration
+DEMO_NAME=TASKER_Demo
+MAX_COUNTER=3
+SCRIPT_PATH=/home/baste/tasker
+
+# Task 0: Initialize demo - clean state (using environment variable expansion)
+task=0
+hostname=localhost
+command=rm
+arguments=-f $HOME/.my_counter
+exec=local
+success=exit_0
+next=exit_0
+on_success=1
+
+# Task 1: Loop with counter script and output processing
+task=1
+hostname=localhost
+command=@SCRIPT_PATH@/increment_counter.sh
+exec=local
+loop=4
+next=loop
+# Extract counter value from output (script outputs just the number)
+stdout_split=space,0
+success=exit_0
+# After loop completes, continue to task 10
+on_success=10
+on_failure=2
+
+# Task 2: Handle counter limit reached
+task=2
+hostname=localhost
+command=echo
+arguments=Counter reached limit at: @1_stdout@
+# Only run if counter is high enough
+condition=@1_stdout@>=@MAX_COUNTER@
+exec=local
+next=exit_0
+on_success=10
+
+# Task 10: Parallel execution with both scripts
+task=10
+type=parallel
+max_parallel=2
+tasks=20,21
+timeout=15
+retry_failed=true
+retry_count=2
+# Continue if at least one succeeds
+next=any_success
+on_success=30
+on_failure=90
+
+# Task 20: Toggle script in parallel
+task=20
+hostname=localhost
+command=@SCRIPT_PATH@/toggle_exit.sh
+exec=local
+# Extract "Toggle:" from output
+stdout_split=space,1
+success=exit_0&stdout~SUCCESS
+
+# Task 21: Another counter increment in parallel
+task=21
+hostname=localhost
+command=@SCRIPT_PATH@/increment_counter.sh
+exec=local
+# Extract new counter value (increment_counter.sh outputs just the number)
+stdout_split=space,0
+success=exit_0
+
+# Task 30: Conditional based on toggle result
+task=30
+type=conditional
+# Check if toggle succeeded
+condition=@20_success@=true
+if_true_tasks=40,41
+if_false_tasks=50
+retry_failed=true
+retry_count=1
+next=all_success
+on_success=60
+on_failure=90
+
+# Task 40: Success path - toggle worked
+task=40
+hostname=localhost
+command=echo
+arguments=GREAT: Toggle script succeeded! Counter is now @21_stdout@
+exec=local
+
+# Task 41: Final success action
+task=41
+hostname=localhost
+command=echo
+arguments=Demo @DEMO_NAME@ completed successfully
+exec=local
+
+# Task 50: Alternative path - toggle failed but continuing
+task=50
+hostname=localhost
+command=echo
+arguments=INFO: Toggle failed but counter advanced to @21_stdout@
+exec=local
+
+# Task 60: Complex output processing summary
+task=60
+hostname=localhost
+command=echo
+arguments=FINAL: Demo=@DEMO_NAME@, FirstCounter=@1_stdout@, FinalCounter=@21_stdout@, ToggleResult=@20_stdout@
+exec=local
+# Extract final counter part
+stdout_split=comma,2
+success=exit_0&stdout~FinalCounter
+next=never
+
+# Task 90: Error handling with info
+task=90
+hostname=localhost
+command=echo
+arguments=NOTICE: Some operations failed - Demo=@DEMO_NAME@, LastCounter=@1_stdout@
+exec=local
+return=2
+
+# Reset counter for next demo run (cleanup)
+task=99
+hostname=localhost
+command=echo
+arguments=Demo cleanup completed - ready for next run
+exec=local

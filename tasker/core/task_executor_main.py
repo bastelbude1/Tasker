@@ -947,18 +947,21 @@ class TaskExecutor:
 
     def build_command_array(self, exec_type, hostname, command, arguments):
         """Build the command array based on execution type."""
+        # Expand environment variables in arguments
+        expanded_arguments = os.path.expandvars(arguments) if arguments else ""
+
         if exec_type == 'pbrun':
-            return ["pbrun", "-n", "-h", hostname, command] + shlex.split(arguments)
+            return ["pbrun", "-n", "-h", hostname, command] + shlex.split(expanded_arguments)
         elif exec_type == 'p7s':
-            return ["p7s", hostname, command] + shlex.split(arguments)
+            return ["p7s", hostname, command] + shlex.split(expanded_arguments)
         elif exec_type == 'local':
-            return [command] + shlex.split(arguments)
+            return [command] + shlex.split(expanded_arguments)
         elif exec_type == 'wwrs':
-            return ["wwrs_clir", hostname, command] + shlex.split(arguments)
+            return ["wwrs_clir", hostname, command] + shlex.split(expanded_arguments)
         else:
             # Default to pbrun if unknown exec_type
             self.log_warn(f"Unknown execution type '{exec_type}', using default 'pbrun'")
-            return ["pbrun", "-n", "-h", hostname, command] + shlex.split(arguments)
+            return ["pbrun", "-n", "-h", hostname, command] + shlex.split(expanded_arguments)
 
     def get_task_timeout(self, task):
         """Determine the timeout for a task, respecting priority order."""

@@ -373,6 +373,7 @@ flowchart TD
 | `task` | Integer | ✅ Yes | Unique task identifier |
 | `type` | String | ✅ Yes | Must be "parallel" |
 | `tasks` | String | ✅ Yes | Comma-separated task IDs to execute |
+| `max_parallel` | Integer | ❌ Optional | Max concurrent tasks (1-50, default: all) |
 | `success` | String | ❌ Optional | Success criteria applied to each individual task |
 
 ### Example
@@ -380,6 +381,7 @@ flowchart TD
 task=8
 type=parallel
 tasks=10,11,12
+max_parallel=2
 success=@exit_code@=0
 ```
 
@@ -443,6 +445,7 @@ flowchart TD
 | `task` | Integer | ✅ Yes | Unique task identifier |
 | `type` | String | ✅ Yes | Must be "parallel" |
 | `tasks` | String | ✅ Yes | Comma-separated task IDs to execute |
+| `max_parallel` | Integer | ❌ Optional | Max concurrent tasks (1-50, default: all) |
 | `success` | String | ❌ Optional | Success criteria applied to each individual task |
 | `retry_failed` | Boolean | ✅ Yes | Must be "true" to enable retry |
 | `retry_count` | Integer | ❌ Optional | Number of retry attempts (0-10, default: 1) |
@@ -453,6 +456,7 @@ flowchart TD
 task=8
 type=parallel
 tasks=10,11,12
+max_parallel=2
 success=@exit_code@=0
 retry_failed=true
 retry_count=3
@@ -578,6 +582,8 @@ flowchart TD
 | `task` | Integer | ✅ Yes | Unique task identifier |
 | `var_*` | String | ❌ Optional | Extract value and store in variable |
 | `split_*` | String | ❌ Optional | Split output by delimiter and extract |
+| `stdout_split` | String | ❌ Optional | Split stdout and select element (older syntax) |
+| `stderr_split` | String | ❌ Optional | Split stderr and select element (older syntax) |
 
 ### Examples
 
@@ -595,6 +601,13 @@ task=2
 split_name=@stdout@:space:1
 split_version=@stdout@:comma:2
 split_result=@stderr@:pipe:3
+```
+
+**Extract with older syntax:**
+```
+task=3
+stdout_split=comma,1
+stderr_split=space,2
 ```
 
 ### Entry Point

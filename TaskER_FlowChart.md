@@ -104,6 +104,7 @@ flowchart TD
 | `condition` | String | ✅ Yes | Boolean expression to evaluate |
 | `if_true_tasks` | String | ✅ Yes* | Task IDs for TRUE branch |
 | `if_false_tasks` | String | ✅ Yes* | Task IDs for FALSE branch |
+| `success` | String | ❌ Optional | Custom success criteria for branch tasks |
 | `next` | String | ❌ Optional | Success evaluation condition |
 | `on_success` | Integer | ❌ Optional | Task ID if next condition met |
 | `on_failure` | Integer | ❌ Optional | Task ID if next condition not met |
@@ -117,6 +118,7 @@ type=conditional
 condition=@DEPLOY_ENV@=production
 if_true_tasks=10,11,12
 if_false_tasks=20,21
+success=@exit_code@=0&@stdout@~completed
 next=min_success=2
 on_success=30
 on_failure=99

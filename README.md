@@ -977,6 +977,7 @@ Parameters for branching based on runtime conditions:
 | `condition` | String | **Yes** | Boolean expression to evaluate | `@ENV@=prod&@0_success@=true` |
 | `if_true_tasks` | String | No* | Task IDs for TRUE branch | "100,300,150" (custom order) |
 | `if_false_tasks` | String | No* | Task IDs for FALSE branch | "200,205,210" (skip tasks) |
+| `success` | String | No | Custom success criteria for branch tasks | Same as standard tasks |
 | `next` | String | No | Success evaluation condition | Same as parallel conditions |
 | `on_success` | Integer | No | Task ID if next condition met | Any valid task ID |
 | `on_failure` | Integer | No | Task ID if next condition not met | Any valid task ID |

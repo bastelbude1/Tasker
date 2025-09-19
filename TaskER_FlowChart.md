@@ -187,7 +187,7 @@ Can follow any block that executes
 flowchart TD
     A{CONDITION} -->|TRUE| B[Execute if_true_tasks]
     A -->|FALSE| C[Execute if_false_tasks]
-    B --> D[Aggregate Results]
+    B --> D[Multi-Task Success Evaluation]
     C --> D
 
     style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
@@ -227,7 +227,7 @@ Can be entry point or follow any block
 - If TRUE → Execute tasks in `if_true_tasks` list
 - If FALSE → Execute tasks in `if_false_tasks` list
 - Tasks execute sequentially in specified order (10,11,12)
-- Aggregates results for further flow control evaluation
+- Results feed into Multi-Task Success Evaluation Block
 
 </td>
 </tr>
@@ -301,7 +301,7 @@ flowchart TD
     A[Parallel Block] --> B[Task 10]
     A --> C[Task 11]
     A --> D[Task 12]
-    B --> E[Aggregate Results]
+    B --> E[Multi-Task Success Evaluation]
     C --> E
     D --> E
 
@@ -337,14 +337,70 @@ Can be entry point or follow any block
 ### Behavior
 - Executes multiple tasks simultaneously with threading
 - `success` criteria is applied to each individual task (10, 11, 12)
-- Aggregates results for further flow control evaluation
+- Results feed into Multi-Task Success Evaluation Block
 - Faster execution than sequential processing
 
 </td>
 </tr>
 </table>
 
-## 8. End Success Block
+## 8. Multi-Task Success Evaluation Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Multiple Tasks Completed] --> B{EVALUATE RESULTS}
+    B -->|Condition Met| C[on_success Path]
+    B -->|Condition Not Met| D[on_failure Path]
+
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `next` | String | ❌ Optional | Success evaluation condition |
+| `on_success` | Integer | ❌ Optional | Task ID if condition met |
+| `on_failure` | Integer | ❌ Optional | Task ID if condition not met |
+
+### Available Conditions
+| Condition | Logic | Example |
+|-----------|-------|---------|
+| `min_success=N` | success_count ≥ N | `min_success=3` |
+| `max_failed=N` | failed_count ≤ N | `max_failed=1` |
+| `all_success` | success_count = total_tasks | `all_success` |
+| `any_success` | success_count > 0 | `any_success` |
+| `majority_success` | success_count > total_tasks/2 | `majority_success` |
+
+### Default Behavior (no `next` specified)
+- **`on_success`** → `all_success` (100% success required)
+- **`on_failure`** → `max_failed=0` (any failure triggers this)
+
+### Example
+```
+next=min_success=3
+on_success=20
+on_failure=99
+```
+
+### Entry Point
+Follows after Parallel Block or Condition Block
+
+</td>
+</tr>
+</table>
+
+## 9. End Success Block
 
 <table>
 <tr>
@@ -391,7 +447,7 @@ Terminal block - workflow ends successfully
 </tr>
 </table>
 
-## 9. End Failure Block
+## 10. End Failure Block
 
 <table>
 <tr>

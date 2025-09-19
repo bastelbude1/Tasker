@@ -1,0 +1,55 @@
+# Test case to demonstrate timeout tasks are recorded in summary
+# This test uses a parallel task with a low timeout to ensure
+# some tasks timeout and verify they appear in the summary file
+
+task=0
+hostname=localhost
+command=echo
+arguments=Starting comprehensive timeout test
+exec=local
+
+# Parallel task with 3 second timeout
+# Tasks 2 and 3 will timeout, task 4 will succeed
+task=1
+type=parallel
+tasks=2,3,4
+timeout=3
+project=COMPREHENSIVE_TIMEOUT_TEST
+exec=local
+
+# This will timeout (sleeps for 10 seconds)
+task=2
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+
+# This will also timeout (sleeps for 10 seconds)
+task=3
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+
+# This will succeed (sleeps for only 1 second)
+task=4
+hostname=localhost
+command=sleep
+arguments=1
+exec=local
+
+# Final task to show execution continues after parallel timeouts
+task=5
+hostname=localhost
+command=echo
+arguments=Test completed despite timeouts
+exec=local
+on_failure=99
+
+# Exit task
+task=99
+hostname=localhost
+command=echo
+arguments=Exiting due to failure
+exec=local
+return=1

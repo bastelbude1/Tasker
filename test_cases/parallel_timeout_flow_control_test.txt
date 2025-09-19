@@ -1,0 +1,51 @@
+# Test case to verify that parallel timeout triggers on_failure correctly
+# Parallel task 1 should have timeouts and trigger on_failure to task 99
+
+task=0
+hostname=localhost
+command=echo
+arguments=Starting parallel timeout flow control test
+exec=local
+
+# Parallel task with timeouts should trigger on_failure
+task=1
+type=parallel
+tasks=10,11,12
+timeout=3
+exec=local
+next=all_success
+on_failure=99
+
+# Sub-tasks for parallel execution
+task=10
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+
+task=11
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+
+task=12
+hostname=localhost
+command=sleep
+arguments=1
+exec=local
+
+# This should NOT be executed because parallel task fails
+task=2
+hostname=localhost
+command=echo
+arguments=ERROR - This should not execute after parallel timeout!
+exec=local
+
+# This SHOULD be executed via on_failure from task 1
+task=99
+hostname=localhost
+command=echo
+arguments=SUCCESS - on_failure triggered correctly after parallel timeout
+exec=local
+return=0

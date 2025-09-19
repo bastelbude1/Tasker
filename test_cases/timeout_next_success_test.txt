@@ -1,0 +1,30 @@
+# Test to verify next=success correctly evaluates to false for timeout
+# Task 1 should timeout, next=success should be false, execution should stop
+
+task=0
+hostname=localhost
+command=echo
+arguments=Testing next=success with timeout
+exec=local
+
+# This task will timeout, next=success should evaluate to false
+task=1
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+timeout=2
+next=success
+
+# This should NOT be executed because next=success is false after timeout
+task=2
+hostname=localhost
+command=echo
+arguments=ERROR - This should NOT execute because next=success is false!
+exec=local
+
+task=3
+hostname=localhost
+command=echo
+arguments=ERROR - This definitely should not execute!
+exec=local

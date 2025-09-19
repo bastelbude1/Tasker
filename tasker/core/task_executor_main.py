@@ -139,6 +139,7 @@ class TaskExecutor:
         self.final_success = None
         self.final_hostname = None
         self.final_command = None
+        self._summary_written = False  # Track if summary has been written
 
         # Generate timestamp for both log file and task copy 
         timestamp = datetime.now().strftime('%d%b%y_%H%M%S')
@@ -593,9 +594,14 @@ class TaskExecutor:
         Race-condition-free summary write with retry logic.
         """
         # Quick validation and exit
-        if (not hasattr(self, 'summary_log') or not self.summary_log or 
+        if (not hasattr(self, 'summary_log') or not self.summary_log or
             self.final_task_id is None):
             return
+
+        # Prevent duplicate writes
+        if getattr(self, '_summary_written', False):
+            return
+        self._summary_written = True
     
         # Message preparation outside critical section
         timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
@@ -1417,19 +1423,49 @@ class TaskExecutor:
                 if 'next' in last_task and last_task['next'] == 'never':
                     # This is a successful completion with 'next=never'
                     self.log_info("SUCCESS: Task execution completed successfully with 'next=never'.")
+                    # Write summary before exiting
+                    if self.summary_log and self.final_task_id is not None:
+                        try:
+                            self.write_final_summary()
+                        except Exception as e:
+                            self.log_warn(f"Failed to write final summary: {e}")
                     ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully with 'next=never'", False)
                 else:
                     # This is a failure due to a 'next' condition
                     self.log_error("FAILED: Task execution stopped: 'next' condition was not satisfied.")
+                    # Write summary before exiting
+                    if self.summary_log and self.final_task_id is not None:
+                        try:
+                            self.write_final_summary()
+                        except Exception as e:
+                            self.log_warn(f"Failed to write final summary: {e}")
                     ExitHandler.exit_with_code(ExitCodes.CONDITIONAL_EXECUTION_FAILED, "Task execution stopped: 'next' condition was not satisfied", False)
             else:
                 self.log_error("FAILED: Task execution stopped for an unknown reason.")
+                # Write summary before exiting
+                if self.summary_log and self.final_task_id is not None:
+                    try:
+                        self.write_final_summary()
+                    except Exception as e:
+                        self.log_warn(f"Failed to write final summary: {e}")
                 ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for an unknown reason", False)
         elif next_task_id not in self.tasks:  # Changed condition
             # We've successfully completed all tasks or reached a non-existent task
             self.log_info("SUCCESS: Task execution completed - reached end of defined tasks.")
+            # Write summary before exiting
+            if self.summary_log and self.final_task_id is not None:
+                try:
+                    self.write_final_summary()
+                except Exception as e:
+                    self.log_warn(f"Failed to write final summary: {e}")
             ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully", False)
         else:
             # Something else stopped execution
             self.log_error("FAILED: Task execution stopped for an unknown reason.")
+            # Write summary before exiting
+            if self.summary_log and self.final_task_id is not None:
+                try:
+                    self.write_final_summary()
+                except Exception as e:
+                    self.log_warn(f"Failed to write final summary: {e}")
             ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for unknown reason", False)

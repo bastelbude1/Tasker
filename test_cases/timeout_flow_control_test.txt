@@ -1,0 +1,33 @@
+# Test case to verify that timeout triggers on_failure correctly
+# Task 1 should timeout and trigger on_failure to task 99
+
+task=0
+hostname=localhost
+command=echo
+arguments=Starting timeout flow control test
+exec=local
+
+# This task will timeout and should trigger on_failure
+task=1
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+timeout=2
+next=success
+on_failure=99
+
+# This should NOT be executed because task 1 times out
+task=2
+hostname=localhost
+command=echo
+arguments=ERROR - This should not execute after timeout!
+exec=local
+
+# This SHOULD be executed via on_failure from task 1
+task=99
+hostname=localhost
+command=echo
+arguments=SUCCESS - on_failure was triggered correctly after timeout
+exec=local
+return=0

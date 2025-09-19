@@ -187,10 +187,13 @@ Can follow any block that executes
 flowchart TD
     A{CONDITION} -->|TRUE| B[Execute if_true_tasks]
     A -->|FALSE| C[Execute if_false_tasks]
+    B --> D[Aggregate Results]
+    C --> D
 
     style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
     style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
     style C fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+    style D fill:#ffecb3,stroke:#f57f17,stroke-width:3px
 ```
 
 </td>
@@ -223,7 +226,8 @@ Can be entry point or follow any block
 - Evaluates boolean condition expression
 - If TRUE → Execute tasks in `if_true_tasks` list
 - If FALSE → Execute tasks in `if_false_tasks` list
-- Tasks execute in specified order (10,11,12)
+- Tasks execute sequentially in specified order (10,11,12)
+- Aggregates results for further flow control evaluation
 
 </td>
 </tr>
@@ -318,9 +322,6 @@ flowchart TD
 | `type` | String | ✅ Yes | Must be "parallel" |
 | `tasks` | String | ✅ Yes | Comma-separated task IDs to execute |
 | `success` | String | ❌ Optional | Success criteria applied to each individual task |
-| `next` | String | ❌ Optional | Success evaluation condition |
-| `on_success` | Integer | ❌ Optional | Task ID if next condition met |
-| `on_failure` | Integer | ❌ Optional | Task ID if next condition not met |
 
 ### Example
 ```
@@ -328,9 +329,6 @@ task=8
 type=parallel
 tasks=10,11,12
 success=@exit_code@=0
-next=min_success=2
-on_success=20
-on_failure=99
 ```
 
 ### Entry Point
@@ -339,11 +337,7 @@ Can be entry point or follow any block
 ### Behavior
 - Executes multiple tasks simultaneously with threading
 - `success` criteria is applied to each individual task (10, 11, 12)
-- `next` condition evaluates the aggregated results of all tasks
-- **Default behavior (no `next` specified)**: `all_success` logic
-  - `on_success` → ALL tasks must succeed (100% success rate)
-  - `on_failure` → At least one task failed (less than 100% success)
-- Supports all Multi-Task Success Evaluation Conditions
+- Aggregates results for further flow control evaluation
 - Faster execution than sequential processing
 
 </td>

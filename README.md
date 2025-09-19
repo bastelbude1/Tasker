@@ -962,6 +962,12 @@ Parameters for executing multiple tasks concurrently:
 
 **Parallel `next` Conditions:** See [Multi-Task Success Evaluation Conditions](#multi-task-success-evaluation-conditions) below.
 
+**Default Parallel Behavior (no `next` condition specified):**
+- Uses `all_success` logic (strictest possible)
+- `on_success` → Triggered only when ALL tasks succeed (100% success rate)
+- `on_failure` → Triggered when at least one task fails (less than 100% success)
+- To get different behavior, explicitly specify `next` condition (e.g., `next=min_success=2`)
+
 ### Conditional Execution Parameters
 
 Parameters for branching based on runtime conditions:
@@ -983,6 +989,12 @@ Parameters for branching based on runtime conditions:
 *At least one of `if_true_tasks` or `if_false_tasks` must be specified.
 
 **Conditional `next` Conditions:** See [Multi-Task Success Evaluation Conditions](#multi-task-success-evaluation-conditions) below.
+
+**Default Conditional Behavior (no `next` condition specified):**
+- Uses `all_success` logic (same as parallel execution)
+- `on_success` → Triggered only when ALL tasks in chosen branch succeed (100% success rate)
+- `on_failure` → Triggered when at least one task in chosen branch fails (less than 100% success)
+- To get different behavior, explicitly specify `next` condition (e.g., `next=majority_success`)
 
 **Important:** Tasks listed in `if_true_tasks`/`if_false_tasks` have their flow control (`on_success`, `on_failure`, `next`) ignored, but their `success` criteria is respected.
 

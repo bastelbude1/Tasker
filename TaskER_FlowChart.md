@@ -84,7 +84,55 @@ arguments=-la /var/log
 </tr>
 </table>
 
-## 2. Success Check Block (with next)
+## 3. Output Processing Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Task Execution Completed] --> B[EXTRACT OUTPUT]
+    B --> C[Store Variables]
+    C --> D[Continue Workflow]
+
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
+    style C fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `stdout_split` | String | ❌ Optional | Split stdout by delimiter and select element |
+| `stderr_split` | String | ❌ Optional | Split stderr by delimiter and select element |
+
+### Example
+```
+task=3
+stdout_split=comma,1
+stderr_split=space,2
+```
+
+### Entry Point
+Applied to any task that produces output
+
+### Behavior
+- Splits stdout/stderr by specified delimiter and selects element by index
+- Format: `delimiter,index` (e.g., `comma,1` for second element after splitting by comma)
+- Modified output replaces original for subsequent processing
+
+</td>
+</tr>
+</table>
+
+## 4. Success Check Block (with next)
 
 <table>
 <tr>
@@ -132,7 +180,7 @@ Follows after Task Execution Block
 </tr>
 </table>
 
-## 3. Success Check Block (with on_success/on_failure)
+## 5. Success Check Block (with on_success/on_failure)
 
 <table>
 <tr>
@@ -183,7 +231,7 @@ Follows after Task Execution Block
 </tr>
 </table>
 
-## 4. Sleep Block
+## 6. Sleep Block
 
 <table>
 <tr>
@@ -227,7 +275,7 @@ Can follow any block that executes
 </tr>
 </table>
 
-## 5. Condition Block
+## 7. Conditional Block
 
 <table>
 <tr>
@@ -284,7 +332,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 6. Loop Block
+## 8. Loop Block
 
 <table>
 <tr>
@@ -341,7 +389,7 @@ Applied to any Execution Block
 </tr>
 </table>
 
-## 7. Parallel Block
+## 9. Parallel Block
 
 <table>
 <tr>
@@ -398,7 +446,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 8. Parallel Block with Retry
+## 10. Parallel Block with Retry
 
 <table>
 <tr>
@@ -478,7 +526,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 9. Conditional Block with Retry
+## 11. Conditional Block with Retry
 
 <table>
 <tr>
@@ -554,55 +602,8 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 10. Output Processing Block
 
-<table>
-<tr>
-<td width="40%">
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
-flowchart TD
-    A[Task Execution Completed] --> B[EXTRACT OUTPUT]
-    B --> C[Store Variables]
-    C --> D[Continue Workflow]
-
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
-    style C fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
-    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-```
-
-</td>
-<td width="60%">
-
-### Parameters
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `task` | Integer | ✅ Yes | Unique task identifier |
-| `stdout_split` | String | ❌ Optional | Split stdout by delimiter and select element |
-| `stderr_split` | String | ❌ Optional | Split stderr by delimiter and select element |
-
-### Example
-```
-task=3
-stdout_split=comma,1
-stderr_split=space,2
-```
-
-### Entry Point
-Applied to any task that produces output
-
-### Behavior
-- Splits stdout/stderr by specified delimiter and selects element by index
-- Format: `delimiter,index` (e.g., `comma,1` for second element after splitting by comma)
-- Modified output replaces original for subsequent processing
-
-</td>
-</tr>
-</table>
-
-## 11. Multi-Task Success Evaluation Block
+## 12. Multi-Task Success Evaluation Block
 
 <table>
 <tr>
@@ -658,7 +659,7 @@ Follows after Parallel Block or Condition Block
 </tr>
 </table>
 
-## 12. End Success Block
+## 13. End Success Block
 
 <table>
 <tr>
@@ -708,7 +709,7 @@ Terminal block - workflow ends successfully
 </tr>
 </table>
 
-## 13. End Failure Block
+## 14. End Failure Block
 
 <table>
 <tr>

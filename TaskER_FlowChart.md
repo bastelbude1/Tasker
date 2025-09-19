@@ -2,16 +2,6 @@
 
 This document provides a visual inventory of TaskER workflow blocks with their corresponding parameters.
 
-<style>
-.mermaid {
-  text-align: center;
-}
-.mermaid svg {
-  max-width: 100% !important;
-  height: auto !important;
-}
-</style>
-
 ## 1. Execution Block
 
 <table>

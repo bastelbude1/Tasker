@@ -100,16 +100,26 @@ flowchart TD
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
-| `condition` | String | ✅ Yes | Pre-execution condition |
-| `on_success` | String | ❌ Optional | Task ID for true condition |
-| `on_failure` | String | ❌ Optional | Task ID for false condition |
+| `type` | String | ✅ Yes | Must be "conditional" |
+| `condition` | String | ✅ Yes | Boolean expression to evaluate |
+| `if_true_tasks` | String | ✅ Yes* | Task IDs for TRUE branch |
+| `if_false_tasks` | String | ✅ Yes* | Task IDs for FALSE branch |
+| `next` | String | ❌ Optional | Success evaluation condition |
+| `on_success` | Integer | ❌ Optional | Task ID if next condition met |
+| `on_failure` | Integer | ❌ Optional | Task ID if next condition not met |
+
+*At least one of `if_true_tasks` or `if_false_tasks` must be specified.
 
 ### Example
 ```
 task=2
+type=conditional
 condition=@DEPLOY_ENV@=production
-on_success=10
-on_failure=20
+if_true_tasks=10,11,12
+if_false_tasks=20,21
+next=all_success
+on_success=30
+on_failure=99
 ```
 
 ### Entry Point

@@ -25,9 +25,6 @@ flowchart TD
 | `hostname` | String | ✅ Yes | Target server or @HOSTNAME@ |
 | `command` | String | ✅ Yes | Command to execute |
 | `arguments` | String | ❌ Optional | Command arguments |
-| `exec` | String | ❌ Optional | Execution type (pbrun, p7s, local, wwrs) |
-| `timeout` | Integer | ❌ Optional | Command timeout (5-3600 seconds) |
-| `sleep` | Integer | ❌ Optional | Sleep after execution (0-300 seconds) |
 
 ### Example
 ```
@@ -35,9 +32,6 @@ task=0
 hostname=server01
 command=ls
 arguments=-la /var/log
-exec=pbrun
-timeout=30
-sleep=5
 ```
 
 </td>
@@ -137,7 +131,7 @@ Follows after Task Execution Block
 </tr>
 </table>
 
-## 4. Condition Block
+## 4. Sleep Block
 
 <table>
 <tr>
@@ -145,9 +139,53 @@ Follows after Task Execution Block
 
 ```mermaid
 flowchart TD
-    A{CONDITION}
+    A[Previous Block] --> B[SLEEP]
+    B --> C[Continue]
+
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style B fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    style C fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `sleep` | Integer | ❌ Optional | Sleep duration (0-300 seconds) |
+
+### Example
+```
+sleep=5
+```
+
+### Entry Point
+Can follow any block that executes
+
+### Behavior
+- Pauses workflow execution for specified seconds
+- Useful for rate limiting or waiting for external processes
+- Does not affect task success/failure status
+
+</td>
+</tr>
+</table>
+
+## 5. Condition Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+flowchart TD
+    A{CONDITION} -->|TRUE| B[Execute if_true_tasks]
+    A -->|FALSE| C[Execute if_false_tasks]
 
     style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style C fill:#ffcdd2,stroke:#c62828,stroke-width:2px
 ```
 
 </td>
@@ -161,10 +199,6 @@ flowchart TD
 | `condition` | String | ✅ Yes | Boolean expression to evaluate |
 | `if_true_tasks` | String | ✅ Yes* | Task IDs for TRUE branch |
 | `if_false_tasks` | String | ✅ Yes* | Task IDs for FALSE branch |
-| `success` | String | ❌ Optional | Custom success criteria for branch tasks |
-| `next` | String | ❌ Optional | Success evaluation condition |
-| `on_success` | Integer | ❌ Optional | Task ID if next condition met |
-| `on_failure` | Integer | ❌ Optional | Task ID if next condition not met |
 
 *At least one of `if_true_tasks` or `if_false_tasks` must be specified.
 
@@ -175,27 +209,22 @@ type=conditional
 condition=@DEPLOY_ENV@=production
 if_true_tasks=10,11,12
 if_false_tasks=20,21
-success=@exit_code@=0&@stdout@~completed
-next=min_success=2
-on_success=30
-on_failure=99
 ```
-
-### Supported `next` Conditions
-- `min_success=N`: At least N tasks must succeed
-- `max_failed=N`: At most N tasks can fail
-- `all_success`: All tasks must succeed
-- `any_success`: At least one task must succeed
-- `majority_success`: More than 50% must succeed
 
 ### Entry Point
 Can be entry point or follow any block
+
+### Behavior
+- Evaluates boolean condition expression
+- If TRUE → Execute tasks in `if_true_tasks` list
+- If FALSE → Execute tasks in `if_false_tasks` list
+- Tasks execute in specified order (10,11,12)
 
 </td>
 </tr>
 </table>
 
-## 5. End Block
+## 6. End Block
 
 <table>
 <tr>

@@ -6,7 +6,17 @@ This document provides a visual inventory of TaskER workflow blocks with their c
 
 <table>
 <tr>
-<td width="50%">
+<td width="40%">
+
+```mermaid
+flowchart TD
+    A[Task Execution Block]
+
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+```
+
+</td>
+<td width="60%">
 
 ### Parameters
 | Parameter | Type | Required | Description |
@@ -31,16 +41,6 @@ sleep=5
 ```
 
 </td>
-<td width="50%">
-
-```mermaid
-flowchart TD
-    A[Task Execution Block]
-
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-```
-
-</td>
 </tr>
 </table>
 
@@ -48,7 +48,18 @@ flowchart TD
 
 <table>
 <tr>
-<td width="50%">
+<td width="40%">
+
+```mermaid
+flowchart TD
+    A[Task Execution Block] --> B{SUCCESS}
+
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style B fill:#ffecb3,stroke:#f57f17,stroke-width:2px
+```
+
+</td>
+<td width="60%">
 
 ### Parameters
 | Parameter | Type | Required | Description |
@@ -66,17 +77,6 @@ next=never
 Follows after Task Execution Block
 
 </td>
-<td width="50%">
-
-```mermaid
-flowchart TD
-    A[Task Execution Block] --> B{SUCCESS}
-
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style B fill:#ffecb3,stroke:#f57f17,stroke-width:2px
-```
-
-</td>
 </tr>
 </table>
 
@@ -84,7 +84,17 @@ flowchart TD
 
 <table>
 <tr>
-<td width="50%">
+<td width="40%">
+
+```mermaid
+flowchart TD
+    A{CONDITION}
+
+    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+```
+
+</td>
+<td width="60%">
 
 ### Parameters
 | Parameter | Type | Required | Description |
@@ -106,16 +116,6 @@ on_failure=20
 Can be entry point or follow any block
 
 </td>
-<td width="50%">
-
-```mermaid
-flowchart TD
-    A{CONDITION}
-
-    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-```
-
-</td>
 </tr>
 </table>
 
@@ -123,7 +123,17 @@ flowchart TD
 
 <table>
 <tr>
-<td width="50%">
+<td width="40%">
+
+```mermaid
+flowchart TD
+    A((END))
+
+    style A fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+```
+
+</td>
+<td width="60%">
 
 ### Parameters
 | Parameter | Type | Required | Description |
@@ -142,16 +152,6 @@ return=0
 
 ### Entry Point
 Terminal block - workflow ends here
-
-</td>
-<td width="50%">
-
-```mermaid
-flowchart TD
-    A((END))
-
-    style A fill:#ffcdd2,stroke:#c62828,stroke-width:2px
-```
 
 </td>
 </tr>

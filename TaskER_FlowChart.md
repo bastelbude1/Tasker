@@ -109,11 +109,13 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
 | `success` | String | ❌ Optional | Custom success criteria |
 | `next` | String | ❌ Optional | Flow control (never, return=X, task ID) |
 
 ### Example
 ```
+task=1
 success=@1_exit_code@=0&@1_stdout@~running
 next=success
 ```
@@ -155,12 +157,14 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
 | `success` | String | ❌ Optional | Custom success criteria |
 | `on_success` | Integer | ❌ Optional | Task ID to jump to on success |
 | `on_failure` | Integer | ❌ Optional | Task ID to jump to on failure |
 
 ### Example
 ```
+task=1
 success=@1_exit_code@=0&@1_stdout@~running
 on_success=20
 on_failure=99
@@ -202,10 +206,12 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
 | `sleep` | Integer | ❌ Optional | Sleep duration (0-300 seconds) |
 
 ### Example
 ```
+task=1
 sleep=5
 ```
 
@@ -304,6 +310,7 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
 | `loop` | Integer | ✅ Yes | Number of additional iterations (1-100) |
 | `next` | String | ✅ Yes | Must be "loop" |
 | `loop_break` | String | ❌ Optional | Condition to break out of loop early |
@@ -568,6 +575,7 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
 | `var_*` | String | ❌ Optional | Extract value and store in variable |
 | `split_*` | String | ❌ Optional | Split output by delimiter and extract |
 
@@ -575,6 +583,7 @@ flowchart TD
 
 **Extract simple values:**
 ```
+task=1
 var_ip=@stdout@
 var_status=@stderr@
 var_code=@exit_code@
@@ -582,6 +591,7 @@ var_code=@exit_code@
 
 **Extract with splitting:**
 ```
+task=2
 split_name=@stdout@:space:1
 split_version=@stdout@:comma:2
 split_result=@stderr@:pipe:3
@@ -678,6 +688,7 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
 | `next` | String | ❌ Optional | Must be "never" |
 | `return` | Integer | ❌ Optional | Exit code 0 |
 
@@ -685,11 +696,13 @@ flowchart TD
 
 **Stop workflow successfully:**
 ```
+task=99
 next=never
 ```
 
 **Explicit success with exit code:**
 ```
+task=100
 return=0
 ```
 
@@ -725,6 +738,7 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
 | `next` | String | ❌ Optional | Must be "never" |
 | `return` | Integer | ✅ Yes | Exit code 1-255 |
 
@@ -732,16 +746,19 @@ flowchart TD
 
 **Stop workflow with failure:**
 ```
+task=98
 return=1
 ```
 
 **Stop with specific error code:**
 ```
+task=97
 return=14
 ```
 
 **Explicit failure with never:**
 ```
+task=96
 next=never
 return=1
 ```

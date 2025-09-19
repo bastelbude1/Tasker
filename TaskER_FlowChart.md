@@ -221,7 +221,7 @@ flowchart TD
 ```
 task=2
 type=conditional
-condition=@DEPLOY_ENV@=production
+condition=@0_stdout@=OPEN
 if_true_tasks=10,11,12
 if_false_tasks=20,21
 ```
@@ -239,7 +239,118 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 6. End Success Block
+## 6. Loop Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Task Execution Block] --> B{LOOP}
+    B -->|Continue| C[Repeat Task]
+    B -->|Complete| D[Continue Workflow]
+    C --> A
+
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style C fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `loop` | Integer | ✅ Yes | Number of additional iterations (1-100) |
+
+### Example
+```
+task=5
+hostname=server01
+command=ping
+arguments=-c 1 google.com
+loop=3
+```
+
+### Entry Point
+Applied to any Execution Block
+
+### Behavior
+- Repeats the same task for specified number of iterations
+- `loop=3` means task executes 4 times total (original + 3 loops)
+- Each iteration gets separate task result storage
+- Useful for retry patterns or periodic checks
+
+</td>
+</tr>
+</table>
+
+## 7. Parallel Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Parallel Block] --> B[Task 10]
+    A --> C[Task 11]
+    A --> D[Task 12]
+    B --> E[Aggregate Results]
+    C --> E
+    D --> E
+
+    style A fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
+    style B fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style E fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `type` | String | ✅ Yes | Must be "parallel" |
+| `tasks` | String | ✅ Yes | Comma-separated task IDs to execute |
+| `success` | String | ❌ Optional | Success criteria for individual tasks |
+| `next` | String | ❌ Optional | Success evaluation condition |
+| `on_success` | Integer | ❌ Optional | Task ID if next condition met |
+| `on_failure` | Integer | ❌ Optional | Task ID if next condition not met |
+
+### Example
+```
+task=8
+type=parallel
+tasks=10,11,12
+success=@exit_code@=0
+next=min_success=2
+on_success=20
+on_failure=99
+```
+
+### Entry Point
+Can be entry point or follow any block
+
+### Behavior
+- Executes multiple tasks simultaneously with threading
+- Aggregates results based on `next` condition
+- Supports all Multi-Task Success Evaluation Conditions
+- Faster execution than sequential processing
+
+</td>
+</tr>
+</table>
+
+## 8. End Success Block
 
 <table>
 <tr>
@@ -286,7 +397,7 @@ Terminal block - workflow ends successfully
 </tr>
 </table>
 
-## 7. End Failure Block
+## 9. End Failure Block
 
 <table>
 <tr>

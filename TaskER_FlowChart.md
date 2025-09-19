@@ -2,6 +2,16 @@
 
 This document provides a visual inventory of TaskER workflow blocks with their corresponding parameters.
 
+<style>
+.mermaid {
+  text-align: center;
+}
+.mermaid svg {
+  max-width: 100% !important;
+  height: auto !important;
+}
+</style>
+
 ## 1. Execution Block
 
 <table>
@@ -68,7 +78,7 @@ flowchart TD
 ### Example
 ```
 success=@1_exit_code@=0&@1_stdout@~running
-next=never
+next=@1_stdout@~completed
 ```
 
 ### Entry Point
@@ -243,20 +253,35 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `next` | String | ✅ Yes | Must be "never" |
-| `return` | Integer | ❌ Optional | Exit code (0-255) |
+| `next` | String | ❌ Optional | Must be "never" to stop workflow |
+| `return` | Integer | ❌ Optional | Exit code (0-255) and workflow success |
 
-### Example
+### Examples
+
+**Stop workflow (exit code 0):**
 ```
 next=never
 ```
-or
+
+**Stop workflow with specific exit code:**
 ```
+return=1
+```
+
+**Stop workflow with success code and explicit never:**
+```
+next=never
 return=0
 ```
 
 ### Entry Point
 Terminal block - workflow ends here
+
+### Behavior
+- `next=never` → Stop workflow execution
+- `return=X` → Stop workflow with exit code X (0=success, 1-255=failure)
+- `return` sets both exit code AND overall workflow success/failure
+- If neither specified, workflow continues to next sequential task
 
 </td>
 </tr>

@@ -70,7 +70,7 @@ flowchart TD
 ### Example
 ```
 success=@1_exit_code@=0&@1_stdout@~running
-next=@1_stdout@~completed
+next=success
 ```
 
 ### Entry Point
@@ -256,6 +256,8 @@ flowchart TD
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `loop` | Integer | ✅ Yes | Number of additional iterations (1-100) |
+| `next` | String | ✅ Yes | Must be "loop" |
+| `loop_break` | String | ❌ Optional | Condition to break out of loop early |
 
 ### Example
 ```
@@ -264,6 +266,8 @@ hostname=server01
 command=ping
 arguments=-c 1 google.com
 loop=3
+next=loop
+loop_break=@5_stdout@~unreachable
 ```
 
 ### Entry Point
@@ -272,6 +276,8 @@ Applied to any Execution Block
 ### Behavior
 - Repeats the same task for specified number of iterations
 - `loop=3` means task executes 4 times total (original + 3 loops)
+- `next=loop` is mandatory to enable loop functionality
+- `loop_break` condition can terminate loop early if met
 - Each iteration gets separate task result storage
 - Useful for retry patterns or periodic checks
 

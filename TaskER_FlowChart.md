@@ -117,10 +117,17 @@ type=conditional
 condition=@DEPLOY_ENV@=production
 if_true_tasks=10,11,12
 if_false_tasks=20,21
-next=all_success
+next=min_success=2
 on_success=30
 on_failure=99
 ```
+
+### Supported `next` Conditions
+- `min_success=N`: At least N tasks must succeed
+- `max_failed=N`: At most N tasks can fail
+- `all_success`: All tasks must succeed
+- `any_success`: At least one task must succeed
+- `majority_success`: More than 50% must succeed
 
 ### Entry Point
 Can be entry point or follow any block

@@ -986,6 +986,13 @@ Parameters for branching based on runtime conditions:
 
 *At least one of `if_true_tasks` or `if_false_tasks` must be specified.
 
+**Conditional `next` Conditions:**
+- `min_success=N`: At least N tasks must succeed
+- `max_failed=N`: At most N tasks can fail
+- `all_success`: All tasks must succeed
+- `any_success`: At least one task must succeed
+- `majority_success`: More than 50% must succeed
+
 **Important:** Tasks listed in `if_true_tasks`/`if_false_tasks` have their flow control (`on_success`, `on_failure`, `next`) ignored, but their `success` criteria is respected.
 
 ### Output Processing Parameters (All Standard Tasks)

@@ -44,7 +44,7 @@ sleep=5
 </tr>
 </table>
 
-## 2. Success Check Block
+## 2. Success Check Block (with next)
 
 <table>
 <tr>
@@ -53,9 +53,13 @@ sleep=5
 ```mermaid
 flowchart TD
     A[Task Execution Block] --> B{SUCCESS}
+    B -->|next condition met| C[Continue to Next Task]
+    B -->|next condition not met| D((END))
 
     style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
     style B fill:#ffecb3,stroke:#f57f17,stroke-width:2px
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style D fill:#ffcdd2,stroke:#c62828,stroke-width:2px
 ```
 
 </td>
@@ -76,11 +80,16 @@ next=never
 ### Entry Point
 Follows after Task Execution Block
 
+### Behavior
+- Evaluates success criteria
+- If `next` condition met → Continue to next sequential task
+- If `next` condition not met → End workflow or return with code
+
 </td>
 </tr>
 </table>
 
-## 3. Flow Control Block
+## 3. Success Check Block (with on_success/on_failure)
 
 <table>
 <tr>
@@ -88,12 +97,12 @@ Follows after Task Execution Block
 
 ```mermaid
 flowchart TD
-    A{SUCCESS/NEXT EVALUATION} --> B{CONDITION MET?}
-    B -->|Yes| C[on_success Task ID]
-    B -->|No| D[on_failure Task ID]
+    A[Task Execution Block] --> B{SUCCESS}
+    B -->|Success| C[Jump to on_success Task]
+    B -->|Failure| D[Jump to on_failure Task]
 
-    style A fill:#ffecb3,stroke:#f57f17,stroke-width:2px
-    style B fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style B fill:#ffecb3,stroke:#f57f17,stroke-width:2px
     style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
     style D fill:#ffcdd2,stroke:#c62828,stroke-width:2px
 ```
@@ -104,22 +113,25 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `on_success` | Integer | ❌ Optional | Task ID if next condition met |
-| `on_failure` | Integer | ❌ Optional | Task ID if next condition not met |
+| `success` | String | ❌ Optional | Custom success criteria |
+| `on_success` | Integer | ❌ Optional | Task ID to jump to on success |
+| `on_failure` | Integer | ❌ Optional | Task ID to jump to on failure |
 
 ### Example
 ```
+success=@1_exit_code@=0&@1_stdout@~running
 on_success=20
 on_failure=99
 ```
 
 ### Entry Point
-Follows after Success Check or Multi-Task Evaluation
+Follows after Task Execution Block
 
 ### Behavior
-- If `next` condition is met → Jump to `on_success` task ID
-- If `next` condition is not met → Jump to `on_failure` task ID
-- If no `on_success`/`on_failure` specified → Continue to next sequential task
+- Evaluates success criteria
+- If success → Jump to `on_success` task ID
+- If failure → Jump to `on_failure` task ID
+- Allows non-sequential workflow jumps
 
 </td>
 </tr>

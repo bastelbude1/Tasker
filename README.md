@@ -960,12 +960,7 @@ Parameters for executing multiple tasks concurrently:
 | `on_success` | Integer | No | Task ID if next condition met | Any valid task ID |
 | `on_failure` | Integer | No | Task ID if next condition not met | Any valid task ID |
 
-**Parallel `next` Conditions:**
-- `min_success=N`: At least N tasks must succeed
-- `max_failed=N`: At most N tasks can fail
-- `all_success`: All tasks must succeed
-- `any_success`: At least one task must succeed
-- `majority_success`: More than 50% must succeed
+**Parallel `next` Conditions:** See [Multi-Task Success Evaluation Conditions](#multi-task-success-evaluation-conditions) below.
 
 ### Conditional Execution Parameters
 
@@ -987,14 +982,54 @@ Parameters for branching based on runtime conditions:
 
 *At least one of `if_true_tasks` or `if_false_tasks` must be specified.
 
-**Conditional `next` Conditions:**
-- `min_success=N`: At least N tasks must succeed
-- `max_failed=N`: At most N tasks can fail
-- `all_success`: All tasks must succeed
-- `any_success`: At least one task must succeed
-- `majority_success`: More than 50% must succeed
+**Conditional `next` Conditions:** See [Multi-Task Success Evaluation Conditions](#multi-task-success-evaluation-conditions) below.
 
 **Important:** Tasks listed in `if_true_tasks`/`if_false_tasks` have their flow control (`on_success`, `on_failure`, `next`) ignored, but their `success` criteria is respected.
+
+## Multi-Task Success Evaluation Conditions
+
+These `next` conditions are shared by both **Parallel Execution** and **Conditional Execution** for evaluating the success of multiple tasks and controlling workflow flow.
+
+### Available Conditions
+
+| Condition | Description | Example | Logic |
+|-----------|-------------|---------|-------|
+| `min_success=N` | At least N tasks must succeed | `min_success=3` | success_count ≥ N |
+| `max_failed=N` | At most N tasks can fail | `max_failed=1` | failed_count ≤ N |
+| `all_success` | All tasks must succeed | `all_success` | success_count = total_tasks |
+| `any_success` | At least one task must succeed | `any_success` | success_count > 0 |
+| `majority_success` | More than 50% must succeed | `majority_success` | success_count > total_tasks/2 |
+
+### Usage Context
+
+**Parallel Execution:**
+```
+task=0
+type=parallel
+tasks=10,11,12,13
+success=@exit_code@=0
+next=min_success=3
+on_success=20
+on_failure=99
+```
+
+**Conditional Execution:**
+```
+task=1
+type=conditional
+condition=@DEPLOY_ENV@=production
+if_true_tasks=30,31,32
+success=@exit_code@=0&@stdout@~completed
+next=majority_success
+on_success=40
+on_failure=99
+```
+
+### Behavior
+
+- **Success Determination**: Each individual task's success is determined by its `success` parameter (or default exit code = 0)
+- **Condition Evaluation**: The `next` condition evaluates the aggregate results of all tasks in the group
+- **Flow Control**: Based on condition result, workflow continues to `on_success` or `on_failure` task IDs
 
 ### Output Processing Parameters (All Standard Tasks)
 

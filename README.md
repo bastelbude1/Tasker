@@ -977,7 +977,6 @@ Parameters for branching based on runtime conditions:
 | `condition` | String | **Yes** | Boolean expression to evaluate | `@ENV@=prod&@0_success@=true` |
 | `if_true_tasks` | String | No* | Task IDs for TRUE branch | "100,300,150" (custom order) |
 | `if_false_tasks` | String | No* | Task IDs for FALSE branch | "200,205,210" (skip tasks) |
-| `timeout` | Integer | No | Master timeout for branch tasks | 5-3600 seconds |
 | `retry_failed` | Boolean | No | Enable retry for failed tasks | `true`, `false` |
 | `retry_count` | Integer | No | Number of retry attempts | 0-10 (default: 1) |
 | `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |

@@ -19,10 +19,11 @@ This document provides a visual inventory of TaskER workflow blocks with their c
 <td width="40%">
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
     A[Task Execution Block]
 
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
 ```
 
 </td>
@@ -55,15 +56,16 @@ arguments=-la /var/log
 <td width="40%">
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
     A[Task Execution Block] --> B{SUCCESS}
     B -->|next condition met| C[Continue to Next Task]
     B -->|next condition not met| D((END))
 
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style B fill:#ffecb3,stroke:#f57f17,stroke-width:2px
-    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
-    style D fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
 ```
 
 </td>
@@ -100,15 +102,16 @@ Follows after Task Execution Block
 <td width="40%">
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
     A[Task Execution Block] --> B{SUCCESS}
     B -->|Success| C[Jump to on_success Task]
     B -->|Failure| D[Jump to on_failure Task]
 
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style B fill:#ffecb3,stroke:#f57f17,stroke-width:2px
-    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
-    style D fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
 ```
 
 </td>
@@ -148,13 +151,14 @@ Follows after Task Execution Block
 <td width="40%">
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
     A[Previous Block] --> B[SLEEP]
     B --> C[Continue]
 
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style B fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
-    style C fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
 ```
 
 </td>
@@ -189,13 +193,14 @@ Can follow any block that executes
 <td width="40%">
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
     A{CONDITION} -->|TRUE| B[Execute if_true_tasks]
     A -->|FALSE| C[Execute if_false_tasks]
 
-    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-    style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
-    style C fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style C fill:#ffcdd2,stroke:#c62828,stroke-width:3px
 ```
 
 </td>
@@ -234,17 +239,18 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 6. End Block
+## 6. End Success Block
 
 <table>
 <tr>
 <td width="40%">
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
-    A((END))
+    A((END SUCCESS))
 
-    style A fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+    style A fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```
 
 </td>
@@ -253,35 +259,74 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `next` | String | ❌ Optional | Must be "never" to stop workflow |
-| `return` | Integer | ❌ Optional | Exit code (0-255) and workflow success |
+| `next` | String | ❌ Optional | Must be "never" |
+| `return` | Integer | ❌ Optional | Exit code 0 |
 
 ### Examples
 
-**Stop workflow (exit code 0):**
+**Stop workflow successfully:**
 ```
 next=never
 ```
 
-**Stop workflow with specific exit code:**
+**Explicit success with exit code:**
 ```
-return=1
-```
-
-**Stop workflow with success code and explicit never:**
-```
-next=never
 return=0
 ```
 
 ### Entry Point
-Terminal block - workflow ends here
+Terminal block - workflow ends successfully
 
 ### Behavior
-- `next=never` → Stop workflow execution
-- `return=X` → Stop workflow with exit code X (0=success, 1-255=failure)
-- `return` sets both exit code AND overall workflow success/failure
-- If neither specified, workflow continues to next sequential task
+- Workflow terminates with success status
+- Default exit code: 0
+- Overall workflow result: SUCCESS
+
+</td>
+</tr>
+</table>
+
+## 7. End Failure Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A((END FAILURE))
+
+    style A fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `return` | Integer | ✅ Yes | Exit code 1-255 |
+
+### Examples
+
+**Stop workflow with failure:**
+```
+return=1
+```
+
+**Stop with specific error code:**
+```
+return=14
+```
+
+### Entry Point
+Terminal block - workflow ends with failure
+
+### Behavior
+- Workflow terminates with failure status
+- Exit code: 1-255 (non-zero = failure)
+- Overall workflow result: FAILURE
 
 </td>
 </tr>

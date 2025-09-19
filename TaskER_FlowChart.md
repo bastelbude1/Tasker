@@ -340,6 +340,9 @@ Can be entry point or follow any block
 - Executes multiple tasks simultaneously with threading
 - `success` criteria is applied to each individual task (10, 11, 12)
 - `next` condition evaluates the aggregated results of all tasks
+- **Default behavior (no `next` specified)**: `all_success` logic
+  - `on_success` → ALL tasks must succeed (100% success rate)
+  - `on_failure` → At least one task failed (less than 100% success)
 - Supports all Multi-Task Success Evaluation Conditions
 - Faster execution than sequential processing
 

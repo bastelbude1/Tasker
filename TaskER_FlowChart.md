@@ -2,7 +2,52 @@
 
 This document provides a visual inventory of TaskER workflow blocks with their corresponding parameters.
 
-## 1. Execution Block
+## 1. Global Variable Definition Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[GLOBAL VARIABLES]
+
+    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `VARIABLE_NAME` | String | ✅ Yes | Any uppercase variable name |
+| `value` | String | ✅ Yes | Variable value or expression |
+
+### Examples
+```
+ENVIRONMENT=production
+DATABASE_HOST=db.company.com
+RETRY_COUNT=3
+TIMEOUT_SECONDS=30
+```
+
+### Entry Point
+Must be at the beginning of workflow file
+
+### Behavior
+- Defines reusable variables for entire workflow
+- Variables are read-only and available throughout file
+- Use @VARIABLE_NAME@ syntax to reference in tasks
+- Case-sensitive variable names (recommended: UPPERCASE)
+- Automatic creation - any KEY=VALUE that's not a task parameter
+
+</td>
+</tr>
+</table>
+
+## 2. Execution Block
 
 <table>
 <tr>
@@ -498,7 +543,66 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 10. Multi-Task Success Evaluation Block
+## 10. Output Processing Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Task Execution Completed] --> B[EXTRACT OUTPUT]
+    B --> C[Store Variables]
+    C --> D[Continue Workflow]
+
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
+    style C fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `var_*` | String | ❌ Optional | Extract value and store in variable |
+| `split_*` | String | ❌ Optional | Split output by delimiter and extract |
+
+### Examples
+
+**Extract simple values:**
+```
+var_ip=@stdout@
+var_status=@stderr@
+var_code=@exit_code@
+```
+
+**Extract with splitting:**
+```
+split_name=@stdout@:space:1
+split_version=@stdout@:comma:2
+split_result=@stderr@:pipe:3
+```
+
+### Entry Point
+Applied to any task that produces output
+
+### Behavior
+- Extracts specific values from task output (stdout/stderr)
+- Stores extracted values in variables for later use
+- `var_*` creates variables from direct output
+- `split_*` splits output by delimiter and extracts specific parts
+- Variables become available as @var_name@ in subsequent tasks
+- Non-destructive - original output remains unchanged
+
+</td>
+</tr>
+</table>
+
+## 11. Multi-Task Success Evaluation Block
 
 <table>
 <tr>
@@ -554,7 +658,7 @@ Follows after Parallel Block or Condition Block
 </tr>
 </table>
 
-## 11. End Success Block
+## 12. End Success Block
 
 <table>
 <tr>
@@ -601,7 +705,7 @@ Terminal block - workflow ends successfully
 </tr>
 </table>
 
-## 12. End Failure Block
+## 13. End Failure Block
 
 <table>
 <tr>

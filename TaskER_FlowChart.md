@@ -80,7 +80,52 @@ Follows after Task Execution Block
 </tr>
 </table>
 
-## 3. Condition Block
+## 3. Flow Control Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+flowchart TD
+    A{SUCCESS/NEXT EVALUATION} --> B{CONDITION MET?}
+    B -->|Yes| C[on_success Task ID]
+    B -->|No| D[on_failure Task ID]
+
+    style A fill:#ffecb3,stroke:#f57f17,stroke-width:2px
+    style B fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style D fill:#ffcdd2,stroke:#c62828,stroke-width:2px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `on_success` | Integer | ❌ Optional | Task ID if next condition met |
+| `on_failure` | Integer | ❌ Optional | Task ID if next condition not met |
+
+### Example
+```
+on_success=20
+on_failure=99
+```
+
+### Entry Point
+Follows after Success Check or Multi-Task Evaluation
+
+### Behavior
+- If `next` condition is met → Jump to `on_success` task ID
+- If `next` condition is not met → Jump to `on_failure` task ID
+- If no `on_success`/`on_failure` specified → Continue to next sequential task
+
+</td>
+</tr>
+</table>
+
+## 4. Condition Block
 
 <table>
 <tr>
@@ -138,7 +183,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 4. End Block
+## 5. End Block
 
 <table>
 <tr>

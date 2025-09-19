@@ -417,6 +417,7 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `next` | String | ❌ Optional | Must be "never" |
 | `return` | Integer | ✅ Yes | Exit code 1-255 |
 
 ### Examples
@@ -429,6 +430,12 @@ return=1
 **Stop with specific error code:**
 ```
 return=14
+```
+
+**Explicit failure with never:**
+```
+next=never
+return=1
 ```
 
 ### Entry Point

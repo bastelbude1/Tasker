@@ -981,9 +981,6 @@ Parameters for branching based on runtime conditions:
 | `retry_failed` | Boolean | No | Enable retry for failed tasks | `true`, `false` |
 | `retry_count` | Integer | No | Number of retry attempts | 0-10 (default: 1) |
 | `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |
-| `next` | String | No | Success evaluation (like parallel) | Same as parallel conditions |
-| `on_success` | Integer | No | Task ID if next condition met | Any valid task ID |
-| `on_failure` | Integer | No | Task ID if next condition not met | Any valid task ID |
 
 *At least one of `if_true_tasks` or `if_false_tasks` must be specified.
 

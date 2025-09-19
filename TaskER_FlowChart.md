@@ -455,33 +455,17 @@ Can be entry point or follow any block
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
-    A[Parallel Block with Retry] --> B[Task 10]
-    A --> C[Task 11]
-    A --> D[Task 12]
-    B --> E{Failed?}
-    C --> F{Failed?}
-    D --> G{Failed?}
-    E -->|Yes| H[Retry Task 10]
-    F -->|Yes| I[Retry Task 11]
-    G -->|Yes| J[Retry Task 12]
-    E -->|No| K[Multi-Task Success Evaluation]
-    F -->|No| K
-    G -->|No| K
-    H --> K
-    I --> K
-    J --> K
+    A[Parallel Block with Retry] --> B[Execute Tasks 10,11,12]
+    B --> C{Check Results}
+    C -->|Some Failed & Retries Left| D[Retry Failed Tasks]
+    D --> C
+    C -->|All Success OR Retries Exhausted| E[Multi-Task Success Evaluation]
 
     style A fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
     style B fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style E fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
-    style F fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
-    style G fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
-    style H fill:#ffecb3,stroke:#f57f17,stroke-width:3px
-    style I fill:#ffecb3,stroke:#f57f17,stroke-width:3px
-    style J fill:#ffecb3,stroke:#f57f17,stroke-width:3px
-    style K fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style C fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style D fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style E fill:#ffecb3,stroke:#f57f17,stroke-width:3px
 ```
 
 </td>
@@ -535,25 +519,20 @@ Can be entry point or follow any block
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
-    A{CONDITION with Retry} -->|TRUE| B[Execute if_true_tasks]
+    A{CONDITION} -->|TRUE| B[Execute if_true_tasks]
     A -->|FALSE| C[Execute if_false_tasks]
-    B --> D{Any Failed?}
-    C --> E{Any Failed?}
-    D -->|Yes| F[Retry Failed Tasks]
-    E -->|Yes| G[Retry Failed Tasks]
-    D -->|No| H[Multi-Task Success Evaluation]
-    E -->|No| H
-    F --> H
-    G --> H
+    B --> D{Check Results}
+    C --> D
+    D -->|Some Failed & Retries Left| E[Retry Failed Tasks]
+    E --> D
+    D -->|All Success OR Retries Exhausted| F[Multi-Task Success Evaluation]
 
     style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
     style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
     style C fill:#ffcdd2,stroke:#c62828,stroke-width:3px
     style D fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
-    style E fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style E fill:#ffecb3,stroke:#f57f17,stroke-width:3px
     style F fill:#ffecb3,stroke:#f57f17,stroke-width:3px
-    style G fill:#ffecb3,stroke:#f57f17,stroke-width:3px
-    style H fill:#ffecb3,stroke:#f57f17,stroke-width:3px
 ```
 
 </td>
@@ -653,7 +632,7 @@ on_failure=99
 ```
 
 ### Entry Point
-Follows after Parallel Block or Condition Block
+Follows after Parallel Block or Conditional Block
 
 </td>
 </tr>

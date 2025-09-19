@@ -344,7 +344,161 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 8. Multi-Task Success Evaluation Block
+## 8. Parallel Block with Retry
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Parallel Block with Retry] --> B[Task 10]
+    A --> C[Task 11]
+    A --> D[Task 12]
+    B --> E{Failed?}
+    C --> F{Failed?}
+    D --> G{Failed?}
+    E -->|Yes| H[Retry Task 10]
+    F -->|Yes| I[Retry Task 11]
+    G -->|Yes| J[Retry Task 12]
+    E -->|No| K[Multi-Task Success Evaluation]
+    F -->|No| K
+    G -->|No| K
+    H --> K
+    I --> K
+    J --> K
+
+    style A fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
+    style B fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style E fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style F fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style G fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style H fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style I fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style J fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style K fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `type` | String | ✅ Yes | Must be "parallel" |
+| `tasks` | String | ✅ Yes | Comma-separated task IDs to execute |
+| `success` | String | ❌ Optional | Success criteria applied to each individual task |
+| `retry_failed` | Boolean | ✅ Yes | Must be "true" to enable retry |
+| `retry_count` | Integer | ❌ Optional | Number of retry attempts (0-10, default: 1) |
+| `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
+
+### Example
+```
+task=8
+type=parallel
+tasks=10,11,12
+success=@exit_code@=0
+retry_failed=true
+retry_count=3
+retry_delay=5
+```
+
+### Entry Point
+Can be entry point or follow any block
+
+### Behavior
+- Executes multiple tasks simultaneously with threading
+- `success` criteria is applied to each individual task (10, 11, 12)
+- Failed tasks are automatically retried up to `retry_count` times
+- `retry_delay` seconds between retry attempts
+- Results feed into Multi-Task Success Evaluation Block
+- More resilient than basic parallel execution
+
+</td>
+</tr>
+</table>
+
+## 9. Conditional Block with Retry
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A{CONDITION with Retry} -->|TRUE| B[Execute if_true_tasks]
+    A -->|FALSE| C[Execute if_false_tasks]
+    B --> D{Any Failed?}
+    C --> E{Any Failed?}
+    D -->|Yes| F[Retry Failed Tasks]
+    E -->|Yes| G[Retry Failed Tasks]
+    D -->|No| H[Multi-Task Success Evaluation]
+    E -->|No| H
+    F --> H
+    G --> H
+
+    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style C fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+    style D fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style E fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style F fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style G fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style H fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `type` | String | ✅ Yes | Must be "conditional" |
+| `condition` | String | ✅ Yes | Boolean expression to evaluate |
+| `if_true_tasks` | String | ✅ Yes* | Task IDs for TRUE branch |
+| `if_false_tasks` | String | ✅ Yes* | Task IDs for FALSE branch |
+| `success` | String | ❌ Optional | Success criteria applied to each task in chosen branch |
+| `retry_failed` | Boolean | ✅ Yes | Must be "true" to enable retry |
+| `retry_count` | Integer | ❌ Optional | Number of retry attempts (0-10, default: 1) |
+| `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
+
+*At least one of `if_true_tasks` or `if_false_tasks` must be specified.
+
+### Example
+```
+task=2
+type=conditional
+condition=@0_stdout@=OPEN
+if_true_tasks=10,11,12
+if_false_tasks=20,21
+success=@exit_code@=0
+retry_failed=true
+retry_count=2
+retry_delay=3
+```
+
+### Entry Point
+Can be entry point or follow any block
+
+### Behavior
+- Evaluates boolean condition expression
+- If TRUE → Execute tasks in `if_true_tasks` list
+- If FALSE → Execute tasks in `if_false_tasks` list
+- Failed tasks in chosen branch are automatically retried
+- Tasks execute sequentially with retry logic
+- Results feed into Multi-Task Success Evaluation Block
+
+</td>
+</tr>
+</table>
+
+## 10. Multi-Task Success Evaluation Block
 
 <table>
 <tr>
@@ -400,7 +554,7 @@ Follows after Parallel Block or Condition Block
 </tr>
 </table>
 
-## 9. End Success Block
+## 11. End Success Block
 
 <table>
 <tr>
@@ -447,7 +601,7 @@ Terminal block - workflow ends successfully
 </tr>
 </table>
 
-## 10. End Failure Block
+## 12. End Failure Block
 
 <table>
 <tr>

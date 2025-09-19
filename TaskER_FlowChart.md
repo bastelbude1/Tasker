@@ -580,30 +580,10 @@ flowchart TD
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
-| `var_*` | String | ❌ Optional | Extract value and store in variable |
-| `split_*` | String | ❌ Optional | Split output by delimiter and extract |
-| `stdout_split` | String | ❌ Optional | Split stdout and select element (older syntax) |
-| `stderr_split` | String | ❌ Optional | Split stderr and select element (older syntax) |
+| `stdout_split` | String | ❌ Optional | Split stdout by delimiter and select element |
+| `stderr_split` | String | ❌ Optional | Split stderr by delimiter and select element |
 
-### Examples
-
-**Extract simple values:**
-```
-task=1
-var_ip=@stdout@
-var_status=@stderr@
-var_code=@exit_code@
-```
-
-**Extract with splitting:**
-```
-task=2
-split_name=@stdout@:space:1
-split_version=@stdout@:comma:2
-split_result=@stderr@:pipe:3
-```
-
-**Extract with older syntax:**
+### Example
 ```
 task=3
 stdout_split=comma,1
@@ -614,12 +594,9 @@ stderr_split=space,2
 Applied to any task that produces output
 
 ### Behavior
-- Extracts specific values from task output (stdout/stderr)
-- Stores extracted values in variables for later use
-- `var_*` creates variables from direct output
-- `split_*` splits output by delimiter and extracts specific parts
-- Variables become available as @var_name@ in subsequent tasks
-- Non-destructive - original output remains unchanged
+- Splits stdout/stderr by specified delimiter and selects element by index
+- Format: `delimiter,index` (e.g., `comma,1` for second element after splitting by comma)
+- Modified output replaces original for subsequent processing
 
 </td>
 </tr>

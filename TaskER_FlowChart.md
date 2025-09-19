@@ -311,7 +311,7 @@ flowchart TD
 | `task` | Integer | ✅ Yes | Unique task identifier |
 | `type` | String | ✅ Yes | Must be "parallel" |
 | `tasks` | String | ✅ Yes | Comma-separated task IDs to execute |
-| `success` | String | ❌ Optional | Success criteria for individual tasks |
+| `success` | String | ❌ Optional | Success criteria applied to each individual task |
 | `next` | String | ❌ Optional | Success evaluation condition |
 | `on_success` | Integer | ❌ Optional | Task ID if next condition met |
 | `on_failure` | Integer | ❌ Optional | Task ID if next condition not met |
@@ -332,7 +332,8 @@ Can be entry point or follow any block
 
 ### Behavior
 - Executes multiple tasks simultaneously with threading
-- Aggregates results based on `next` condition
+- `success` criteria is applied to each individual task (10, 11, 12)
+- `next` condition evaluates the aggregated results of all tasks
 - Supports all Multi-Task Success Evaluation Conditions
 - Faster execution than sequential processing
 

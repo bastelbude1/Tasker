@@ -245,7 +245,7 @@ Can be entry point or follow any block
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
-    A[Task Execution Block] --> B{CHECK LOOP CONDITIONS}
+    A[Task Execution Block] --> B{LOOP?}
     B -->|Counter < Max & Break Condition False| A
     B -->|Counter >= Max OR Break Condition True| C[Continue Workflow]
 

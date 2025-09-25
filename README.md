@@ -7,24 +7,25 @@
 Let's start with a simple example that checks if a service is running and takes action based on the result:
 
 ```mermaid
-graph TD
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
     Start([Start]) --> T0[Task 0: Check Service<br/>🔍 ping service]
-    T0 --> Check{Service<br/>Running?}
+    T0 --> Check{SUCCESS?}
 
-    Check -->|✅ Success<br/>exit_0| T1[Task 1: Log Status<br/>✓ Service is healthy]
-    Check -->|❌ Failure<br/>exit_1| T2[Task 2: Alert Team<br/>⚠️ Service is down]
+    Check -->|Success Criteria Met| T1[Task 1: Log Status<br/>✓ Service is healthy]
+    Check -->|Success Criteria Not Met| T2[Task 2: Alert Team<br/>⚠️ Service is down]
 
-    T1 --> End([End])
+    T1 --> End((END))
     T2 --> T3[Task 3: Restart Service<br/>🔄 Attempting restart]
     T3 --> End
 
-    style Start fill:#e1f5fe
-    style T0 fill:#fff3e0
-    style Check fill:#ffebee
-    style T1 fill:#e8f5e8
-    style T2 fill:#ffebee
-    style T3 fill:#fff3e0
-    style End fill:#e1f5fe
+    style Start fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style T0 fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style Check fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style T1 fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style T2 fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+    style T3 fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style End fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
 ```
 
 **The simple text configuration:**
@@ -2173,29 +2174,30 @@ exec=local
 **Why conditional execution is perfect here**: We need to make decisions based on port scan results, not task outcomes.
 
 ```mermaid
-graph TD
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
     Start([🌐 Smart File Download<br/>Sequential Port Testing]) --> T0[Task 0: Check Port 443<br/>nmap -p 443]
     T0 --> T1[Task 1: Try HTTPS Download<br/>condition: @0_stdout@~OPEN]
 
-    T1 -->|✅ Port 443 OPEN<br/>HTTPS Download Success| Success[Task 100: Success<br/>✅ Download complete]
-    T1 -->|❌ Port 443 CLOSED or Failed<br/>on_failure=2| T2[Task 2: Check Port 80<br/>nmap -p 80]
+    T1 -->|Success: Port 443 OPEN<br/>HTTPS Download| Success[Task 100: Success<br/>Download complete]
+    T1 -->|Failure: Port 443 CLOSED<br/>on_failure=2| T2[Task 2: Check Port 80<br/>nmap -p 80]
 
     T2 --> T3[Task 3: Try HTTP Download<br/>condition: @2_stdout@~OPEN]
-    T3 -->|✅ Port 80 OPEN<br/>HTTP Download Success| Success
-    T3 -->|❌ Port 80 CLOSED or Failed<br/>on_failure=99| Failed[Task 99: Error<br/>❌ No ports available]
+    T3 -->|Success: Port 80 OPEN<br/>HTTP Download| Success
+    T3 -->|Failure: Port 80 CLOSED<br/>on_failure=99| Failed[Task 99: Error<br/>No ports available]
 
-    Success --> Complete([✅ Workflow Complete<br/>File downloaded])
-    Failed --> Stop([🛑 Workflow Failed<br/>Return code 1])
+    Success --> Complete((END SUCCESS))
+    Failed --> Stop((END FAILURE))
 
-    style Start fill:#e1f5fe
-    style T0 fill:#f3e5f5
-    style T1 fill:#e8f5e8
-    style T2 fill:#f3e5f5
-    style T3 fill:#fff8e1
-    style Success fill:#e8f5e8
-    style Failed fill:#ffebee
-    style Complete fill:#e8f5e8
-    style Stop fill:#ffebee
+    style Start fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style T0 fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style T1 fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style T2 fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style T3 fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style Success fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style Failed fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+    style Complete fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style Stop fill:#ffcdd2,stroke:#c62828,stroke-width:3px
 ```
 
 **Configuration file**:

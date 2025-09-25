@@ -527,6 +527,8 @@ flowchart TD
 | `on_success` | Integer | ❌ Optional | Task ID if condition met |
 | `on_failure` | Integer | ❌ Optional | Task ID if condition not met |
 
+**⚠️ Important**: Use either `next` OR `on_success`/`on_failure`, but never both together.
+
 ### Available Conditions
 | Condition | Logic | Example |
 |-----------|-------|---------|
@@ -540,9 +542,15 @@ flowchart TD
 - **`on_success`** → `all_success` (100% success required)
 - **`on_failure`** → `max_failed=0` (any failure triggers this)
 
-### Example
+### Examples
+
+**Option 1: Using `next` (flow control)**
 ```
 next=min_success=3
+```
+
+**Option 2: Using `on_success`/`on_failure` (task jumping)**
+```
 on_success=20
 on_failure=99
 ```

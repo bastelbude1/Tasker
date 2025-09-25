@@ -2634,22 +2634,32 @@ command=grep username /etc/passwd | cut -d: -f6  # Instead of stdout_split=colon
 
 **Current Limitation**: Global variables are read-only during workflow execution and cannot be modified by tasks.
 
-**Proposed Enhancement**: Allow tasks to update global variables during runtime using special syntax.
+**Proposed Enhancement**: Allow tasks to update global variables during runtime using `type=update_global` blocks.
 
-**Potential Implementation**:
+**Proposed Implementation**:
 ```bash
-# Proposed syntax (NOT currently supported)
+# Pre-declare globals (required by default validation)
+DEPLOYMENT_TARGET=localhost
+APP_VERSION=1.0.0
+
+# Detect deployment target
 task=0
 hostname=config-server
 command=get_deployment_target
 exec=local
-# Set global var to task output
-set_global=DEPLOYMENT_TARGET,@0_stdout@
 
-# Then use updated global variable
+# Update global variables (always sequential execution)
 task=1
+type=update_global
+set_DEPLOYMENT_TARGET=@0_stdout@
+set_APP_VERSION=@0_stdout@
+condition=@0_success@=true
+
+# Use updated global variables
+task=2
 hostname=@DEPLOYMENT_TARGET@
 command=deploy
+arguments=--version=@APP_VERSION@
 ```
 
 **Use Cases**:
@@ -2657,6 +2667,12 @@ command=deploy
 - Updating deployment targets based on availability checks
 - Setting global parameters from external configuration services
 - Runtime decision making that affects multiple subsequent tasks
+
+**Architecture Benefits**:
+- **Thread Safety**: `type=update_global` blocks execute sequentially by design
+- **Validation**: Pre-declared globals prevent runtime errors
+- **Consistency**: Follows existing `type=parallel` and `type=conditional` patterns
+- **Safety**: Validation prevents `update_global` tasks in parallel execution blocks
 
 **Current Workarounds**:
 - Use `@TASK_ID_stdout@` variables for dynamic data flow

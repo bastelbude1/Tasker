@@ -109,13 +109,12 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `task` | Integer | ✅ Yes | Unique task identifier |
 | `stdout_split` | String | ❌ Optional | Split stdout by delimiter and select element |
 | `stderr_split` | String | ❌ Optional | Split stderr by delimiter and select element |
 
 ### Example
 ```
-task=3
+# Applied to existing task:
 stdout_split=comma,1
 stderr_split=space,2
 ```
@@ -157,13 +156,12 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `task` | Integer | ✅ Yes | Unique task identifier |
 | `success` | String | ❌ Optional | Custom success criteria |
 | `next` | String | ❌ Optional | Flow control (never, return=X, task ID) |
 
 ### Example
 ```
-task=1
+# Applied to existing task:
 success=@1_exit_code@=0&@1_stdout@~running
 next=success
 ```
@@ -205,14 +203,13 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `task` | Integer | ✅ Yes | Unique task identifier |
 | `success` | String | ❌ Optional | Custom success criteria |
 | `on_success` | Integer | ❌ Optional | Task ID to jump to on success |
 | `on_failure` | Integer | ❌ Optional | Task ID to jump to on failure |
 
 ### Example
 ```
-task=1
+# Applied to existing task:
 success=@1_exit_code@=0&@1_stdout@~running
 on_success=20
 on_failure=99
@@ -254,12 +251,11 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `task` | Integer | ✅ Yes | Unique task identifier |
 | `sleep` | Integer | ❌ Optional | Sleep duration (0-300 seconds) |
 
 ### Example
 ```
-task=1
+# Applied to existing task:
 sleep=5
 ```
 
@@ -358,14 +354,13 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `task` | Integer | ✅ Yes | Unique task identifier |
 | `loop` | Integer | ✅ Yes | Number of additional iterations (1-100) |
 | `next` | String | ✅ Yes | Must be "loop" |
 | `loop_break` | String | ❌ Optional | Condition to break out of loop early |
 
 ### Example
 ```
-task=5
+# Applied to existing task:
 hostname=server01
 command=ping
 arguments=-c 1 google.com

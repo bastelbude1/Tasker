@@ -323,7 +323,6 @@ flowchart TD
 | `type` | String | ✅ Yes | Must be "parallel" |
 | `tasks` | String | ✅ Yes | Comma-separated task IDs to execute |
 | `max_parallel` | Integer | ❌ Optional | Max concurrent tasks (1-50, default: all) |
-| `success` | String | ❌ Optional | Success criteria applied to each individual task |
 
 ### Example
 ```
@@ -331,7 +330,6 @@ task=8
 type=parallel
 tasks=10,11,12
 max_parallel=2
-success=@exit_code@=0
 ```
 
 ### Entry Point
@@ -339,7 +337,6 @@ Can be entry point or follow any block
 
 ### Behavior
 - Executes multiple tasks simultaneously with threading
-- `success` criteria is applied to each individual task (10, 11, 12)
 - Results feed into Multi-Task Success Evaluation Block
 - Faster execution than sequential processing
 

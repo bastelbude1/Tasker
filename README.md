@@ -327,9 +327,8 @@ Extract specific data from command output using simple split operations. These a
 ```
 task=0
 hostname=server1
-command=df -h /data
-# Get second line (split by literal newline)
-stdout_split=\n,1
+command=df -h /data | head -2 | tail -1
+# NOTE: Cannot split by newline - using pipe commands instead
 exec=local
 
 task=1
@@ -388,9 +387,8 @@ exec=local
 # Extract disk usage percentage from df output
 task=0
 hostname=server1
-command=df -h /data
-# Get data row (split by literal newline)
-stdout_split=\n,1
+command=df -h /data | tail -1
+# NOTE: Cannot split by newline - using tail to get last line
 exec=local
 
 task=1
@@ -410,12 +408,11 @@ command=curl -s http://api/status
 stdout_split=comma,1
 exec=local
 
-# Extract specific error from multi-line stderr
+# Process error output
 task=3
 hostname=app-server
 command=deploy_application
-# Get first error line (split by literal newline)
-stderr_split=\n,0
+# NOTE: Cannot split stderr by newline - escape sequences not supported
 on_failure=99
 
 task=99
@@ -1091,7 +1088,14 @@ Simple extraction functions for any task that executes a command:
 | `stdout_split` | String | Split stdout and select element | `DELIMITER,INDEX` |
 | `stderr_split` | String | Split stderr and select element | `DELIMITER,INDEX` |
 
-**Valid Delimiters:** `space` (any whitespace), `tab`, `comma`, `semi`, `pipe`, or any custom string (e.g., `\n` for newline, `:` for colon)
+**Valid Delimiters:**
+- `space` (any whitespace)
+- `tab` (tab characters)
+- `comma` (comma)
+- `semi` (semicolon)
+- `pipe` (pipe character |)
+
+**⚠️ WARNING**: Escape sequences like `\n` are NOT interpreted! Cannot split by newline currently.
 
 **Simple Example:**
 ```
@@ -1916,9 +1920,8 @@ exec=local
 task=0
 hostname=log-server
 # Limit output size
-command=tail -10 /var/log/app.log
-# Keep only first line (split by literal newline)
-stdout_split=\n,0
+command=tail -10 /var/log/app.log | head -1
+# Get first line using head command (cannot split by newline)
 exec=local
 ```
 
@@ -2746,12 +2749,12 @@ retry_count=3
 task=0
 hostname=server
 command=df -h
-# More intuitive than \n,1
+# Would be more intuitive:
 stdout_split=newline,1
 
-# Currently must use:
-# Works but less readable
-stdout_split=\n,1
+# Currently NOT POSSIBLE - escape sequences like \n NOT supported!
+# Must use shell commands instead:
+command=df -h | head -2 | tail -1
 ```
 
 **Benefits**:

@@ -845,20 +845,32 @@ flowchart TD
 | `stdout_split` | String | ❌ Optional | Split stdout by delimiter and select element |
 | `stderr_split` | String | ❌ Optional | Split stderr by delimiter and select element |
 
+### Supported Delimiters
+| Keyword | Splits On | Example |
+|---------|-----------|---------|
+| `space` | Any whitespace(s) | `stdout_split=space,0` |
+| `tab` | Tab character(s) | `stdout_split=tab,1` |
+| `comma` | Comma | `stdout_split=comma,2` |
+| `semi` | Semicolon | `stdout_split=semi,0` |
+| `pipe` | Pipe character | `stdout_split=pipe,1` |
+
+**⚠️ WARNING**: Escape sequences like `\n` are NOT interpreted! Use literal characters only.
+
 ### Example
 ```
 # Applied to existing task:
-stdout_split=comma,1
-stderr_split=space,2
+stdout_split=comma,1    # Split by comma, get 2nd element (0-indexed)
+stderr_split=space,0    # Split by spaces, get 1st element
 ```
 
 ### Entry Point
 Applied to any task that produces output
 
 ### Behavior
-- Splits stdout/stderr by specified delimiter and selects element by index
-- Format: `delimiter,index` (e.g., `comma,1` for second element after splitting by comma)
+- Splits stdout/stderr by specified delimiter and selects element by index (0-based)
+- Format: `delimiter,index` (e.g., `comma,1` for second element)
 - Modified output replaces original for subsequent processing
+- **LIMITATION**: Cannot split by newline - escape sequences not supported
 
 </td>
 </tr>

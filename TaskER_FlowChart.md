@@ -2,52 +2,7 @@
 
 This document provides a visual inventory of TaskER workflow blocks with their corresponding parameters.
 
-## 1. Global Variable Definition Block
-
-<table>
-<tr>
-<td width="40%">
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
-flowchart TD
-    A[GLOBAL VARIABLES]
-
-    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
-```
-
-</td>
-<td width="60%">
-
-### Parameters
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `VARIABLE_NAME` | String | ✅ Yes | Any uppercase variable name |
-| `value` | String | ✅ Yes | Variable value or expression |
-
-### Examples
-```
-ENVIRONMENT=production
-DATABASE_HOST=db.company.com
-RETRY_COUNT=3
-TIMEOUT_SECONDS=30
-```
-
-### Entry Point
-Must be at the beginning of workflow file
-
-### Behavior
-- Defines reusable variables for entire workflow
-- Variables are read-only and available throughout file
-- Use @VARIABLE_NAME@ syntax to reference in tasks
-- Case-sensitive variable names (recommended: UPPERCASE)
-- Automatic creation - any KEY=VALUE that's not a task parameter
-
-</td>
-</tr>
-</table>
-
-## 2. Execution Block
+## 1. Execution Block
 
 <table>
 <tr>
@@ -84,54 +39,7 @@ arguments=-la /var/log
 </tr>
 </table>
 
-## 3. Output Processing Block
-
-<table>
-<tr>
-<td width="40%">
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
-flowchart TD
-    A[Task Execution Completed] --> B[EXTRACT OUTPUT]
-    B --> C[Store Variables]
-    C --> D[Continue Workflow]
-
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
-    style C fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
-    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-```
-
-</td>
-<td width="60%">
-
-### Parameters
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `stdout_split` | String | ❌ Optional | Split stdout by delimiter and select element |
-| `stderr_split` | String | ❌ Optional | Split stderr by delimiter and select element |
-
-### Example
-```
-# Applied to existing task:
-stdout_split=comma,1
-stderr_split=space,2
-```
-
-### Entry Point
-Applied to any task that produces output
-
-### Behavior
-- Splits stdout/stderr by specified delimiter and selects element by index
-- Format: `delimiter,index` (e.g., `comma,1` for second element after splitting by comma)
-- Modified output replaces original for subsequent processing
-
-</td>
-</tr>
-</table>
-
-## 4. Success Check Block (with next)
+## 2. Success Check Block (with next)
 
 <table>
 <tr>
@@ -178,7 +86,54 @@ Follows after Task Execution Block
 </tr>
 </table>
 
-## 5. Success Check Block (with on_success/on_failure)
+## 3. Success Check Block (with on_success/on_failure)
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Task Execution Block] --> B{SUCCESS}
+    B -->|next condition met| C[Continue to Next Task]
+    B -->|next condition not met| D((END))
+
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `success` | String | ❌ Optional | Custom success criteria |
+| `next` | String | ❌ Optional | Flow control (never, return=X, task ID) |
+
+### Example
+```
+# Applied to existing task:
+success=@1_exit_code@=0&@1_stdout@~running
+next=success
+```
+
+### Entry Point
+Follows after Task Execution Block
+
+### Behavior
+- Evaluates success criteria
+- If `next` condition met → Continue to next sequential task
+- If `next` condition not met → End workflow or return with code
+
+</td>
+</tr>
+</table>
+
+## 4. Sleep Block
 
 <table>
 <tr>
@@ -228,7 +183,7 @@ Follows after Task Execution Block
 </tr>
 </table>
 
-## 6. Sleep Block
+## 5. Conditional Block
 
 <table>
 <tr>
@@ -271,7 +226,7 @@ Can follow any block that executes
 </tr>
 </table>
 
-## 7. Conditional Block
+## 6. Loop Block
 
 <table>
 <tr>
@@ -328,7 +283,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 8. Loop Block
+## 7. Parallel Block
 
 <table>
 <tr>
@@ -384,7 +339,7 @@ Applied to any Execution Block
 </tr>
 </table>
 
-## 9. Parallel Block
+## 8. Parallel Block with Retry
 
 <table>
 <tr>
@@ -441,7 +396,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 10. Parallel Block with Retry
+## 9. Conditional Block with Retry
 
 <table>
 <tr>
@@ -505,7 +460,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 11. Conditional Block with Retry
+## 10. Multi-Task Success Evaluation Block
 
 <table>
 <tr>
@@ -577,7 +532,7 @@ Can be entry point or follow any block
 </table>
 
 
-## 12. Multi-Task Success Evaluation Block
+## 11. End Success Block
 
 <table>
 <tr>
@@ -633,7 +588,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-## 13. End Success Block
+## 12. End Failure Block
 
 <table>
 <tr>
@@ -683,7 +638,8 @@ Terminal block - workflow ends successfully
 </tr>
 </table>
 
-## 14. End Failure Block
+
+## 13. Global Variable Definition Block
 
 <table>
 <tr>
@@ -692,9 +648,9 @@ Terminal block - workflow ends successfully
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
-    A((END FAILURE))
+    A[GLOBAL VARIABLES]
 
-    style A fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
 ```
 
 </td>
@@ -703,38 +659,73 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `task` | Integer | ✅ Yes | Unique task identifier |
-| `next` | String | ❌ Optional | Must be "never" |
-| `return` | Integer | ✅ Yes | Exit code 1-255 |
+| `VARIABLE_NAME` | String | ✅ Yes | Any uppercase variable name |
+| `value` | String | ✅ Yes | Variable value or expression |
 
 ### Examples
-
-**Stop workflow with failure:**
 ```
-task=98
-return=1
-```
-
-**Stop with specific error code:**
-```
-task=97
-return=14
-```
-
-**Explicit failure with never:**
-```
-task=96
-next=never
-return=1
+ENVIRONMENT=production
+DATABASE_HOST=db.company.com
+RETRY_COUNT=3
+TIMEOUT_SECONDS=30
 ```
 
 ### Entry Point
-Terminal block - workflow ends with failure
+Must be at the beginning of workflow file
 
 ### Behavior
-- Workflow terminates with failure status
-- Exit code: 1-255 (non-zero = failure)
-- Overall workflow result: FAILURE
+- Defines reusable variables for entire workflow
+- Variables are read-only and available throughout file
+- Use @VARIABLE_NAME@ syntax to reference in tasks
+- Case-sensitive variable names (recommended: UPPERCASE)
+- Automatic creation - any KEY=VALUE that's not a task parameter
+
+</td>
+</tr>
+</table>
+
+## 14. Output Processing Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Task Execution Completed] --> B[EXTRACT OUTPUT]
+    B --> C[Store Variables]
+    C --> D[Continue Workflow]
+
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
+    style C fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `stdout_split` | String | ❌ Optional | Split stdout by delimiter and select element |
+| `stderr_split` | String | ❌ Optional | Split stderr by delimiter and select element |
+
+### Example
+```
+# Applied to existing task:
+stdout_split=comma,1
+stderr_split=space,2
+```
+
+### Entry Point
+Applied to any task that produces output
+
+### Behavior
+- Splits stdout/stderr by specified delimiter and selects element by index
+- Format: `delimiter,index` (e.g., `comma,1` for second element after splitting by comma)
+- Modified output replaces original for subsequent processing
 
 </td>
 </tr>

@@ -246,14 +246,12 @@ Can be entry point or follow any block
 %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
     A[Task Execution Block] --> B{LOOP}
-    B -->|Continue| C[Repeat Task]
-    B -->|Complete| D[Continue Workflow]
-    C --> A
+    B -->|Repeat Task| A
+    B -->|Complete| C[Continue Workflow]
 
     style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style B fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
-    style C fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
-    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
 ```
 
 </td>

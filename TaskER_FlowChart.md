@@ -729,7 +729,6 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `project` | String | ❌ Optional | Project name for summary logging and multi-instance coordination |
 | `timeout` | Integer | ❌ Optional | Override default timeout for this specific task (5-3600 seconds) |
 | `exec` | String | ❌ Optional | Override default execution type for this specific task (pbrun, p7s, local, wwrs) |
 
@@ -739,21 +738,24 @@ flowchart TD
 task=0
 hostname=server1
 command=deploy
-project=DEPLOYMENT_2024    # Create project summary log
 timeout=60                 # Override default timeout
 exec=pbrun                # Override default exec type
 ```
+
+### Note on Project Parameter
+**`project` is NOT a task parameter** - it only works as command-line option:
+- ✅ **Command-line**: `tasker -p PROJECT_NAME tasks.txt` (creates shared summary files)
+- ❌ **Task parameter**: `project=PROJECT_NAME` (NOT implemented in TASKER)
 
 ### Entry Point
 Applied to individual tasks to override TASKER defaults
 
 ### Behavior
 - **Must be part of a task definition** (unlike global variables)
-- **project**: Creates shared summary log files (PROJECT_NAME.summary)
 - **timeout**: Overrides default timeout for this specific task
 - **exec**: Overrides default execution method for this specific task
 - These are **task parameters**, not standalone configurations
-- Same functionality as command-line options (-p, -o, -t) but task-specific
+- Same functionality as command-line options (-o, -t) but task-specific
 - **Key Distinction**: Global variables are standalone KEY=VALUE, these are task parameters
 
 ### Task-Level Override Example
@@ -762,7 +764,6 @@ Applied to individual tasks to override TASKER defaults
 task=1
 hostname=server1
 command=deploy
-project=DEPLOYMENT_2024    # Override default project
 timeout=300               # Override default timeout
 exec=pbrun               # Override default exec type
 ```

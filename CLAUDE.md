@@ -657,7 +657,7 @@ Based on complexity analysis, risk assessment, and dependency mapping, implement
 
 **Total Time**: 1-2 days | **Risk**: Minimal | **Value**: High
 
-#### 1. **Additional Delimiter Keywords** ⭐ **EASIEST** (30 minutes)
+#### 1. **Additional Delimiter Keywords** ⭐ **EASIEST** (30 minutes) **CRITICAL NEED**
 **Location**: `tasker/core/condition_evaluator.py`
 **Change Required**:
 ```python
@@ -665,15 +665,16 @@ Based on complexity analysis, risk assessment, and dependency mapping, implement
 delimiter_map = {
     'space': r'\s+',
     'tab': r'\t+',
-    'newline': r'\n',        # NEW - more intuitive than \n
-    'colon': ':',            # NEW - more intuitive than :
-    'semicolon': ';',        # NEW - replace 'semi'
+    'newline': '\n',         # NEW - CRITICAL! Currently impossible to split by newlines
+    'colon': ':',            # NEW - Common in config files (/etc/passwd, etc)
+    'semicolon': ';',        # NEW - Better naming than 'semi'
     'semi': ';',             # Keep for backward compatibility
     'comma': ',',
     'pipe': '|'
 }
 ```
-**Benefits**: Immediate readability improvement, zero risk
+**IMPORTANT**: Use `'\n'` NOT `r'\n'` for newline (needs actual newline character, not regex)
+**Benefits**: Fixes critical limitation - currently CANNOT split multi-line output at all!
 
 #### 2. **Simplify Retry Configuration** ⭐ **VERY EASY** (1-2 hours)
 **Location**: `tasker/core/task_executor_main.py:parse_retry_config()`

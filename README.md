@@ -2736,25 +2736,53 @@ retry_count=3
 
 ### Additional Delimiter Keywords for Output Splitting
 
-**Current Limitation**: The `newline` keyword is not recognized as a delimiter. Users must use literal `\n` to split by newlines.
+**Current Limitation**: Cannot split output by newlines! The `\n` escape sequence is NOT interpreted, and there's no 'newline' keyword.
 
-**Proposed Enhancement**: Add more intuitive delimiter keywords:
-- `newline` - Split by line breaks (\n)
+**Proposed Enhancement**: Add support for newline splitting and other delimiters:
+- `newline` - Split by line breaks (\n) - **CRITICAL: Most needed feature!**
 - `colon` - Split by colons (:)
 - `semicolon` - Split by semicolons (;) - currently must use `semi`
 
-**Example of Proposed Usage**:
+**Implementation Required** (in `tasker/core/condition_evaluator.py`):
+```python
+delimiter_map = {
+    'space': r'\s+',
+    'tab': r'\t+',
+    'newline': '\n',      # ADD THIS - Critical for multi-line output
+    'colon': ':',         # ADD THIS - Common in config files
+    'semicolon': ';',     # ADD THIS - Better than 'semi'
+    'comma': ',',
+    'semi': ';',          # Keep for backward compatibility
+    'pipe': '|'
+}
+```
+
+**Use Cases That Would Benefit**:
 ```bash
-# Proposed syntax (NOT currently supported)
+# Extract specific line from df output
 task=0
 hostname=server
 command=df -h
-# Would be more intuitive:
-stdout_split=newline,1
+stdout_split=newline,1    # Get second line (currently NOT possible!)
 
-# Currently NOT POSSIBLE - escape sequences like \n NOT supported!
-# Must use shell commands instead:
-command=df -h | head -2 | tail -1
+# Parse /etc/passwd entries
+task=1
+hostname=server
+command=grep username /etc/passwd
+stdout_split=colon,5      # Get home directory (currently NOT possible!)
+
+# Process multi-line error messages
+task=2
+hostname=server
+command=some_command
+stderr_split=newline,0    # Get first error line (currently NOT possible!)
+```
+
+**Current Workaround Required** (less efficient, more complex):
+```bash
+# Must use shell commands to work around limitation
+command=df -h | head -2 | tail -1     # Instead of stdout_split=newline,1
+command=grep username /etc/passwd | cut -d: -f6  # Instead of stdout_split=colon,5
 ```
 
 **Benefits**:

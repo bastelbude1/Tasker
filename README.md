@@ -2177,14 +2177,26 @@ exec=local
 %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
     Start([🌐 Smart File Download<br/>Sequential Port Testing]) --> T0[Task 0: Check Port 443<br/>nmap -p 443]
-    T0 --> T1[Task 1: Try HTTPS Download<br/>condition: @0_stdout@~OPEN]
+    T0 --> C1{Condition Check:<br/>@0_stdout@~OPEN}
 
-    T1 -->|Success: Port 443 OPEN<br/>HTTPS Download| Success[Task 100: Success<br/>Download complete]
-    T1 -->|Failure: Port 443 CLOSED<br/>on_failure=2| T2[Task 2: Check Port 80<br/>nmap -p 80]
+    C1 -->|TRUE: Port 443 OPEN| T1[Task 1: HTTPS Download<br/>curl --ssl-reqd]
+    C1 -->|FALSE: Port 443 CLOSED| Skip1[Task 1: Skipped]
 
-    T2 --> T3[Task 3: Try HTTP Download<br/>condition: @2_stdout@~OPEN]
-    T3 -->|Success: Port 80 OPEN<br/>HTTP Download| Success
-    T3 -->|Failure: Port 80 CLOSED<br/>on_failure=99| Failed[Task 99: Error<br/>No ports available]
+    T1 --> S1{SUCCESS?}
+    S1 -->|Success| Success[Task 100: Success<br/>Download complete]
+    S1 -->|Failure<br/>on_failure=2| T2[Task 2: Check Port 80<br/>nmap -p 80]
+
+    Skip1 --> T2
+    T2 --> C2{Condition Check:<br/>@2_stdout@~OPEN}
+
+    C2 -->|TRUE: Port 80 OPEN| T3[Task 3: HTTP Download<br/>curl]
+    C2 -->|FALSE: Port 80 CLOSED| Skip3[Task 3: Skipped]
+
+    T3 --> S3{SUCCESS?}
+    S3 -->|Success| Success
+    S3 -->|Failure<br/>on_failure=99| Failed[Task 99: Error<br/>No ports available]
+
+    Skip3 --> Failed
 
     Success --> Complete((END SUCCESS))
     Failed --> Stop((END FAILURE))
@@ -2194,6 +2206,12 @@ flowchart TD
     style T1 fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style T2 fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style T3 fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style C1 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style C2 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style S1 fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style S3 fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style Skip1 fill:#e0e0e0,stroke:#616161,stroke-width:3px
+    style Skip3 fill:#e0e0e0,stroke:#616161,stroke-width:3px
     style Success fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
     style Failed fill:#ffcdd2,stroke:#c62828,stroke-width:3px
     style Complete fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px

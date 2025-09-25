@@ -359,17 +359,27 @@ Can be entry point or follow any block
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
-    A[Parallel Block with Retry] --> B[Execute Tasks 10,11,12]
-    B --> C{Check Results}
-    C -->|Some Failed & Retries Left| D[Retry Failed Tasks]
-    D --> C
-    C -->|All Success OR Retries Exhausted| E[Multi-Task Success Evaluation]
+    A[Parallel Block with Retry] --> B[Task 10]
+    A --> C[Task 11]
+    A --> D[Task 12]
+    B --> E{Retry Task 10?}
+    C --> F{Retry Task 11?}
+    D --> G{Retry Task 12?}
+    E -->|Failed & Retries Left| B
+    E -->|Success OR Retries Exhausted| H[Multi-Task Success Evaluation]
+    F -->|Failed & Retries Left| C
+    F -->|Success OR Retries Exhausted| H
+    G -->|Failed & Retries Left| D
+    G -->|Success OR Retries Exhausted| H
 
     style A fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
     style B fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style C fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
-    style D fill:#ffecb3,stroke:#f57f17,stroke-width:3px
-    style E fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style E fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style F fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style G fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style H fill:#ffecb3,stroke:#f57f17,stroke-width:3px
 ```
 
 </td>

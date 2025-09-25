@@ -1827,12 +1827,12 @@ For every executed task, TASKER captures:
 
 | Data Type | Variable Format | Description | Storage Limit |
 |-----------|----------------|-------------|---------------|
-| **Standard Output** | `@TASK_ID_stdout@` | Complete stdout from command (or split result) | 4,096 characters |
-| **Standard Error** | `@TASK_ID_stderr@` | Complete stderr from command (or split result) | 4,096 characters |
-| **Exit Code** | `@TASK_ID_exit_code@` | Command exit code (0-255) | No limit |
-| **Hostname** | `@TASK_ID_hostname@` | Actual hostname used (resolved from @HOSTNAME@) | 256 characters |
-| **Success Status** | `@TASK_ID_success@` | Boolean success status (True/False) | No limit |
-| **Timing Data** | `@TASK_ID_duration@` | Execution time in seconds (decimal) | No limit |
+| **Standard Output** | `@TASK-ID_stdout@` | Complete stdout from command (or split result) | 4,096 characters |
+| **Standard Error** | `@TASK-ID_stderr@` | Complete stderr from command (or split result) | 4,096 characters |
+| **Exit Code** | `@TASK-ID_exit_code@` | Command exit code (0-255) | No limit |
+| **Hostname** | `@TASK-ID_hostname@` | Actual hostname used (resolved from @HOSTNAME@) | 256 characters |
+| **Success Status** | `@TASK-ID_success@` | Boolean success status (True/False) | No limit |
+| **Timing Data** | `@TASK-ID_duration@` | Execution time in seconds (decimal) | No limit |
 
 ### Complete Variable Reference
 
@@ -1843,18 +1843,18 @@ For every executed task, TASKER captures:
 - **Example**: `ENVIRONMENT=production`, use as `@ENVIRONMENT@`
 
 #### Task Result Variables
-- **`@X_stdout@`**: Standard output from task X (affected by stdout_split)
-- **`@X_stderr@`**: Standard error from task X (affected by stderr_split)
-- **`@X_exit_code@`**: Exit code from task X (0-255)
-- **`@X_hostname@`**: Actual hostname used by task X
-- **`@X_success@`**: Success status of task X (True/False string)
-- **`@X_duration@`**: Execution time of task X in seconds (e.g., "5.234")
+- **`@TASK-ID_stdout@`**: Standard output from task TASK-ID (affected by stdout_split)
+- **`@TASK-ID_stderr@`**: Standard error from task TASK-ID (affected by stderr_split)
+- **`@TASK-ID_exit_code@`**: Exit code from task TASK-ID (0-255)
+- **`@TASK-ID_hostname@`**: Actual hostname used by task TASK-ID
+- **`@TASK-ID_success@`**: Success status of task TASK-ID (True/False string)
+- **`@TASK-ID_duration@`**: Execution time of task TASK-ID in seconds (e.g., "5.234")
 
 #### Special Variables for Parallel Tasks
 When using `type=parallel`, additional aggregated variables are available:
-- **`@X_success_count@`**: Number of successful parallel subtasks
-- **`@X_failed_count@`**: Number of failed parallel subtasks
-- **`@X_total_count@`**: Total number of parallel subtasks executed
+- **`@TASK-ID_success_count@`**: Number of successful parallel subtasks
+- **`@TASK-ID_failed_count@`**: Number of failed parallel subtasks
+- **`@TASK-ID_total_count@`**: Total number of parallel subtasks executed
 
 #### Variable Resolution Notes
 - Variables are resolved at task execution time

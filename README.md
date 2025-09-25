@@ -37,8 +37,6 @@ hostname=web-server
 command=ping -c 1 api.service
 # Define success as exit code 0
 success=exit_0
-# Continue only if success criteria is met
-next=success
 # If success (exit code 0), go to task 1
 on_success=1
 # If failure (exit code not 0), go to task 2
@@ -68,7 +66,6 @@ command=restart_service.sh
 
 **🎯 What This Example Shows:**
 - **`success=exit_0`**: Define success as exit code 0
-- **`next=success`**: Continue only if success criteria is met
 - **`on_success=1`**: Jump to task 1 if success criteria is met
 - **`on_failure=2`**: Jump to task 2 if success criteria is not met
 - **`next=never`**: Stop sequential execution (firewall)
@@ -182,8 +179,6 @@ command=deploy
 arguments=--version=1.2.3
 # Custom success criteria
 success=exit_0&stdout~complete
-# Continue if success criteria met
-next=success
 # Jump to task 5 on success
 on_success=5
 # Jump to task 99 on failure
@@ -610,8 +605,10 @@ task=0
 hostname=health-check
 command=curl -f http://api/health
 exec=local
-# Continue to task 1 only if health check passed
-next=exit_0
+# Define success as exit code 0
+success=exit_0
+# Jump to task 1 if health check passed
+on_success=1
 # Jump to task 2 if health check failed
 on_failure=2
 
@@ -658,11 +655,11 @@ task=0
 hostname=env-check
 command=detect_environment
 exec=local
-# Continue only if output contains "production"
-next=stdout~production
-# Jump to production tasks
+# Define success as output containing "production"
+success=stdout~production
+# Jump to production tasks if success
 on_success=10
-# Jump to non-production tasks
+# Jump to non-production tasks if no success
 on_failure=20
 
 # Production workflow
@@ -715,8 +712,6 @@ hostname=backup-server
 command=backup_database
 # Must exit 0 AND output contain "backup_complete"
 success=exit_0&stdout~backup_complete
-# Use custom success criteria for flow control
-next=success
 # If success criteria met, go to task 1
 on_success=1
 # If success criteria not met, go to task 99
@@ -761,15 +756,14 @@ command=send_backup_complete
 # This task only runs if task 0's success criteria was met
 ```
 
-**Example - Using on_failure with next=success:**
+**Example - Using on_failure without next:**
 ```
 task=0
 hostname=critical-server
 command=critical_operation
 # Success: exit 0 AND no errors in stderr
 success=exit_0&stderr!~error
-# Evaluate using success criteria
-next=success
+# Continue to task 1 if success (default behavior)
 # If success criteria not met, jump to task 99
 on_failure=99
 
@@ -785,10 +779,11 @@ command=send_failure_alert
 ```
 
 **Important Notes:**
-- Without `next=success`, tasks continue regardless of custom success criteria (backward compatibility)
-- `next=success` respects your custom `success` parameter if defined
-- Combines well with `on_success` and `on_failure` for complex branching
-- Default behavior (no `next` parameter): Continue to next task
+- **CRITICAL**: `next` and `on_success/on_failure` are mutually exclusive for sequential tasks
+- Use EITHER `next` for conditional continuation OR `on_success/on_failure` for routing
+- Without `next`, tasks continue to next sequential task by default
+- `success` parameter defines criteria, `on_success/on_failure` route based on that criteria
+- Default behavior (no routing parameters): Continue to next sequential task
 
 ### Advanced Condition Operators
 
@@ -944,7 +939,10 @@ Parameters specific to sequential task execution:
 | `loop` | Integer | Additional execution iterations | 1-100 (sequential tasks only) |
 | `loop_break` | String | Condition to break loop early | Any valid condition (sequential only) |
 
-**Note:** Loop control (`loop`, `loop_break`) is ONLY available for sequential tasks, not for parallel or conditional execution.
+**Important Notes:**
+- Loop control (`loop`, `loop_break`) is ONLY available for sequential tasks, not for parallel or conditional execution
+- **CRITICAL**: For sequential tasks, `next` and `on_success/on_failure` are MUTUALLY EXCLUSIVE - use one OR the other, never both
+- For parallel/conditional tasks, `next` defines the success evaluation condition and CAN be used with `on_success/on_failure`
 
 ### Parallel Execution Parameters
 

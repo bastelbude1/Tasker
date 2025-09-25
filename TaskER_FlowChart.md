@@ -230,10 +230,10 @@ Can be entry point or follow any block
 - If TRUE → Execute tasks in `if_true_tasks` list
 - If FALSE → Execute tasks in `if_false_tasks` list
 - Tasks execute sequentially in specified order (10,11,12)
-- Results feed into Multi-Task Success Evaluation Block (see #10)
+- Results feed into Multi-Task Success Evaluation Block (see #10.1)
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (#10)
+→ Multi-Task Success Evaluation Block (#10.1)
 
 </td>
 </tr>
@@ -488,17 +488,17 @@ Can be entry point or follow any block
 - If FALSE → Execute tasks in `if_false_tasks` list
 - Failed tasks in chosen branch are automatically retried
 - Tasks execute sequentially with retry logic
-- Results feed into Multi-Task Success Evaluation Block (see #10)
+- Results feed into Multi-Task Success Evaluation Block (see #10.1)
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (#10)
+→ Multi-Task Success Evaluation Block (#10.1)
 
 </td>
 </tr>
 </table>
 
 
-## 10. Multi-Task Success Evaluation Block
+## 10.1. Multi-Task Success Evaluation Block (next)
 
 <table>
 <tr>
@@ -508,8 +508,8 @@ Can be entry point or follow any block
 %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
     A[Multiple Tasks Completed] --> B{EVALUATE RESULTS}
-    B -->|Condition Met| C[on_success Path]
-    B -->|Condition Not Met| D[on_failure Path]
+    B -->|Condition Met| C[Continue Workflow]
+    B -->|Condition Not Met| D((END WORKFLOW))
 
     style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
@@ -523,11 +523,7 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `next` | String | ❌ Optional | Success evaluation condition |
-| `on_success` | Integer | ❌ Optional | Task ID if condition met |
-| `on_failure` | Integer | ❌ Optional | Task ID if condition not met |
-
-**⚠️ Important**: Use either `next` OR `on_success`/`on_failure`, but never both together.
+| `next` | String | ✅ Yes | Success evaluation condition |
 
 ### Available Conditions
 | Condition | Logic | Example |
@@ -538,18 +534,56 @@ flowchart TD
 | `any_success` | success_count > 0 | `any_success` |
 | `majority_success` | success_count > total_tasks/2 | `majority_success` |
 
-### Default Behavior (no `next` specified)
-- **`on_success`** → `all_success` (100% success required)
-- **`on_failure`** → `max_failed=0` (any failure triggers this)
-
-### Examples
-
-**Option 1: Using `next` (flow control)**
+### Example
 ```
 next=min_success=3
 ```
 
-**Option 2: Using `on_success`/`on_failure` (task jumping)**
+### Entry Point
+Follows after Parallel Block or Conditional Block
+
+### Behavior
+- Evaluates success condition against task results
+- If condition met → Continue to next sequential task
+- If condition not met → End workflow (default behavior)
+
+</td>
+</tr>
+</table>
+
+## 10.2. Multi-Task Success Evaluation Block (on_success/on_failure)
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Multiple Tasks Completed] --> B{EVALUATE RESULTS}
+    B -->|Condition Met| C[Jump to on_success Task]
+    B -->|Condition Not Met| D[Jump to on_failure Task]
+
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `on_success` | Integer | ❌ Optional | Task ID if condition met |
+| `on_failure` | Integer | ❌ Optional | Task ID if condition not met |
+
+### Default Behavior (no explicit condition)
+- **`on_success`** → `all_success` (100% success required)
+- **`on_failure`** → Any failure triggers this path
+
+### Example
 ```
 on_success=20
 on_failure=99
@@ -557,6 +591,12 @@ on_failure=99
 
 ### Entry Point
 Follows after Parallel Block or Conditional Block
+
+### Behavior
+- Evaluates default success condition (all_success) against task results
+- If condition met → Jump to `on_success` task ID
+- If condition not met → Jump to `on_failure` task ID
+- Allows non-sequential workflow jumps
 
 </td>
 </tr>

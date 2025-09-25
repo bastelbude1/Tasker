@@ -709,7 +709,52 @@ Terminal block - workflow ends with failure
 </tr>
 </table>
 
-## 13. Global Variable Definition Block
+## 13. Configuration Definition Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[CONFIGURATION PARAMETERS]
+
+    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `project` | String | ❌ Optional | Project name for summary logging and multi-instance coordination |
+| `timeout` | Integer | ❌ Optional | Default timeout for all tasks (5-3600 seconds) |
+| `exec` | String | ❌ Optional | Default execution type for all tasks (pbrun, p7s, local, wwrs) |
+
+### Examples
+```
+project=DEPLOYMENT_2024
+timeout=60
+exec=pbrun
+```
+
+### Entry Point
+Can be defined anywhere in workflow file (recommended: top)
+
+### Behavior
+- **project**: Creates shared summary log files (PROJECT_NAME.summary)
+- **timeout**: Sets default timeout, overridden by individual task timeouts
+- **exec**: Sets default execution method, overridden by individual task exec parameters
+- These parameters control TASKER's behavior, not workflow data flow
+- Same functionality as command-line options (-p, -o, -t)
+
+</td>
+</tr>
+</table>
+
+## 14. Global Variable Definition Block
 
 <table>
 <tr>
@@ -754,7 +799,7 @@ Must be at the beginning of workflow file
 </tr>
 </table>
 
-## 14. Output Processing Block
+## 15. Output Processing Block
 
 <table>
 <tr>

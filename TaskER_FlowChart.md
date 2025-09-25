@@ -763,14 +763,12 @@ Must be at the beginning of workflow file
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
-    A[Task Execution Completed] --> B[EXTRACT OUTPUT]
-    B --> C[Store Variables]
-    C --> D[Continue Workflow]
+    A[Task Execution Completed] --> B[SPLIT OUTPUT]
+    B --> C[Continue Workflow]
 
     style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style B fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
-    style C fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
-    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
 ```
 
 </td>

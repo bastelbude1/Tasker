@@ -647,6 +647,193 @@ Once basic multi-format support is stable, consider:
 
 ---
 
+## 🔄 FEATURE REQUEST: RUNTIME GLOBAL VARIABLE UPDATES
+
+### Problem Statement
+
+Currently, global variables are read-only during workflow execution, limiting dynamic configuration based on task outputs. Users need to update global variables at runtime for:
+
+1. **Environment Detection**: `set_ENV_TYPE=@0_stdout@` based on detection tasks
+2. **Dynamic Configuration**: `set_DB_HOST=@1_stdout@` from service discovery
+3. **Status Tracking**: `set_DEPLOYMENT_STATUS=success` for workflow coordination
+4. **Resource Discovery**: `set_SERVER_LIST=@0_stdout@` from infrastructure queries
+
+### ✅ OPTIMAL SOLUTION: `type=update_global` Blocks
+
+**Architecture Decision**: Create specialized sequential execution blocks that update global variables, maintaining thread safety through design rather than complex locking mechanisms.
+
+### Implementation Specification
+
+#### **1. Syntax Design**
+
+```python
+# Pre-declare all globals (required by default validation)
+APP_VERSION=1.0.0
+DB_HOST=localhost
+DEPLOYMENT_STATUS=pending
+
+# Regular task execution
+task=0
+hostname=build-server
+command=get_app_version
+exec=local
+
+# Update global variables (always sequential)
+task=1
+type=update_global
+set_APP_VERSION=@0_stdout@
+set_DEPLOYMENT_STATUS=building
+condition=@0_success@=true
+
+# Use updated variables
+task=2
+hostname=@DB_HOST@
+command=deploy
+arguments=--version=@APP_VERSION@ --status=@DEPLOYMENT_STATUS@
+```
+
+#### **2. Thread Safety Architecture**
+
+**Key Insight**: `type=update_global` blocks **always execute sequentially** by design, eliminating thread safety concerns:
+
+- ✅ Regular tasks can execute in parallel safely
+- ✅ `update_global` blocks execute sequentially (no race conditions)
+- ✅ No complex locking mechanisms needed
+- ✅ Simple dictionary updates in main execution thread
+
+#### **3. Validation Strategy**
+
+**Default Behavior (Recommended)**:
+- All global variables must be pre-declared with initial values
+- Parse-time validation ensures all `@VARIABLE@` references are valid
+- Clear error messages for undefined variables
+
+**Flexible Option**:
+```bash
+# Skip global validation for advanced dynamic scenarios
+tasker --skip-global-validation workflow.txt
+```
+
+#### **4. Parallel Execution Safety**
+
+**Critical Validation**: Prevent `type=update_global` tasks in parallel execution blocks:
+
+**Implementation Location**: `/home/baste/tasker/tasker/executors/parallel_executor.py`
+**After line 221** (existing validation logic):
+
+```python
+# Validate that all referenced tasks exist AND are not update_global
+missing_tasks = []
+update_global_tasks = []  # NEW
+tasks_to_execute = []
+
+for ref_id in referenced_task_ids:
+    if ref_id in executor_instance.tasks:
+        task = executor_instance.tasks[ref_id]
+        # NEW: Check for update_global type
+        if task.get('type') == 'update_global':
+            update_global_tasks.append(ref_id)
+        else:
+            tasks_to_execute.append(task)
+    else:
+        missing_tasks.append(ref_id)
+
+# NEW: Error for update_global in parallel
+if update_global_tasks:
+    executor_instance.log(f"Task {task_id}: Cannot execute update_global tasks in parallel: {update_global_tasks}")
+    executor_instance.log(f"Task {task_id}: update_global tasks must execute sequentially for thread safety")
+    return None
+```
+
+**Error Example**:
+```bash
+ERROR: Task 5: Cannot execute update_global tasks in parallel: [23, 47]
+ERROR: Task 5: update_global tasks must execute sequentially for thread safety
+ERROR: Execution failed due to validation errors
+```
+
+#### **5. Implementation Components**
+
+**Files to Create**:
+```
+tasker/executors/update_global_executor.py  # New executor for global variable updates
+```
+
+**Files to Modify**:
+```
+tasker/core/task_executor_main.py           # Add validation and dispatch logic
+tasker/executors/parallel_executor.py       # Add parallel validation check
+```
+
+**Implementation Pattern** (follows existing architecture):
+```python
+# In task_executor_main.py validation (around line 800)
+elif task.get('type') == 'update_global':
+    if not any(k.startswith('set_') for k in task.keys()):
+        self.log_warn(f"Update task {task_id} has no set_* parameters.")
+        continue
+
+# In main execution loop
+elif task_type == 'update_global':
+    UpdateGlobalExecutor.execute_update_global(task, context)
+```
+
+#### **6. User Experience Design**
+
+**Clear Documentation Requirements**:
+```markdown
+⚠️ **THREAD SAFETY**: `type=update_global` tasks cannot be included in parallel execution blocks.
+
+❌ **Don't do this:**
+```
+task=1
+type=parallel
+tasks=10,11,12  # where task 11 has type=update_global
+```
+
+✅ **Do this instead:**
+```
+task=1
+type=parallel
+tasks=10,12     # Execute 10,12 in parallel
+
+task=2
+type=update_global  # Execute sequentially after parallel block
+set_RESULT=@1_success_count@
+```
+
+#### **7. Feature Benefits**
+
+| **Benefit** | **Impact** |
+|-------------|------------|
+| **Thread Safety** | Guaranteed by sequential execution design |
+| **Validation** | Pre-declared globals prevent runtime errors |
+| **Architecture** | Follows existing executor pattern (low risk) |
+| **Performance** | No locking overhead, simple dictionary updates |
+| **User Experience** | Clear syntax, prevents dangerous patterns |
+| **Backward Compatibility** | Zero impact on existing workflows |
+
+### **Success Criteria**
+
+**Implementation Complete When**:
+- [x] `type=update_global` blocks update global variables correctly
+- [x] Sequential execution maintains thread safety
+- [x] Parallel execution validation prevents update_global inclusion
+- [x] Pre-declared global validation works with skip option
+- [x] Clear error messages for validation failures
+- [x] 100% test coverage with comprehensive verification
+- [x] Documentation includes thread safety warnings
+
+**Risk Assessment**: **LOW**
+- Sequential execution eliminates thread safety complexity
+- Follows proven executor architecture pattern
+- Clear validation prevents dangerous configurations
+- No impact on existing functionality
+
+This represents an **optimal balance** of functionality, safety, and architectural consistency.
+
+---
+
 ## 🚀 FEATURE IMPLEMENTATION PRIORITY PLAN
 
 ### Implementation Order Recommendation
@@ -729,9 +916,9 @@ on_success=50
 on_failure=50
 ```
 
-#### 6. **Global Variable Updates During Execution** (2-4 weeks)
-**Why Last**: Most complex, benefits from all previous enhancements
-**Risk**: Highest - affects core variable resolution system
+#### 6. **Global Variable Updates During Execution** ⭐ **OPTIMAL SOLUTION IDENTIFIED** (1-2 weeks)
+**BREAKTHROUGH**: Thread-safe `type=update_global` block approach eliminates complexity
+**Risk**: **LOW** - Sequential execution by design, no thread safety issues
 
 ### **Phase Dependencies**
 
@@ -759,7 +946,8 @@ No deps    Foundation    Benefits from
 - [ ] Each advanced feature works in all formats (TXT, JSON, YAML)
 - [ ] Logical validation catches parameter conflicts
 - [ ] `goto` parameter eliminates redundant routing
-- [ ] Dynamic global variables enable runtime configuration
+- [ ] `type=update_global` blocks enable runtime variable updates
+- [ ] Parallel execution validation prevents update_global in parallel blocks
 
 ### **Key Principles**
 

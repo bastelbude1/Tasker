@@ -192,9 +192,27 @@ hostname=server1
 command=start_service
 ```
 
-**Example - Sequential with flow control (jumps on success/failure):**
+**Example - Sequential with simple flow control (next parameter):**
 ```
-# Task with routing based on success/failure
+# Continue to next task only if success criteria is met
+task=0
+hostname=server1
+command=deploy
+arguments=--version=1.2.3
+# Custom success criteria
+success=exit_0&stdout~complete
+# Continue ONLY if success criteria met
+next=success
+
+task=1
+hostname=server1
+command=verify_deployment
+# This task only runs if task 0 succeeded
+```
+
+**Example - Sequential with routing (jumps on success/failure):**
+```
+# Jump to different tasks based on success/failure
 task=0
 hostname=server1
 command=deploy

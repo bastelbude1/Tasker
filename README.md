@@ -2188,19 +2188,6 @@ return=0
 4. **Impossible with Sequential**: Can't achieve this branching with `on_success`/`on_failure`
 5. **Real-World Value**: Practical example users will encounter
 
-**Try with on_success/on_failure (doesn't work)**:
-```
-# IMPOSSIBLE - sequential model can't handle 3-way branching based on data
-task=0
-hostname=localhost
-command=nmap
-arguments=-p 80,443 --open @TARGET_HOST@
-# Success doesn't tell us WHICH ports are open!
-on_success=???
-# Only handles scan failure, not port states
-on_failure=92
-```
-
 ---
 
 # PART 3: Technical Details

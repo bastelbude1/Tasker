@@ -362,9 +362,9 @@ flowchart TD
     A[Parallel Block with Retry] --> B[Task 10]
     A --> C[Task 11]
     A --> D[Task 12]
-    B --> E{Retry Task 10?}
-    C --> F{Retry Task 11?}
-    D --> G{Retry Task 12?}
+    B --> E{Retry?}
+    C --> F{Retry?}
+    D --> G{Retry?}
     E -->|Failed & Retries Left| B
     E -->|Success OR Retries Exhausted| H[Multi-Task Success Evaluation]
     F -->|Failed & Retries Left| C

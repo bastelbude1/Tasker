@@ -171,9 +171,30 @@ success=exit_0&stdout~ok
 
 ### Sequential Execution (Default)
 
-**Example - Sequential task with flow control:**
+**Example - Simple sequential execution (task by task):**
 ```
-# Standard sequential task
+# Simple sequential tasks - execute in order 0, 1, 2, 3
+task=0
+hostname=server1
+command=stop_service
+
+task=1
+hostname=server1
+command=backup_database
+
+task=2
+hostname=server1
+command=deploy_application
+arguments=--version=1.2.3
+
+task=3
+hostname=server1
+command=start_service
+```
+
+**Example - Sequential with flow control (jumps on success/failure):**
+```
+# Task with routing based on success/failure
 task=0
 hostname=server1
 command=deploy
@@ -185,19 +206,17 @@ on_success=5
 # Jump to task 99 on failure
 on_failure=99
 
-# Task with loop (sequential only)
-task=1
-hostname=server2
-command=check_status
-# Repeat 3 additional times
-loop=3
-# Break loop early if ready
-loop_break=@1_stdout@~ready
+# Success path
+task=5
+hostname=server1
+command=verify_deployment
 
-# Return task (exits workflow)
+# Failure path
 task=99
-# Exit with code 0-255
-return=0
+hostname=alert-server
+command=send_alert
+arguments=Deployment failed
+return=1
 ```
 
 **Parameters:** See [Sequential Execution Parameters](#sequential-execution-parameters-default-mode) table below

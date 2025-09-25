@@ -96,53 +96,6 @@ Follows after Task Execution Block
 %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
     A[Task Execution Block] --> B{SUCCESS}
-    B -->|next condition met| C[Continue to Next Task]
-    B -->|next condition not met| D((END))
-
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
-    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-    style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
-```
-
-</td>
-<td width="60%">
-
-### Parameters
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `success` | String | ❌ Optional | Custom success criteria |
-| `next` | String | ❌ Optional | Flow control (never, return=X, task ID) |
-
-### Example
-```
-# Applied to existing task:
-success=@1_exit_code@=0&@1_stdout@~running
-next=success
-```
-
-### Entry Point
-Follows after Task Execution Block
-
-### Behavior
-- Evaluates success criteria
-- If `next` condition met → Continue to next sequential task
-- If `next` condition not met → End workflow or return with code
-
-</td>
-</tr>
-</table>
-
-## 4. Sleep Block
-
-<table>
-<tr>
-<td width="40%">
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
-flowchart TD
-    A[Task Execution Block] --> B{SUCCESS}
     B -->|Success| C[Jump to on_success Task]
     B -->|Failure| D[Jump to on_failure Task]
 
@@ -183,7 +136,7 @@ Follows after Task Execution Block
 </tr>
 </table>
 
-## 5. Conditional Block
+## 4. Sleep Block
 
 <table>
 <tr>
@@ -226,7 +179,7 @@ Can follow any block that executes
 </tr>
 </table>
 
-## 6. Loop Block
+## 5. Conditional Block
 
 <table>
 <tr>
@@ -283,7 +236,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 7. Parallel Block
+## 6. Loop Block
 
 <table>
 <tr>
@@ -339,7 +292,7 @@ Applied to any Execution Block
 </tr>
 </table>
 
-## 8. Parallel Block with Retry
+## 7. Parallel Block
 
 <table>
 <tr>
@@ -396,7 +349,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 9. Conditional Block with Retry
+## 8. Parallel Block with Retry
 
 <table>
 <tr>
@@ -460,7 +413,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 10. Multi-Task Success Evaluation Block
+## 9. Conditional Block with Retry
 
 <table>
 <tr>
@@ -532,7 +485,7 @@ Can be entry point or follow any block
 </table>
 
 
-## 11. End Success Block
+## 10. Multi-Task Success Evaluation Block
 
 <table>
 <tr>
@@ -588,7 +541,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-## 12. End Failure Block
+## 11. End Success Block
 
 <table>
 <tr>
@@ -638,6 +591,62 @@ Terminal block - workflow ends successfully
 </tr>
 </table>
 
+## 12. End Failure Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A((END FAILURE))
+
+    style A fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `next` | String | ❌ Optional | Must be "never" |
+| `return` | Integer | ✅ Yes | Exit code 1-255 |
+
+### Examples
+
+**Stop workflow with failure:**
+```
+task=98
+return=1
+```
+
+**Stop with specific error code:**
+```
+task=97
+return=14
+```
+
+**Explicit failure with never:**
+```
+task=96
+next=never
+return=1
+```
+
+### Entry Point
+Terminal block - workflow ends with failure
+
+### Behavior
+- Workflow terminates with failure status
+- Exit code: 1-255 (non-zero = failure)
+- Overall workflow result: FAILURE
+
+</td>
+</tr>
+</table>
 
 ## 13. Global Variable Definition Block
 

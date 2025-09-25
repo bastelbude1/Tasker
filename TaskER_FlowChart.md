@@ -435,17 +435,18 @@ Can be entry point or follow any block
 flowchart TD
     A{CONDITION} -->|TRUE| B[Execute if_true_tasks]
     A -->|FALSE| C[Execute if_false_tasks]
-    B --> D{Check Results}
-    C --> D
-    D -->|Some Failed & Retries Left| E[Retry Failed Tasks]
-    E --> D
-    D -->|All Success OR Retries Exhausted| F[Multi-Task Success Evaluation]
+    B --> D{Retry?}
+    C --> E{Retry?}
+    D -->|Failed & Retries Left| B
+    D -->|Success OR Retries Exhausted| F[Multi-Task Success Evaluation]
+    E -->|Failed & Retries Left| C
+    E -->|Success OR Retries Exhausted| F
 
     style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
     style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
     style C fill:#ffcdd2,stroke:#c62828,stroke-width:3px
     style D fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
-    style E fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style E fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
     style F fill:#ffecb3,stroke:#f57f17,stroke-width:3px
 ```
 

@@ -730,25 +730,42 @@ flowchart TD
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `project` | String | ❌ Optional | Project name for summary logging and multi-instance coordination |
-| `timeout` | Integer | ❌ Optional | Default timeout for all tasks (5-3600 seconds) |
-| `exec` | String | ❌ Optional | Default execution type for all tasks (pbrun, p7s, local, wwrs) |
+| `timeout` | Integer | ❌ Optional | Override default timeout for this specific task (5-3600 seconds) |
+| `exec` | String | ❌ Optional | Override default execution type for this specific task (pbrun, p7s, local, wwrs) |
 
 ### Examples
 ```
-project=DEPLOYMENT_2024
-timeout=60
-exec=pbrun
+# Configuration parameters within a task
+task=0
+hostname=server1
+command=deploy
+project=DEPLOYMENT_2024    # Create project summary log
+timeout=60                 # Override default timeout
+exec=pbrun                # Override default exec type
 ```
 
 ### Entry Point
-Can be defined anywhere in workflow file (recommended: top)
+Applied to individual tasks to override TASKER defaults
 
 ### Behavior
+- **Must be part of a task definition** (unlike global variables)
 - **project**: Creates shared summary log files (PROJECT_NAME.summary)
-- **timeout**: Sets default timeout, overridden by individual task timeouts
-- **exec**: Sets default execution method, overridden by individual task exec parameters
-- These parameters control TASKER's behavior, not workflow data flow
-- Same functionality as command-line options (-p, -o, -t)
+- **timeout**: Overrides default timeout for this specific task
+- **exec**: Overrides default execution method for this specific task
+- These are **task parameters**, not standalone configurations
+- Same functionality as command-line options (-p, -o, -t) but task-specific
+- **Key Distinction**: Global variables are standalone KEY=VALUE, these are task parameters
+
+### Task-Level Override Example
+```
+# Task with configuration overrides
+task=1
+hostname=server1
+command=deploy
+project=DEPLOYMENT_2024    # Override default project
+timeout=300               # Override default timeout
+exec=pbrun               # Override default exec type
+```
 
 </td>
 </tr>

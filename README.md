@@ -1249,16 +1249,7 @@ TASKER supports three execution models for different workflow patterns:
 
 ### Sequential Execution Model
 
-Task-by-task execution with flow control and conditions:
-
-```mermaid
-graph TD
-    Start([Start Workflow]) --> T0[Task 0: Check Prerequisites]
-    T0 --> T1[Task 1: Initialize Environment]
-    T1 --> T2[Task 2: Deploy Application]
-    T2 --> T3[Task 3: Verify Deployment]
-    T3 --> End([Workflow Complete])
-```
+Task-by-task execution with flow control and conditions. See [TaskER FlowChart - Execution Block](TaskER_FlowChart.md#1-execution-block) for the standard sequential task flow diagram.
 
 **When to use**: Standard workflows where tasks must complete in order.
 
@@ -1285,22 +1276,23 @@ exec=pbrun
 Multi-threaded execution with aggregation and retry logic:
 
 ```mermaid
-graph TD
-    Master[Master Task: Deploy to Fleet] --> P1[Deploy to Server 1]
-    Master --> P2[Deploy to Server 2]
-    Master --> P3[Deploy to Server 3]
-    Master --> P4[Deploy to Server 4]
-    P1 --> Aggregate[Aggregate Results<br/>• Success Count<br/>• Failed Tasks<br/>• Retry Logic]
-    P2 --> Aggregate
-    P3 --> Aggregate
-    P4 --> Aggregate
-    Aggregate --> Success{All Successful?}
-    Success -->|Yes| Complete([Deployment Complete])
-    Success -->|No| Retry[Retry Failed Tasks]
-    Retry --> Aggregate
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Parallel Block] --> B[Task 10]
+    A --> C[Task 11]
+    A --> D[Task 12]
+    B --> E[Multi-Task Success Evaluation]
+    C --> E
+    D --> E
+
+    style A fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
+    style B fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style E fill:#ffecb3,stroke:#f57f17,stroke-width:3px
 ```
 
-**When to use**: Deploy to multiple servers simultaneously, or run independent tasks in parallel.
+**When to use**: Deploy to multiple servers simultaneously, or run independent tasks in parallel. See [TaskER FlowChart - Parallel Block](TaskER_FlowChart.md#7-parallel-block) for details.
 
 **Example**:
 ```
@@ -1457,26 +1449,20 @@ on_success=2
 | Error handling and retries | **Sequential** | Outcome-based flow control |
 
 ```mermaid
-graph TD
-    Start([Start Workflow]) --> Check[Condition Check<br/>Environment Ready?]
-    Check -->|TRUE| ProdBranch[Production Branch]
-    Check -->|FALSE| TestBranch[Test Branch]
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A{CONDITION} -->|TRUE| B[Execute if_true_tasks]
+    A -->|FALSE| C[Execute if_false_tasks]
+    B --> D[Multi-Task Success Evaluation]
+    C --> D
 
-    ProdBranch --> P1[Deploy to Production]
-    ProdBranch --> P2[Update Load Balancer]
-    P1 --> ProdEnd[Production Complete]
-    P2 --> ProdEnd
-
-    TestBranch --> T1[Deploy to Test Environment]
-    TestBranch --> T2[Run Integration Tests]
-    T1 --> TestEnd[Test Complete]
-    T2 --> TestEnd
-
-    ProdEnd --> Final([Workflow Complete])
-    TestEnd --> Final
+    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style C fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+    style D fill:#ffecb3,stroke:#f57f17,stroke-width:3px
 ```
 
-**When to use**: Different execution paths based on environment, conditions, or runtime decisions.
+**When to use**: Different execution paths based on environment, conditions, or runtime decisions. See [TaskER FlowChart - Conditional Block](TaskER_FlowChart.md#5-conditional-block) for details.
 
 **Example**:
 ```

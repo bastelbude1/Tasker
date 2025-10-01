@@ -324,26 +324,44 @@ success=exit_0
 
 Extract specific data from command output using simple split operations. These are basic functions for common extraction needs.
 
+**Available Delimiters:**
+- `space` - Split by whitespace
+- `tab` - Split by tab characters
+- `newline` - Split by line breaks (NEW!)
+- `colon` - Split by colons (`:`)
+- `semicolon` - Split by semicolons (`;`)
+- `comma` - Split by commas
+- `pipe` - Split by pipe characters
+- `semi` - Legacy alias for semicolon
+
 ```
 task=0
 hostname=server1
-command=df -h /data | head -2 | tail -1
-# NOTE: Cannot split by newline - using pipe commands instead
+command=printf "line1\nBETA_VALUE\nline3"
+# Extract second line using newline delimiter
+stdout_split=newline,1
 exec=local
 
 task=1
 hostname=server2
-command=echo "key1=value1 key2=value2 key3=value3"
-# Get "key2=value2"
-stdout_split=space,1
+command=echo "user:x:1000:1000:Admin:/home/user:/bin/bash"
+# Extract username from /etc/passwd style output
+stdout_split=colon,0
 exec=local
 
 task=2
-condition=@1_stdout@~key2=value2
 hostname=server3
+command=echo "key1=value1 key2=value2 key3=value3"
+# Get "key2=value2" using space delimiter
+stdout_split=space,1
+exec=local
+
+task=3
+condition=@2_stdout@~key2=value2
+hostname=server4
 command=process_data
 # Uses "key2=value2" from split
-arguments=--config=@1_stdout@
+arguments=--config=@2_stdout@
 ```
 
 **For Complex Processing:**
@@ -388,7 +406,7 @@ exec=local
 task=0
 hostname=server1
 command=df -h /data | tail -1
-# NOTE: Cannot split by newline - using tail to get last line
+# Extract last line using tail command (alternative to stdout_split=newline,-1)
 exec=local
 
 task=1
@@ -412,7 +430,7 @@ exec=local
 task=3
 hostname=app-server
 command=deploy_application
-# NOTE: Cannot split stderr by newline - escape sequences not supported
+# Handle stderr with proper error checking
 on_failure=99
 
 task=99
@@ -1095,7 +1113,7 @@ Simple extraction functions for any task that executes a command:
 - `semi` (semicolon)
 - `pipe` (pipe character |)
 
-**⚠️ WARNING**: Escape sequences like `\n` are NOT interpreted! Cannot split by newline currently.
+**✅ NEW**: Added support for newline, colon, and semicolon delimiters! See Available Delimiters list above.
 
 **Simple Example:**
 ```
@@ -1921,7 +1939,7 @@ task=0
 hostname=log-server
 # Limit output size
 command=tail -10 /var/log/app.log | head -1
-# Get first line using head command (cannot split by newline)
+# Get first line using head command (alternative to stdout_split=newline,0)
 exec=local
 ```
 
@@ -2576,21 +2594,22 @@ retry_count=3
 
 ### Additional Delimiter Keywords for Output Splitting
 
-**Current Limitation**: Cannot split output by newlines! The `\n` escape sequence is NOT interpreted, and there's no 'newline' keyword.
+**✅ IMPLEMENTED**: All delimiter enhancements have been completed!
 
-**Proposed Enhancement**: Add support for newline splitting and other delimiters:
-- `newline` - Split by line breaks (\n) - **CRITICAL: Most needed feature!**
-- `colon` - Split by colons (:)
-- `semicolon` - Split by semicolons (;) - currently must use `semi`
+**New Delimiters Available:**
+- ✅ `newline` - Split by line breaks (\n) - **CRITICAL feature implemented!**
+- ✅ `colon` - Split by colons (:) - Perfect for config files
+- ✅ `semicolon` - Split by semicolons (;) - Better naming than 'semi'
+- ✅ `semi` - Legacy alias maintained for backward compatibility
 
-**Implementation Required** (in `tasker/core/condition_evaluator.py`):
+**Current Implementation** (in `tasker/core/condition_evaluator.py`):
 ```python
 delimiter_map = {
     'space': r'\s+',
     'tab': r'\t+',
-    'newline': '\n',      # ADD THIS - Critical for multi-line output
-    'colon': ':',         # ADD THIS - Common in config files
-    'semicolon': ';',     # ADD THIS - Better than 'semi'
+    'newline': r'\n+',    # ✅ IMPLEMENTED - Split by one or more line breaks
+    'colon': ':',         # ✅ IMPLEMENTED - Common in config files
+    'semicolon': ';',     # ✅ IMPLEMENTED - Better naming than 'semi'
     'comma': ',',
     'semi': ';',          # Keep for backward compatibility
     'pipe': '|'
@@ -2603,26 +2622,26 @@ delimiter_map = {
 task=0
 hostname=server
 command=df -h
-stdout_split=newline,1    # Get second line (currently NOT possible!)
+stdout_split=newline,1    # ✅ Get second line - NOW WORKS!
 
 # Parse /etc/passwd entries
 task=1
 hostname=server
 command=grep username /etc/passwd
-stdout_split=colon,5      # Get home directory (currently NOT possible!)
+stdout_split=colon,5      # ✅ Get home directory - NOW WORKS!
 
 # Process multi-line error messages
 task=2
 hostname=server
 command=some_command
-stderr_split=newline,0    # Get first error line (currently NOT possible!)
+stderr_split=newline,0    # ✅ Get first error line - NOW WORKS!
 ```
 
-**Current Workaround Required** (less efficient, more complex):
+**Legacy Workaround** (no longer needed, but shown for reference):
 ```bash
-# Must use shell commands to work around limitation
-command=df -h | head -2 | tail -1     # Instead of stdout_split=newline,1
-command=grep username /etc/passwd | cut -d: -f6  # Instead of stdout_split=colon,5
+# Old approach - still works but unnecessary now
+command=df -h | head -2 | tail -1     # Can now use: stdout_split=newline,1
+command=grep username /etc/passwd | cut -d: -f6  # Can now use: stdout_split=colon,5
 ```
 
 **Benefits**:

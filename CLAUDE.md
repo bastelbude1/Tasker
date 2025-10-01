@@ -135,6 +135,15 @@ cp tasker.py tasker.py.backup_YYYYMMDD
    - Must be run on all modified files before git push operations
    - Helps catch issues early and maintain code quality standards
 
+   **Manual Review Trigger (if CLI times out):**
+   ```
+   @coderabbitai review
+   ```
+   - **When to use**: CLI review times out or rate limits exceeded
+   - **How**: Post as comment in GitHub/Gitea pull request
+   - **Description**: Triggers incremental review of new changes only
+   - **Alternative**: Use when automatic reviews are disabled or focused feedback needed
+
 4. **CRITICAL Verification logic (ZERO TOLERANCE):**
    - ❌ **Python exceptions = IMMEDIATE FAILURE:** Any Traceback, AttributeError, Exception detected in stderr
    - ❌ **Timeouts = IMMEDIATE FAILURE:** Any timeout (exit 124) = immediate failure

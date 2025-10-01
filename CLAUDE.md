@@ -135,6 +135,53 @@ cp tasker.py tasker.py.backup_YYYYMMDD
    - Must be run on all modified files before git push operations
    - Helps catch issues early and maintain code quality standards
 
+   **Manual Review Triggers (if CLI times out):**
+
+   **Recommended Code-Review Workflow:**
+   1. **Incremental Review (Primary)**:
+      ```
+      @coderabbitai review
+      ```
+      - **Use for**: Checking new changes and focused feedback on recent modifications
+      - **When**: CLI times out, rate limits exceeded, or need targeted review
+
+   2. **Full Review (Major Changes)**:
+      ```
+      @coderabbitai full review
+      ```
+      - **Use for**: Major changes requiring fresh perspective or comprehensive analysis
+      - **When**: Substantial refactoring, architectural changes, or complete features
+
+   3. **Generate Summaries**:
+      ```
+      @coderabbitai summary
+      ```
+      - **Use for**: Communicating changes clearly after significant updates
+      - **When**: PR ready for review or need change documentation
+
+   **Managing Large Changes:**
+   1. **Pause During Development**:
+      ```
+      @coderabbitai pause
+      ```
+      - **Use for**: Preventing unnecessary review noise during multiple commits
+      - **When**: Still actively developing and making frequent changes
+
+   2. **Resume When Ready**:
+      ```
+      @coderabbitai resume
+      ```
+      - **Use for**: Resume reviews when ready for feedback
+      - **When**: Development phase complete, ready for quality review
+
+   **Documentation Flow:**
+   1. **Generate Docstrings** (after implementation complete):
+      ```
+      @coderabbitai generate docstrings
+      ```
+      - **Use for**: Creating comprehensive function documentation
+      - **When**: Implementation finalized, need proper documentation
+
 4. **CRITICAL Verification logic (ZERO TOLERANCE):**
    - ❌ **Python exceptions = IMMEDIATE FAILURE:** Any Traceback, AttributeError, Exception detected in stderr
    - ❌ **Timeouts = IMMEDIATE FAILURE:** Any timeout (exit 124) = immediate failure

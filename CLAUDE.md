@@ -125,7 +125,17 @@ cp tasker.py tasker.py.backup_YYYYMMDD
    - Tests `task_validator.py` functionality
    - Different scope from task execution testing
 
-3. **CRITICAL Verification logic (ZERO TOLERANCE):**
+3. **Code review with CodeRabbit (MANDATORY):**
+   ```bash
+   coderabbit review --prompt-only
+   ```
+   - **REQUIRED before ANY push to GitHub or Gitea**
+   - Performs automated code quality analysis
+   - Reviews code changes for best practices, potential issues, and maintainability
+   - Must be run on all modified files before git push operations
+   - Helps catch issues early and maintain code quality standards
+
+4. **CRITICAL Verification logic (ZERO TOLERANCE):**
    - ❌ **Python exceptions = IMMEDIATE FAILURE:** Any Traceback, AttributeError, Exception detected in stderr
    - ❌ **Timeouts = IMMEDIATE FAILURE:** Any timeout (exit 124) = immediate failure
    - ✅ **Exit code matching:** `tasker.py` and `tasker_orig.py` must have identical exit codes (without `-d`)
@@ -134,7 +144,7 @@ cp tasker.py tasker.py.backup_YYYYMMDD
      - `orig: 1` → `tasker: 14` (improved conditional execution failure detection)
    - ✅ **State consistency:** `reset_state()` ensures each test starts with clean state
 
-4. **CRITICAL Success criteria (ZERO TOLERANCE):**
+5. **CRITICAL Success criteria (ZERO TOLERANCE):**
    - **100% success rate with ZERO timeouts AND ZERO exceptions**
    - **ANY Python exception = VERIFICATION FAILURE** (prevents false positives)
    - All test cases produce functionally identical results between versions

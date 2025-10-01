@@ -7,6 +7,7 @@ Provides modular, testable components for the TASKER system.
 """
 
 import re
+from typing import ClassVar
 from .utilities import convert_value, convert_to_number
 
 
@@ -19,7 +20,7 @@ class ConditionEvaluator:
     """
 
     # Simple cache to reduce debug logging repetition (class-level)
-    _logged_replacements = set()
+    _logged_replacements: ClassVar[set] = set()
 
     @classmethod
     def clear_debug_cache(cls):

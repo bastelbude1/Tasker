@@ -909,7 +909,7 @@ Based on complexity analysis, risk assessment, and dependency mapping, implement
 delimiter_map = {
     'space': r'\s+',
     'tab': r'\t+',
-    'newline': '\n',         # NEW - CRITICAL! Currently impossible to split by newlines
+    'newline': r'\n+',       # NEW - CRITICAL! Split by one or more line breaks (consistent with space/tab)
     'colon': ':',            # NEW - Common in config files (/etc/passwd, etc)
     'semicolon': ';',        # NEW - Better naming than 'semi'
     'semi': ';',             # Keep for backward compatibility
@@ -917,7 +917,7 @@ delimiter_map = {
     'pipe': '|'
 }
 ```
-**IMPORTANT**: Use `'\n'` NOT `r'\n'` for newline (needs actual newline character, not regex)
+**IMPORTANT**: Use `r'\n+'` for consistency with space/tab patterns (handles multiple consecutive newlines as single delimiter)
 **Benefits**: Fixes critical limitation - currently CANNOT split multi-line output at all!
 
 #### 2. **Simplify Retry Configuration** ⭐ **VERY EASY** (1-2 hours)

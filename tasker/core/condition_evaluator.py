@@ -153,7 +153,7 @@ class ConditionEvaluator:
         delimiter_map = {
             'space': r'\s+',
             'tab': r'\t+',
-            'newline': '\n',         # NEW - CRITICAL! Split by line breaks
+            'newline': r'\n+',       # NEW - CRITICAL! Split by one or more line breaks (consistent with space/tab)
             'colon': ':',            # NEW - Common in config files (/etc/passwd, etc)
             'semicolon': ';',        # NEW - Better naming than 'semi'
             'semi': ';',             # Keep for backward compatibility

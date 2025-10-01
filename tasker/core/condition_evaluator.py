@@ -13,10 +13,18 @@ from .utilities import convert_value, convert_to_number
 class ConditionEvaluator:
     """
     Handles condition evaluation and variable replacement for TASKER tasks.
-    
+
     This class provides stateless condition evaluation by accepting required
     data (global_vars, task_results) as parameters rather than storing state.
     """
+
+    # Simple cache to reduce debug logging repetition (class-level)
+    _logged_replacements = set()
+
+    @classmethod
+    def clear_debug_cache(cls):
+        """Clear the debug logging cache for a new execution session."""
+        cls._logged_replacements.clear()
     
     @staticmethod
     def replace_variables(text, global_vars, task_results, debug_callback=None):
@@ -79,8 +87,11 @@ class ConditionEvaluator:
                 value = global_vars[var_name]
                 pattern_replace = f"@{var_name}@"
                 replaced_text = replaced_text.replace(pattern_replace, value)
-                if debug_callback:
+                # Only log if we haven't seen this replacement before
+                replacement_key = f"{var_name}={value}"
+                if debug_callback and replacement_key not in ConditionEvaluator._logged_replacements:
                     debug_callback(f"Replaced global variable @{var_name}@ with '{value}'")
+                    ConditionEvaluator._logged_replacements.add(replacement_key)
             else:
                 unresolved_variables.append(f"@{var_name}@")
         
@@ -103,8 +114,11 @@ class ConditionEvaluator:
                     value = global_vars[var_name]
                     pattern_replace = f"@{var_name}@"
                     replaced_text = replaced_text.replace(pattern_replace, value)
-                    if debug_callback:
+                    # Only log nested replacements if we haven't seen this replacement before
+                    replacement_key = f"{var_name}={value}"
+                    if debug_callback and replacement_key not in ConditionEvaluator._logged_replacements:
                         debug_callback(f"Replaced nested global variable @{var_name}@ with '{value}' (iteration {iteration})")
+                        ConditionEvaluator._logged_replacements.add(replacement_key)
                     nested_replaced = True
             
             # If no nested replacements were made, we're done
@@ -123,9 +137,10 @@ class ConditionEvaluator:
                 debug_callback(f"Unresolved variables in '{original_text}': {', '.join(set(unresolved_variables))}")
             return replaced_text, False
         
-        if original_text != replaced_text:
+        # Only log overall replacement for complex cases (multiple variables or chaining)
+        if original_text != replaced_text and (len(re.findall(r'@[^@]+@', original_text)) > 1 or iteration > 1):
             if debug_callback:
-                debug_callback(f"Variable replacement: '{original_text}' -> '{replaced_text}'")
+                debug_callback(f"Variable replacement (complex): '{original_text}' -> '{replaced_text}'")
         
         return replaced_text, True
 

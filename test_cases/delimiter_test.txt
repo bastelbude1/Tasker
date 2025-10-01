@@ -29,18 +29,18 @@ condition=@1_success@
 hostname=@HOSTNAME@
 exec=@EXEC@
 command=echo
-arguments=user:x:1000:1000:User Name:/home/user:/bin/bash
+arguments=first:SPLIT_TARGET:third
 success=exit_0
 
-# Task 3: Test colon delimiter - get username (index 0)
+# Task 3: Test colon delimiter - extract middle part (index 1)
 task=3
 condition=@2_success@
 hostname=@HOSTNAME@
 exec=@EXEC@
 command=echo
 arguments=@2_stdout@
-stdout_split=colon,0
-success=@2_stdout@~user
+stdout_split=colon,1
+success=stdout=SPLIT_TARGET
 
 # Task 4: Generate semicolon-separated output for semicolon testing
 task=4
@@ -48,7 +48,7 @@ condition=@3_success@
 hostname=@HOSTNAME@
 exec=@EXEC@
 command=echo
-arguments=option1;option2;option3;option4
+arguments=alpha;beta;GAMMA;delta
 success=exit_0
 
 # Task 5: Test new semicolon delimiter - get third option (index 2)
@@ -59,7 +59,7 @@ exec=@EXEC@
 command=echo
 arguments=@4_stdout@
 stdout_split=semicolon,2
-success=@4_stdout@~option3
+success=stdout=GAMMA
 
 # Task 6: Test backward compatibility - old 'semi' delimiter should still work
 task=6
@@ -69,5 +69,5 @@ exec=@EXEC@
 command=echo
 arguments=@4_stdout@
 stdout_split=semi,3
-success=@4_stdout@~option4
+success=stdout=delta
 next=exit_0

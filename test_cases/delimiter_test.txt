@@ -1,0 +1,73 @@
+# Test case for new delimiter keywords
+# Tests newline, colon, semicolon delimiters and backward compatibility
+
+# Global variables
+HOSTNAME=localhost
+EXEC=local
+
+# Task 0: Generate multi-line output for newline testing
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=-e "line1\nline2\nline3"
+success=exit_0
+
+# Task 1: Test newline delimiter - get second line (index 1)
+task=1
+condition=@0_success@
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=@0_stdout@
+stdout_split=newline,1
+success=@0_stdout@~line2
+
+# Task 2: Generate colon-separated output for colon testing
+task=2
+condition=@1_success@
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=user:x:1000:1000:User Name:/home/user:/bin/bash
+success=exit_0
+
+# Task 3: Test colon delimiter - get username (index 0)
+task=3
+condition=@2_success@
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=@2_stdout@
+stdout_split=colon,0
+success=@2_stdout@~user
+
+# Task 4: Generate semicolon-separated output for semicolon testing
+task=4
+condition=@3_success@
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=option1;option2;option3;option4
+success=exit_0
+
+# Task 5: Test new semicolon delimiter - get third option (index 2)
+task=5
+condition=@4_success@
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=@4_stdout@
+stdout_split=semicolon,2
+success=@4_stdout@~option3
+
+# Task 6: Test backward compatibility - old 'semi' delimiter should still work
+task=6
+condition=@5_success@
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=@4_stdout@
+stdout_split=semi,3
+success=@4_stdout@~option4
+next=exit_0

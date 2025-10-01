@@ -73,10 +73,14 @@ class TaskExecutor:
     
     # ===== 1. CLASS LIFECYCLE =====
     
-    def __init__(self, task_file, log_dir='logs', dry_run=True, log_level='INFO', 
-                 exec_type=None, timeout=30, connection_test=False, project=None, 
-                 start_from_task=None, skip_task_validation=False, 
+    def __init__(self, task_file, log_dir='logs', dry_run=True, log_level='INFO',
+                 exec_type=None, timeout=30, connection_test=False, project=None,
+                 start_from_task=None, skip_task_validation=False,
                  skip_host_validation=False, show_plan=False, validate_only=False):
+        # Clear debug logging cache for new execution session
+        from .condition_evaluator import ConditionEvaluator
+        ConditionEvaluator.clear_debug_cache()
+
         self.task_file = task_file
         self.log_dir = log_dir
         self.dry_run = dry_run

@@ -159,17 +159,33 @@ class SequentialExecutor(BaseExecutor):
         if 'stdout_split' in task:
             original_stdout = stdout
             stdout = ConditionEvaluator.split_output(stdout, task['stdout_split'])
-            executor_instance.log(f"Task {task_id}{loop_display}: Split STDOUT: '{stdout_stripped}' -> '{stdout}'")
-            
+            # INFO mode: Show only result; DEBUG mode: Show detailed split operation
+            executor_instance.log(f"Task {task_id}{loop_display}: Split STDOUT -> '{stdout}'")
+            executor_instance.log_debug(f"Task {task_id}{loop_display}: Split STDOUT (stdout_split={task['stdout_split']}): '{stdout_stripped}' -> '{stdout}'")
+
         if 'stderr_split' in task:
             original_stderr = stderr
             stderr = ConditionEvaluator.split_output(stderr, task['stderr_split'])
-            executor_instance.log(f"Task {task_id}{loop_display}: Split STDERR: '{stderr_stripped}' -> '{stderr}'")
+            # INFO mode: Show only result; DEBUG mode: Show detailed split operation
+            executor_instance.log(f"Task {task_id}{loop_display}: Split STDERR -> '{stderr}'")
+            executor_instance.log_debug(f"Task {task_id}{loop_display}: Split STDERR (stderr_split={task['stderr_split']}): '{stderr_stripped}' -> '{stderr}'")
         
         # Evaluate success condition if defined, otherwise default to exit_code == 0
         if 'success' in task:
             success_result = ConditionEvaluator.evaluate_condition(task['success'], exit_code, stdout, stderr, executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
-            executor_instance.log(f"Task {task_id}{loop_display}: Success condition '{task['success']}' evaluated to: {success_result}")
+
+            # Enhanced logging: show variable resolution when splits are involved
+            split_info = ""
+            if ('stdout_split' in task or 'stderr_split' in task) and ('stdout' in task['success'] or 'stderr' in task['success']):
+                resolution_parts = []
+                if 'stdout' in task['success']:
+                    resolution_parts.append(f"stdout='{stdout}'")
+                if 'stderr' in task['success']:
+                    resolution_parts.append(f"stderr='{stderr}'")
+                if resolution_parts:
+                    split_info = f" ({', '.join(resolution_parts)})"
+
+            executor_instance.log(f"Task {task_id}{loop_display}: Success condition '{task['success']}' evaluated to: {success_result}{split_info}")
         else:
             success_result = (exit_code == 0)
             executor_instance.log_debug(f"Task {task_id}{loop_display}: Success (default): {success_result}")

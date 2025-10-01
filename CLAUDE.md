@@ -1,4 +1,4 @@
-# Tasker Refactoring Plan
+# TASKER Development Guidelines
 
 ## 🚨 MANDATORY PRE-WORK CHECKLIST 🚨
 
@@ -6,18 +6,12 @@
 
 ```
 ✅ "I will create backups using: cp file.py file.py.backup_$(date +%Y%m%d_%H%M%S)"
-✅ "I will run 100% verification testing before any commit suggestions" 
+✅ "I will run 100% verification testing before any commit suggestions"
 ✅ "I acknowledge that violating CRITICAL/MANDATORY requirements breaks production code"
 ✅ "I have read and will follow all CRITICAL/MANDATORY sections below"
 ```
 
 **🔒 USER ENFORCEMENT:** If Claude starts making changes without this explicit confirmation, **IMMEDIATELY STOP THE WORK** and require compliance.
-
-**⚠️ VIOLATION CONSEQUENCES:** If Claude violates any CRITICAL/MANDATORY requirement:
-- User should immediately point out the specific violation
-- Claude must acknowledge which requirement was violated
-- All work must STOP until proper process is followed
-- Claude must restart with proper checklist compliance
 
 ---
 
@@ -39,8 +33,8 @@
 
 **Example - CORRECT Python 3.6.8 pattern:**
 ```python
-with subprocess.Popen(['command'], 
-                    stdout=subprocess.PIPE, 
+with subprocess.Popen(['command'],
+                    stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     universal_newlines=True) as process:
     try:
@@ -111,19 +105,22 @@ cp tasker.py tasker.py.backup_YYYYMMDD
    ./focused_verification.sh
    ```
    - Tests ALL .txt files with `tasker.py` (captures stderr to detect exceptions)
-   - Compares with `tasker_orig.py` (also captures exceptions)
    - **CRITICAL:** Detects Python exceptions (Traceback, AttributeError, etc.) and treats as FAILURE
    - Automatic state file cleanup between tests using `reset_state()` function
-   - 30-second timeout per test - **Must achieve 100% success rate with ZERO timeouts AND ZERO exceptions**
+   - 60-second timeout per test - **Must achieve 100% success rate with ZERO timeouts AND ZERO exceptions**
    - **Key protection:** Prevents false positives from hidden runtime errors
 
-2. **Test the validation script separately:**
+2. **Test execution requirements:**
    ```bash
-   cd test_cases/
-   ./retry_validation_test_script.sh
+   # Essential: Set PATH for mock commands
+   PATH="../test_scripts:$PATH"
+
+   # Essential: Skip host validation for testing
+   --skip-host-validation
+
+   # Essential: Exclude validation test files designed to fail
+   comprehensive_retry_validation_test.txt
    ```
-   - Tests `task_validator.py` functionality
-   - Different scope from task execution testing
 
 3. **Code review with CodeRabbit (MANDATORY):**
    ```bash
@@ -133,69 +130,17 @@ cp tasker.py tasker.py.backup_YYYYMMDD
    - Performs automated code quality analysis
    - Reviews code changes for best practices, potential issues, and maintainability
    - Must be run on all modified files before git push operations
-   - Helps catch issues early and maintain code quality standards
-
-   **Manual Review Triggers (if CLI times out):**
-
-   **Recommended Code-Review Workflow:**
-   1. **Incremental Review (Primary)**:
-      ```
-      @coderabbitai review
-      ```
-      - **Use for**: Checking new changes and focused feedback on recent modifications
-      - **When**: CLI times out, rate limits exceeded, or need targeted review
-
-   2. **Full Review (Major Changes)**:
-      ```
-      @coderabbitai full review
-      ```
-      - **Use for**: Major changes requiring fresh perspective or comprehensive analysis
-      - **When**: Substantial refactoring, architectural changes, or complete features
-
-   3. **Generate Summaries**:
-      ```
-      @coderabbitai summary
-      ```
-      - **Use for**: Communicating changes clearly after significant updates
-      - **When**: PR ready for review or need change documentation
-
-   **Managing Large Changes:**
-   1. **Pause During Development**:
-      ```
-      @coderabbitai pause
-      ```
-      - **Use for**: Preventing unnecessary review noise during multiple commits
-      - **When**: Still actively developing and making frequent changes
-
-   2. **Resume When Ready**:
-      ```
-      @coderabbitai resume
-      ```
-      - **Use for**: Resume reviews when ready for feedback
-      - **When**: Development phase complete, ready for quality review
-
-   **Documentation Flow:**
-   1. **Generate Docstrings** (after implementation complete):
-      ```
-      @coderabbitai generate docstrings
-      ```
-      - **Use for**: Creating comprehensive function documentation
-      - **When**: Implementation finalized, need proper documentation
 
 4. **CRITICAL Verification logic (ZERO TOLERANCE):**
    - ❌ **Python exceptions = IMMEDIATE FAILURE:** Any Traceback, AttributeError, Exception detected in stderr
    - ❌ **Timeouts = IMMEDIATE FAILURE:** Any timeout (exit 124) = immediate failure
-   - ✅ **Exit code matching:** `tasker.py` and `tasker_orig.py` must have identical exit codes (without `-d`)
-   - ✅ **Improved exit codes allowed:** 
-     - `orig: 1` → `tasker: 20` (improved validation failure detection)
-     - `orig: 1` → `tasker: 14` (improved conditional execution failure detection)
+   - ✅ **Exit code matching:** `tasker.py` must have valid exit codes (0 for success)
    - ✅ **State consistency:** `reset_state()` ensures each test starts with clean state
 
 5. **CRITICAL Success criteria (ZERO TOLERANCE):**
    - **100% success rate with ZERO timeouts AND ZERO exceptions**
    - **ANY Python exception = VERIFICATION FAILURE** (prevents false positives)
-   - All test cases produce functionally identical results between versions
-   - Only acceptable differences: improved exit codes (1→20, 1→14)
+   - All test cases produce functionally identical results
    - **Exception detection:** Captures stderr to detect runtime errors that exit codes miss
 
 **CRITICAL LESSON LEARNED:** Previous verification falsely reported SUCCESS because `> /dev/null 2>&1` hid Python exceptions. The improved verification captures stderr and detects runtime errors, preventing false positives that could break production code.
@@ -207,811 +152,88 @@ cp tasker.py tasker.py.backup_YYYYMMDD
 - Ask for confirmation on major architectural decisions
 - Document decisions and rationale
 
-## Project Specification
-
-### TASK ExecutoR - TASKER 2.0
-
-**TASKER** is a simplified, robust task execution system that focuses on essential functionality with clean configuration management based on Python 3.6.8.
-
-#### Design Philosophy
-- **Simplicity over complexity**: Proven mechanisms only
-- **Text format first**: Human-readable, version-control friendly
-- **Configuration-driven**: Sensible defaults, easy customization
-- **Scale-ready**: 1-1000 servers with @HOSTNAME@ placeholders
-- **Safety-first**: Comprehensive validation and error handling
-
-#### File Format Specification
-
-**Required Fields:**
-- `task`: Integer ID (0, 1, 2, ...)
-- `hostname`: Target server or @HOSTNAME@ placeholder
-- `command`: Command to execute
-
-**Optional Fields:**
-- `arguments`: Command arguments
-- `exec`: Execution type (pbrun, p7s, local, wwrs)
-- `timeout`: Command timeout in seconds (5-3600)
-- `sleep`: Sleep after task execution (0-300 seconds)
-- `condition`: Pre-execution condition
-- `success`: Custom success criteria
-- `next`: Flow control condition
-- `on_success`: Task ID to execute on success
-- `on_failure`: Task ID to execute on failure
-- `loop`: Number of additional iterations
-- `return`: Exit workflow with return code
-
-#### Dependencies
-**Required:**
-- Python 3.6.8 or higher
-- Standard library modules only (no external dependencies)
-
-#### Success Criteria
-
-**Functional Requirements:**
-- Execute workflows reliably across 1-1000 servers
-- Support all essential TASKER features
-- Generate detailed logs and reports
-
-**Quality Requirements:**
-- 95%+ test coverage
-- Sub-second startup time
-- Memory usage < 50MB for typical workflows
-- Compatible with Python 3.6.8+
-- Clear error messages and documentation
-
-**User Experience Requirements:**
-- Simple installation (single script)
-- Intuitive command line interface
-- Helpful validation messages
-- Comprehensive documentation
-
-## Refactoring Overview
-This document outlines the planned refactoring of the tasker.py module into a well-structured package to improve maintainability, modularity, and code organization while maintaining all TASKER 2.0 requirements.
-
-## Current State
-- Single monolithic `tasker.py` file (~3000+ lines)
-- All functionality mixed together in one large TaskExecutor class
-- Difficult to maintain and extend
-
-## Target Package Structure
-
-```
-./
-├── tasker.py                    # Main script (executable, NOT a module)
-├── task_validator.py            # Existing script (remains unchanged) 
-├── setup_test_environment.sh    # Test environment setup script
-│
-tasker/
-├── __init__.py
-├── core/
-│   ├── __init__.py
-│   ├── condition_evaluator.py   # Variable replacement & condition logic ✅ COMPLETED
-│   ├── execution_context.py     # ExecutionContext for unified callbacks ✅ COMPLETED  
-│   ├── task_executor_main.py    # Main class with Lifecycle, Logging, Validation ✅ COMPLETED
-│   └── utilities.py             # Standalone utility functions ✅ COMPLETED
-│
-├── executors/
-│   ├── __init__.py
-│   ├── base_executor.py         # Abstract base class for all executors ✅ COMPLETED
-│   ├── conditional_executor.py  # Conditional task execution ✅ COMPLETED
-│   ├── parallel_executor.py     # Parallel task execution + retry logic ✅ COMPLETED
-│   └── sequential_executor.py   # Normal task execution ✅ COMPLETED
-│
-├── validation/
-│   ├── __init__.py
-│   ├── host_validator.py        # Host validation logic ✅ COMPLETED
-│   └── task_validator.py        # TaskValidator integration ✅ COMPLETED
-│
-test_cases/                      # Comprehensive test suite
-├── extended_verification_test.sh  # Main verification testing framework
-├── host_validation_*.txt        # Host validation test cases
-└── *.txt                        # Various test scenarios
-
-test_scripts/                    # Mock execution commands for testing
-├── pbrun                        # Mock pbrun command
-├── p7s                          # Mock p7s command  
-└── wwrs_clir                    # Mock wwrs_clir command
-```
-
-## Module Responsibilities
-
-### `core/` - Fundamental Services
-- **`utilities.py`** ✅ **COMPLETED**
-  - Standalone utility functions
-  - Exit code management (`ExitCodes`, `ExitHandler`)
-  - Value conversion functions (`convert_value`, `convert_to_number`)
-  - String formatting utilities (`sanitize_filename`, `sanitize_for_tsv`, `format_output_for_log`)
-  - Log directory management (`get_log_directory`)
-
-- **`condition_evaluator.py`** ✅ **COMPLETED**
-  - Variable replacement using `@VARIABLE@` syntax
-  - Condition evaluation logic
-  - Expression parsing and comparison operators
-  - Output splitting functionality
-
-- **`execution_context.py`** ✅ **COMPLETED**
-  - ExecutionContext for unified callback system
-  - Centralized logging and debug callback management
-  - Shared state management across executors
-
-- **`task_executor_main.py`** ✅ **COMPLETED**
-  - Main TaskExecutor class with lifecycle management
-  - Logging infrastructure and output formatting
-  - Task result storage and management
-  - Signal handling and configuration management
-
-### `executors/` - Task Execution Engines
-- **`base_executor.py`** ✅ **COMPLETED**
-  - Abstract base class for all executors
-  - Common execution interface and utilities
-  - Clean STDOUT/STDERR logging with format_output_for_log
-  - Output splitting and sleep handling
-
-- **`sequential_executor.py`** ✅ **COMPLETED**
-  - Normal sequential task execution
-  - Single task processing logic with clean output formatting
-  - Standard retry mechanisms and condition evaluation
-  - Loop handling and flow control
-
-- **`parallel_executor.py`** ✅ **COMPLETED**
-  - Parallel task execution with threading
-  - Master timeout enforcement and proper sleep handling
-  - Advanced retry logic for failed tasks
-  - Result aggregation and success/failure thresholds
-  - Fixed race condition with sleep after task completion
-
-- **`conditional_executor.py`** ✅ **COMPLETED**
-  - Conditional task execution based on conditions
-  - Branch selection logic and flow control
-  - Integration with condition evaluator
-
-### `validation/` - Validation Logic
-- **`task_validator.py`** ✅ **COMPLETED**
-  - Integration with existing TaskValidator
-  - Task file syntax validation and dependency validation
-  - Comprehensive task structure validation
-
-- **`host_validator.py`** ✅ **COMPLETED**
-  - Host connectivity validation with execution type testing
-  - DNS resolution (`resolve_hostname`)
-  - Connection testing (`check_host_alive`, `check_exec_connection`)
-  - Support for pbrun, p7s, wwrs validation with proper test commands
-
-### `test_cases/` - Comprehensive Testing Infrastructure
-- **`extended_verification_test.sh`** ✅ **COMPLETED**
-  - Main verification testing framework with 100% success requirement
-  - Support for both success and failure test scenarios
-  - Proper PATH handling for host validation tests
-  - 27 test case coverage across all functionality
-
-- **`host_validation_test_runner.sh`** ✅ **COMPLETED**
-  - Dedicated host validation testing with expected outcome verification
-  - Tests both success and failure scenarios with proper error message validation
-
-- **`test_scripts/`** ✅ **COMPLETED**
-  - Mock execution commands (pbrun, p7s, wwrs_clir) for testing
-  - Configurable success/failure scenarios based on hostname patterns
-  - Proper test command responses for validation testing
-
-## Refactoring Progress
-
-### ✅ Phase 1: Core Utilities (COMPLETED)
-- [x] Created `tasker/core/utilities.py`
-- [x] Moved `ExitCodes` and `ExitHandler` classes
-- [x] Moved `convert_value`, `convert_to_number`, `sanitize_for_tsv` functions
-- [x] Updated imports and exports
-- [x] Committed to git (commit: 5f3b643)
-
-### ✅ Phase 2: Condition Evaluation (COMPLETED)
-- [x] Created `tasker/core/condition_evaluator.py`
-- [x] Extracted condition evaluation methods (1:1 copy from `tasker_orig.py`):
-  - `replace_variables()` - Variable replacement with @VARIABLE@ syntax
-  - `evaluate_condition()` - Complex condition evaluation with boolean operators
-  - `evaluate_simple_condition()` - Simple condition evaluation (copied 1:1 from lines 1339-1418)
-  - `evaluate_operator_comparison()` - Comparison operators (=, !=, ~, !~, <, >, etc.)
-  - `split_output()` - Output splitting by delimiter (restored original format)
-- [x] **CRITICAL FIX:** Copied stdout/stderr condition logic 1:1 from `tasker_orig.py`
-- [x] Verified with comprehensive testing - functional behavior matches `tasker_orig.py` exactly (with acceptable additional debug output)
-
-### ✅ Phase 3: Host Validation (COMPLETED)
-- [x] Created `tasker/validation/host_validator.py`
-- [x] Extracted host validation methods (1:1 copy):
-  - `validate_hosts()` - Main host validation with connectivity tests
-  - `resolve_hostname()` - DNS resolution validation
-  - `check_host_alive()` - Ping connectivity test
-  - `check_exec_connection()` - Execution type connection testing
-- [x] Converted to static methods with minimal parameter changes only
-- [x] Updated `tasker.py` to use `HostValidator.validate_hosts()`
-- [x] **VERIFIED:** Comprehensive testing completed - functional behavior matches `tasker_orig.py` exactly (with acceptable additional debug output)
-
-### ✅ Phase 4: Task Validation Integration (COMPLETED)
-- [x] Integrated existing `tasker/validation/task_validator.py` module with TaskExecutor
-- [x] **Implementation approach:** Used existing TaskValidator class with static method `validate_task_file()`
-- [x] **Integration method:** TaskExecutor.validate_tasks() calls TaskValidator.validate_task_file() with proper callbacks
-- [x] **Note:** Different from original plan - instead of creating separate `task_validator_integration.py`,
-      we leveraged the existing comprehensive TaskValidator module and integrated it cleanly
-- [x] Task file syntax validation, dependency validation, and comprehensive task structure validation
-- [x] **VERIFIED:** Full integration with main TaskExecutor class through clean callback architecture
-
-### ✅ Phase 5: Execution Engines (COMPLETED)
-- [x] Created `tasker/executors/base_executor.py` - Abstract base class for all executors
-- [x] Created `tasker/executors/sequential_executor.py` - Normal sequential task execution
-- [x] Created `tasker/executors/parallel_executor.py` - Parallel task execution with retry logic
-- [x] Created `tasker/executors/conditional_executor.py` - Conditional task execution
-- [x] **CRITICAL FIX:** Fixed race condition in parallel execution with sleep handling
-- [x] **VERIFIED:** All execution engines working correctly with comprehensive testing
-
-### ✅ Phase 6: Main Executor Refactoring (COMPLETED)
-- [x] Created `tasker/core/task_executor_main.py` - Main TaskExecutor class
-- [x] Created `tasker/core/execution_context.py` - ExecutionContext for unified callbacks
-- [x] Refactored main TaskExecutor class with proper modular structure
-- [x] Updated `tasker.py` to use new modular structure
-- [x] **VERIFIED:** All functionality preserved with improved maintainability
-
-## Design Principles
-
-1. **Single Responsibility**: Each module has a clear, focused purpose
-2. **Loose Coupling**: Modules interact through well-defined interfaces
-3. **High Cohesion**: Related functionality is grouped together
-4. **Backwards Compatibility**: Existing functionality must be preserved
-5. **Testability**: Each module should be independently testable
-
-## Migration Strategy
-
-- **Refactor incrementally**, one module at a time
-- **Copy code 1:1** from `tasker.py` with minimal changes for module conversion
-- **Maintain full functionality** at each step
-- **Test thoroughly after each phase** using the **Mandatory Verification Testing Protocol**
-- **Update imports and dependencies** as modules are created
-- **Preserve all existing command-line interfaces and behavior**
-- **Use `tasker_orig.py` as reference** - if outputs differ, revert and copy 1:1 again
-
-## Files to be Kept Unchanged
-
-- `tasker.py` - Main executable script (structure changes only)
-- `task_validator.py` - Existing validation script
-- All test cases and configuration files
-
-## Usage: Validation Options
-
-TASKER 2.0 provides comprehensive validation capabilities through two separate modules:
-
-### Task Validation (`task_validator.py`)
-Validates task file syntax, structure, dependencies, and flow control logic.
-
-### Host Validation (`host_validator.py`)
-Validates hostname resolution, connectivity, and execution type compatibility.
-
-### Command Line Options
-
-**Enable/Disable Validation:**
-- `--validate-only` - Perform complete validation (task + host) and exit - no task execution
-- `--skip-task-validation` - Skip task file and dependency validation (faster resume)
-- `--skip-host-validation` - Skip host validation and use hostnames as-is (WARNING: risky!)
-- `--skip-validation` - Skip ALL validation (same as --skip-task-validation --skip-host-validation)
-
-**Host Connectivity Testing:**
-- `-c, --connection-test` - Check connectivity for pbrun,p7s,wwrs hosts (enables host validation)
-
-**Examples:**
-```bash
-# Full validation without execution
-./tasker.py tasks.txt --validate-only
-
-# Skip task validation for faster resume
-./tasker.py tasks.txt --start-from=5 --skip-task-validation
-
-# Skip risky host validation (not recommended)
-./tasker.py tasks.txt --skip-host-validation
-
-# Enable host connectivity testing
-./tasker.py tasks.txt -c -r
-```
-
-## Success Criteria
-
-- All existing functionality preserved
-- Improved code maintainability and readability
-- Clear separation of concerns
-- Easier unit testing and debugging
-- Foundation for future feature development
-
-## 🐛 Critical Bug Fix Discovered During Refactoring
-
-### The Issue We Found:
-- **Original `tasker_orig.py` had a race condition** where completed tasks could be incorrectly cancelled if they were sleeping when master timeout management ran
-- **This caused inconsistent task success counting** in parallel execution
-- Tasks would execute successfully, start sleeping, but then get marked as incomplete due to timeout cancellation during sleep phase
-
-### Root Cause Analysis:
-- In the original implementation, the `sleep` parameter was handled **during** task execution within the `_execute_task_core` method
-- When parallel tasks were executed using `concurrent.futures`, the sleep occurred while the future was still active
-- The `as_completed` timeout would cancel futures that were sleeping, even though the actual task had completed successfully
-- This created a race condition where task completion depended on timing rather than actual execution success
-
-### The Fix We Applied:
-- **Separated task execution from post-processing**: Sleep now occurs **after** task completion (outside timeout scope)
-- **Architectural consistency**: Parallel execution now matches sequential execution behavior where sleep happens after task completion
-- **Proper separation of concerns**: Master timeout applies to task execution, not post-processing cleanup
-
-### Technical Implementation:
-1. **Modified `BaseExecutor.execute_task_core`** to return `sleep_seconds` information instead of executing sleep
-2. **Updated `ParallelExecutor`** to handle sleep **after** the future completes but **before** recording the result
-3. **Left `SequentialExecutor`** unchanged since it already handled sleep correctly
-
-### Evidence of the Fix:
-- **Statistics Verification Test**: 
-  - Original: `1/3 tasks succeeded` (Task 101 cancelled during sleep)
-  - Refactored: `2/3 tasks succeeded` (Task 101 completes properly)
-- **20/23 test cases verified identical**
-- **All retry functionality tests pass (14/14)**
-- **All core functionality preserved with improved reliability**
-
-### Verification:
-```bash
-# Test case demonstrating the fix
-./tasker_orig.py statistics_verification_test.txt -r -d  # Shows race condition
-./tasker.py statistics_verification_test.txt -r -d       # Shows correct behavior
-```
-
-**Result**: The refactored version fixes a critical race condition and represents the correct implementation. This bug fix improves the reliability of parallel task execution with sleep parameters.
-
 ---
 
-## 📋 FUTURE ENHANCEMENT: JSON/YAML FORMAT SUPPORT
+## 🔄 FUTURE FEATURE REQUESTS
 
-### Implementation Plan for Multi-Format Task Files
+### Simplify Retry Configuration
+**Current Limitation**: Retry logic requires both `retry_failed=true` AND `retry_count=N` to be set, which is redundant.
 
-**Objective**: Support JSON, YAML, and TXT formats while leveraging structured data capabilities of JSON/YAML for enhanced readability and complex conditions.
-
-### Phase 1: Multi-Format Parser (Low Risk)
-
-**Strategy**: Enhanced parser that produces identical internal data structures regardless of input format.
-
-```python
-def parse_task_file(self):
-    """Enhanced parser supporting TXT, JSON, YAML with structured conditions."""
-
-    # 1. Format detection and basic parsing (low risk)
-    if self.task_file.endswith('.json'):
-        raw_data = self._parse_json()
-    elif self.task_file.endswith(('.yaml', '.yml')):
-        raw_data = self._parse_yaml()
-    else:
-        raw_data = self._parse_txt()  # Existing logic unchanged
-
-    # 2. Enhanced condition parsing (new feature, backward compatible)
-    for task in raw_data['tasks']:
-        if 'condition' in task:
-            task['condition'] = self._normalize_condition(task['condition'])
-        if 'next' in task:
-            task['next'] = self._normalize_next(task['next'])
-        if 'success' in task:
-            task['success'] = self._normalize_success(task['success'])
-
-    # 3. Same internal structures as before (zero risk)
-    self.global_vars = raw_data['global_vars']
-    self.tasks = raw_data['tasks']
-```
-
-### Benefits
-
-**Immediate Benefits:**
-- Support for JSON/YAML formats with zero risk to existing execution logic
-- Better readability for complex workflows
-- Structured conditions instead of complex single-line strings
-- Backward compatibility with all existing TXT files
-
-**Enhanced Condition Examples:**
-
-**Current TXT (hard to read):**
-```
-condition=(@0_exit_code@=0|@0_exit_code@=2)&@0_stdout@~deployed&(@1_stderr@=|@1_exit_code@<5)
-next=(exit_1|exit_255)&stdout~OK
-```
-
-**Enhanced YAML (much clearer):**
-```yaml
-condition:
-  and:
-    - or: [{"@0_exit_code@": 0}, {"@0_exit_code@": 2}]
-    - "@0_stdout@": {contains: "deployed"}
-    - or: [{"@1_stderr@": {empty: true}}, {"@1_exit_code@": {less_than: 5}}]
-
-next:
-  and:
-    - or: [exit_1, exit_255]
-    - stdout: {contains: "OK"}
-```
-
-### Implementation Requirements
-
-**Dependencies:**
-- JSON: Built-in `json` module (no new dependencies)
-- YAML: `pyyaml` library (new dependency, but optional)
-
-**Core Changes:**
-- Enhanced `parse_task_file()` method in `task_executor_main.py`
-- New structured condition parser methods
-- Backward-compatible condition normalization
-
-**Risk Assessment:**
-| Component | Risk Level | Impact |
-|-----------|------------|---------|
-| Execution Engines | **None** | Same input data structures |
-| Validation | **None** | Same task objects |
-| Flow Control | **None** | Same next/condition evaluation |
-| Parser Only | **Low** | Isolated changes, well-testable |
-
-### Backward Compatibility Strategy
-
-**Dual Support:**
-```python
-def _normalize_condition(self, condition_value):
-    if isinstance(condition_value, str):
-        # TXT format: "(exit_1|exit_255)&stdout~OK"
-        return condition_value  # Use existing parser
-    elif isinstance(condition_value, dict):
-        # JSON/YAML format: {"and": [{"or": ["exit_1", "exit_255"]}, ...]}
-        return self._convert_structured_to_string(condition_value)
-
-    # Both approaches produce same internal string for existing logic
-```
-
-### Testing Strategy
-
-**Verification Approach:**
+**Proposed Enhancement**: Automatically enable retry when `retry_count` is specified:
 ```bash
-# All existing TXT files continue working unchanged
-./tasker existing_workflow.txt
+# Current (redundant):
+retry_failed=true
+retry_count=3
 
-# New structured files work with identical behavior
-./tasker enhanced_workflow.yaml
-./tasker enhanced_workflow.json
-
-# Verification: All three produce identical execution results
+# Proposed (simplified):
+retry_count=3  # Setting this automatically enables retry
 ```
 
-### Phase 2: Advanced Features (Future)
+### Global Variable Updates During Execution
+**Current Limitation**: Global variables are read-only during workflow execution and cannot be modified by tasks.
 
-Once basic multi-format support is stable, consider:
+**Proposed Enhancement**: Allow tasks to update global variables during runtime using `type=update_global` blocks.
 
-**Complex Data Structures:**
-- Nested global variables with dot notation
-- Template engine for dynamic variable resolution
-- Dynamic task generation from loops
-
-**Advanced Conditional Logic:**
-- Multi-path next conditions
-- Conditional task chains
-- Complex data filtering and transformation
-
-**Dependencies for Advanced Features:**
-- Template engine (Jinja2 or similar)
-- Expression parser for complex conditionals
-
-### Success Criteria
-
-**Phase 1 Complete When:**
-- [x] JSON files parse correctly and execute identically to TXT equivalents
-- [x] YAML files parse correctly and execute identically to TXT equivalents
-- [x] All existing TXT files continue working without changes
-- [x] Structured conditions in JSON/YAML provide enhanced readability
-- [x] 100% test coverage maintained with new format support
-- [x] Documentation updated with format examples
-
-**Key Principle:** Parser-only changes ensure execution logic remains untouched and risk-free.
-
----
-
-## 🔄 FEATURE REQUEST: RUNTIME GLOBAL VARIABLE UPDATES
-
-### Problem Statement
-
-Currently, global variables are read-only during workflow execution, limiting dynamic configuration based on task outputs. Users need to update global variables at runtime for:
-
-1. **Environment Detection**: `set_ENV_TYPE=@0_stdout@` based on detection tasks
-2. **Dynamic Configuration**: `set_DB_HOST=@1_stdout@` from service discovery
-3. **Status Tracking**: `set_DEPLOYMENT_STATUS=success` for workflow coordination
-4. **Resource Discovery**: `set_SERVER_LIST=@0_stdout@` from infrastructure queries
-
-### ✅ OPTIMAL SOLUTION: `type=update_global` Blocks
-
-**Architecture Decision**: Create specialized sequential execution blocks that update global variables, maintaining thread safety through design rather than complex locking mechanisms.
-
-### Implementation Specification
-
-#### **1. Syntax Design**
-
-```python
-# Pre-declare all globals (required by default validation)
+**Proposed Implementation**:
+```bash
+# Pre-declare globals (required by default validation)
+DEPLOYMENT_TARGET=localhost
 APP_VERSION=1.0.0
-DB_HOST=localhost
-DEPLOYMENT_STATUS=pending
 
-# Regular task execution
-task=0
-hostname=build-server
-command=get_app_version
-exec=local
-
-# Update global variables (always sequential)
+# Update global variables (always sequential execution)
 task=1
 type=update_global
+set_DEPLOYMENT_TARGET=@0_stdout@
 set_APP_VERSION=@0_stdout@
-set_DEPLOYMENT_STATUS=building
 condition=@0_success@=true
 
-# Use updated variables
+# Use updated global variables
 task=2
-hostname=@DB_HOST@
+hostname=@DEPLOYMENT_TARGET@
 command=deploy
-arguments=--version=@APP_VERSION@ --status=@DEPLOYMENT_STATUS@
+arguments=--version=@APP_VERSION@
 ```
 
-#### **2. Thread Safety Architecture**
+### Logical Parameter Validation
+**Current Limitation**: TASKER does not prevent illogical parameter combinations.
 
-**Key Insight**: `type=update_global` blocks **always execute sequentially** by design, eliminating thread safety concerns:
+**Proposed Enhancement**: Add logical validation that detects and warns about conflicting parameter combinations:
+- `loop=N` with `on_success` when success condition is achievable on first attempt
+- `retry_failed=true` with `success=exit_1` (will never retry since exit_1 is defined as success)
+- `timeout=0` or negative timeout values
+- `max_parallel=0` or exceeding reasonable limits
 
-- ✅ Regular tasks can execute in parallel safely
-- ✅ `update_global` blocks execute sequentially (no race conditions)
-- ✅ No complex locking mechanisms needed
-- ✅ Simple dictionary updates in main execution thread
+### Unconditional Flow Control (goto Parameter)
+**Current Limitation**: Flow control depends on task success/failure state, requiring complex combinations of `on_success` and `on_failure` to achieve unconditional jumps.
 
-#### **3. Validation Strategy**
-
-**Default Behavior (Recommended)**:
-- All global variables must be pre-declared with initial values
-- Parse-time validation ensures all `@VARIABLE@` references are valid
-- Clear error messages for undefined variables
-
-**Flexible Option**:
+**Proposed Enhancement**: Add `goto` parameter for unconditional task routing:
 ```bash
-# Skip global validation for advanced dynamic scenarios
-tasker --skip-global-validation workflow.txt
+# Proposed syntax (NOT currently supported)
+task=10
+hostname=app-server
+command=deploy_application
+# Always jump to task 50, regardless of success/failure
+goto=50
 ```
 
-#### **4. Parallel Execution Safety**
+### JSON and YAML Task File Support
+**Current Limitation**: TASKER only supports simple key-value text format for task files.
 
-**Critical Validation**: Prevent `type=update_global` tasks in parallel execution blocks:
-
-**Implementation Location**: `/home/baste/tasker/tasker/executors/parallel_executor.py`
-**After line 221** (existing validation logic):
-
-```python
-# Validate that all referenced tasks exist AND are not update_global
-missing_tasks = []
-update_global_tasks = []  # NEW
-tasks_to_execute = []
-
-for ref_id in referenced_task_ids:
-    if ref_id in executor_instance.tasks:
-        task = executor_instance.tasks[ref_id]
-        # NEW: Check for update_global type
-        if task.get('type') == 'update_global':
-            update_global_tasks.append(ref_id)
-        else:
-            tasks_to_execute.append(task)
-    else:
-        missing_tasks.append(ref_id)
-
-# NEW: Error for update_global in parallel
-if update_global_tasks:
-    executor_instance.log(f"Task {task_id}: Cannot execute update_global tasks in parallel: {update_global_tasks}")
-    executor_instance.log(f"Task {task_id}: update_global tasks must execute sequentially for thread safety")
-    return None
-```
-
-**Error Example**:
-```bash
-ERROR: Task 5: Cannot execute update_global tasks in parallel: [23, 47]
-ERROR: Task 5: update_global tasks must execute sequentially for thread safety
-ERROR: Execution failed due to validation errors
-```
-
-#### **5. Implementation Components**
-
-**Files to Create**:
-```
-tasker/executors/update_global_executor.py  # New executor for global variable updates
-```
-
-**Files to Modify**:
-```
-tasker/core/task_executor_main.py           # Add validation and dispatch logic
-tasker/executors/parallel_executor.py       # Add parallel validation check
-```
-
-**Implementation Pattern** (follows existing architecture):
-```python
-# In task_executor_main.py validation (around line 800)
-elif task.get('type') == 'update_global':
-    if not any(k.startswith('set_') for k in task.keys()):
-        self.log_warn(f"Update task {task_id} has no set_* parameters.")
-        continue
-
-# In main execution loop
-elif task_type == 'update_global':
-    UpdateGlobalExecutor.execute_update_global(task, context)
-```
-
-#### **6. User Experience Design**
-
-**Clear Documentation Requirements**:
-```markdown
-⚠️ **THREAD SAFETY**: `type=update_global` tasks cannot be included in parallel execution blocks.
-
-❌ **Don't do this:**
-```
-task=1
-type=parallel
-tasks=10,11,12  # where task 11 has type=update_global
-```
-
-✅ **Do this instead:**
-```
-task=1
-type=parallel
-tasks=10,12     # Execute 10,12 in parallel
-
-task=2
-type=update_global  # Execute sequentially after parallel block
-set_RESULT=@1_success_count@
-```
-
-#### **7. Feature Benefits**
-
-| **Benefit** | **Impact** |
-|-------------|------------|
-| **Thread Safety** | Guaranteed by sequential execution design |
-| **Validation** | Pre-declared globals prevent runtime errors |
-| **Architecture** | Follows existing executor pattern (low risk) |
-| **Performance** | No locking overhead, simple dictionary updates |
-| **User Experience** | Clear syntax, prevents dangerous patterns |
-| **Backward Compatibility** | Zero impact on existing workflows |
-
-### **Success Criteria**
-
-**Implementation Complete When**:
-- [x] `type=update_global` blocks update global variables correctly
-- [x] Sequential execution maintains thread safety
-- [x] Parallel execution validation prevents update_global inclusion
-- [x] Pre-declared global validation works with skip option
-- [x] Clear error messages for validation failures
-- [x] 100% test coverage with comprehensive verification
-- [x] Documentation includes thread safety warnings
-
-**Risk Assessment**: **LOW**
-- Sequential execution eliminates thread safety complexity
-- Follows proven executor architecture pattern
-- Clear validation prevents dangerous configurations
-- No impact on existing functionality
-
-This represents an **optimal balance** of functionality, safety, and architectural consistency.
+**Proposed Enhancement**: Support JSON and YAML formats for defining complex workflows with nested structures, arrays, and advanced data types.
 
 ---
 
-## 🚀 FEATURE IMPLEMENTATION PRIORITY PLAN
+## 🐛 Critical Bug Fix Archive
 
-### Implementation Order Recommendation
+### Race Condition in Parallel Sleep Handling (FIXED)
+**Issue**: Original `tasker_orig.py` had a race condition where completed tasks could be incorrectly cancelled if they were sleeping when master timeout management ran.
 
-Based on complexity analysis, risk assessment, and dependency mapping, implement features in this optimal order:
+**Root Cause**: Sleep occurred during task execution within the `_execute_task_core` method while futures were still active.
 
-### **Phase 0: Quick Wins (Priority 1 - Do FIRST)**
+**Fix Applied**: Separated task execution from post-processing - sleep now occurs **after** task completion (outside timeout scope).
 
-**Total Time**: 1-2 days | **Risk**: Minimal | **Value**: High
-
-#### 1. **Additional Delimiter Keywords** ⭐ **EASIEST** (30 minutes) **CRITICAL NEED**
-**Location**: `tasker/core/condition_evaluator.py`
-**Change Required**:
-```python
-# Just add these lines to delimiter_map:
-delimiter_map = {
-    'space': r'\s+',
-    'tab': r'\t+',
-    'newline': r'\n+',       # NEW - CRITICAL! Split by one or more line breaks (consistent with space/tab)
-    'colon': ':',            # NEW - Common in config files (/etc/passwd, etc)
-    'semicolon': ';',        # NEW - Better naming than 'semi'
-    'semi': ';',             # Keep for backward compatibility
-    'comma': ',',
-    'pipe': '|'
-}
-```
-**IMPORTANT**: Use `r'\n+'` for consistency with space/tab patterns (handles multiple consecutive newlines as single delimiter)
-**Benefits**: Fixes critical limitation - currently CANNOT split multi-line output at all!
-
-#### 2. **Simplify Retry Configuration** ⭐ **VERY EASY** (1-2 hours)
-**Location**: `tasker/core/task_executor_main.py:parse_retry_config()`
-**Change Required**: Auto-enable retry when `retry_count` is specified
-```python
-def parse_retry_config(self, parallel_task):
-    # NEW LOGIC: Auto-enable if retry_count is set
-    retry_count = parallel_task.get('retry_count', '')
-    retry_failed = parallel_task.get('retry_failed', '').lower()
-
-    if retry_count and retry_count != '0':
-        # Auto-enable retry if retry_count > 0
-        if retry_failed == 'false':
-            return None  # Explicit disable
-        # Continue with retry logic...
-    elif retry_failed != 'true':
-        return None  # Original behavior
-```
-**Benefits**: Better UX, less verbose config, prevents user errors
-
-**Why Quick Wins First:**
-- ✅ Build momentum with easy successes
-- ✅ Zero risk - get familiar with codebase changes safely
-- ✅ Immediate user value and feedback
-- ✅ Foundation for more complex features
-
-### **Phase 1: Format Enhancement (Priority 2 - After Quick Wins)**
-
-#### 3. **JSON/YAML Format Support** (1-2 weeks)
-**Implementation**: As detailed in previous section
-**Benefits**: Foundation for all advanced features, better readability
-**Dependencies**: pyyaml library (optional)
-
-### **Phase 2: Advanced Features (Priority 3 - After JSON/YAML)**
-
-**⚠️ IMPORTANT**: Implement these ONLY after JSON/YAML support is complete and stable.
-
-#### 4. **Logical Parameter Validation** (1-2 days)
-**Why After JSON/YAML**: Can validate both structured and text formats
-**Benefits**: Prevent configuration errors, better debugging
-
-#### 5. **Unconditional Flow Control (goto)** (2-3 days)
-**Why After JSON/YAML**: Cleaner syntax options in structured formats
-```yaml
-# Much cleaner in YAML:
-task: 10
-command: deploy
-goto: 50  # Clear and simple
-
-# vs TXT workaround:
-on_success=50
-on_failure=50
-```
-
-#### 6. **Global Variable Updates During Execution** ⭐ **OPTIMAL SOLUTION IDENTIFIED** (1-2 weeks)
-**BREAKTHROUGH**: Thread-safe `type=update_global` block approach eliminates complexity
-**Risk**: **LOW** - Sequential execution by design, no thread safety issues
-
-### **Phase Dependencies**
-
-```
-Quick Wins → JSON/YAML → Advanced Features
-    ↓           ↓              ↓
-No deps    Foundation    Benefits from
-           for all       everything
-```
-
-### **Success Metrics Per Phase**
-
-**Phase 0 Complete:**
-- [ ] `newline`, `colon`, `semicolon` delimiters work
-- [ ] `retry_count=N` enables retry without `retry_failed=true`
-- [ ] All existing functionality unchanged
-- [ ] 100% test coverage maintained
-
-**Phase 1 Complete:**
-- [ ] JSON/YAML files parse and execute identically to TXT
-- [ ] Structured conditions provide enhanced readability
-- [ ] All existing TXT files continue working
-
-**Phase 2 Complete:**
-- [ ] Each advanced feature works in all formats (TXT, JSON, YAML)
-- [ ] Logical validation catches parameter conflicts
-- [ ] `goto` parameter eliminates redundant routing
-- [ ] `type=update_global` blocks enable runtime variable updates
-- [ ] Parallel execution validation prevents update_global in parallel blocks
-
-### **Key Principles**
-
-1. **Start Small**: Quick wins build confidence and familiarity
-2. **Foundation First**: JSON/YAML enables better syntax for everything else
-3. **Test Continuously**: 100% verification at each phase
-4. **Backward Compatible**: Never break existing functionality
-5. **Risk Management**: Complex features after simple ones prove the approach
+**Evidence**: Statistics Verification Test now shows `2/3 tasks succeeded` instead of `1/3 tasks succeeded`.
 
 ---
+
+*TASKER 2.0 - Professional Task Automation for Enterprise Environments*

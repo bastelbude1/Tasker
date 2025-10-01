@@ -164,7 +164,6 @@ class SequentialExecutor(BaseExecutor):
             executor_instance.log_debug(f"Task {task_id}{loop_display}: Split STDOUT (stdout_split={task['stdout_split']}): '{stdout_stripped}' -> '{stdout}'")
 
         if 'stderr_split' in task:
-            original_stderr = stderr
             stderr = ConditionEvaluator.split_output(stderr, task['stderr_split'])
             # INFO mode: Show only result; DEBUG mode: Show detailed split operation
             executor_instance.log(f"Task {task_id}{loop_display}: Split STDERR -> '{stderr}'")

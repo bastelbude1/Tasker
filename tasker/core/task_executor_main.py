@@ -1114,7 +1114,7 @@ class TaskExecutor:
             self.log_info(f"Task {task_id}: Legacy 'success' condition treated as 'all_success'")
             result = ParallelExecutor.evaluate_parallel_next_condition(
                 'all_success', results, self.log_debug, self.log_info)
-            self.log_debug(f"Task {task_id}: Condition 'success' (→ all_success) evaluated to: {result}")
+            self.log_debug(f"Task {task_id}: Condition 'success' (-> all_success) evaluated to: {result}")
             return result
         
         # Handle parallel-specific conditions (simplified syntax)

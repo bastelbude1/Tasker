@@ -5,23 +5,23 @@
 HOSTNAME=localhost
 EXEC=local
 
-# Task 0: Generate multi-line output for newline testing
+# Task 0: Simple success task to enable Task 1
 task=0
 hostname=@HOSTNAME@
 exec=@EXEC@
 command=echo
-arguments=-e "line1\nline2\nline3"
+arguments=Ready for newline test
 success=exit_0
 
-# Task 1: Test newline delimiter - get second line (index 1)
+# Task 1: Test newline delimiter - generate and split multi-line output
 task=1
 condition=@0_success@
 hostname=@HOSTNAME@
 exec=@EXEC@
-command=echo
-arguments=@0_stdout@
+command=printf
+arguments="alpha\nBETA_TARGET\ngamma"
 stdout_split=newline,1
-success=@0_stdout@~line2
+success=stdout=BETA_TARGET
 
 # Task 2: Generate colon-separated output for colon testing
 task=2

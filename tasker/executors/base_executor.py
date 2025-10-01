@@ -187,21 +187,40 @@ class BaseExecutor(ABC):
             # 8. Real execution
             start_time = time.time()
             try:
-                result = subprocess.run(cmd_array, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=task_timeout)
-                execution_time = time.time() - start_time
-                
-                exit_code = result.returncode
-                raw_stdout = result.stdout
-                raw_stderr = result.stderr
+                # Use Popen pattern for Python 3.6.8 compatibility
+                with subprocess.Popen(
+                    cmd_array,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True
+                ) as process:
+                    try:
+                        raw_stdout, raw_stderr = process.communicate(timeout=task_timeout)
+                        exit_code = process.returncode
+                        execution_time = time.time() - start_time
+                    except subprocess.TimeoutExpired:
+                        execution_time = time.time() - start_time
+                        execution_context.log(f"Task {task_display_id}: TIMEOUT after {task_timeout}s")
+                        process.kill()
+                        raw_stdout, raw_stderr = process.communicate()
+                        return {
+                            'task_id': task_id,
+                            'exit_code': 124,
+                            'stdout': '',
+                            'stderr': f'Command timed out after {task_timeout} seconds',
+                            'success': False,
+                            'skipped': False,
+                            'sleep_seconds': int(task.get('sleep', 0))
+                        }
 
-            except subprocess.TimeoutExpired:
+            except Exception as e:
                 execution_time = time.time() - start_time
-                execution_context.log(f"Task {task_display_id}: TIMEOUT after {task_timeout}s")
+                execution_context.log(f"Task {task_display_id}: Execution error: {str(e)}")
                 return {
                     'task_id': task_id,
-                    'exit_code': 124,
+                    'exit_code': 1,
                     'stdout': '',
-                    'stderr': f'Command timed out after {task_timeout} seconds',
+                    'stderr': str(e),
                     'success': False,
                     'skipped': False,
                     'sleep_seconds': int(task.get('sleep', 0))

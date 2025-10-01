@@ -47,7 +47,7 @@ task=4
 condition=@3_success@
 hostname=@HOSTNAME@
 exec=@EXEC@
-command=echo
+command=printf
 arguments=alpha;beta;GAMMA;delta
 success=exit_0
 
@@ -56,8 +56,8 @@ task=5
 condition=@4_success@
 hostname=@HOSTNAME@
 exec=@EXEC@
-command=echo
-arguments=@4_stdout@
+command=printf
+arguments=alpha;beta;GAMMA;delta
 stdout_split=semicolon,2
 success=stdout=GAMMA
 
@@ -66,8 +66,8 @@ task=6
 condition=@5_success@
 hostname=@HOSTNAME@
 exec=@EXEC@
-command=echo
-arguments=@4_stdout@
+command=printf
+arguments=alpha;beta;GAMMA;delta
 stdout_split=semi,3
 success=stdout=delta
 next=exit_0

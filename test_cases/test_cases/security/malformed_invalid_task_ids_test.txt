@@ -1,0 +1,32 @@
+# MALFORMED INVALID TASK IDS TEST
+# This test should FAIL due to invalid task ID references
+
+# Valid start task
+task=0
+hostname=localhost
+command=echo
+arguments=Starting invalid task IDs test
+success=exit_0
+on_success=999999
+
+# MALFORMED: References non-existent task ID
+task=1
+hostname=localhost
+command=echo
+arguments=This references invalid task ID
+success=exit_0
+on_success=999999
+
+# MALFORMED: Negative task ID (invalid)
+task=-5
+hostname=localhost
+command=echo
+arguments=Negative task ID should be invalid
+success=exit_0
+
+# MALFORMED: Non-numeric task ID
+task=invalid_id
+hostname=localhost
+command=echo
+arguments=Non-numeric task ID
+success=exit_0

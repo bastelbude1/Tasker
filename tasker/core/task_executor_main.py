@@ -979,36 +979,38 @@ class TaskExecutor:
         
         # PHASE 1: Collect global variables (first pass)
         self.log_info(f"# Parsing global variables from '{self.task_file}'")
-        global_count = 0
-        
+        parsed_global_vars = {}  # Local dictionary to collect global variables
+
         for line_num, line in enumerate(lines, 1):
             line = line.strip()
-            
+
             # Skip empty lines and comments
             if not line or line.startswith('#'):
                 continue
-                
+
             # Check if this is a global variable definition
             if '=' in line and not line.startswith('task='):
                 key, value = line.split('=', 1)
                 key = key.strip()
                 value = value.strip()
-                
+
                 # Check if this is a global variable (not a known task field)
                 known_task_fields = [
                     'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
-                    'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure', 
+                    'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure',
                     'on_success', 'success', 'condition', 'exec', 'timeout', 'return',
                     'type', 'max_parallel', 'tasks', 'retry_failed', 'retry_count', 'retry_delay',  # Parallel fields
                     'if_true_tasks', 'if_false_tasks'  # NEW: Conditional task fields
                 ]
-                
+
                 if key not in known_task_fields:
                     # This is a global variable
-                    self.global_vars[key] = value
-                    global_count += 1
+                    parsed_global_vars[key] = value
                     self.log_debug(f"Global variable: {key} = {value}")
-        
+
+        # Assign all global variables at once (compatible with StateManager property system)
+        self.global_vars = parsed_global_vars
+        global_count = len(parsed_global_vars)
         self.log_info(f"# Found {global_count} global variables")
         if global_count > 0:
             for key, value in self.global_vars.items():

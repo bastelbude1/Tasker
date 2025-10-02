@@ -90,8 +90,14 @@ class ParallelExecutor(BaseExecutor):
                         logger_callback=executor_instance.log_debug
                     )
 
-                    # Wait for retry delay to complete (but don't block thread pool)
-                    retry_completed_event.wait()
+                    # Wait for retry delay with timeout to prevent infinite blocking
+                    timeout_buffer = retry_delay + 2  # Add 2 second buffer for safety
+                    if retry_completed_event.wait(timeout=timeout_buffer):
+                        # Event was set - normal completion
+                        executor_instance.log_debug(f"Task {parent_task_id}-{task_id}{retry_display}: Retry delay completed normally")
+                    else:
+                        # Timeout occurred - sleep_async callback never fired
+                        executor_instance.log_warn(f"Task {parent_task_id}-{task_id}{retry_display}: Retry delay timer misfired (timeout after {timeout_buffer}s), continuing with retry attempt {attempt + 1}")
                 continue
             
             else:

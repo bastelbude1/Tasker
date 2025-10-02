@@ -208,8 +208,7 @@ class InputSanitizer:
 
         # Check for localhost variations (info only)
         if hostname.lower() in ['localhost', '127.0.0.1', '::1']:
-            # This is fine, just informational
-            pass
+            pass  # Localhost is valid, no action needed
 
         return {'valid': True, 'errors': errors, 'warnings': warnings}
 

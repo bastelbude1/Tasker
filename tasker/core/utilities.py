@@ -33,6 +33,7 @@ class ExitCodes:
     HOST_VALIDATION_FAILED = 21
     DEPENDENCY_VALIDATION_FAILED = 22
     SYNTAX_ERROR = 23
+    NO_TASKS_FOUND = 24
     
     # File/Resource errors (30-39)
     TASK_FILE_NOT_FOUND = 30

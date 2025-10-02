@@ -1,0 +1,15 @@
+# Simple Sleep Test
+task=1
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing non-blocking sleep
+sleep=1
+success=exit_0
+
+task=2
+hostname=localhost
+exec=local
+command=echo
+arguments=After sleep test
+success=exit_0

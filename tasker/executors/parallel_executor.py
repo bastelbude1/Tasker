@@ -7,10 +7,12 @@ Parallel task execution with threading, timeouts, and retry logic.
 
 import os
 import time
+import threading
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from .base_executor import BaseExecutor
 from ..core.condition_evaluator import ConditionEvaluator
+from ..utils.non_blocking_sleep import sleep_async, get_sleep_manager
 
 
 class ParallelExecutor(BaseExecutor):
@@ -74,8 +76,22 @@ class ParallelExecutor(BaseExecutor):
                 # Real failure - retry makes sense
                 next_attempt_display = f".{attempt + 2}" if retry_config else ""
                 executor_instance.log(f"Task {parent_task_id}-{task_id}{retry_display}: FAILED - will retry as Task {parent_task_id}-{task_id}{next_attempt_display} in {retry_delay}s")
-                if not executor_instance.dry_run:
-                    time.sleep(retry_delay)
+                if not executor_instance.dry_run and retry_delay > 0:
+                    # Use non-blocking sleep for retry delay
+                    retry_completed_event = threading.Event()
+
+                    def retry_callback():
+                        retry_completed_event.set()
+
+                    retry_timer = sleep_async(
+                        retry_delay,
+                        retry_callback,
+                        task_id=f"{parent_task_id}-{task_id}-retry-{attempt}",
+                        logger_callback=executor_instance.log_debug
+                    )
+
+                    # Wait for retry delay to complete (but don't block thread pool)
+                    retry_completed_event.wait()
                 continue
             
             else:
@@ -370,16 +386,34 @@ class ParallelExecutor(BaseExecutor):
 
                         try:
                             result = future.result()
-                            
+
                             # Handle sleep AFTER task completion but BEFORE recording result
                             sleep_seconds = result.get('sleep_seconds', 0)
-                            if sleep_seconds > 0:
+                            if sleep_seconds > 0 and not executor_instance.dry_run:
                                 task_display_id = f"{task_id}-{result['task_id']}"
-                                executor_instance.log(f"Task {task_display_id}: Sleeping for {sleep_seconds} seconds...")
-                                time.sleep(sleep_seconds)
-                            
+                                executor_instance.log(f"Task {task_display_id}: Scheduling non-blocking sleep for {sleep_seconds} seconds...")
+
+                                # Use non-blocking sleep with deferred result processing
+                                result_completion_event = threading.Event()
+
+                                def sleep_completed_callback():
+                                    """Process result after sleep completes."""
+                                    executor_instance.log_debug(f"Task {task_display_id}: Sleep completed, processing result")
+                                    result_completion_event.set()
+
+                                sleep_timer = sleep_async(
+                                    sleep_seconds,
+                                    sleep_completed_callback,
+                                    task_id=f"{task_display_id}-post-sleep",
+                                    logger_callback=executor_instance.log_debug
+                                )
+
+                                # Wait for sleep to complete before adding to results
+                                # This ensures proper task completion ordering while freeing the worker thread
+                                result_completion_event.wait()
+
                             results.append(result)
-                            
+
                             # IMPROVED: Simple completion message
                             success_text = "Success: True" if result['success'] else "Success: False"
                             if result['exit_code'] == 124:

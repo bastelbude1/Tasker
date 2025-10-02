@@ -1,0 +1,123 @@
+# TASKER Non-Blocking Sleep Test
+# Tests that sleep operations don't block thread pools and allow better parallelism
+
+# Test 1: Parallel tasks with sleep should not block each other's execution
+task=1
+type=parallel
+max_parallel=5
+tasks=10,11,12,13,14
+
+# Parallel sub-tasks with varying sleep times
+task=10
+hostname=localhost
+exec=local
+command=echo
+arguments=Task 10 starting - sleep 2s
+sleep=2
+success=exit_0
+
+task=11
+hostname=localhost
+exec=local
+command=echo
+arguments=Task 11 starting - sleep 1s
+sleep=1
+success=exit_0
+
+task=12
+hostname=localhost
+exec=local
+command=echo
+arguments=Task 12 starting - sleep 3s
+sleep=3
+success=exit_0
+
+task=13
+hostname=localhost
+exec=local
+command=echo
+arguments=Task 13 starting - no sleep
+success=exit_0
+
+task=14
+hostname=localhost
+exec=local
+command=echo
+arguments=Task 14 starting - sleep 0.5s
+sleep=0.5
+success=exit_0
+
+# Test 2: Sequential tasks with sleep
+task=2
+hostname=localhost
+exec=local
+command=echo
+arguments=Sequential task with 1s sleep
+sleep=1
+success=exit_0
+
+# Test 3: Retry mechanism with non-blocking delay
+task=3
+type=parallel
+max_parallel=2
+tasks=30,31
+
+task=30
+hostname=localhost
+exec=local
+command=false
+arguments=This will fail and retry
+retry_failed=true
+retry_count=2
+retry_delay=1
+success=exit_0
+
+task=31
+hostname=localhost
+exec=local
+command=echo
+arguments=This should execute while 30 is in retry delay
+success=exit_0
+
+# Test 4: Mixed sequential and parallel with sleep
+task=4
+hostname=localhost
+exec=local
+command=echo
+arguments=Before parallel block
+success=exit_0
+
+task=5
+type=parallel
+max_parallel=3
+tasks=50,51,52
+
+task=50
+hostname=localhost
+exec=local
+command=echo
+arguments=Parallel task 50 with sleep
+sleep=2
+success=exit_0
+
+task=51
+hostname=localhost
+exec=local
+command=echo
+arguments=Parallel task 51 no sleep
+success=exit_0
+
+task=52
+hostname=localhost
+exec=local
+command=echo
+arguments=Parallel task 52 with sleep
+sleep=1
+success=exit_0
+
+task=6
+hostname=localhost
+exec=local
+command=echo
+arguments=After parallel block
+success=exit_0

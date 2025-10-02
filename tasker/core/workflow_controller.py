@@ -24,16 +24,18 @@ class WorkflowController:
     routing, loop handling, and success criteria evaluation.
     """
 
-    def __init__(self, state_manager, logger_callback=None):
+    def __init__(self, state_manager, logger_callback=None, debug_logger_callback=None):
         """
         Initialize workflow controller.
 
         Args:
             state_manager: StateManager instance for accessing state
             logger_callback: Optional callback for logging messages
+            debug_logger_callback: Optional callback for debug logging
         """
         self.state_manager = state_manager
         self.log_info = logger_callback if logger_callback else lambda msg: None
+        self.log_debug = debug_logger_callback if debug_logger_callback else lambda msg: None
 
     # ===== NEXT CONDITION EVALUATION =====
 

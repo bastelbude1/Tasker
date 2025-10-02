@@ -279,7 +279,8 @@ class TaskExecutor:
         # Initialize WorkflowController with StateManager and logging
         self._workflow_controller = WorkflowController(
             self._state_manager,
-            logger_callback=self.log_info
+            logger_callback=self.log_info,
+            debug_logger_callback=self.log_debug
         )
 
         # Initialize TaskRunner with all components

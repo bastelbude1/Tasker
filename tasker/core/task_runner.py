@@ -186,16 +186,36 @@ class TaskRunner:
         Returns:
             ExecutionContext instance configured for current runner
         """
-        return ExecutionContext(
-            global_vars=self.state_manager.global_vars,
-            task_results=self.state_manager.task_results,
-            dry_run=self.dry_run,
-            default_timeout=self.default_timeout,
-            log_callback=self.log,
-            log_debug_callback=self.log_debug,
-            exec_type_override=self.exec_type_override,
-            default_exec_type=self.default_exec_type
-        )
+        # Create adapter object that mimics TaskExecutor interface
+        class ExecutorAdapter:
+            def __init__(self, runner_instance):
+                # State access
+                self.global_vars = runner_instance.state_manager.global_vars
+                self.task_results = runner_instance.state_manager.task_results
+
+                # Configuration
+                self.dry_run = runner_instance.dry_run
+                self.timeout = runner_instance.default_timeout
+
+                # Logging callbacks
+                self.log = runner_instance.log
+                self.log_debug = runner_instance.log_debug
+                self.log_error = runner_instance.log_error
+                self.log_warn = runner_instance.log_warn
+                self.log_info = runner_instance.log_info
+
+                # Execution methods (delegate to runner)
+                self.determine_execution_type = runner_instance.determine_execution_type
+                self.build_command_array = runner_instance.build_command_array
+                self.get_task_timeout = runner_instance.get_task_timeout
+
+                # Additional methods that ExecutionContext may need
+                self.categorize_task_result = getattr(runner_instance, 'categorize_task_result', None)
+                self.store_task_result = getattr(runner_instance, 'store_task_result', None)
+                self._check_shutdown = getattr(runner_instance, '_check_shutdown', None)
+
+        adapter = ExecutorAdapter(self)
+        return ExecutionContext(adapter)
 
     # ===== CORE TASK EXECUTION =====
 

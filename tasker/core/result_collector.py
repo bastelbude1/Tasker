@@ -130,12 +130,34 @@ class ResultCollector:
 
     def setup_summary_logging(self, summary_log_file, log_file_path: str) -> None:
         """
-        Setup summary logging configuration.
+        Setup summary logging configuration with validation.
 
         Args:
             summary_log_file: Open file handle for summary logging
             log_file_path: Path to main log file
+
+        Raises:
+            ValueError: If summary_log_file is None or invalid
+            IOError: If file handle is closed or not writable
         """
+        if summary_log_file is None:
+            raise ValueError("summary_log_file cannot be None")
+
+        if hasattr(summary_log_file, 'closed') and summary_log_file.closed:
+            raise IOError("summary_log_file is already closed")
+
+        if not hasattr(summary_log_file, 'write'):
+            raise ValueError("summary_log_file must have a write method")
+
+        if not log_file_path or not isinstance(log_file_path, str):
+            raise ValueError("log_file_path must be a non-empty string")
+
+        # Test write capability
+        try:
+            summary_log_file.tell()  # This will fail if file is not open for writing
+        except (OSError, IOError) as e:
+            raise IOError(f"summary_log_file is not accessible for writing: {e}")
+
         self.summary_log = summary_log_file
         self.log_file_path = log_file_path
 

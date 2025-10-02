@@ -12,6 +12,8 @@ Responsibilities:
 """
 
 import os
+import errno
+import time
 import threading
 import fcntl
 from datetime import datetime
@@ -165,36 +167,47 @@ class ResultCollector:
 
     def _acquire_file_lock_atomically(self, timeout_seconds: int = 5) -> Tuple[Optional[int], bool]:
         """
-        Acquire exclusive file lock with timeout.
+        Acquire exclusive file lock with timeout and proper error handling.
 
         Args:
             timeout_seconds: Maximum time to wait for lock
 
         Returns:
             Tuple of (file_descriptor, lock_acquired_successfully)
+
+        Raises:
+            OSError: For non-transient file locking errors
+            IOError: For file descriptor access errors
         """
         if not self.summary_log:
             return None, False
 
         try:
+            # Get file descriptor - may raise OSError/IOError if file is invalid
             file_no = self.summary_log.fileno()
+        except (OSError, IOError) as e:
+            # Re-raise file descriptor access errors - these are fatal
+            raise IOError(f"Cannot get file descriptor from summary log: {e}")
 
-            # Try to acquire lock with timeout
-            import time
-            start_time = time.time()
+        # Retry loop with timeout for transient lock conflicts
+        start_time = time.time()
 
-            while time.time() - start_time < timeout_seconds:
-                try:
-                    fcntl.flock(file_no, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    return file_no, True
-                except BlockingIOError:
+        while time.time() - start_time < timeout_seconds:
+            try:
+                fcntl.flock(file_no, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return file_no, True
+            except (OSError, IOError) as e:
+                # Check if this is a transient error that should be retried
+                if e.errno in (errno.EAGAIN, errno.EACCES):
+                    # Transient error - another process has the lock, retry
                     time.sleep(0.1)  # Wait 100ms before retry
                     continue
+                else:
+                    # Fatal error - re-raise for proper handling
+                    raise OSError(f"Fatal file locking error (errno {e.errno}): {e}")
 
-            return file_no, False  # Timeout reached
-
-        except Exception:
-            return None, False
+        # Timeout reached - return failure without raising exception
+        return file_no, False
 
     # ===== SUMMARY GENERATION =====
 

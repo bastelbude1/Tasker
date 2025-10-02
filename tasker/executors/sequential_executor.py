@@ -6,10 +6,12 @@ Normal sequential task execution with flow control.
 """
 
 import time
+import threading
 from .base_executor import BaseExecutor
 from ..core.condition_evaluator import ConditionEvaluator
 from ..core.utilities import ExitHandler, ExitCodes, format_output_for_log
 from ..core.streaming_output_handler import create_memory_efficient_handler
+from ..utils.non_blocking_sleep import sleep_async
 
 
 class SequentialExecutor(BaseExecutor):
@@ -223,8 +225,23 @@ class SequentialExecutor(BaseExecutor):
                 if resolved:
                     sleep_time = float(sleep_time_str)
                     executor_instance.log(f"Task {task_id}{loop_display}: Sleeping for {sleep_time} seconds")
-                    if not executor_instance.dry_run:
-                        time.sleep(sleep_time)
+                    if not executor_instance.dry_run and sleep_time > 0:
+                        # Use non-blocking sleep for consistency with parallel executor
+                        sleep_completion_event = threading.Event()
+
+                        def sleep_callback():
+                            executor_instance.log_debug(f"Task {task_id}{loop_display}: Sleep completed")
+                            sleep_completion_event.set()
+
+                        sleep_timer = sleep_async(
+                            sleep_time,
+                            sleep_callback,
+                            task_id=f"{task_id}{loop_display}-sleep",
+                            logger_callback=executor_instance.log_debug
+                        )
+
+                        # Wait for sleep to complete
+                        sleep_completion_event.wait()
                 else:
                     executor_instance.log(f"Task {task_id}{loop_display}: Unresolved variables in sleep time. Skipping sleep.")
             except ValueError:

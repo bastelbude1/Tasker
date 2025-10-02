@@ -1,0 +1,102 @@
+# TASKER Sleep Performance Test
+# Verifies that non-blocking sleep improves thread pool efficiency
+
+# Create a scenario where thread pool efficiency matters
+# Multiple parallel tasks with sleep should complete faster than with blocking sleep
+
+task=1
+type=parallel
+max_parallel=10
+tasks=10,11,12,13,14,15,16,17,18,19
+
+# All tasks have 2-second sleep - with non-blocking sleep,
+# they should all complete around the same time (~2s total)
+# With blocking sleep, this would take much longer due to thread starvation
+
+task=10
+hostname=localhost
+exec=local
+command=echo
+arguments=Performance test task 10 with 2s sleep
+sleep=2
+success=exit_0
+
+task=11
+hostname=localhost
+exec=local
+command=echo
+arguments=Performance test task 11 with 2s sleep
+sleep=2
+success=exit_0
+
+task=12
+hostname=localhost
+exec=local
+command=echo
+arguments=Performance test task 12 with 2s sleep
+sleep=2
+success=exit_0
+
+task=13
+hostname=localhost
+exec=local
+command=echo
+arguments=Performance test task 13 with 2s sleep
+sleep=2
+success=exit_0
+
+task=14
+hostname=localhost
+exec=local
+command=echo
+arguments=Performance test task 14 with 2s sleep
+sleep=2
+success=exit_0
+
+task=15
+hostname=localhost
+exec=local
+command=echo
+arguments=Performance test task 15 with 2s sleep
+sleep=2
+success=exit_0
+
+task=16
+hostname=localhost
+exec=local
+command=echo
+arguments=Performance test task 16 with 2s sleep
+sleep=2
+success=exit_0
+
+task=17
+hostname=localhost
+exec=local
+command=echo
+arguments=Performance test task 17 with 2s sleep
+sleep=2
+success=exit_0
+
+task=18
+hostname=localhost
+exec=local
+command=echo
+arguments=Performance test task 18 with 2s sleep
+sleep=2
+success=exit_0
+
+task=19
+hostname=localhost
+exec=local
+command=echo
+arguments=Performance test task 19 with 2s sleep
+sleep=2
+success=exit_0
+
+# Verification task to ensure all completed
+task=2
+hostname=localhost
+exec=local
+command=echo
+arguments=All parallel sleep tasks completed - measuring total time
+success=exit_0

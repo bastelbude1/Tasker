@@ -1,6 +1,6 @@
 # tasker/core/state_manager.py
 """
-TASKER 2.0 - State Management Component
+TASKER 2.1 - State Management Component
 --------------------------------------
 Handles all state storage and retrieval operations in a thread-safe manner.
 
@@ -63,7 +63,8 @@ class StateManager:
             Task result dictionary or None if not found
         """
         with self._lock:
-            return self._task_results.get(task_id)
+            result = self._task_results.get(task_id)
+            return result.copy() if isinstance(result, dict) else None
 
     def has_task_result(self, task_id: int) -> bool:
         """
@@ -209,7 +210,7 @@ class StateManager:
         with self._lock:
             return self._global_vars.copy()
 
-    def get_global_var(self, key: str, default: str = None) -> str:
+    def get_global_var(self, key: str, default: Optional[str] = None) -> Optional[str]:
         """
         Get specific global variable.
 

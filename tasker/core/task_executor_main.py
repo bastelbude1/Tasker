@@ -1,8 +1,8 @@
 # tasker/core/task_executor_main.py
 """
-TASKER 2.0 - Main Task Executor Class
+TASKER 2.1 - Main Task Executor Class
 -------------------------------------
-The central orchestration engine for TASKER 2.0.
+The central orchestration engine for TASKER 2.1.
 
 This module contains the main TaskExecutor class that coordinates all task execution,
 logging, validation, and lifecycle management. It delegates specific execution types
@@ -57,7 +57,7 @@ from .task_runner import TaskRunner
 
 class TaskExecutor:
     """
-    TASKER 2.0 - Modular Task Execution System
+    TASKER 2.1 - Modular Task Execution System
     
     A sophisticated task execution framework that orchestrates sequential, parallel,
     and conditional task execution with comprehensive logging and validation.
@@ -255,6 +255,15 @@ class TaskExecutor:
         # Initialize ResultCollector
         self._result_collector = ResultCollector(self.task_file, self.project)
 
+        # Setup summary logging for ResultCollector if project is specified
+        if self.project and hasattr(self, 'summary_log') and self.summary_log:
+            try:
+                self._result_collector.setup_summary_logging(self.summary_log, self.log_file_path)
+                self._result_collector.summary_lock_timeout = self.summary_lock_timeout
+                self.log_debug(f"Summary logging configured for ResultCollector: {self.summary_log_path}")
+            except Exception as e:
+                self.log_warn(f"Failed to setup summary logging for ResultCollector: {e}")
+
         # Transfer fallback values to ResultCollector
         if hasattr(self, '_final_task_id_fallback'):
             self._result_collector.final_task_id = self._final_task_id_fallback
@@ -270,7 +279,8 @@ class TaskExecutor:
         # Initialize WorkflowController with StateManager and logging
         self._workflow_controller = WorkflowController(
             self._state_manager,
-            logger_callback=self.log_info
+            logger_callback=self.log_info,
+            debug_logger_callback=self.log_debug
         )
 
         # Initialize TaskRunner with all components
@@ -535,8 +545,8 @@ class TaskExecutor:
                 if (self.summary_log and not self.summary_log.closed and 
                     self.final_task_id is not None):
                     try:
-                        # NEUE METHODE mit 5s Timeout
-                        self.write_final_summary_with_timeout(5)
+                        # Delegate to ResultCollector to avoid duplicate flock/timeout logic
+                        self._result_collector.write_final_summary_with_timeout(self.summary_lock_timeout)
                     
                     except TimeoutError as timeout_error:
                         cleanup_errors.append(f"TIMEOUT: Summary write timed out: {timeout_error}")
@@ -861,26 +871,31 @@ class TaskExecutor:
             return
         self._summary_written = True
     
-        # Message preparation outside critical section
-        timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
-        status = "SUCCESS" if self.final_success else "FAILURE"
-        log_file = os.path.basename(getattr(self, 'log_file_path', 'unknown.log'))
-    
-    
-        fields = [
-            timestamp,
-            sanitize_for_tsv(os.path.basename(self.task_file)),
-            sanitize_for_tsv(self.final_task_id),
-            sanitize_for_tsv(self.final_hostname),
-            sanitize_for_tsv(self.final_command),
-            sanitize_for_tsv(self.final_exit_code),
-            status,
-            log_file
-        ]
-        message = '\t'.join(fields)
-    
         # Atomic lock acquisition and write with retry
         with self.log_lock:
+            # Snapshot final_* fields under lock to avoid torn reads
+            final_task_id_snapshot = self.final_task_id
+            final_hostname_snapshot = self.final_hostname
+            final_command_snapshot = self.final_command
+            final_exit_code_snapshot = self.final_exit_code
+            final_success_snapshot = self.final_success
+
+            # Message preparation with snapshotted values
+            timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
+            status = "SUCCESS" if final_success_snapshot else "FAILURE"
+            log_file = os.path.basename(getattr(self, 'log_file_path', 'unknown.log'))
+
+            fields = [
+                timestamp,
+                sanitize_for_tsv(os.path.basename(self.task_file)),
+                sanitize_for_tsv(final_task_id_snapshot),
+                sanitize_for_tsv(final_hostname_snapshot),
+                sanitize_for_tsv(final_command_snapshot),
+                sanitize_for_tsv(final_exit_code_snapshot),
+                status,
+                log_file
+            ]
+            message = '\t'.join(fields)
             # Use configurable timeout
             timeout_seconds = getattr(self, 'summary_lock_timeout', 20)
             file_no, lock_acquired = self._acquire_file_lock_atomically(timeout_seconds)
@@ -1001,20 +1016,21 @@ class TaskExecutor:
         
         # PHASE 2: Parse tasks (second pass)
         current_task = None
-        
+        parsed_tasks = {}  # Local dictionary to collect tasks
+
         for line in lines:
             line = line.strip()
-            
+
             # Skip empty lines and comments
             if not line or line.startswith('#'):
                 continue
-            
+
             # Parse key=value pairs
             if '=' in line:
                 key, value = line.split('=', 1)
                 key = key.strip()
                 value = value.strip()
-                
+
                 # Check if this is a new task definition
                 if key == 'task':
                     # Save the previous task if it exists
@@ -1022,21 +1038,24 @@ class TaskExecutor:
                         task_id = int(current_task['task'])
                         if 'arguments' not in current_task:
                             current_task['arguments'] = ''
-                        self.tasks[task_id] = current_task
-                    
+                        parsed_tasks[task_id] = current_task
+
                     # Start a new task
                     current_task = {'task': value}
                 else:
                     # Add to current task (only if it's a known task field)
                     if current_task is not None:
                         current_task[key] = value
-        
+
         # Add the last task if it exists
         if current_task is not None and 'task' in current_task:
             task_id = int(current_task['task'])
             if 'arguments' not in current_task:
                 current_task['arguments'] = ''
-            self.tasks[task_id] = current_task
+            parsed_tasks[task_id] = current_task
+
+        # Assign all parsed tasks at once (compatible with StateManager property system)
+        self.tasks = parsed_tasks
         
         # Validate tasks - now we only check that required fields are present
         valid_task_count = 0
@@ -1277,12 +1296,7 @@ class TaskExecutor:
 
     def categorize_task_result(self, result):
         """Categorize task result for retry logic."""
-        if result['exit_code'] == 124:
-            return 'TIMEOUT'     # Master timeout reached - don't retry
-        elif result['success']:
-            return 'SUCCESS'     # Success condition met - don't retry
-        else:
-            return 'FAILED'      # Real failure - eligible for retry
+        return self._result_collector.categorize_task_result(result)
 
     def parse_retry_config(self, parallel_task):
         """Parse retry configuration from parallel task."""

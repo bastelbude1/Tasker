@@ -1,6 +1,6 @@
 # tasker/core/result_collector.py
 """
-TASKER 2.0 - Result Collection and Reporting Component
+TASKER 2.1 - Result Collection and Reporting Component
 -----------------------------------------------------
 Handles result aggregation, categorization, and summary generation.
 
@@ -12,6 +12,8 @@ Responsibilities:
 """
 
 import os
+import errno
+import time
 import threading
 import fcntl
 from datetime import datetime
@@ -130,12 +132,34 @@ class ResultCollector:
 
     def setup_summary_logging(self, summary_log_file, log_file_path: str) -> None:
         """
-        Setup summary logging configuration.
+        Setup summary logging configuration with validation.
 
         Args:
             summary_log_file: Open file handle for summary logging
             log_file_path: Path to main log file
+
+        Raises:
+            ValueError: If summary_log_file is None or invalid
+            IOError: If file handle is closed or not writable
         """
+        if summary_log_file is None:
+            raise ValueError("summary_log_file cannot be None")
+
+        if hasattr(summary_log_file, 'closed') and summary_log_file.closed:
+            raise IOError("summary_log_file is already closed")
+
+        if not hasattr(summary_log_file, 'write'):
+            raise ValueError("summary_log_file must have a write method")
+
+        if not log_file_path or not isinstance(log_file_path, str):
+            raise ValueError("log_file_path must be a non-empty string")
+
+        # Test write capability
+        try:
+            summary_log_file.tell()  # This will fail if file is not open for writing
+        except (OSError, IOError) as e:
+            raise IOError(f"summary_log_file is not accessible for writing: {e}")
+
         self.summary_log = summary_log_file
         self.log_file_path = log_file_path
 
@@ -143,36 +167,47 @@ class ResultCollector:
 
     def _acquire_file_lock_atomically(self, timeout_seconds: int = 5) -> Tuple[Optional[int], bool]:
         """
-        Acquire exclusive file lock with timeout.
+        Acquire exclusive file lock with timeout and proper error handling.
 
         Args:
             timeout_seconds: Maximum time to wait for lock
 
         Returns:
             Tuple of (file_descriptor, lock_acquired_successfully)
+
+        Raises:
+            OSError: For non-transient file locking errors
+            IOError: For file descriptor access errors
         """
         if not self.summary_log:
             return None, False
 
         try:
+            # Get file descriptor - may raise OSError/IOError if file is invalid
             file_no = self.summary_log.fileno()
+        except (OSError, IOError) as e:
+            # Re-raise file descriptor access errors - these are fatal
+            raise IOError(f"Cannot get file descriptor from summary log: {e}")
 
-            # Try to acquire lock with timeout
-            import time
-            start_time = time.time()
+        # Retry loop with timeout for transient lock conflicts
+        start_time = time.time()
 
-            while time.time() - start_time < timeout_seconds:
-                try:
-                    fcntl.flock(file_no, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    return file_no, True
-                except BlockingIOError:
+        while time.time() - start_time < timeout_seconds:
+            try:
+                fcntl.flock(file_no, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return file_no, True
+            except (OSError, IOError) as e:
+                # Check if this is a transient error that should be retried
+                if e.errno in (errno.EAGAIN, errno.EACCES):
+                    # Transient error - another process has the lock, retry
                     time.sleep(0.1)  # Wait 100ms before retry
                     continue
+                else:
+                    # Fatal error - re-raise for proper handling
+                    raise OSError(f"Fatal file locking error (errno {e.errno}): {e}")
 
-            return file_no, False  # Timeout reached
-
-        except Exception:
-            return None, False
+        # Timeout reached - return failure without raising exception
+        return file_no, False
 
     # ===== SUMMARY GENERATION =====
 
@@ -228,10 +263,9 @@ class ResultCollector:
             self.final_task_id is None):
             return
 
-        # Prevent duplicate writes
+        # Fast-path check for duplicate writes (outside lock)
         if self._summary_written:
             return
-        self._summary_written = True
 
         # Message preparation outside critical section
         timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
@@ -252,6 +286,10 @@ class ResultCollector:
 
         # Atomic lock acquisition and write with retry
         with self.log_lock:
+            # Re-check after acquiring lock (another thread may have completed the write)
+            if self._summary_written:
+                return
+
             file_no, lock_acquired = self._acquire_file_lock_atomically(self.summary_lock_timeout)
 
             if not lock_acquired:
@@ -277,6 +315,9 @@ class ResultCollector:
                 current_pos = self.summary_log.tell()
                 if current_pos == 0:
                     raise IOError("Write verification failed - file position is 0")
+
+                # Only set flag after successful write and verification
+                self._summary_written = True
 
             finally:
                 # Guaranteed lock release

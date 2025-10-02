@@ -1,4 +1,4 @@
-# TASK ExecutoR - TASKER 2.0
+# TASK ExecutoR - TASKER 2.1
 
 **No-Code Workflow Automation** - Transform complex operations into simple configuration files
 
@@ -84,7 +84,7 @@ A sophisticated Python-based task execution system for running commands on remot
 
 ## Overview
 
-TASKER 2.0 is a next-generation task automation framework that reads task definitions from configuration files and executes them with advanced orchestration capabilities. Built on a modular architecture for maximum maintainability and scalability.
+TASKER 2.1 is a next-generation task automation framework that reads task definitions from configuration files and executes them with advanced orchestration capabilities. Built on a modular architecture for maximum maintainability and scalability.
 
 **Key Features:**
 - **Multiple Execution Models**: Sequential, parallel, and conditional task execution
@@ -620,7 +620,7 @@ command=connect_database
 
 ## Memory-Efficient Output Streaming
 
-TASKER 2.0 includes an advanced memory-efficient output streaming system that prevents Out-of-Memory (OOM) errors when processing commands that generate large amounts of output (1GB+). This system automatically manages memory usage and seamlessly handles outputs of any size.
+TASKER 2.1 includes an advanced memory-efficient output streaming system that prevents Out-of-Memory (OOM) errors when processing commands that generate large amounts of output (1GB+). This system automatically manages memory usage and seamlessly handles outputs of any size.
 
 ### The Problem with Large Outputs
 
@@ -651,7 +651,7 @@ The streaming system implements a sophisticated three-tier approach:
 #### Tier 1: In-Memory Buffering (Up to 10MB)
 For small to medium outputs, everything stays in memory for maximum performance:
 
-```
+```text
 └── Memory Buffer (1MB chunks)
     ├── Fast access for small outputs
     ├── Zero disk I/O overhead
@@ -661,7 +661,7 @@ For small to medium outputs, everything stays in memory for maximum performance:
 #### Tier 2: Temporary File Streaming (10MB+)
 When outputs exceed 10MB, TASKER automatically streams to temporary files:
 
-```
+```text
 └── System Temp Directory (/tmp)
     ├── tasker_stdout_abc123 (stdout content)
     ├── tasker_stderr_def456 (stderr content)
@@ -671,7 +671,7 @@ When outputs exceed 10MB, TASKER automatically streams to temporary files:
 #### Tier 3: Memory Protection (100MB+ per task)
 Absolute limits prevent system overload:
 
-```
+```text
 └── Hard Memory Limits
     ├── 100MB maximum per individual task
     ├── Automatic temp file fallback
@@ -682,7 +682,7 @@ Absolute limits prevent system overload:
 
 The streaming system operates completely transparently - no configuration required:
 
-```
+```bash
 # These all work identically regardless of output size
 task=0
 hostname=web-server
@@ -715,7 +715,7 @@ command=analyze_massive_dataset
 4. **Resource Cleanup**: Temporary files automatically deleted after task completion
 
 #### File Naming Convention
-```
+```text
 /tmp/tasker_stdout_XXXXXX  # Standard output temp file
 /tmp/tasker_stderr_XXXXXX  # Standard error temp file
 ```
@@ -744,7 +744,7 @@ Where `XXXXXX` is a random 6-character suffix for uniqueness.
 ### Real-World Examples
 
 #### Database Operations
-```
+```bash
 # Large database export - streams automatically
 task=0
 hostname=db-server
@@ -755,7 +755,7 @@ exec=pbrun
 ```
 
 #### Log Analysis
-```
+```bash
 # Process massive log files without memory issues
 task=1
 hostname=log-server
@@ -772,7 +772,7 @@ exec=local
 ```
 
 #### System Monitoring
-```
+```bash
 # Generate comprehensive system reports
 task=0
 hostname=monitoring-server
@@ -799,14 +799,14 @@ tasker -r --log-level=DEBUG large_output_workflow.txt
 ```
 
 Debug output shows:
-```
+```text
 [02Oct25 15:47:21] DEBUG: Task 0: Used temp files for large output (stdout: 20840000 bytes, stderr: 0 bytes)
 ```
 
 #### Memory Usage Awareness
 Tasks that trigger streaming are automatically logged:
 
-```
+```text
 [02Oct25 15:47:20] Task 0: Executing [local]: python3 -c large_data_generation.py
 [02Oct25 15:47:21] Task 0: Exit code: 0
 [02Oct25 15:47:21] Task 0: STDOUT: Large dataset line 000000 with data: XXX... (20839999 chars total)
@@ -846,7 +846,7 @@ Tasks that trigger streaming are automatically logged:
 #### Zero Configuration Required
 Existing workflows automatically benefit from streaming:
 
-```
+```bash
 # No changes needed - automatically enhanced
 task=0
 hostname=backup-server
@@ -857,7 +857,7 @@ command=tar -czf - /data | split -b 100M
 #### Gradual Enhancement
 Teams can gradually adopt larger-scale operations:
 
-```
+```bash
 # Phase 1: Test with medium outputs (10-50MB)
 task=0
 hostname=test-server
@@ -916,7 +916,7 @@ Control when and how tasks execute using conditions and flow control parameters.
 
 Use `condition` parameter to skip tasks when certain conditions aren't met:
 
-```
+```bash
 task=0
 hostname=web-server
 command=check_service
@@ -948,7 +948,7 @@ Exit codes are numeric values (0-255) returned by commands. **Exit code 0 means 
 - `next=exit_127`: Continue only if command not found
 
 **Using `next` for flow control based on exit codes:**
-```
+```bash
 task=0
 hostname=health-check
 command=curl -f http://api/health
@@ -974,7 +974,7 @@ arguments=API health check failed
 ```
 
 **Using `condition` to skip tasks based on previous exit codes:**
-```
+```bash
 task=0
 hostname=health-check
 command=curl -f http://api/health
@@ -2619,10 +2619,10 @@ Each execution creates:
 
 ## Modular Architecture
 
-TASKER 2.0 follows a clean modular architecture where each file has a specific purpose:
+TASKER 2.1 follows a clean modular architecture where each file has a specific purpose:
 
 ```
-TASKER 2.0 Project Structure
+TASKER 2.1 Project Structure
 ./
 ├── tasker.py                    # Main executable script (CLI entry point)
 │
@@ -3138,6 +3138,8 @@ tasks:
 
 ---
 
-*TASKER 2.0 - Professional Task Automation for Enterprise Environments*
+## TASKER 2.1
+
+Professional Task Automation for Enterprise Environments
 
 <!-- Trigger for comprehensive CodeRabbit review -->

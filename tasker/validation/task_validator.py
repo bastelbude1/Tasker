@@ -754,6 +754,9 @@ class TaskValidator:
             on_failure_clean = self.clean_field_value(on_failure_resolved)
             try:
                 on_failure_task = int(on_failure_clean)
+                # Forward-only validation: prevent backward jumps to avoid infinite loops
+                if on_failure_task <= task_id:
+                    self.errors.append(f"Line {line_number}: Task {task_id} 'on_failure' cannot jump backwards to task {on_failure_task} (forward-only rule to prevent infinite loops).")
             except ValueError:
                 self.errors.append(f"Line {line_number}: Task {task_id} has invalid 'on_failure' task: '{on_failure_clean}'.")
 
@@ -763,6 +766,9 @@ class TaskValidator:
             on_success_clean = self.clean_field_value(on_success_resolved)
             try:
                 on_success_task = int(on_success_clean)
+                # Forward-only validation: prevent backward jumps to avoid infinite loops
+                if on_success_task <= task_id:
+                    self.errors.append(f"Line {line_number}: Task {task_id} 'on_success' cannot jump backwards to task {on_success_task} (forward-only rule to prevent infinite loops).")
             except ValueError:
                 self.errors.append(f"Line {line_number}: Task {task_id} has invalid 'on_success' task: '{on_success_clean}'.")
 

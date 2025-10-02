@@ -4,7 +4,7 @@
 
 **⚠️ BEFORE making ANY code changes, Claude MUST explicitly state:**
 
-```
+```text
 ✅ "I will create backups using: cp file.py file.py.backup_$(date +%Y%m%d_%H%M%S)"
 ✅ "I will run 100% verification testing before any commit suggestions"
 ✅ "I acknowledge that violating CRITICAL/MANDATORY requirements breaks production code"

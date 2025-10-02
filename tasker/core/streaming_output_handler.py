@@ -212,12 +212,28 @@ class StreamingOutputHandler:
                 logging.debug("Failed to cleanup stderr temp file %s: %s", getattr(self.stderr_file, 'name', '<unknown>'), e)
 
     def __enter__(self):
-        """Context manager entry."""
+        """Context manager entry - return self for with statement."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit with automatic cleanup."""
-        self.cleanup()
+        """
+        Context manager exit with automatic cleanup.
+
+        Args:
+            exc_type: Exception type (if any)
+            exc_val: Exception value (if any)
+            exc_tb: Exception traceback (if any)
+
+        Returns:
+            None (do not suppress exceptions)
+        """
+        try:
+            self.cleanup()
+        except Exception:
+            # Ensure cleanup errors don't mask original exceptions
+            import logging
+            logging.debug("StreamingOutputHandler cleanup failed in __exit__", exc_info=True)
+        # Return None to propagate any original exception
 
 
 def create_memory_efficient_handler(max_memory_mb=10):

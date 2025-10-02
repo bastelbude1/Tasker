@@ -100,8 +100,6 @@ class InputSanitizer:
         if not isinstance(field_value, str):
             field_value = str(field_value)
 
-        original_value = field_value
-
         # 1. Length validation
         if max_length is None:
             max_length = self._get_field_max_length(field_name)
@@ -155,9 +153,6 @@ class InputSanitizer:
 
     def _validate_field_specific(self, field_name, field_value):
         """Perform field-specific validation rules."""
-        errors = []
-        warnings = []
-
         if field_name == 'hostname':
             return self._validate_hostname(field_value)
         elif field_name == 'command':

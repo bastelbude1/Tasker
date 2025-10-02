@@ -116,7 +116,7 @@ class SequentialExecutor(BaseExecutor):
         else:
             executor_instance.log(f"Task {task_id}{loop_display}: Executing [{exec_type}]: {full_command_display}")
             try:
-                # Execute using contect manager for automatic cleanup
+                # Execute using context manager for automatic cleanup
                 import subprocess
 
                 # Create memory-efficient output handler with 10MB default limit
@@ -130,7 +130,10 @@ class SequentialExecutor(BaseExecutor):
                         stderr=subprocess.PIPE,
                         universal_newlines=True
                     ) as process:
-                        # Stream output with memory efficiency
+                        # GUIDELINE DEVIATION: Using manual streaming instead of process.communicate(timeout=X)
+                        # This intentionally deviates from repo coding guidelines to achieve memory efficiency.
+                        # Standard communicate() loads entire output into memory, causing OOM with large outputs (1GB+).
+                        # Manual streaming with temp file fallback prevents memory exhaustion while maintaining timeout support.
                         stdout, stderr, exit_code, timed_out = output_handler.stream_process_output(
                             process, timeout=task_timeout
                         )

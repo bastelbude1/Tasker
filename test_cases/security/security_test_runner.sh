@@ -22,8 +22,12 @@ echo -e "${BLUE}Testing negative security scenarios${NC}"
 echo -e "${BLUE}Expected behavior: ALL tests should FAIL${NC}"
 echo ""
 
+# Resolve script directory and repository root for proper path handling
+SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
 # Set PATH for mock commands and skip host validation
-export PATH="../test_scripts:$PATH"
+export PATH="$SCRIPT_DIR/../test_scripts:$PATH"
 
 # Function to test a single security test file
 test_security_file() {
@@ -36,7 +40,7 @@ test_security_file() {
     local output
     local exit_code
 
-    output=$(timeout 30s ../tasker.py "$test_file" -r --skip-host-validation 2>&1)
+    output=$(timeout 30s "$REPO_ROOT/tasker.py" "$test_file" -r --skip-host-validation 2>&1)
     exit_code=$?
 
     # Analyze results
@@ -65,10 +69,10 @@ test_security_file() {
 
 # Test all security test files
 echo -e "${BLUE}Scanning for security test files...${NC}"
-security_files=$(find . -name "*.txt" -type f | sort)
+security_files=$(find "$SCRIPT_DIR" -maxdepth 1 -name "*.txt" -type f | sort)
 
 if [ -z "$security_files" ]; then
-    echo -e "${RED}ERROR: No security test files found in current directory${NC}"
+    echo -e "${RED}ERROR: No security test files found in security directory${NC}"
     exit 1
 fi
 

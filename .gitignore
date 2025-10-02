@@ -147,11 +147,19 @@ logs/
 
 # Backup and temporary files
 *.backup
+*.backup_*
+*_backup_*
 *.bak
 *.tmp
 *.swp
 *.swo
 *~
+# Python backup files with timestamps
+*.py.backup*
+*.py_backup*
+
+# Backup directory
+backups/
 
 # IDE and editor files
 .vscode/

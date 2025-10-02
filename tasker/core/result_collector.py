@@ -263,10 +263,9 @@ class ResultCollector:
             self.final_task_id is None):
             return
 
-        # Prevent duplicate writes
+        # Fast-path check for duplicate writes (outside lock)
         if self._summary_written:
             return
-        self._summary_written = True
 
         # Message preparation outside critical section
         timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
@@ -287,6 +286,10 @@ class ResultCollector:
 
         # Atomic lock acquisition and write with retry
         with self.log_lock:
+            # Re-check after acquiring lock (another thread may have completed the write)
+            if self._summary_written:
+                return
+
             file_no, lock_acquired = self._acquire_file_lock_atomically(self.summary_lock_timeout)
 
             if not lock_acquired:
@@ -312,6 +315,9 @@ class ResultCollector:
                 current_pos = self.summary_log.tell()
                 if current_pos == 0:
                     raise IOError("Write verification failed - file position is 0")
+
+                # Only set flag after successful write and verification
+                self._summary_written = True
 
             finally:
                 # Guaranteed lock release

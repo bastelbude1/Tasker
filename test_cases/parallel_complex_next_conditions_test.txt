@@ -1,0 +1,58 @@
+# TASKER 2.1 - Parallel Complex Next Conditions Test
+# Tests the enhanced parallel next condition handling that now supports
+# legacy complex expressions through ConditionEvaluator delegation
+
+# Initial task
+task=1
+hostname=localhost
+exec=local
+command=echo
+arguments=Starting parallel complex next condition test
+success=exit_0
+
+# Parallel task with complex next condition (legacy compatibility)
+task=2
+type=parallel
+max_parallel=3
+tasks=10,11,12
+next=stdout_contains=Testing AND exit_0
+on_success=3
+on_failure=4
+
+# Success path - should execute if complex condition passes
+task=3
+hostname=localhost
+exec=local
+command=echo
+arguments=Complex next condition evaluation successful - test PASSED
+success=exit_0
+
+# Failure path - should execute if complex condition fails
+task=4
+hostname=localhost
+exec=local
+command=echo
+arguments=Complex next condition evaluation failed - test FAILED
+success=exit_0
+
+# Parallel sub-tasks
+task=10
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing parallel subtask 1
+success=exit_0
+
+task=11
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing parallel subtask 2
+success=exit_0
+
+task=12
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing parallel subtask 3
+success=exit_0

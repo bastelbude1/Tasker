@@ -15,6 +15,12 @@ class InputSanitizer:
     """
     Comprehensive input sanitization for TASKER task files.
     Implements defense-in-depth security validation.
+
+    Two-Tier Validation Strategy:
+    - General length limits (e.g., MAX_ARGUMENTS_LENGTH=8192) for basic field validation
+    - Stricter security limits (e.g., MAX_ARGUMENTS_SECURE_LENGTH=2000) for buffer overflow protection
+
+    This approach allows reasonable field sizes while maintaining strict security thresholds.
     """
 
     def __init__(self):
@@ -22,7 +28,8 @@ class InputSanitizer:
         self.MAX_STRING_LENGTH = 10000      # Maximum field length
         self.MAX_HOSTNAME_LENGTH = 253      # RFC compliant hostname length
         self.MAX_COMMAND_LENGTH = 4096      # Maximum command length
-        self.MAX_ARGUMENTS_LENGTH = 8192    # Maximum arguments length
+        self.MAX_ARGUMENTS_LENGTH = 8192    # Maximum arguments length (general limit)
+        self.MAX_ARGUMENTS_SECURE_LENGTH = 2000  # Stricter limit for buffer overflow protection
         self.MAX_GLOBAL_VAR_LENGTH = 1024   # Maximum global variable length
         self.MAX_TASK_ID = 9999             # Maximum task ID
         self.MIN_TIMEOUT = 1                # Minimum timeout seconds
@@ -237,9 +244,11 @@ class InputSanitizer:
         errors = []
         warnings = []
 
-        # Check for potential buffer overflow (very large arguments)
-        if len(arguments) > 2000:  # Stricter limit for potential buffer overflow detection
-            errors.append(f"Arguments field too large (potential buffer overflow): {len(arguments)} characters")
+        # Two-tier validation strategy for arguments field:
+        # 1. General length check uses MAX_ARGUMENTS_LENGTH (8192) in sanitize_field
+        # 2. Security buffer overflow check uses stricter MAX_ARGUMENTS_SECURE_LENGTH (2000)
+        if len(arguments) > self.MAX_ARGUMENTS_SECURE_LENGTH:
+            errors.append(f"Arguments field too large (potential buffer overflow): {len(arguments)} characters (maximum {self.MAX_ARGUMENTS_SECURE_LENGTH})")
             return {'valid': False, 'errors': errors, 'warnings': warnings}
 
         # Check for command injection patterns

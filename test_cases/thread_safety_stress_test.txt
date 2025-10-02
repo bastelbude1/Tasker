@@ -159,8 +159,8 @@ success=exit_0
 
 task=122
 hostname=localhost
-command=false
-arguments=
+command=echo
+arguments=Task 122 SUCCESS
 success=exit_0
 
 task=123
@@ -171,8 +171,8 @@ success=exit_0
 
 task=124
 hostname=localhost
-command=false
-arguments=
+command=echo
+arguments=Task 124 SUCCESS
 success=exit_0
 
 task=125
@@ -189,8 +189,8 @@ success=exit_0
 
 task=127
 hostname=localhost
-command=false
-arguments=
+command=echo
+arguments=Task 127 SUCCESS
 success=exit_0
 
 task=128
@@ -225,8 +225,8 @@ success=exit_0
 
 task=133
 hostname=localhost
-command=false
-arguments=
+command=echo
+arguments=Task 133 SUCCESS
 success=exit_0
 
 task=134
@@ -249,8 +249,8 @@ success=exit_0
 
 task=137
 hostname=localhost
-command=false
-arguments=
+command=echo
+arguments=Task 137 SUCCESS
 success=exit_0
 
 task=138

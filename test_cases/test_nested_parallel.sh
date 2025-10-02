@@ -18,11 +18,13 @@ echo "Waiting for all instances to complete..."
 wait
 
 echo "=== RESULTS ==="
+exit_code=0
 for i in {1..10}; do
     if grep -q "SUCCESS: Task execution completed" nested_$i.log 2>/dev/null; then
         echo "Instance $i: SUCCESS"
     else
         echo "Instance $i: FAILED or still running"
+        exit_code=1
     fi
 done
 
@@ -31,5 +33,14 @@ echo ""
 echo "Checking for thread capping messages:"
 grep "Capping thread pool" nested_*.log 2>/dev/null | head -5 || echo "No capping messages found"
 
+# Final validation
+if [ $exit_code -ne 0 ]; then
+    echo ""
+    echo "❌ TEST FAILED: One or more instances failed"
+    echo "This indicates a regression in nested parallelism handling"
+fi
+
 # Cleanup
 rm -f nested_*.log
+
+exit $exit_code

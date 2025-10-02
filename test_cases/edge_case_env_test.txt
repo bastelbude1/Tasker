@@ -1,0 +1,53 @@
+# EDGE CASE TEST - Environment Variable Validation
+# Tests handling of invalid TASKER_PARALLEL_INSTANCES values
+
+# Start task
+task=0
+hostname=localhost
+command=echo
+arguments=Testing edge cases for TASKER_PARALLEL_INSTANCES
+success=exit_0
+on_success=1
+
+# Parallel task with high max_parallel to trigger env var logic
+task=1
+type=parallel
+max_parallel=50
+tasks=10,11,12
+timeout=5
+on_success=2
+on_failure=999
+condition=all_success
+
+# Worker tasks
+task=10
+hostname=localhost
+command=echo
+arguments=Task 10
+success=exit_0
+
+task=11
+hostname=localhost
+command=echo
+arguments=Task 11
+success=exit_0
+
+task=12
+hostname=localhost
+command=echo
+arguments=Task 12
+success=exit_0
+
+# Success
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Environment variable edge cases handled correctly
+success=exit_0
+
+# Failure
+task=999
+hostname=localhost
+command=echo
+arguments=FAILED
+success=exit_0

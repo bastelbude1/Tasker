@@ -255,6 +255,14 @@ class TaskExecutor:
         # Initialize ResultCollector
         self._result_collector = ResultCollector(self.task_file, self.project)
 
+        # Setup summary logging for ResultCollector if project is specified
+        if self.project and hasattr(self, 'summary_log') and self.summary_log:
+            try:
+                self._result_collector.setup_summary_logging(self.summary_log, self.log_file_path)
+                self.log_debug(f"Summary logging configured for ResultCollector: {self.summary_log_path}")
+            except Exception as e:
+                self.log_warn(f"Failed to setup summary logging for ResultCollector: {e}")
+
         # Transfer fallback values to ResultCollector
         if hasattr(self, '_final_task_id_fallback'):
             self._result_collector.final_task_id = self._final_task_id_fallback

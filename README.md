@@ -651,7 +651,7 @@ The streaming system implements a sophisticated three-tier approach:
 #### Tier 1: In-Memory Buffering (Up to 10MB)
 For small to medium outputs, everything stays in memory for maximum performance:
 
-```txt
+```text
 └── Memory Buffer (1MB chunks)
     ├── Fast access for small outputs
     ├── Zero disk I/O overhead
@@ -661,7 +661,7 @@ For small to medium outputs, everything stays in memory for maximum performance:
 #### Tier 2: Temporary File Streaming (10MB+)
 When outputs exceed 10MB, TASKER automatically streams to temporary files:
 
-```txt
+```text
 └── System Temp Directory (/tmp)
     ├── tasker_stdout_abc123 (stdout content)
     ├── tasker_stderr_def456 (stderr content)
@@ -671,7 +671,7 @@ When outputs exceed 10MB, TASKER automatically streams to temporary files:
 #### Tier 3: Memory Protection (100MB+ per task)
 Absolute limits prevent system overload:
 
-```txt
+```text
 └── Hard Memory Limits
     ├── 100MB maximum per individual task
     ├── Automatic temp file fallback
@@ -715,7 +715,7 @@ command=analyze_massive_dataset
 4. **Resource Cleanup**: Temporary files automatically deleted after task completion
 
 #### File Naming Convention
-```txt
+```text
 /tmp/tasker_stdout_XXXXXX  # Standard output temp file
 /tmp/tasker_stderr_XXXXXX  # Standard error temp file
 ```
@@ -799,14 +799,14 @@ tasker -r --log-level=DEBUG large_output_workflow.txt
 ```
 
 Debug output shows:
-```txt
+```text
 [02Oct25 15:47:21] DEBUG: Task 0: Used temp files for large output (stdout: 20840000 bytes, stderr: 0 bytes)
 ```
 
 #### Memory Usage Awareness
 Tasks that trigger streaming are automatically logged:
 
-```txt
+```text
 [02Oct25 15:47:20] Task 0: Executing [local]: python3 -c large_data_generation.py
 [02Oct25 15:47:21] Task 0: Exit code: 0
 [02Oct25 15:47:21] Task 0: STDOUT: Large dataset line 000000 with data: XXX... (20839999 chars total)

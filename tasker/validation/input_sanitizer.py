@@ -406,12 +406,15 @@ class InputSanitizer:
             errors.append(f"Global variable name too long (maximum 64): '{var_name}'")
             return {'valid': False, 'name': var_name, 'value': var_value, 'errors': errors, 'warnings': warnings}
 
+        # Coerce variable value to string for validation to avoid TypeError
+        value_str = str(var_value)
+
         # Sanitize variable value with enhanced security checks for global variables
-        value_result = self._validate_arguments(var_value)  # Treat global vars like arguments for security
+        value_result = self._validate_arguments(value_str)  # Treat global vars like arguments for security
 
         # Also check basic field constraints
-        if len(var_value) > self.MAX_GLOBAL_VAR_LENGTH:
-            value_result['errors'].append(f"Global variable value too long (maximum {self.MAX_GLOBAL_VAR_LENGTH}): {len(var_value)} characters")
+        if len(value_str) > self.MAX_GLOBAL_VAR_LENGTH:
+            value_result['errors'].append(f"Global variable value too long (maximum {self.MAX_GLOBAL_VAR_LENGTH}): {len(value_str)} characters")
             value_result['valid'] = False
 
         # Add the errors and warnings from this function to those from argument validation
@@ -421,7 +424,7 @@ class InputSanitizer:
             value_result['warnings'].append(warning)
 
         # Use sanitized value (just trimmed) or original if validation failed
-        final_value = var_value.strip() if value_result['valid'] else var_value
+        final_value = value_str.strip() if value_result['valid'] else value_str
 
         return {
             'valid': value_result['valid'],

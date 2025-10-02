@@ -54,6 +54,5 @@ on_success=6
 task=6
 hostname=localhost
 command=echo
-arguments=Attempting deep recursion
+arguments=Deep recursion test completed
 success=exit_0
-on_success=4

@@ -1,6 +1,6 @@
 # tasker/core/workflow_controller.py
 """
-TASKER 2.0 - Workflow Control Component
+TASKER 2.1 - Workflow Control Component
 --------------------------------------
 Handles workflow flow control, routing, and loop management.
 
@@ -24,16 +24,18 @@ class WorkflowController:
     routing, loop handling, and success criteria evaluation.
     """
 
-    def __init__(self, state_manager, logger_callback=None):
+    def __init__(self, state_manager, logger_callback=None, debug_logger_callback=None):
         """
         Initialize workflow controller.
 
         Args:
             state_manager: StateManager instance for accessing state
             logger_callback: Optional callback for logging messages
+            debug_logger_callback: Optional callback for debug logging
         """
         self.state_manager = state_manager
         self.log_info = logger_callback if logger_callback else lambda msg: None
+        self.log_debug = debug_logger_callback if debug_logger_callback else lambda msg: None
 
     # ===== NEXT CONDITION EVALUATION =====
 
@@ -60,8 +62,9 @@ class WorkflowController:
 
         # Get loop iteration display if looping
         loop_display = ""
-        if task_id in self.state_manager.loop_iterations:
-            loop_display = f".{self.state_manager.loop_iterations[task_id]}"
+        loop_iteration = self.state_manager.get_loop_iteration(task_id)
+        if loop_iteration > 0:
+            loop_display = f".{loop_iteration}"
 
         if 'next' not in task:
             self.log_info(f"Task {task_id}{loop_display}: No 'next' condition specified, proceeding to next task")
@@ -103,7 +106,7 @@ class WorkflowController:
             result = ConditionEvaluator.evaluate_condition(
                 next_condition, exit_code, stdout, stderr,
                 self.state_manager.global_vars, self.state_manager.task_results,
-                lambda msg: None  # Debug callback
+                self.log_debug  # Pass proper debug callback for traceability
             )
 
             if result:
@@ -114,7 +117,10 @@ class WorkflowController:
             return result
 
         except Exception as e:
+            # Detailed exception logging for better diagnosability
+            import traceback
             self.log_info(f"Task {task_id}{loop_display}: Error evaluating 'next' condition '{next_condition}': {str(e)}")
+            self.log_debug(f"Task {task_id}{loop_display}: Exception traceback:\n{traceback.format_exc()}")
             return False
 
     def _handle_sequential_loop(self, task: Dict[str, Any], exit_code: int,
@@ -135,7 +141,7 @@ class WorkflowController:
         task_id = int(task['task'])
 
         # Check if this is the first time we're seeing this task
-        if task_id not in self.state_manager.loop_counter:
+        if self.state_manager.get_loop_counter(task_id) == 0:
             loop_count = int(task['loop'])
             self.state_manager.set_loop_counter(task_id, loop_count)
             self.state_manager.set_loop_iteration(task_id, 1)
@@ -238,9 +244,35 @@ class WorkflowController:
                 self.log_info(f"Task {task_id}: Invalid max_failed condition format")
                 return False
 
-        # Unknown condition
-        self.log_info(f"Task {task_id}: Unknown parallel next condition '{next_condition}', defaulting to False")
-        return False
+        # Delegate unknown/complex conditions to ConditionEvaluator for legacy compatibility
+        try:
+            # Create context with derived values for complex expression evaluation
+            successful_count = sum(1 for r in results if r['success'])
+            failed_count = sum(1 for r in results if not r['success'])
+            total_count = len(results)
+
+            # Construct aggregated context similar to how parallel loop_break works
+            aggregated_exit_code = 0 if successful_count == total_count else 1
+            aggregated_stdout = (f"Parallel execution summary: {successful_count} successful, "
+                               f"{failed_count} failed, {total_count} total")
+            aggregated_stderr = ""
+
+            # Attempt to evaluate as a complex condition using ConditionEvaluator
+            self.log_info(f"Task {task_id}: Attempting to evaluate complex condition '{next_condition}' via ConditionEvaluator")
+
+            result = ConditionEvaluator.evaluate_condition(
+                next_condition, aggregated_exit_code, aggregated_stdout, aggregated_stderr,
+                self.state_manager.global_vars, self.state_manager.task_results,
+                lambda msg: None  # Debug callback
+            )
+
+            self.log_info(f"Task {task_id}: Complex condition '{next_condition}' evaluated to: {result}")
+            return result
+
+        except Exception as e:
+            # If ConditionEvaluator cannot interpret the expression, log and default to False
+            self.log_info(f"Task {task_id}: Invalid/unsupported parallel next condition '{next_condition}': {str(e)}. Defaulting to False")
+            return False
 
     def handle_parallel_loop(self, parallel_task: Dict[str, Any],
                            results: List[Dict[str, Any]]) -> bool:
@@ -257,7 +289,7 @@ class WorkflowController:
         task_id = int(parallel_task['task'])
 
         # Check if this is the first time we're seeing this task
-        if task_id not in self.state_manager.loop_counter:
+        if self.state_manager.get_loop_counter(task_id) == 0:
             loop_count = int(parallel_task['loop'])
             self.state_manager.set_loop_counter(task_id, loop_count)
             self.state_manager.set_loop_iteration(task_id, 1)

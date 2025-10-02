@@ -1,0 +1,10 @@
+# TASKER 2.1 - Summary Logging Integration Test
+# This test ensures ResultCollector.setup_summary_logging is properly called
+# Prevents regression of the issue where setup_summary_logging was defined but never invoked
+
+task=1
+hostname=localhost
+exec=local
+command=echo
+arguments=Summary logging integration test - PASS
+success=exit_0

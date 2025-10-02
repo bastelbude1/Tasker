@@ -646,7 +646,7 @@ The streaming system implements a sophisticated three-tier approach:
 #### Tier 1: In-Memory Buffering (Up to 10MB)
 For small to medium outputs, everything stays in memory for maximum performance:
 
-```
+```txt
 └── Memory Buffer (1MB chunks)
     ├── Fast access for small outputs
     ├── Zero disk I/O overhead
@@ -656,7 +656,7 @@ For small to medium outputs, everything stays in memory for maximum performance:
 #### Tier 2: Temporary File Streaming (10MB+)
 When outputs exceed 10MB, TASKER automatically streams to temporary files:
 
-```
+```txt
 └── System Temp Directory (/tmp)
     ├── tasker_stdout_abc123 (stdout content)
     ├── tasker_stderr_def456 (stderr content)
@@ -666,7 +666,7 @@ When outputs exceed 10MB, TASKER automatically streams to temporary files:
 #### Tier 3: Memory Protection (100MB+ per task)
 Absolute limits prevent system overload:
 
-```
+```txt
 └── Hard Memory Limits
     ├── 100MB maximum per individual task
     ├── Automatic temp file fallback
@@ -677,7 +677,7 @@ Absolute limits prevent system overload:
 
 The streaming system operates completely transparently - no configuration required:
 
-```
+```bash
 # These all work identically regardless of output size
 task=0
 hostname=web-server
@@ -710,7 +710,7 @@ command=analyze_massive_dataset
 4. **Resource Cleanup**: Temporary files automatically deleted after task completion
 
 #### File Naming Convention
-```
+```txt
 /tmp/tasker_stdout_XXXXXX  # Standard output temp file
 /tmp/tasker_stderr_XXXXXX  # Standard error temp file
 ```
@@ -739,7 +739,7 @@ Where `XXXXXX` is a random 6-character suffix for uniqueness.
 ### Real-World Examples
 
 #### Database Operations
-```
+```bash
 # Large database export - streams automatically
 task=0
 hostname=db-server
@@ -750,7 +750,7 @@ exec=pbrun
 ```
 
 #### Log Analysis
-```
+```bash
 # Process massive log files without memory issues
 task=1
 hostname=log-server
@@ -767,7 +767,7 @@ exec=local
 ```
 
 #### System Monitoring
-```
+```bash
 # Generate comprehensive system reports
 task=0
 hostname=monitoring-server
@@ -794,14 +794,14 @@ tasker -r --log-level=DEBUG large_output_workflow.txt
 ```
 
 Debug output shows:
-```
+```txt
 [02Oct25 15:47:21] DEBUG: Task 0: Used temp files for large output (stdout: 20840000 bytes, stderr: 0 bytes)
 ```
 
 #### Memory Usage Awareness
 Tasks that trigger streaming are automatically logged:
 
-```
+```txt
 [02Oct25 15:47:20] Task 0: Executing [local]: python3 -c large_data_generation.py
 [02Oct25 15:47:21] Task 0: Exit code: 0
 [02Oct25 15:47:21] Task 0: STDOUT: Large dataset line 000000 with data: XXX... (20839999 chars total)
@@ -841,7 +841,7 @@ Tasks that trigger streaming are automatically logged:
 #### Zero Configuration Required
 Existing workflows automatically benefit from streaming:
 
-```
+```bash
 # No changes needed - automatically enhanced
 task=0
 hostname=backup-server
@@ -852,7 +852,7 @@ command=tar -czf - /data | split -b 100M
 #### Gradual Enhancement
 Teams can gradually adopt larger-scale operations:
 
-```
+```bash
 # Phase 1: Test with medium outputs (10-50MB)
 task=0
 hostname=test-server
@@ -911,7 +911,7 @@ Control when and how tasks execute using conditions and flow control parameters.
 
 Use `condition` parameter to skip tasks when certain conditions aren't met:
 
-```
+```bash
 task=0
 hostname=web-server
 command=check_service
@@ -943,7 +943,7 @@ Exit codes are numeric values (0-255) returned by commands. **Exit code 0 means 
 - `next=exit_127`: Continue only if command not found
 
 **Using `next` for flow control based on exit codes:**
-```
+```bash
 task=0
 hostname=health-check
 command=curl -f http://api/health
@@ -969,7 +969,7 @@ arguments=API health check failed
 ```
 
 **Using `condition` to skip tasks based on previous exit codes:**
-```
+```bash
 task=0
 hostname=health-check
 command=curl -f http://api/health

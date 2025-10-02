@@ -60,8 +60,9 @@ class WorkflowController:
 
         # Get loop iteration display if looping
         loop_display = ""
-        if task_id in self.state_manager.loop_iterations:
-            loop_display = f".{self.state_manager.loop_iterations[task_id]}"
+        loop_iteration = self.state_manager.get_loop_iteration(task_id)
+        if loop_iteration > 0:
+            loop_display = f".{loop_iteration}"
 
         if 'next' not in task:
             self.log_info(f"Task {task_id}{loop_display}: No 'next' condition specified, proceeding to next task")
@@ -103,7 +104,7 @@ class WorkflowController:
             result = ConditionEvaluator.evaluate_condition(
                 next_condition, exit_code, stdout, stderr,
                 self.state_manager.global_vars, self.state_manager.task_results,
-                lambda msg: None  # Debug callback
+                self.log_debug  # Pass proper debug callback for traceability
             )
 
             if result:
@@ -114,7 +115,10 @@ class WorkflowController:
             return result
 
         except Exception as e:
+            # Detailed exception logging for better diagnosability
+            import traceback
             self.log_info(f"Task {task_id}{loop_display}: Error evaluating 'next' condition '{next_condition}': {str(e)}")
+            self.log_debug(f"Task {task_id}{loop_display}: Exception traceback:\n{traceback.format_exc()}")
             return False
 
     def _handle_sequential_loop(self, task: Dict[str, Any], exit_code: int,
@@ -135,7 +139,7 @@ class WorkflowController:
         task_id = int(task['task'])
 
         # Check if this is the first time we're seeing this task
-        if task_id not in self.state_manager.loop_counter:
+        if self.state_manager.get_loop_counter(task_id) == 0:
             loop_count = int(task['loop'])
             self.state_manager.set_loop_counter(task_id, loop_count)
             self.state_manager.set_loop_iteration(task_id, 1)
@@ -283,7 +287,7 @@ class WorkflowController:
         task_id = int(parallel_task['task'])
 
         # Check if this is the first time we're seeing this task
-        if task_id not in self.state_manager.loop_counter:
+        if self.state_manager.get_loop_counter(task_id) == 0:
             loop_count = int(parallel_task['loop'])
             self.state_manager.set_loop_counter(task_id, loop_count)
             self.state_manager.set_loop_iteration(task_id, 1)

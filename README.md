@@ -3138,6 +3138,8 @@ tasks:
 
 ---
 
-*TASKER 2.1 - Professional Task Automation for Enterprise Environments*
+## TASKER 2.1
+
+Professional Task Automation for Enterprise Environments
 
 <!-- Trigger for comprehensive CodeRabbit review -->

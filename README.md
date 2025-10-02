@@ -145,9 +145,14 @@ That's it! You've just executed your first TASKER workflow.
 
 TASKER uses a simple key-value format where each task is defined by parameters. Tasks are executed based on their execution model (sequential by default, parallel, or conditional).
 
-### ⚠️ Important Syntax Rule: No Inline Comments
+### ⚠️ Critical Syntax Rule: Comment Policy for Task Files
 
-**TASKER does NOT support inline comments in parameter values.** All comments must be on separate lines starting with `#`.
+**TASKER Comment Policy - Strictly Enforced for Security and Parsing:**
+
+- ✅ **ALLOWED**: Full-line comments starting with `#` at the beginning of lines
+- ❌ **FORBIDDEN**: Inline comments after `key=value` pairs
+- **Enforcement**: Validation engine detects inline comments and reports security errors
+- **Rationale**: Inline comments can cause parsing errors and interfere with security validation
 
 **❌ INCORRECT (Inline Comments):**
 ```
@@ -1158,6 +1163,26 @@ The following parameters are recognized but **not yet implemented**:
    - Numeric parameters must be valid integers
    - Boolean parameters accept `true` or `false` (case-insensitive)
    - String parameters can contain spaces if properly formatted
+
+### 🛡️ Security Validation (Input Sanitization)
+
+**TASKER 2.0 includes comprehensive input validation hardening:**
+
+5. **Command Injection Prevention**: Detects shell metacharacters and injection patterns
+6. **Path Traversal Protection**: Blocks directory traversal attempts (`../`, encoded variants)
+7. **Buffer Overflow Protection**: Enforces field length limits (hostname: 253, arguments: 2000 chars)
+8. **Boundary Validation**: Strict numeric limits (timeout: 1-86400s, max_parallel: 1-1000)
+9. **Global Variable Security**: Enhanced validation treats global variables as potential attack vectors
+10. **Inline Comment Detection**: Security-enforced prohibition of inline comments after `key=value` pairs
+
+**Security Error Examples:**
+```bash
+# These will be BLOCKED by security validation:
+hostname=localhost; cat /etc/passwd    # Command injection
+arguments=../../../etc/passwd          # Path traversal
+arguments=[2000+ character string]     # Buffer overflow
+timeout=999999                         # Boundary violation
+```
 
 ### Examples of Parameter Combinations
 

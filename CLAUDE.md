@@ -63,7 +63,19 @@ with subprocess.Popen(['command'],
 - **Consult the knowledge repository** (this CLAUDE.md file) regularly to consider all information
 
 ### Code Quality Guidelines
-- **NO inline comments** when creating test cases
+- **Comment Policy for Task Files**:
+  - ✅ **ALLOWED**: Full-line comments starting with `#` at the beginning of lines
+  - ❌ **FORBIDDEN**: Inline comments after `key=value` pairs (e.g., `hostname=localhost # comment`)
+  - **Rationale**: Inline comments after field definitions can cause parsing errors and security validation issues
+  - **Example**:
+    ```bash
+    # This is allowed - full line comment
+    task=0
+    hostname=localhost
+    # Another allowed comment
+    command=echo
+    arguments=test  # THIS IS NOT ALLOWED - inline comment
+    ```
 - **Use ASCII-safe character set only** (avoid special Unicode characters)
 - Maintain existing code style and conventions
 - Preserve all existing functionality during refactoring

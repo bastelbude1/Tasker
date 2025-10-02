@@ -48,12 +48,6 @@ from ..executors.sequential_executor import SequentialExecutor
 from ..executors.parallel_executor import ParallelExecutor
 from ..executors.conditional_executor import ConditionalExecutor
 
-# Import new modular components
-from .state_manager import StateManager
-from .result_collector import ResultCollector
-from .workflow_controller import WorkflowController
-from .task_runner import TaskRunner
-
 
 class TaskExecutor:
     """
@@ -234,254 +228,6 @@ class TaskExecutor:
                 except Exception:
                     pass  # Ignore test errors
 
-        # ===== NEW MODULAR ARCHITECTURE INITIALIZATION =====
-        # Initialize the new modular components while maintaining backward compatibility
-
-        # Initialize StateManager with existing state
-        self._state_manager = StateManager()
-
-        # Transfer fallback values to StateManager
-        if hasattr(self, '_global_vars_fallback'):
-            self._state_manager.set_global_vars(self._global_vars_fallback)
-        if hasattr(self, '_current_task_fallback'):
-            self._state_manager.set_current_task(self._current_task_fallback)
-        if hasattr(self, '_tasks_fallback'):
-            self._state_manager.set_tasks(self._tasks_fallback)
-        if hasattr(self, '_task_results_fallback'):
-            # Transfer any existing task results
-            for task_id, result in self._task_results_fallback.items():
-                self._state_manager.store_task_result(task_id, result)
-
-        # Initialize ResultCollector
-        self._result_collector = ResultCollector(self.task_file, self.project)
-
-        # Transfer fallback values to ResultCollector
-        if hasattr(self, '_final_task_id_fallback'):
-            self._result_collector.final_task_id = self._final_task_id_fallback
-        if hasattr(self, '_final_hostname_fallback'):
-            self._result_collector.final_hostname = self._final_hostname_fallback
-        if hasattr(self, '_final_command_fallback'):
-            self._result_collector.final_command = self._final_command_fallback
-        if hasattr(self, '_final_exit_code_fallback'):
-            self._result_collector.final_exit_code = self._final_exit_code_fallback
-        if hasattr(self, '_final_success_fallback'):
-            self._result_collector.final_success = self._final_success_fallback
-
-        # Initialize WorkflowController with StateManager and logging
-        self._workflow_controller = WorkflowController(
-            self._state_manager,
-            logger_callback=self.log_info
-        )
-
-        # Initialize TaskRunner with all components
-        self._task_runner = TaskRunner(
-            state_manager=self._state_manager,
-            workflow_controller=self._workflow_controller,
-            result_collector=self._result_collector,
-            default_exec_type=self.default_exec_type,
-            default_timeout=self.timeout,
-            dry_run=self.dry_run,
-            logger_callback=self.log,
-            debug_logger_callback=self.log_debug
-        )
-
-        # Set execution type override from command line
-        self._task_runner.set_execution_type_override(self.exec_type)
-
-        # ===== BACKWARD COMPATIBILITY PROPERTIES =====
-        # Create property wrappers for seamless transition to new architecture
-
-    # State management properties for backward compatibility
-    @property
-    def tasks(self):
-        """Backward compatibility property for tasks access."""
-        if hasattr(self, '_state_manager'):
-            return self._state_manager.tasks
-        else:
-            # Fallback during initialization
-            return getattr(self, '_tasks_fallback', {})
-
-    @tasks.setter
-    def tasks(self, value):
-        """Backward compatibility setter for tasks."""
-        if hasattr(self, '_state_manager'):
-            self._state_manager.set_tasks(value)
-        else:
-            # Store in fallback during initialization
-            self._tasks_fallback = value
-
-    @property
-    def task_results(self):
-        """Backward compatibility property for task_results access."""
-        if hasattr(self, '_state_manager'):
-            return self._state_manager.task_results
-        else:
-            # Fallback during initialization
-            return getattr(self, '_task_results_fallback', {})
-
-    @task_results.setter
-    def task_results(self, value):
-        """Backward compatibility setter for task_results."""
-        if hasattr(self, '_state_manager'):
-            # Clear existing results and set new ones
-            self._state_manager.clear_all_state()
-            for task_id, result in value.items():
-                self._state_manager.store_task_result(task_id, result)
-        else:
-            # Store in fallback during initialization
-            self._task_results_fallback = value
-
-    @property
-    def current_task(self):
-        """Backward compatibility property for current_task access."""
-        if hasattr(self, '_state_manager'):
-            return self._state_manager.current_task
-        else:
-            # Fallback during initialization
-            return getattr(self, '_current_task_fallback', 0)
-
-    @current_task.setter
-    def current_task(self, value):
-        """Backward compatibility setter for current_task."""
-        if hasattr(self, '_state_manager'):
-            self._state_manager.set_current_task(value)
-        else:
-            # Store in fallback during initialization
-            self._current_task_fallback = value
-
-    @property
-    def loop_counter(self):
-        """Backward compatibility property for loop_counter access."""
-        if hasattr(self, '_state_manager'):
-            return self._state_manager.loop_counter
-        else:
-            return getattr(self, '_loop_counter_fallback', {})
-
-    @loop_counter.setter
-    def loop_counter(self, value):
-        """Backward compatibility setter for loop_counter."""
-        if hasattr(self, '_state_manager'):
-            # This is a complex operation, for now just store the fallback
-            self._loop_counter_fallback = value
-        else:
-            self._loop_counter_fallback = value
-
-    @property
-    def loop_iterations(self):
-        """Backward compatibility property for loop_iterations access."""
-        if hasattr(self, '_state_manager'):
-            return self._state_manager.loop_iterations
-        else:
-            return getattr(self, '_loop_iterations_fallback', {})
-
-    @loop_iterations.setter
-    def loop_iterations(self, value):
-        """Backward compatibility setter for loop_iterations."""
-        if hasattr(self, '_state_manager'):
-            # This is a complex operation, for now just store the fallback
-            self._loop_iterations_fallback = value
-        else:
-            self._loop_iterations_fallback = value
-
-    @property
-    def global_vars(self):
-        """Backward compatibility property for global_vars access."""
-        if hasattr(self, '_state_manager'):
-            return self._state_manager.global_vars
-        else:
-            # Fallback during initialization
-            return getattr(self, '_global_vars_fallback', {})
-
-    @global_vars.setter
-    def global_vars(self, value):
-        """Backward compatibility setter for global_vars."""
-        if hasattr(self, '_state_manager'):
-            self._state_manager.set_global_vars(value)
-        else:
-            # Store in fallback during initialization
-            self._global_vars_fallback = value
-
-    # Result collector properties
-    @property
-    def final_task_id(self):
-        """Backward compatibility property for final_task_id access."""
-        if hasattr(self, '_result_collector'):
-            return self._result_collector.final_task_id
-        else:
-            return getattr(self, '_final_task_id_fallback', None)
-
-    @final_task_id.setter
-    def final_task_id(self, value):
-        """Backward compatibility setter for final_task_id."""
-        if hasattr(self, '_result_collector'):
-            self._result_collector.final_task_id = value
-        else:
-            self._final_task_id_fallback = value
-
-    @property
-    def final_hostname(self):
-        """Backward compatibility property for final_hostname access."""
-        if hasattr(self, '_result_collector'):
-            return self._result_collector.final_hostname
-        else:
-            return getattr(self, '_final_hostname_fallback', "")
-
-    @final_hostname.setter
-    def final_hostname(self, value):
-        """Backward compatibility setter for final_hostname."""
-        if hasattr(self, '_result_collector'):
-            self._result_collector.final_hostname = value
-        else:
-            self._final_hostname_fallback = value
-
-    @property
-    def final_command(self):
-        """Backward compatibility property for final_command access."""
-        if hasattr(self, '_result_collector'):
-            return self._result_collector.final_command
-        else:
-            return getattr(self, '_final_command_fallback', "")
-
-    @final_command.setter
-    def final_command(self, value):
-        """Backward compatibility setter for final_command."""
-        if hasattr(self, '_result_collector'):
-            self._result_collector.final_command = value
-        else:
-            self._final_command_fallback = value
-
-    @property
-    def final_exit_code(self):
-        """Backward compatibility property for final_exit_code access."""
-        if hasattr(self, '_result_collector'):
-            return self._result_collector.final_exit_code
-        else:
-            return getattr(self, '_final_exit_code_fallback', None)
-
-    @final_exit_code.setter
-    def final_exit_code(self, value):
-        """Backward compatibility setter for final_exit_code."""
-        if hasattr(self, '_result_collector'):
-            self._result_collector.final_exit_code = value
-        else:
-            self._final_exit_code_fallback = value
-
-    @property
-    def final_success(self):
-        """Backward compatibility property for final_success access."""
-        if hasattr(self, '_result_collector'):
-            return self._result_collector.final_success
-        else:
-            return getattr(self, '_final_success_fallback', False)
-
-    @final_success.setter
-    def final_success(self, value):
-        """Backward compatibility setter for final_success."""
-        if hasattr(self, '_result_collector'):
-            self._result_collector.final_success = value
-        else:
-            self._final_success_fallback = value
-
     def __enter__(self):
         """Enable use of the class as a context manager."""
         return self
@@ -645,18 +391,18 @@ class TaskExecutor:
     # Thread-safe task result management
     def store_task_result(self, task_id, result):
         """Thread-safe method to store task results."""
-        # Delegate to StateManager for thread-safe operation
-        self._state_manager.store_task_result(task_id, result)
-
+        with self.task_results_lock:
+            self.task_results[task_id] = result
+            
     def get_task_result(self, task_id):
         """Thread-safe method to get task results."""
-        # Delegate to StateManager for thread-safe operation
-        return self._state_manager.get_task_result(task_id)
-
+        with self.task_results_lock:
+            return self.task_results.get(task_id)
+            
     def has_task_result(self, task_id):
         """Thread-safe method to check if task result exists."""
-        # Delegate to StateManager for thread-safe operation
-        return self._state_manager.has_task_result(task_id)
+        with self.task_results_lock:
+            return task_id in self.task_results
     
     # Enhanced logging infrastructure with log levels
     def _should_log(self, level):

@@ -230,8 +230,18 @@ class SequentialExecutor(BaseExecutor):
                         sleep_completion_event = threading.Event()
 
                         def sleep_callback():
-                            executor_instance.log_debug(f"Task {task_id}{loop_display}: Sleep completed")
-                            sleep_completion_event.set()
+                            try:
+                                executor_instance.log_debug(f"Task {task_id}{loop_display}: Sleep completed")
+                            except Exception as e:
+                                # Log the logging exception but don't let it prevent event signaling
+                                try:
+                                    executor_instance.log(f"Task {task_id}{loop_display}: Sleep callback logging failed: {e}")
+                                except Exception:
+                                    # Even fallback logging failed - just ignore to ensure event gets set
+                                    pass
+                            finally:
+                                # Always signal completion regardless of logging success/failure
+                                sleep_completion_event.set()
 
                         sleep_async(
                             sleep_time,

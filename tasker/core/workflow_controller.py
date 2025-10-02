@@ -1,6 +1,6 @@
 # tasker/core/workflow_controller.py
 """
-TASKER 2.0 - Workflow Control Component
+TASKER 2.1 - Workflow Control Component
 --------------------------------------
 Handles workflow flow control, routing, and loop management.
 

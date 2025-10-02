@@ -1,6 +1,6 @@
 # tasker/core/result_collector.py
 """
-TASKER 2.0 - Result Collection and Reporting Component
+TASKER 2.1 - Result Collection and Reporting Component
 -----------------------------------------------------
 Handles result aggregation, categorization, and summary generation.
 

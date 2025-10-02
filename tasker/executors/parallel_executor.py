@@ -267,8 +267,31 @@ class ParallelExecutor(BaseExecutor):
 
         # Check if we're running in a nested/parallel context
         # This could be set by orchestration scripts or CI/CD systems
-        parallel_instances = int(os.environ.get('TASKER_PARALLEL_INSTANCES', '1'))
-        nested_level = int(os.environ.get('TASKER_NESTED_LEVEL', '0'))
+        try:
+            parallel_instances = int(os.environ.get('TASKER_PARALLEL_INSTANCES', '1'))
+        except (ValueError, TypeError):
+            parallel_instances = 1
+            if executor_instance:
+                executor_instance.log_debug(f"Task {task_id}: Invalid TASKER_PARALLEL_INSTANCES value, defaulting to 1")
+
+        # Sanitize to prevent division by zero and negative values
+        if parallel_instances <= 0:
+            if executor_instance:
+                executor_instance.log_debug(f"Task {task_id}: TASKER_PARALLEL_INSTANCES was {parallel_instances}, correcting to 1")
+            parallel_instances = 1
+
+        # Clamp to reasonable maximum to prevent over-division
+        parallel_instances = min(parallel_instances, 1000)
+
+        try:
+            nested_level = int(os.environ.get('TASKER_NESTED_LEVEL', '0'))
+        except (ValueError, TypeError):
+            nested_level = 0
+            if executor_instance:
+                executor_instance.log_debug(f"Task {task_id}: Invalid TASKER_NESTED_LEVEL value, defaulting to 0")
+
+        # Sanitize nested level
+        nested_level = max(0, nested_level)
 
         # Detect if multiple TASKER processes are running (heuristic)
         # This is a safeguard when TASKER_PARALLEL_INSTANCES isn't set
@@ -281,14 +304,15 @@ class ParallelExecutor(BaseExecutor):
         # Adjust limits based on parallel execution context
         if parallel_instances > 1 or nested_level > 0:
             # CONSERVATIVE limits for nested/parallel execution
+            # parallel_instances is guaranteed to be >= 1 at this point due to sanitization
             if cpu_count <= 4:
-                absolute_max = max(10, 50 // parallel_instances)  # Divide available threads
+                absolute_max = max(10, 50 // parallel_instances)  # Safe: parallel_instances >= 1
             elif cpu_count <= 8:
-                absolute_max = max(15, 75 // parallel_instances)
+                absolute_max = max(15, 75 // parallel_instances)  # Safe: parallel_instances >= 1
             else:
-                absolute_max = max(20, 100 // parallel_instances)
+                absolute_max = max(20, 100 // parallel_instances)  # Safe: parallel_instances >= 1
 
-            recommended_max = max(cpu_count, cpu_count * 2 // parallel_instances)
+            recommended_max = max(cpu_count, cpu_count * 2 // parallel_instances)  # Safe: parallel_instances >= 1
 
             if executor_instance:
                 executor_instance.log_debug(f"Task {task_id}: Nested/parallel execution detected (instances={parallel_instances}, level={nested_level})")

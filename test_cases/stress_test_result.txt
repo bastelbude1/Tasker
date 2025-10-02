@@ -1,0 +1,539 @@
+WARNING: Skipping host validation can lead to connection failures!
+[02Oct25 08:36:29] === Task Execution Start: 02Oct25_083629 ===
+[02Oct25 08:36:29] # Task file: thread_safety_stress_test.txt
+[02Oct25 08:36:29] # Log level: INFO
+[02Oct25 08:36:29] # Execution type (Default): pbrun (if not overriden by task)
+[02Oct25 08:36:29] # Default timeout: 30 [s]
+[02Oct25 08:36:29] # Parsing global variables from 'thread_safety_stress_test.txt'
+[02Oct25 08:36:29] # Found 2 global variables
+[02Oct25 08:36:29] # Successfully parsed 105 valid tasks from 'thread_safety_stress_test.txt'
+[02Oct25 08:36:29] # Validating task file: thread_safety_stress_test.txt
+[02Oct25 08:36:29] # Task validation passed successfully.
+[02Oct25 08:36:29] # Task dependency validation passed.
+[02Oct25 08:36:29] WARN: # WARNING: Skipping host validation due to --skip-host-validation flag
+[02Oct25 08:36:29] WARN: # WARNING: Using hostnames as-is without FQDN resolution or reachability check
+[02Oct25 08:36:29] # Skipping hostname FQDN replacement due to --skip-host-validation flag
+[02Oct25 08:36:29] Task 0: Executing [pbrun]: pbrun -n -h localhost echo Starting thread safety stress test with 100 parallel tasks
+[02Oct25 08:36:29] Task 0: Exit code: 0
+[02Oct25 08:36:29] Task 0: STDOUT: pbrun: Executing 'echo Starting thread safety stress test with 100 parallel tasks' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 0: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 0: No 'next' condition specified, proceeding to next task
+[02Oct25 08:36:29] Task 0: 'next' condition succeeded, jumping to Task 1
+[02Oct25 08:36:29] Task 1: Starting parallel execution of 100 tasks (max_parallel=50, timeout=30s)
+[02Oct25 08:36:29] Task 1-101: Executing [pbrun]: pbrun -n -h localhost echo Task 101 SUCCESS
+[02Oct25 08:36:29] Task 1-102: Executing [pbrun]: pbrun -n -h localhost echo Task 102 SUCCESS
+[02Oct25 08:36:29] Task 1-103: Executing [pbrun]: pbrun -n -h localhost echo Task 103 SUCCESS
+[02Oct25 08:36:29] Task 1-104: Executing [pbrun]: pbrun -n -h localhost echo Task 104 SUCCESS
+[02Oct25 08:36:29] Task 1-105: Executing [pbrun]: pbrun -n -h localhost echo Task 105 SUCCESS
+[02Oct25 08:36:29] Task 1-106: Executing [pbrun]: pbrun -n -h localhost echo Task 106 SUCCESS
+[02Oct25 08:36:29] Task 1-107: Executing [pbrun]: pbrun -n -h localhost echo Task 107 SUCCESS
+[02Oct25 08:36:29] Task 1-101: Exit code: 0
+[02Oct25 08:36:29] Task 1-101: STDOUT: pbrun: Executing 'echo Task 101 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-101: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-108: Executing [pbrun]: pbrun -n -h localhost echo Task 108 SUCCESS
+[02Oct25 08:36:29] Task 1-109: Executing [pbrun]: pbrun -n -h localhost echo Task 109 SUCCESS
+[02Oct25 08:36:29] Task 1-111: Executing [pbrun]: pbrun -n -h localhost echo Task 111 SUCCESS
+[02Oct25 08:36:29] Task 1-110: Executing [pbrun]: pbrun -n -h localhost echo Task 110 SUCCESS
+[02Oct25 08:36:29] Task 1-103: Exit code: 0
+[02Oct25 08:36:29] Task 1-103: STDOUT: pbrun: Executing 'echo Task 103 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-103: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-112: Executing [pbrun]: pbrun -n -h localhost echo Task 112 SUCCESS
+[02Oct25 08:36:29] Task 1-104: Exit code: 0
+[02Oct25 08:36:29] Task 1-104: STDOUT: pbrun: Executing 'echo Task 104 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-104: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-114: Executing [pbrun]: pbrun -n -h localhost echo Task 114 SUCCESS
+[02Oct25 08:36:29] Task 1-113: Executing [pbrun]: pbrun -n -h localhost echo Task 113 SUCCESS
+[02Oct25 08:36:29] Task 1-115: Executing [pbrun]: pbrun -n -h localhost echo Task 115 SUCCESS
+[02Oct25 08:36:29] Task 1-117: Executing [pbrun]: pbrun -n -h localhost echo Task 117 SUCCESS
+[02Oct25 08:36:29] Task 1-102: Exit code: 0
+[02Oct25 08:36:29] Task 1-102: STDOUT: pbrun: Executing 'echo Task 102 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-116: Executing [pbrun]: pbrun -n -h localhost echo Task 116 SUCCESS
+[02Oct25 08:36:29] Task 1-106: Exit code: 0
+[02Oct25 08:36:29] Task 1-118: Executing [pbrun]: pbrun -n -h localhost echo Task 118 SUCCESS
+[02Oct25 08:36:29] Task 1-102: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-105: Exit code: 0
+[02Oct25 08:36:29] Task 1-107: Exit code: 0
+[02Oct25 08:36:29] Task 1-119: Executing [pbrun]: pbrun -n -h localhost echo Task 119 SUCCESS
+[02Oct25 08:36:29] Task 1-108: Exit code: 0
+[02Oct25 08:36:29] Task 1-106: STDOUT: pbrun: Executing 'echo Task 106 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-111: Exit code: 0
+[02Oct25 08:36:29] Task 1-109: Exit code: 0
+[02Oct25 08:36:29] Task 1-120: Executing [pbrun]: pbrun -n -h localhost echo Task 120 SUCCESS
+[02Oct25 08:36:29] Task 1-112: Exit code: 0
+[02Oct25 08:36:29] Task 1-121: Executing [pbrun]: pbrun -n -h localhost echo Task 121 SUCCESS
+[02Oct25 08:36:29] Task 1-122: Executing [pbrun]: pbrun -n -h localhost false
+[02Oct25 08:36:29] Task 1-105: STDOUT: pbrun: Executing 'echo Task 105 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-123: Executing [pbrun]: pbrun -n -h localhost echo Task 123 SUCCESS
+[02Oct25 08:36:29] Task 1-116: Exit code: 0
+[02Oct25 08:36:29] Task 1-124: Executing [pbrun]: pbrun -n -h localhost false
+[02Oct25 08:36:29] Task 1-113: Exit code: 0
+[02Oct25 08:36:29] Task 1-125: Executing [pbrun]: pbrun -n -h localhost echo Task 125 SUCCESS
+[02Oct25 08:36:29] Task 1-107: STDOUT: pbrun: Executing 'echo Task 107 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-117: Exit code: 0
+[02Oct25 08:36:29] Task 1-110: Exit code: 0
+[02Oct25 08:36:29] Task 1-114: Exit code: 0
+[02Oct25 08:36:29] Task 1-126: Executing [pbrun]: pbrun -n -h localhost echo Task 126 SUCCESS
+[02Oct25 08:36:29] Task 1-115: Exit code: 0
+[02Oct25 08:36:29] Task 1-127: Executing [pbrun]: pbrun -n -h localhost false
+[02Oct25 08:36:29] Task 1-108: STDOUT: pbrun: Executing 'echo Task 108 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-128: Executing [pbrun]: pbrun -n -h localhost echo Task 128 SUCCESS
+[02Oct25 08:36:29] Task 1-129: Executing [pbrun]: pbrun -n -h localhost echo Task 129 SUCCESS
+[02Oct25 08:36:29] Task 1-130: Executing [pbrun]: pbrun -n -h localhost echo Task 130 SUCCESS
+[02Oct25 08:36:29] Task 1-106: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-111: STDOUT: pbrun: Executing 'echo Task 111 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-131: Executing [pbrun]: pbrun -n -h localhost echo Task 131 SUCCESS
+[02Oct25 08:36:29] Task 1-118: Exit code: 0
+[02Oct25 08:36:29] Task 1-109: STDOUT: pbrun: Executing 'echo Task 109 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-132: Executing [pbrun]: pbrun -n -h localhost echo Task 132 SUCCESS
+[02Oct25 08:36:29] Task 1-112: STDOUT: pbrun: Executing 'echo Task 112 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-133: Executing [pbrun]: pbrun -n -h localhost false
+[02Oct25 08:36:29] Task 1-119: Exit code: 0
+[02Oct25 08:36:29] Task 1-105: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-134: Executing [pbrun]: pbrun -n -h localhost echo Task 134 SUCCESS
+[02Oct25 08:36:29] Task 1-135: Executing [pbrun]: pbrun -n -h localhost echo Task 135 SUCCESS
+[02Oct25 08:36:29] Task 1-116: STDOUT: pbrun: Executing 'echo Task 116 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-136: Executing [pbrun]: pbrun -n -h localhost echo Task 136 SUCCESS
+[02Oct25 08:36:29] Task 1-137: Executing [pbrun]: pbrun -n -h localhost false
+[02Oct25 08:36:29] Task 1-113: STDOUT: pbrun: Executing 'echo Task 113 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-138: Executing [pbrun]: pbrun -n -h localhost echo Task 138 SUCCESS
+[02Oct25 08:36:29] Task 1-120: Exit code: 0
+[02Oct25 08:36:29] Task 1-107: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-139: Executing [pbrun]: pbrun -n -h localhost echo Task 139 SUCCESS
+[02Oct25 08:36:29] Task 1-123: Exit code: 0
+[02Oct25 08:36:29] Task 1-140: Executing [pbrun]: pbrun -n -h localhost echo Task 140 SUCCESS
+[02Oct25 08:36:29] Task 1-122: Exit code: 0
+[02Oct25 08:36:29] Task 1-121: Exit code: 0
+[02Oct25 08:36:29] Task 1-117: STDOUT: pbrun: Executing 'echo Task 117 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-141: Executing [pbrun]: pbrun -n -h localhost echo Task 141 with longer output to test memory handling in parallel execution
+[02Oct25 08:36:29] Task 1-142: Executing [pbrun]: pbrun -n -h localhost echo Task 142 with longer output to test memory handling in parallel execution
+[02Oct25 08:36:29] Task 1-110: STDOUT: pbrun: Executing 'echo Task 110 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-124: Exit code: 0
+[02Oct25 08:36:29] Task 1-114: STDOUT: pbrun: Executing 'echo Task 114 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-143: Executing [pbrun]: pbrun -n -h localhost echo Task 143 with longer output to test memory handling in parallel execution
+[02Oct25 08:36:29] Task 1-144: Executing [pbrun]: pbrun -n -h localhost echo Task 144 with longer output to test memory handling in parallel execution
+[02Oct25 08:36:29] Task 1-145: Executing [pbrun]: pbrun -n -h localhost echo Task 145 with longer output to test memory handling in parallel execution
+[02Oct25 08:36:29] Task 1-115: STDOUT: pbrun: Executing 'echo Task 115 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-146: Executing [pbrun]: pbrun -n -h localhost echo Task 146 with longer output to test memory handling in parallel execution
+[02Oct25 08:36:29] Task 1-147: Executing [pbrun]: pbrun -n -h localhost echo Task 147 with longer output to test memory handling in parallel execution
+[02Oct25 08:36:29] Task 1-108: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-148: Executing [pbrun]: pbrun -n -h localhost echo Task 148 with longer output to test memory handling in parallel execution
+[02Oct25 08:36:29] Task 1-125: Exit code: 0
+[02Oct25 08:36:29] Task 1-149: Executing [pbrun]: pbrun -n -h localhost echo Task 149 with longer output to test memory handling in parallel execution
+[02Oct25 08:36:29] Task 1-126: Exit code: 0
+[02Oct25 08:36:29] Task 1-150: Executing [pbrun]: pbrun -n -h localhost echo Task 150 with longer output to test memory handling in parallel execution
+[02Oct25 08:36:29] Task 1-151: Executing [pbrun]: pbrun -n -h localhost echo Task 151 SUCCESS
+[02Oct25 08:36:29] Task 1-111: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-152: Executing [pbrun]: pbrun -n -h localhost echo Task 152 SUCCESS
+[02Oct25 08:36:29] Task 1-127: Exit code: 0
+[02Oct25 08:36:29] Task 1-153: Executing [pbrun]: pbrun -n -h localhost echo Task 153 SUCCESS
+[02Oct25 08:36:29] Task 1-118: STDOUT: pbrun: Executing 'echo Task 118 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-130: Exit code: 0
+[02Oct25 08:36:29] Task 1-154: Executing [pbrun]: pbrun -n -h localhost echo Task 154 SUCCESS
+[02Oct25 08:36:29] Task 1-109: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-112: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-155: Executing [pbrun]: pbrun -n -h localhost echo Task 155 SUCCESS
+[02Oct25 08:36:29] Task 1-119: STDOUT: pbrun: Executing 'echo Task 119 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1: Completed task 102 - Success: True
+[02Oct25 08:36:29] Task 1-129: Exit code: 0
+[02Oct25 08:36:29] Task 1-156: Executing [pbrun]: pbrun -n -h localhost echo Task 156 SUCCESS
+[02Oct25 08:36:29] Task 1-128: Exit code: 0
+[02Oct25 08:36:29] Task 1-131: Exit code: 0
+[02Oct25 08:36:29] Task 1-132: Exit code: 0
+[02Oct25 08:36:29] Task 1-116: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-133: Exit code: 0
+[02Oct25 08:36:29] Task 1-113: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-120: STDOUT: pbrun: Executing 'echo Task 120 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-134: Exit code: 0
+[02Oct25 08:36:29] Task 1-157: Executing [pbrun]: pbrun -n -h localhost echo Task 157 SUCCESS
+[02Oct25 08:36:29] Task 1-123: STDOUT: pbrun: Executing 'echo Task 123 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-122: STDOUT: pbrun: Executing 'false ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-121: STDOUT: pbrun: Executing 'echo Task 121 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-135: Exit code: 0
+[02Oct25 08:36:29] Task 1-137: Exit code: 0
+[02Oct25 08:36:29] Task 1-117: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-136: Exit code: 0
+[02Oct25 08:36:29] Task 1-110: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-138: Exit code: 0
+[02Oct25 08:36:29] Task 1-124: STDOUT: pbrun: Executing 'false ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-114: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-139: Exit code: 0
+[02Oct25 08:36:29] Task 1-140: Exit code: 0
+[02Oct25 08:36:29] Task 1-141: Exit code: 0
+[02Oct25 08:36:29] Task 1-115: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-142: Exit code: 0
+[02Oct25 08:36:29] Task 1-143: Exit code: 0
+[02Oct25 08:36:29] Task 1-158: Executing [pbrun]: pbrun -n -h localhost echo Task 158 SUCCESS
+[02Oct25 08:36:29] Task 1-144: Exit code: 0
+[02Oct25 08:36:29] Task 1-125: STDOUT: pbrun: Executing 'echo Task 125 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-126: STDOUT: pbrun: Executing 'echo Task 126 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-147: Exit code: 0
+[02Oct25 08:36:29] Task 1-146: Exit code: 0
+[02Oct25 08:36:29] Task 1-145: Exit code: 0
+[02Oct25 08:36:29] Task 1-159: Executing [pbrun]: pbrun -n -h localhost echo Task 159 SUCCESS
+[02Oct25 08:36:29] Task 1-148: Exit code: 0
+[02Oct25 08:36:29] Task 1-127: STDOUT: pbrun: Executing 'false ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-118: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-130: STDOUT: pbrun: Executing 'echo Task 130 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-149: Exit code: 0
+[02Oct25 08:36:29] Task 1-151: Exit code: 0
+[02Oct25 08:36:29] Task 1-160: Executing [pbrun]: pbrun -n -h localhost echo Task 160 SUCCESS
+[02Oct25 08:36:29] Task 1-161: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-150: Exit code: 0
+[02Oct25 08:36:29] Task 1-119: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-152: Exit code: 0
+[02Oct25 08:36:29] Task 1: Completed task 104 - Success: True
+[02Oct25 08:36:29] Task 1-129: STDOUT: pbrun: Executing 'echo Task 129 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-153: Exit code: 0
+[02Oct25 08:36:29] Task 1-128: STDOUT: pbrun: Executing 'echo Task 128 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-131: STDOUT: pbrun: Executing 'echo Task 131 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-132: STDOUT: pbrun: Executing 'echo Task 132 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-162: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-133: STDOUT: pbrun: Executing 'false ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-163: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-120: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-155: Exit code: 0
+[02Oct25 08:36:29] Task 1-134: STDOUT: pbrun: Executing 'echo Task 134 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-154: Exit code: 0
+[02Oct25 08:36:29] Task 1-123: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-156: Exit code: 0
+[02Oct25 08:36:29] Task 1-122: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-121: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-135: STDOUT: pbrun: Executing 'echo Task 135 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-137: STDOUT: pbrun: Executing 'false ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-164: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-136: STDOUT: pbrun: Executing 'echo Task 136 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-165: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-138: STDOUT: pbrun: Executing 'echo Task 138 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-124: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-166: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-139: STDOUT: pbrun: Executing 'echo Task 139 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-140: STDOUT: pbrun: Executing 'echo Task 140 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-141: STDOUT: pbrun: Executing 'echo Task 141 with longer output to test memory handling in parallel execution' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-167: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-142: STDOUT: pbrun: Executing 'echo Task 142 with longer output to test memory handling in parallel execution' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-143: STDOUT: pbrun: Executing 'echo Task 143 with longer output to test memory handling in parallel execution' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-144: STDOUT: pbrun: Executing 'echo Task 144 with longer output to test memory handling in parallel execution' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-157: Exit code: 0
+[02Oct25 08:36:29] Task 1-125: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-126: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-147: STDOUT: pbrun: Executing 'echo Task 147 with longer output to test memory handling in parallel execution' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-146: STDOUT: pbrun: Executing 'echo Task 146 with longer output to test memory handling in parallel execution' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-145: STDOUT: pbrun: Executing 'echo Task 145 with longer output to test memory handling in parallel execution' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-148: STDOUT: pbrun: Executing 'echo Task 148 with longer output to test memory handling in parallel execution' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-127: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-168: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-130: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-149: STDOUT: pbrun: Executing 'echo Task 149 with longer output to test memory handling in parallel execution' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-151: STDOUT: pbrun: Executing 'echo Task 151 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-158: Exit code: 0
+[02Oct25 08:36:29] Task 1-150: STDOUT: pbrun: Executing 'echo Task 150 with longer output to test memory handling in parallel execution' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-169: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-159: Exit code: 0
+[02Oct25 08:36:29] Task 1-152: STDOUT: pbrun: Executing 'echo Task 152 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1: Completed task 101 - Success: True
+[02Oct25 08:36:29] Task 1-160: Exit code: 0
+[02Oct25 08:36:29] Task 1-129: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-153: STDOUT: pbrun: Executing 'echo Task 153 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-128: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-131: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-132: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-161: Exit code: 0
+[02Oct25 08:36:29] Task 1-133: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-170: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-155: STDOUT: pbrun: Executing 'echo Task 155 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-134: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-154: STDOUT: pbrun: Executing 'echo Task 154 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-171: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-156: STDOUT: pbrun: Executing 'echo Task 156 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-172: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-173: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-135: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-137: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-136: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-138: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-162: Exit code: 0
+[02Oct25 08:36:29] Task 1-174: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-163: Exit code: 0
+[02Oct25 08:36:29] Task 1-139: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-140: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-141: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-142: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-164: Exit code: 0
+[02Oct25 08:36:29] Task 1-143: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-144: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-157: STDOUT: pbrun: Executing 'echo Task 157 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-175: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-176: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-147: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-146: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-166: Exit code: 0
+[02Oct25 08:36:29] Task 1-145: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-148: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-165: Exit code: 0
+[02Oct25 08:36:29] Task 1-177: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-167: Exit code: 0
+[02Oct25 08:36:29] Task 1-178: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-149: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-151: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-158: STDOUT: pbrun: Executing 'echo Task 158 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-150: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-159: STDOUT: pbrun: Executing 'echo Task 159 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-152: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1: Completed task 106 - Success: True
+[02Oct25 08:36:29] Task 1-160: STDOUT: pbrun: Executing 'echo Task 160 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-179: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-153: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-180: Executing [pbrun]: pbrun -n -h localhost true
+[02Oct25 08:36:29] Task 1-181: Executing [pbrun]: pbrun -n -h localhost echo Task 181 SUCCESS
+[02Oct25 08:36:29] Task 1-168: Exit code: 0
+[02Oct25 08:36:29] Task 1-182: Executing [pbrun]: pbrun -n -h localhost echo Task 182 SUCCESS
+[02Oct25 08:36:29] Task 1-161: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-183: Executing [pbrun]: pbrun -n -h localhost echo Task 183 SUCCESS
+[02Oct25 08:36:29] Task 1-155: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-184: Executing [pbrun]: pbrun -n -h localhost echo Task 184 SUCCESS
+[02Oct25 08:36:29] Task 1-154: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-156: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-169: Exit code: 0
+[02Oct25 08:36:29] Task 1-185: Executing [pbrun]: pbrun -n -h localhost echo Task 185 SUCCESS
+[02Oct25 08:36:29] Task 1-186: Executing [pbrun]: pbrun -n -h localhost echo Task 186 SUCCESS
+[02Oct25 08:36:29] Task 1-187: Executing [pbrun]: pbrun -n -h localhost echo Task 187 SUCCESS
+[02Oct25 08:36:29] Task 1-170: Exit code: 0
+[02Oct25 08:36:29] Task 1-188: Executing [pbrun]: pbrun -n -h localhost echo Task 188 SUCCESS
+[02Oct25 08:36:29] Task 1-162: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-171: Exit code: 0
+[02Oct25 08:36:29] Task 1-163: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-172: Exit code: 0
+[02Oct25 08:36:29] Task 1-189: Executing [pbrun]: pbrun -n -h localhost echo Task 189 SUCCESS
+[02Oct25 08:36:29] Task 1-173: Exit code: 0
+[02Oct25 08:36:29] Task 1-190: Executing [pbrun]: pbrun -n -h localhost echo Task 190 SUCCESS
+[02Oct25 08:36:29] Task 1-191: Executing [pbrun]: pbrun -n -h localhost echo Task 191 SUCCESS
+[02Oct25 08:36:29] Task 1-192: Executing [pbrun]: pbrun -n -h localhost echo Task 192 SUCCESS
+[02Oct25 08:36:29] Task 1-164: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-193: Executing [pbrun]: pbrun -n -h localhost echo Task 193 SUCCESS
+[02Oct25 08:36:29] Task 1-194: Executing [pbrun]: pbrun -n -h localhost echo Task 194 SUCCESS
+[02Oct25 08:36:29] Task 1-157: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-195: Executing [pbrun]: pbrun -n -h localhost echo Task 195 SUCCESS
+[02Oct25 08:36:29] Task 1-196: Executing [pbrun]: pbrun -n -h localhost echo Task 196 SUCCESS
+[02Oct25 08:36:29] Task 1-166: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-197: Executing [pbrun]: pbrun -n -h localhost echo Task 197 SUCCESS
+[02Oct25 08:36:29] Task 1-198: Executing [pbrun]: pbrun -n -h localhost echo Task 198 SUCCESS
+[02Oct25 08:36:29] Task 1-165: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-174: Exit code: 0
+[02Oct25 08:36:29] Task 1-167: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-176: Exit code: 0
+[02Oct25 08:36:29] Task 1-199: Executing [pbrun]: pbrun -n -h localhost echo Task 199 SUCCESS
+[02Oct25 08:36:29] Task 1-200: Executing [pbrun]: pbrun -n -h localhost echo Task 200 SUCCESS - FINAL TASK
+[02Oct25 08:36:29] Task 1-158: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-175: Exit code: 0
+[02Oct25 08:36:29] Task 1-159: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1: Completed task 103 - Success: True
+[02Oct25 08:36:29] Task 1-160: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-168: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-178: Exit code: 0
+[02Oct25 08:36:29] Task 1-177: Exit code: 0
+[02Oct25 08:36:29] Task 1-161: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-180: Exit code: 0
+[02Oct25 08:36:29] Task 1-179: Exit code: 0
+[02Oct25 08:36:29] Task 1-182: Exit code: 0
+[02Oct25 08:36:29] Task 1-181: Exit code: 0
+[02Oct25 08:36:29] Task 1-169: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-184: Exit code: 0
+[02Oct25 08:36:29] Task 1-170: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-183: Exit code: 0
+[02Oct25 08:36:29] Task 1-162: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-171: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-185: Exit code: 0
+[02Oct25 08:36:29] Task 1-163: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-172: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-187: Exit code: 0
+[02Oct25 08:36:29] Task 1-173: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-186: Exit code: 0
+[02Oct25 08:36:29] Task 1-164: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-188: Exit code: 0
+[02Oct25 08:36:29] Task 1-190: Exit code: 0
+[02Oct25 08:36:29] Task 1-166: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-192: Exit code: 0
+[02Oct25 08:36:29] Task 1-165: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-174: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-167: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-191: Exit code: 0
+[02Oct25 08:36:29] Task 1-176: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-189: Exit code: 0
+[02Oct25 08:36:29] Task 1-194: Exit code: 0
+[02Oct25 08:36:29] Task 1-193: Exit code: 0
+[02Oct25 08:36:29] Task 1-196: Exit code: 0
+[02Oct25 08:36:29] Task 1-198: Exit code: 0
+[02Oct25 08:36:29] Task 1-175: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1: Completed task 105 - Success: True
+[02Oct25 08:36:29] Task 1-195: Exit code: 0
+[02Oct25 08:36:29] Task 1-197: Exit code: 0
+[02Oct25 08:36:29] Task 1-168: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-178: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-177: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-180: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-179: STDOUT: pbrun: Executing 'true ' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-182: STDOUT: pbrun: Executing 'echo Task 182 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-181: STDOUT: pbrun: Executing 'echo Task 181 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-169: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-184: STDOUT: pbrun: Executing 'echo Task 184 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-170: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-183: STDOUT: pbrun: Executing 'echo Task 183 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-171: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-185: STDOUT: pbrun: Executing 'echo Task 185 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-199: Exit code: 0
+[02Oct25 08:36:29] Task 1-172: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-187: STDOUT: pbrun: Executing 'echo Task 187 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-200: Exit code: 0
+[02Oct25 08:36:29] Task 1-173: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-186: STDOUT: pbrun: Executing 'echo Task 186 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-188: STDOUT: pbrun: Executing 'echo Task 188 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-190: STDOUT: pbrun: Executing 'echo Task 190 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-192: STDOUT: pbrun: Executing 'echo Task 192 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-174: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-191: STDOUT: pbrun: Executing 'echo Task 191 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-176: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-189: STDOUT: pbrun: Executing 'echo Task 189 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-194: STDOUT: pbrun: Executing 'echo Task 194 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-193: STDOUT: pbrun: Executing 'echo Task 193 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-196: STDOUT: pbrun: Executing 'echo Task 196 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-198: STDOUT: pbrun: Executing 'echo Task 198 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-175: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1: Completed task 107 - Success: True
+[02Oct25 08:36:29] Task 1-195: STDOUT: pbrun: Executing 'echo Task 195 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-197: STDOUT: pbrun: Executing 'echo Task 197 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-178: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-177: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-180: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-179: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-182: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-181: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-184: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-183: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-185: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-199: STDOUT: pbrun: Executing 'echo Task 199 SUCCESS' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-187: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-200: STDOUT: pbrun: Executing 'echo Task 200 SUCCESS - FINAL TASK' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 1-186: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-188: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-190: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-192: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-191: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-189: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-194: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-193: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-196: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-198: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1: Completed task 108 - Success: True
+[02Oct25 08:36:29] Task 1-195: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-197: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-199: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1-200: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 1: Completed task 111 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 109 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 112 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 116 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 113 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 117 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 110 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 114 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 115 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 118 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 119 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 120 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 123 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 122 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 121 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 124 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 125 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 126 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 127 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 130 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 129 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 128 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 131 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 132 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 133 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 134 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 135 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 137 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 136 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 138 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 139 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 140 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 141 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 142 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 143 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 144 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 147 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 146 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 145 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 148 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 149 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 151 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 150 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 152 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 153 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 155 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 154 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 156 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 157 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 158 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 159 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 160 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 161 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 162 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 163 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 164 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 166 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 165 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 167 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 168 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 169 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 170 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 171 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 172 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 173 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 174 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 176 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 175 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 178 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 177 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 180 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 179 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 182 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 181 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 184 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 183 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 185 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 187 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 186 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 188 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 190 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 192 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 191 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 189 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 194 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 193 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 196 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 198 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 195 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 197 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 199 - Success: True
+[02Oct25 08:36:29] Task 1: Completed task 200 - Success: True
+[02Oct25 08:36:29] Task 1: Parallel execution completed in 0.16 seconds
+[02Oct25 08:36:29] Task 1: No 'next' condition, using all_success logic: 100/100 = True
+[02Oct25 08:36:29] Task 1: Parallel success (100/100), jumping to Task 2
+[02Oct25 08:36:29] Task 2: Executing [pbrun]: pbrun -n -h localhost echo THREAD SAFETY TEST PASSED - All 100 parallel tasks completed without race conditions
+[02Oct25 08:36:29] Task 2: Exit code: 0
+[02Oct25 08:36:29] Task 2: STDOUT: pbrun: Executing 'echo THREAD SAFETY TEST PASSED - All 100 parallel tasks completed without race conditions' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 2: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 2: No 'next' condition specified, proceeding to next task
+[02Oct25 08:36:29] Task 2: 'next' condition succeeded, jumping to Task 3
+[02Oct25 08:36:29] Task 3: Executing [pbrun]: pbrun -n -h localhost echo STRESS TEST COMPLETE - No thread safety issues detected
+[02Oct25 08:36:29] Task 3: Exit code: 0
+[02Oct25 08:36:29] Task 3: STDOUT: pbrun: Executing 'echo STRESS TEST COMPLETE - No thread safety issues detected' on localhost\npbrun: Command completed on localhost
+[02Oct25 08:36:29] Task 3: Success condition 'exit_0' evaluated to: True
+[02Oct25 08:36:29] Task 3: No 'next' condition specified, proceeding to next task
+[02Oct25 08:36:29] SUCCESS: Task execution completed - reached end of defined tasks.
+[02Oct25 08:36:29] # Log file: /home/baste/TASKER/thread_safety_stress_test_02Oct25_083629.log
+[02Oct25 08:36:29] === Task Execution End: 02Oct25_083629 ===

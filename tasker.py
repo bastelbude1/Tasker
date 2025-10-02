@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 """
-TASKER 2.0 - Command Line Interface
+TASKER 2.1 - Command Line Interface
 -----------------------------------
-Clean CLI wrapper for the TASKER 2.0 task execution system.
+Clean CLI wrapper for the TASKER 2.1 task execution system.
 
 This script provides the command-line interface and argument parsing for TASKER,
 while delegating all core functionality to the modular TaskExecutor class.
@@ -35,9 +35,9 @@ from tasker.core.utilities import get_log_directory
 
 
 def main():
-    """Main entry point for TASKER 2.0 command-line interface."""
+    """Main entry point for TASKER 2.1 command-line interface."""
     parser = argparse.ArgumentParser(
-        description='TASKER 2.0 - Execute tasks on remote servers with comprehensive flow control.',
+        description='TASKER 2.1 - Execute tasks on remote servers with comprehensive flow control.',
         epilog='''
 Examples:
   %(prog)s tasks.txt -r                    # Execute tasks (real run)

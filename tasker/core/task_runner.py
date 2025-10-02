@@ -1,6 +1,6 @@
 # tasker/core/task_runner.py
 """
-TASKER 2.0 - Task Execution Component
+TASKER 2.1 - Task Execution Component
 ------------------------------------
 Handles core task execution logic and coordination.
 

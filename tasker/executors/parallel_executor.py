@@ -5,7 +5,9 @@ Parallel Task Executor
 Parallel task execution with threading, timeouts, and retry logic.
 """
 
+import os
 import time
+import multiprocessing
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from .base_executor import BaseExecutor
 from ..core.condition_evaluator import ConditionEvaluator
@@ -221,7 +223,17 @@ class ParallelExecutor(BaseExecutor):
             return None
         
         # Get parallel execution parameters
-        max_parallel = int(parallel_task.get('max_parallel', len(tasks_to_execute)))
+        # DEFAULT: 8 threads - safe for any system, user must explicitly override for higher values
+        # This ensures users read documentation about risks before using high parallelism
+        DEFAULT_MAX_PARALLEL = 8
+        max_parallel = int(parallel_task.get('max_parallel', DEFAULT_MAX_PARALLEL))
+
+        # Inform user about high parallelism only if TASKER_PARALLEL_INSTANCES is not set
+        # If they set the env var, they're already aware of the implications
+        parallel_instances_set = 'TASKER_PARALLEL_INSTANCES' in os.environ
+        if max_parallel > 32 and not parallel_instances_set and executor_instance:
+            executor_instance.log(f"Task {task_id}: INFO: High parallelism requested (max_parallel={max_parallel}). "
+                                f"Consider setting TASKER_PARALLEL_INSTANCES if running multiple TASKER instances. See README.md for details.")
         
         # NEW: Parse retry configuration
         retry_config = executor_instance.parse_retry_config(parallel_task)
@@ -248,9 +260,84 @@ class ParallelExecutor(BaseExecutor):
         # Execute tasks in parallel with master timeout enforcement and retry logic
         results = []
         start_time = time.time()
-        
+
+        # Cap thread pool size to prevent resource exhaustion
+        # CRITICAL: Check for nested parallelism (multiple TASKER instances)
+        cpu_count = multiprocessing.cpu_count()
+
+        # Check if we're running in a nested/parallel context
+        # This could be set by orchestration scripts or CI/CD systems
         try:
-            with ThreadPoolExecutor(max_workers=max_parallel, thread_name_prefix=f"Task{task_id}") as thread_executor:
+            parallel_instances = int(os.environ.get('TASKER_PARALLEL_INSTANCES', '1'))
+        except (ValueError, TypeError):
+            parallel_instances = 1
+            if executor_instance:
+                executor_instance.log_debug(f"Task {task_id}: Invalid TASKER_PARALLEL_INSTANCES value, defaulting to 1")
+
+        # Sanitize to prevent division by zero and negative values
+        if parallel_instances <= 0:
+            if executor_instance:
+                executor_instance.log_debug(f"Task {task_id}: TASKER_PARALLEL_INSTANCES was {parallel_instances}, correcting to 1")
+            parallel_instances = 1
+
+        # Clamp to reasonable maximum to prevent over-division
+        parallel_instances = min(parallel_instances, 1000)
+
+        try:
+            nested_level = int(os.environ.get('TASKER_NESTED_LEVEL', '0'))
+        except (ValueError, TypeError):
+            nested_level = 0
+            if executor_instance:
+                executor_instance.log_debug(f"Task {task_id}: Invalid TASKER_NESTED_LEVEL value, defaulting to 0")
+
+        # Sanitize nested level
+        nested_level = max(0, nested_level)
+
+        # Detect if multiple TASKER processes are running (heuristic)
+        # This is a safeguard when TASKER_PARALLEL_INSTANCES isn't set
+        if parallel_instances == 1 and nested_level == 0:
+            # Try to detect parallel execution by checking for instance ID in environment
+            if 'PARALLEL_INSTANCE_ID' in os.environ or 'CI_NODE_INDEX' in os.environ:
+                parallel_instances = 10  # Assume reasonable number of parallel instances
+                executor_instance.log_debug(f"Task {task_id}: Detected parallel execution environment, assuming {parallel_instances} instances")
+
+        # Adjust limits based on parallel execution context
+        if parallel_instances > 1 or nested_level > 0:
+            # CONSERVATIVE limits for nested/parallel execution
+            # parallel_instances is guaranteed to be >= 1 at this point due to sanitization
+            if cpu_count <= 4:
+                absolute_max = max(10, 50 // parallel_instances)  # Safe: parallel_instances >= 1
+            elif cpu_count <= 8:
+                absolute_max = max(15, 75 // parallel_instances)  # Safe: parallel_instances >= 1
+            else:
+                absolute_max = max(20, 100 // parallel_instances)  # Safe: parallel_instances >= 1
+
+            recommended_max = max(cpu_count, cpu_count * 2 // parallel_instances)  # Safe: parallel_instances >= 1
+
+            if executor_instance:
+                executor_instance.log_debug(f"Task {task_id}: Nested/parallel execution detected (instances={parallel_instances}, level={nested_level})")
+        else:
+            # NORMAL limits for single instance execution
+            if cpu_count <= 4:
+                absolute_max = 50
+            elif cpu_count <= 8:
+                absolute_max = 75
+            else:
+                absolute_max = 100
+
+            recommended_max = cpu_count * 4  # More reasonable for I/O-bound tasks
+
+        # Apply progressive capping
+        capped_max_workers = min(max_parallel, recommended_max, absolute_max)
+
+        if capped_max_workers < max_parallel:
+            details = f"CPU cores: {cpu_count}, recommended: {recommended_max}, absolute max: {absolute_max}"
+            if parallel_instances > 1:
+                details += f", parallel instances: {parallel_instances}"
+            executor_instance.log_debug(f"Task {task_id}: Capping thread pool from {max_parallel} to {capped_max_workers} ({details})")
+
+        try:
+            with ThreadPoolExecutor(max_workers=capped_max_workers, thread_name_prefix=f"Task{task_id}") as thread_executor:
                 # Submit tasks with or without retry based on config
                 future_to_task = {}
                 for task in tasks_to_execute:

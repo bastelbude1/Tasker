@@ -8,7 +8,6 @@ path traversal, buffer overflow, and other attack vectors.
 
 CRITICAL: Python 3.6.8 compatible only - no 3.7+ features allowed
 """
-import os
 import re
 
 

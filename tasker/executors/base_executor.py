@@ -188,9 +188,8 @@ class BaseExecutor(ABC):
             # 8. Real execution with memory-efficient streaming
             start_time = time.time()
             try:
-                # Create memory-efficient output handler
-                # Configure based on task or system defaults (10MB memory limit)
-                max_memory_mb = int(task.get('max_output_memory_mb', 10))
+                # Create memory-efficient output handler with 10MB default limit
+                max_memory_mb = 10
 
                 with create_memory_efficient_handler(max_memory_mb) as output_handler:
                     # Use Popen pattern for Python 3.6.8 compatibility

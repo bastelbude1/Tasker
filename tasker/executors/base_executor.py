@@ -195,6 +195,7 @@ class BaseExecutor(ABC):
                     # Use Popen pattern for Python 3.6.8 compatibility
                     with subprocess.Popen(
                         cmd_array,
+                        shell=False,  # Security: Explicit shell=False for command array execution
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         universal_newlines=True
@@ -204,28 +205,23 @@ class BaseExecutor(ABC):
                             process, timeout=task_timeout
                         )
                         execution_time = time.time() - start_time
+                        execution_context.log_debug(f"Task {task_display_id}: Execution time: {execution_time:.3f}s")
 
                         # Log memory usage information for debugging
                         memory_info = output_handler.get_memory_usage_info()
                         if memory_info['using_temp_files']:
                             execution_context.log_debug(f"Task {task_display_id}: Used temp files for large output "
-                                                      f"(stdout: {memory_info['stdout_size']} bytes, "
-                                                      f"stderr: {memory_info['stderr_size']} bytes)")
+                                                      f"(stdout: {memory_info['stdout_size']} chars, "
+                                                      f"stderr: {memory_info['stderr_size']} chars)")
 
                         if timed_out:
-                            execution_context.log(f"Task {task_display_id}: TIMEOUT after {task_timeout}s")
-                            return {
-                                'task_id': task_id,
-                                'exit_code': 124,
-                                'stdout': '',
-                                'stderr': f'Command timed out after {task_timeout} seconds',
-                                'success': False,
-                                'skipped': False,
-                                'sleep_seconds': int(task.get('sleep', 0))
-                            }
+                            execution_context.log(f"Task {task_display_id}: Timeout after {task_timeout} seconds. Process killed.")
+                            exit_code = 124  # Common exit code for timeout
+                            raw_stderr += f"\nProcess killed after timeout of {task_timeout} seconds"
 
             except Exception as e:
                 execution_time = time.time() - start_time
+                execution_context.log_debug(f"Task {task_display_id}: Execution time: {execution_time:.3f}s")
                 execution_context.log(f"Task {task_display_id}: Execution error: {str(e)}")
                 return {
                     'task_id': task_id,

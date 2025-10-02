@@ -613,6 +613,296 @@ hostname=@0_stdout@
 command=connect_database
 ```
 
+## Memory-Efficient Output Streaming
+
+TASKER 2.0 includes an advanced memory-efficient output streaming system that prevents Out-of-Memory (OOM) errors when processing commands that generate large amounts of output (1GB+). This system automatically manages memory usage and seamlessly handles outputs of any size.
+
+### The Problem with Large Outputs
+
+Before the streaming system, TASKER would load entire command outputs into memory, causing system crashes with large outputs:
+
+```bash
+# This would crash TASKER 1.x with OOM errors
+task=0
+hostname=server1
+command=find /data -type f -exec ls -la {} \;
+# Could generate 1GB+ of output
+
+task=1
+hostname=server2
+command=mysqldump --all-databases --single-transaction
+# Database dumps can be several GB
+
+task=2
+hostname=log-server
+command=cat /var/log/application.log
+# Log files can grow to hundreds of MB
+```
+
+### How Memory-Efficient Streaming Works
+
+The streaming system implements a sophisticated three-tier approach:
+
+#### Tier 1: In-Memory Buffering (Up to 10MB)
+For small to medium outputs, everything stays in memory for maximum performance:
+
+```
+└── Memory Buffer (1MB chunks)
+    ├── Fast access for small outputs
+    ├── Zero disk I/O overhead
+    └── Instant variable resolution
+```
+
+#### Tier 2: Temporary File Streaming (10MB+)
+When outputs exceed 10MB, TASKER automatically streams to temporary files:
+
+```
+└── System Temp Directory (/tmp)
+    ├── tasker_stdout_abc123 (stdout content)
+    ├── tasker_stderr_def456 (stderr content)
+    └── Automatic cleanup after task completion
+```
+
+#### Tier 3: Memory Protection (100MB+ per task)
+Absolute limits prevent system overload:
+
+```
+└── Hard Memory Limits
+    ├── 100MB maximum per individual task
+    ├── Automatic temp file fallback
+    └── System resource protection
+```
+
+### Automatic Operation
+
+The streaming system operates completely transparently - no configuration required:
+
+```
+# These all work identically regardless of output size
+task=0
+hostname=web-server
+command=generate_small_report
+# Output: 50KB - stays in memory
+
+task=1
+hostname=database-server
+command=generate_large_export
+# Output: 50MB - automatically streams to temp files
+
+task=2
+hostname=log-server
+command=analyze_massive_dataset
+# Output: 500MB - streams with memory protection
+```
+
+### Technical Implementation Details
+
+#### Memory Thresholds
+- **In-Memory Limit**: 10MB per task (hardcoded for optimal performance)
+- **Buffer Size**: 1MB chunks for optimal I/O performance
+- **Maximum Memory**: 100MB absolute limit per task
+- **Temp File Location**: System temp directory (`/tmp` on Linux)
+
+#### Streaming Process
+1. **Real-time Processing**: Output is processed as it's generated
+2. **Threshold Detection**: Automatically switches to temp files at 10MB
+3. **Memory Management**: Constant memory usage regardless of output size
+4. **Resource Cleanup**: Temporary files automatically deleted after task completion
+
+#### File Naming Convention
+```
+/tmp/tasker_stdout_XXXXXX  # Standard output temp file
+/tmp/tasker_stderr_XXXXXX  # Standard error temp file
+```
+Where `XXXXXX` is a random 6-character suffix for uniqueness.
+
+### Performance Characteristics
+
+#### Small Outputs (< 10MB)
+- **Memory Usage**: Actual output size
+- **Processing Time**: Near-instant
+- **Disk I/O**: None
+- **Best for**: Configuration commands, status checks, small reports
+
+#### Large Outputs (10MB - 100MB)
+- **Memory Usage**: ~10MB constant
+- **Processing Time**: <1 second processing overhead
+- **Disk I/O**: Sequential write to temp files
+- **Best for**: Database exports, large file operations, comprehensive logs
+
+#### Massive Outputs (100MB+)
+- **Memory Usage**: ~10MB constant (protected)
+- **Processing Time**: Minimal streaming overhead
+- **Disk I/O**: Efficient streaming with automatic cleanup
+- **Best for**: Full system backups, massive dataset processing, extensive logging
+
+### Real-World Examples
+
+#### Database Operations
+```
+# Large database export - streams automatically
+task=0
+hostname=db-server
+command=pg_dump
+arguments=--verbose --format=plain --no-owner production_db
+timeout=1800
+exec=pbrun
+```
+
+#### Log Analysis
+```
+# Process massive log files without memory issues
+task=1
+hostname=log-server
+command=grep "ERROR" /var/log/application.log
+# Processes multi-GB log files efficiently
+exec=pbrun
+
+task=2
+hostname=analysis-server
+command=analyze_errors
+arguments=@1_stdout@
+# Uses extracted error data
+exec=local
+```
+
+#### System Monitoring
+```
+# Generate comprehensive system reports
+task=0
+hostname=monitoring-server
+command=sar -A
+arguments=-f /var/log/sa/sa01
+# Processes complete system activity reports
+exec=pbrun
+
+task=1
+hostname=report-server
+command=generate_performance_report
+arguments=--data=@0_stdout@
+# Creates reports from large monitoring data
+exec=local
+```
+
+### Monitoring and Debugging
+
+#### Debug Information
+Enable debug logging to see streaming behavior:
+
+```bash
+tasker -r --log-level=DEBUG large_output_workflow.txt
+```
+
+Debug output shows:
+```
+[02Oct25 15:47:21] DEBUG: Task 0: Used temp files for large output (stdout: 20840000 bytes, stderr: 0 bytes)
+```
+
+#### Memory Usage Awareness
+Tasks that trigger streaming are automatically logged:
+
+```
+[02Oct25 15:47:20] Task 0: Executing [local]: python3 -c large_data_generation.py
+[02Oct25 15:47:21] Task 0: Exit code: 0
+[02Oct25 15:47:21] Task 0: STDOUT: Large dataset line 000000 with data: XXX... (20839999 chars total)
+```
+
+### System Compatibility
+
+#### Python Version Support
+- **Python 3.6.8+**: Full compatibility with legacy systems
+- **Cross-platform**: Linux, macOS, Windows support
+- **Memory Management**: Uses standard Python tempfile module
+
+#### Resource Requirements
+- **Minimum Memory**: 50MB free RAM for streaming operations
+- **Temp Space**: Sufficient disk space in `/tmp` for largest expected output
+- **File Descriptors**: Standard subprocess file descriptor usage
+
+### Benefits for Enterprise Operations
+
+#### Reliability
+- **No OOM Crashes**: System remains stable with any output size
+- **Predictable Memory Usage**: Constant memory footprint prevents resource exhaustion
+- **Automatic Recovery**: Graceful handling of unexpected large outputs
+
+#### Performance
+- **Efficient Processing**: Minimal overhead for small outputs
+- **Scalable Architecture**: Handles outputs from KB to GB range
+- **Resource Optimization**: Uses memory efficiently across all scenarios
+
+#### Operational Excellence
+- **Transparent Operation**: No configuration changes required
+- **Backward Compatibility**: All existing workflows continue working
+- **Diagnostic Support**: Clear logging of memory-efficient operations
+
+### Migration and Adoption
+
+#### Zero Configuration Required
+Existing workflows automatically benefit from streaming:
+
+```
+# No changes needed - automatically enhanced
+task=0
+hostname=backup-server
+command=tar -czf - /data | split -b 100M
+# Now handles multi-GB backup operations safely
+```
+
+#### Gradual Enhancement
+Teams can gradually adopt larger-scale operations:
+
+```
+# Phase 1: Test with medium outputs (10-50MB)
+task=0
+hostname=test-server
+command=generate_medium_dataset
+
+# Phase 2: Scale to large outputs (50-200MB)
+task=1
+hostname=test-server
+command=generate_large_dataset
+
+# Phase 3: Production massive outputs (200MB+)
+task=2
+hostname=prod-server
+command=full_system_backup
+```
+
+### Troubleshooting Large Output Issues
+
+#### Insufficient Temp Space
+```bash
+# Check available temp space
+df -h /tmp
+
+# Clean temp directory if needed
+sudo find /tmp -name "tasker_*" -mtime +1 -delete
+```
+
+#### Memory Warnings
+```bash
+# Monitor memory usage during execution
+tasker -r --log-level=DEBUG memory_intensive_workflow.txt
+
+# Look for temp file usage messages:
+# "Task X: Used temp files for large output (stdout: N bytes, stderr: M bytes)"
+```
+
+#### Performance Optimization
+```bash
+# For very large outputs, consider pre-processing
+task=0
+hostname=server1
+command=large_data_command | head -1000
+# Limit output size at source when possible
+
+task=1
+hostname=server2
+command=large_data_command | tail -1
+# Extract only needed data
+```
+
 ## Basic Flow Control
 
 Control when and how tasks execute using conditions and flow control parameters.

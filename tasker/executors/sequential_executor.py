@@ -119,8 +119,8 @@ class SequentialExecutor(BaseExecutor):
                 # Execute using contect manager for automatic cleanup
                 import subprocess
 
-                # Create memory-efficient output handler for large outputs
-                max_memory_mb = int(task.get('max_output_memory_mb', 10))
+                # Create memory-efficient output handler with 10MB default limit
+                max_memory_mb = 10
 
                 with create_memory_efficient_handler(max_memory_mb) as output_handler:
                     with subprocess.Popen(

@@ -142,8 +142,8 @@ class SequentialExecutor(BaseExecutor):
                         memory_info = output_handler.get_memory_usage_info()
                         if memory_info['using_temp_files']:
                             executor_instance.log_debug(f"Task {task_id}{loop_display}: Used temp files for large output "
-                                                       f"(stdout: {memory_info['stdout_size']} bytes, "
-                                                       f"stderr: {memory_info['stderr_size']} bytes)")
+                                                       f"(stdout: {memory_info['stdout_size']} characters, "
+                                                       f"stderr: {memory_info['stderr_size']} characters)")
 
                         if timed_out:
                             executor_instance.log(f"Task {task_id}{loop_display}: Timeout after {task_timeout} seconds. Process killed.")

@@ -42,7 +42,6 @@ class StreamingOutputHandler:
             temp_threshold: Size threshold for using temp files
             temp_dir: Directory for temporary files (default: system temp)
         """
-        self.buffer_size = buffer_size or self.DEFAULT_BUFFER_SIZE
         self.temp_threshold = temp_threshold or self.DEFAULT_TEMP_THRESHOLD
         self.temp_dir = temp_dir or tempfile.gettempdir()
 
@@ -120,13 +119,14 @@ class StreamingOutputHandler:
                     if not chunk:
                         break
                     self._append_output(chunk, stream_type)
-            except Exception:
-                # Stream closed or error - this is normal when process ends
-                pass
+            except Exception as e:
+                # Stream closed or error - expected when process ends
+                import logging
+                logging.debug("Stream reader for %s ended: %s", stream_type, e)
 
         # Start threads to read stdout and stderr concurrently
-        stdout_thread = threading.Thread(target=read_stream, args=(process.stdout, 'stdout'))
-        stderr_thread = threading.Thread(target=read_stream, args=(process.stderr, 'stderr'))
+        stdout_thread = threading.Thread(target=read_stream, args=(process.stdout, 'stdout'), daemon=True)
+        stderr_thread = threading.Thread(target=read_stream, args=(process.stderr, 'stderr'), daemon=True)
 
         stdout_thread.start()
         stderr_thread.start()
@@ -177,7 +177,13 @@ class StreamingOutputHandler:
         return ""
 
     def get_memory_usage_info(self):
-        """Get information about current memory usage."""
+        """
+        Get information about current memory usage.
+
+        Returns:
+            dict: Memory usage information where size values are character counts
+                  (not bytes) since we operate in text mode with universal_newlines=True.
+        """
         return {
             'stdout_size': self.stdout_size,
             'stderr_size': self.stderr_size,
@@ -193,15 +199,17 @@ class StreamingOutputHandler:
             try:
                 self.stdout_file.close()
                 os.unlink(self.stdout_file.name)
-            except:
-                pass  # Best effort cleanup
+            except Exception as e:
+                import logging
+                logging.debug("Failed to cleanup stdout temp file %s: %s", getattr(self.stdout_file, 'name', '<unknown>'), e)
 
         if self.stderr_file:
             try:
                 self.stderr_file.close()
                 os.unlink(self.stderr_file.name)
-            except:
-                pass  # Best effort cleanup
+            except Exception as e:
+                import logging
+                logging.debug("Failed to cleanup stderr temp file %s: %s", getattr(self.stderr_file, 'name', '<unknown>'), e)
 
     def __enter__(self):
         """Context manager entry."""

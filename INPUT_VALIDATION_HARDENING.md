@@ -54,7 +54,7 @@ This document describes the comprehensive input validation hardening implemented
 - `global_variables` - Prevents malicious variable content
 
 **Example Detection**:
-```
+```bash
 # BLOCKED: Command injection in hostname
 hostname=localhost; cat /etc/passwd
 
@@ -74,7 +74,7 @@ hostname=localhost; cat /etc/passwd
 - `global_variables` - Prevents malicious path values
 
 **Example Detection**:
-```
+```bash
 # BLOCKED: Path traversal in arguments
 arguments=../../../etc/passwd
 
@@ -91,7 +91,7 @@ arguments=../../../etc/passwd
 - General fields: 10000 characters maximum
 
 **Example Detection**:
-```
+```bash
 # BLOCKED: Large argument field
 arguments=[2249 character string]
 
@@ -109,7 +109,7 @@ arguments=[2249 character string]
 - `sleep`: 0 - 86400 seconds
 
 **Example Detection**:
-```
+```bash
 # BLOCKED: Invalid timeout
 timeout=99999
 

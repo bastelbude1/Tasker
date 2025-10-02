@@ -1,0 +1,6 @@
+task=1
+hostname=localhost
+exec=local
+command=echo
+arguments=test
+success=exit_0

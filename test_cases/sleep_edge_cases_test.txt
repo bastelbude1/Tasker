@@ -1,0 +1,113 @@
+# TASKER Sleep Edge Cases Test
+# Tests edge cases and boundary conditions for non-blocking sleep
+
+# Test 1: Zero sleep (should not create timers)
+task=1
+hostname=localhost
+exec=local
+command=echo
+arguments=Zero sleep test
+sleep=0
+success=exit_0
+
+# Test 2: Very small sleep values
+task=2
+hostname=localhost
+exec=local
+command=echo
+arguments=Very small sleep test
+sleep=0.1
+success=exit_0
+
+# Test 3: Negative sleep (should be skipped with warning)
+task=3
+hostname=localhost
+exec=local
+command=echo
+arguments=Negative sleep test
+sleep=-1
+success=exit_0
+
+# Test 4: Invalid sleep value
+task=4
+hostname=localhost
+exec=local
+command=echo
+arguments=Invalid sleep test
+sleep=invalid
+success=exit_0
+
+# Test 5: Sleep with global variable resolution
+SLEEP_TIME=1.5
+
+task=5
+hostname=localhost
+exec=local
+command=echo
+arguments=Global variable sleep test
+sleep=@SLEEP_TIME@
+success=exit_0
+
+# Test 6: Sleep in dry run mode (should not actually sleep)
+task=6
+hostname=localhost
+exec=local
+command=echo
+arguments=Dry run sleep test
+sleep=5
+success=exit_0
+
+# Test 7: Parallel tasks with mixed sleep scenarios
+task=7
+type=parallel
+max_parallel=4
+tasks=70,71,72,73
+
+task=70
+hostname=localhost
+exec=local
+command=echo
+arguments=No sleep parallel task
+success=exit_0
+
+task=71
+hostname=localhost
+exec=local
+command=echo
+arguments=Normal sleep parallel task
+sleep=1
+success=exit_0
+
+task=72
+hostname=localhost
+exec=local
+command=echo
+arguments=Zero sleep parallel task
+sleep=0
+success=exit_0
+
+task=73
+hostname=localhost
+exec=local
+command=echo
+arguments=Small sleep parallel task
+sleep=0.2
+success=exit_0
+
+# Test 8: Sequential sleep with condition checking
+task=8
+hostname=localhost
+exec=local
+command=echo
+arguments=First sequential task
+sleep=0.5
+success=exit_0
+on_success=9
+
+task=9
+hostname=localhost
+exec=local
+command=echo
+arguments=Second sequential task after sleep
+sleep=0.3
+success=exit_0

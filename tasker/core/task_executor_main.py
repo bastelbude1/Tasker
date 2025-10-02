@@ -546,7 +546,7 @@ class TaskExecutor:
                     self.final_task_id is not None):
                     try:
                         # Delegate to ResultCollector to avoid duplicate flock/timeout logic
-                        self._result_collector.write_final_summary_with_timeout(5)
+                        self._result_collector.write_final_summary_with_timeout(self.summary_lock_timeout)
                     
                     except TimeoutError as timeout_error:
                         cleanup_errors.append(f"TIMEOUT: Summary write timed out: {timeout_error}")

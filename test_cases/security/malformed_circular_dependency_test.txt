@@ -1,0 +1,32 @@
+# MALFORMED CIRCULAR DEPENDENCY TEST
+# This test should FAIL due to circular dependency in task flow
+
+# Valid start task
+task=0
+hostname=localhost
+command=echo
+arguments=Starting circular dependency test
+success=exit_0
+on_success=1
+
+# MALFORMED: Creates circular dependency 1 -> 2 -> 3 -> 1
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1 jumping to 2
+success=exit_0
+on_success=2
+
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2 jumping to 3
+success=exit_0
+on_success=3
+
+task=3
+hostname=localhost
+command=echo
+arguments=Task 3 jumping back to 1 - CIRCULAR!
+success=exit_0
+on_success=1

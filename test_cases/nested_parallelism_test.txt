@@ -1,0 +1,102 @@
+# NESTED PARALLELISM TEST
+# This simulates what happens when TASKER itself is run in parallel
+# WARNING: This could be dangerous if not properly controlled!
+
+# === START TASK ===
+task=0
+hostname=localhost
+command=echo
+arguments=Testing nested parallelism scenario
+success=exit_0
+on_success=1
+
+# === PARALLEL TASK (Simulates nested parallelism) ===
+task=1
+type=parallel
+max_parallel=50
+tasks=10,11,12,13,14,15,16,17,18,19,20
+timeout=5
+on_success=2
+on_failure=999
+condition=all_success
+
+# Worker tasks
+task=10
+hostname=localhost
+command=sleep
+arguments=0.1
+success=exit_0
+
+task=11
+hostname=localhost
+command=sleep
+arguments=0.1
+success=exit_0
+
+task=12
+hostname=localhost
+command=sleep
+arguments=0.1
+success=exit_0
+
+task=13
+hostname=localhost
+command=sleep
+arguments=0.1
+success=exit_0
+
+task=14
+hostname=localhost
+command=sleep
+arguments=0.1
+success=exit_0
+
+task=15
+hostname=localhost
+command=sleep
+arguments=0.1
+success=exit_0
+
+task=16
+hostname=localhost
+command=sleep
+arguments=0.1
+success=exit_0
+
+task=17
+hostname=localhost
+command=sleep
+arguments=0.1
+success=exit_0
+
+task=18
+hostname=localhost
+command=sleep
+arguments=0.1
+success=exit_0
+
+task=19
+hostname=localhost
+command=sleep
+arguments=0.1
+success=exit_0
+
+task=20
+hostname=localhost
+command=sleep
+arguments=0.1
+success=exit_0
+
+# === SUCCESS ===
+task=2
+hostname=localhost
+command=echo
+arguments=Nested parallel execution completed
+success=exit_0
+
+# === FAILURE ===
+task=999
+hostname=localhost
+command=echo
+arguments=FAILED
+success=exit_0

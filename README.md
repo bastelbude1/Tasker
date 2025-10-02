@@ -248,7 +248,7 @@ task=1
 type=parallel
 # Required: Task IDs to execute
 tasks=100,101,102,103,104
-# Limit concurrent execution
+# Limit concurrent execution (default: 8 if not specified)
 max_parallel=5
 # Enable retry
 retry_failed=true
@@ -2386,11 +2386,45 @@ Configure TASKER behavior using environment variables:
 - **Verify execution types match environment requirements**
 - **Never commit credentials to task files** - use external secret management
 
-### Performance
+### Performance & Thread Safety
+
+#### Thread Pool Management
+TASKER implements intelligent thread pool management to prevent resource exhaustion:
+
+- **Default `max_parallel`**: 8 threads (safe for any system)
+- **Maximum recommended**: 32 threads for single-instance execution
+- **High parallelism warning**: Triggered when `max_parallel` > 32
+
+#### Parallel Execution Limits
+System-based automatic limits (when not running multiple TASKER instances):
+- Small systems (≤4 CPU cores): Max 50 threads
+- Medium systems (≤8 CPU cores): Max 75 threads
+- Large systems (>8 CPU cores): Max 100 threads
+
+#### Running Multiple TASKER Instances
+When running multiple TASKER instances in parallel (e.g., CI/CD, batch processing):
+
+```bash
+# IMPORTANT: Set this environment variable to prevent thread explosion
+export TASKER_PARALLEL_INSTANCES=10  # Number of parallel TASKER instances
+
+# Now safe to run multiple instances
+for i in {1..10}; do
+    tasker.py workflow_$i.txt -r &
+done
+wait
+```
+
+Without `TASKER_PARALLEL_INSTANCES` set, 10 instances × 50 threads = 500 threads (system crash risk)
+With `TASKER_PARALLEL_INSTANCES=10`, each instance automatically reduces its thread limit.
+
+#### Best Practices
 - **Test parallel workflows in non-production first**
+- **Set `TASKER_PARALLEL_INSTANCES` when running multiple instances**
 - **Use appropriate timeout settings** based on network and server capacity
-- **Monitor resource usage** with debug logging
-- **Implement proper error handling** with retry logic and rollback procedures
+- **Monitor resource usage** with debug logging (`-d` flag shows thread capping)
+- **Start with default `max_parallel=8`** and increase only if needed
+- **Read warnings**: High parallelism warnings indicate potential risks
 
 ### Operational Excellence
 - **Implement comprehensive validation** before production execution

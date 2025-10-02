@@ -48,10 +48,12 @@ class NonBlockingSleep:
         def sleep_completed():
             """Internal callback when sleep timer expires."""
             try:
-                # Remove from active timers
+                # Remove from active timers only if this timer is still the active one
                 with self._timer_lock:
                     if task_id and task_id in self._active_timers:
-                        del self._active_timers[task_id]
+                        # Only remove if the stored timer is the same instance as this callback's timer
+                        if self._active_timers[task_id] is timer:
+                            del self._active_timers[task_id]
 
                 # Log completion
                 if logger_callback:
@@ -69,9 +71,13 @@ class NonBlockingSleep:
         timer = threading.Timer(duration, sleep_completed)
         timer.daemon = True  # Ensure timer threads don't prevent program exit
 
-        # Track the timer
+        # Track the timer (cancel any existing timer for this task_id)
         if task_id:
             with self._timer_lock:
+                # Cancel existing timer if present to prevent race conditions
+                if task_id in self._active_timers:
+                    old_timer = self._active_timers[task_id]
+                    old_timer.cancel()
                 self._active_timers[task_id] = timer
 
         # Log start

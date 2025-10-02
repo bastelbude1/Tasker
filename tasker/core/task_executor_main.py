@@ -1543,7 +1543,8 @@ class TaskExecutor:
 
         if not self.tasks:
             self.log_warn("No valid tasks found. Exiting.")
-            return
+            self.cleanup() # clean up resources before exit
+            ExitHandler.exit_with_code(ExitCodes.NO_TASKS_FOUND, "No valid tasks to execute", False)
 
         # Show execution plan if requested
         if self.show_plan:

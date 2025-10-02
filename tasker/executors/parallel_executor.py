@@ -348,10 +348,10 @@ class ParallelExecutor(BaseExecutor):
                         executor_instance._check_shutdown()
 
                     if retry_config:
-                        # Mit retry config → .1, .2, etc.
+                        # With retry config -> .1, .2, etc.
                         future = thread_executor.submit(ParallelExecutor.execute_single_task_with_retry, task, master_timeout, retry_config, executor_instance=executor_instance)
                     else:
-                        # Ohne retry config → keine Nummer
+                        # Without retry config -> no number
                         future = thread_executor.submit(ParallelExecutor.execute_single_task_for_parallel, task, master_timeout, "", executor_instance=executor_instance)
                     future_to_task[future] = task
                 

@@ -9,7 +9,6 @@ unused variable warnings, inline comment detection, PARALLEL TASKS, RETRY LOGIC,
 """
 import os
 import re
-from .input_sanitizer import InputSanitizer
 
 
 class TaskValidator:
@@ -19,10 +18,7 @@ class TaskValidator:
         self.tasks = []
         self.errors = []
         self.warnings = []
-
-        # Security hardening: Initialize input sanitizer
-        self.sanitizer = InputSanitizer()
-
+        
         # Global variables support
         self.global_vars = {}  # Store global variables for validation
         self.referenced_global_vars = set()  # Track which global variables are used
@@ -204,23 +200,14 @@ class TaskValidator:
                         # Check for inline comments in global variables
                         if self.check_for_inline_comments(key, value, line_number):
                             continue  # Skip this global variable if it has inline comments
-
-                        # SECURITY HARDENING: Sanitize global variable
-                        sanitize_result = self.sanitizer.sanitize_global_variable(key, value)
-
-                        # Add any sanitization errors/warnings
-                        for error in sanitize_result['errors']:
-                            self.errors.append(f"Line {line_number}: Global variable security error - {error}")
-                        for warning in sanitize_result['warnings']:
-                            self.warnings.append(f"Line {line_number}: Global variable security warning - {warning}")
-
-                        # Only add if sanitization passed
-                        if sanitize_result['valid']:
-                            self.global_vars[sanitize_result['name']] = sanitize_result['value']
-                            global_count += 1
-                            self.debug_log(f"Found global variable: {sanitize_result['name']} = {sanitize_result['value']}")
+                            
+                        # Validate global variable name
+                        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', key):
+                            self.errors.append(f"Line {line_number}: Invalid global variable name '{key}'. Must start with letter/underscore and contain only letters, numbers, underscores.")
                         else:
-                            self.debug_log(f"Rejected global variable due to security validation: {key}")
+                            self.global_vars[key] = value
+                            global_count += 1
+                            self.debug_log(f"Found global variable: {key} = {value}")
                             
                 except Exception as e:
                     self.errors.append(f"Line {line_number}: Error parsing global variable: {str(e)}")
@@ -251,43 +238,15 @@ class TaskValidator:
                         # Save the previous task if it exists
                         if current_task is not None:
                             self.tasks.append((current_task, current_task.get('line_start', line_number)))
-
-                        # SECURITY HARDENING: Sanitize task ID field
-                        sanitize_result = self.sanitizer.sanitize_field('task', value)
-
-                        # Add any sanitization errors/warnings for task ID
-                        for error in sanitize_result['errors']:
-                            self.errors.append(f"Line {line_number}: Task ID security error - {error}")
-                        for warning in sanitize_result['warnings']:
-                            self.warnings.append(f"Line {line_number}: Task ID security warning - {warning}")
-
-                        # Start a new task with sanitized or original value
-                        task_value = sanitize_result['value'] if sanitize_result['valid'] else value
-                        current_task = {'task': task_value, 'line_start': line_number}
+                        # Start a new task
+                        current_task = {'task': value, 'line_start': line_number}
                     else:
                         # Add to current task (only if it's a known task field)
                         if current_task is not None:
                             # Check for inline comments in task fields
                             if self.check_for_inline_comments(key, value, line_number):
                                 continue  # Skip this field if it has inline comments
-
-                            # SECURITY HARDENING: Sanitize task field
-                            sanitize_result = self.sanitizer.sanitize_field(key, value)
-
-                            # Add any sanitization errors/warnings
-                            for error in sanitize_result['errors']:
-                                self.errors.append(f"Line {line_number}: Task field security error - {error}")
-                            for warning in sanitize_result['warnings']:
-                                self.warnings.append(f"Line {line_number}: Task field security warning - {warning}")
-
-                            # Always add the field but use sanitized value if valid
-                            if sanitize_result['valid']:
-                                current_task[key] = sanitize_result['value']
-                                self.debug_log(f"Sanitized task field: {key} = {sanitize_result['value']}")
-                            else:
-                                # Add original value but flag as invalid for later validation failure
-                                current_task[key] = value
-                                self.debug_log(f"Task field failed sanitization: {key} = {value}")
+                            current_task[key] = value
                         else:
                             # Only warn if it's not a global variable
                             if key not in self.global_vars:
@@ -381,13 +340,6 @@ class TaskValidator:
 
             # Collect referenced tasks
             self.collect_referenced_tasks(task, referenced_tasks)
-
-            # SECURITY HARDENING: Validate overall task structure for security issues
-            structure_result = self.sanitizer.validate_task_structure(task)
-            for error in structure_result['errors']:
-                self.errors.append(f"Line {line_number}: Task {task_id} structure error - {error}")
-            for warning in structure_result['warnings']:
-                self.warnings.append(f"Line {line_number}: Task {task_id} structure warning - {warning}")
 
         # Check for duplicate task IDs
         duplicate_ids = [id for id in task_ids if list(t[0].get('task') for t in self.tasks).count(str(id)) > 1]

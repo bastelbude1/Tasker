@@ -1,0 +1,466 @@
+# tasker/validation/input_sanitizer.py
+"""
+Input Sanitization Layer - Security Hardening for TASKER 2.0
+----------------------------------------------------------
+This module provides comprehensive input sanitization and validation
+to prevent security vulnerabilities including command injection,
+path traversal, buffer overflow, and other attack vectors.
+
+CRITICAL: Python 3.6.8 compatible only - no 3.7+ features allowed
+"""
+import os
+import re
+
+
+class InputSanitizer:
+    """
+    Comprehensive input sanitization for TASKER task files.
+    Implements defense-in-depth security validation.
+    """
+
+    def __init__(self):
+        # Security configuration constants
+        self.MAX_STRING_LENGTH = 10000      # Maximum field length
+        self.MAX_HOSTNAME_LENGTH = 253      # RFC compliant hostname length
+        self.MAX_COMMAND_LENGTH = 4096      # Maximum command length
+        self.MAX_ARGUMENTS_LENGTH = 8192    # Maximum arguments length
+        self.MAX_GLOBAL_VAR_LENGTH = 1024   # Maximum global variable length
+        self.MAX_TASK_ID = 9999             # Maximum task ID
+        self.MIN_TIMEOUT = 1                # Minimum timeout seconds
+        self.MAX_TIMEOUT = 86400            # Maximum timeout (24 hours)
+        self.MAX_LOOP_COUNT = 10000         # Maximum loop iterations
+        self.MAX_RETRY_COUNT = 100          # Maximum retry attempts
+        self.MAX_PARALLEL_TASKS = 1000      # Maximum parallel tasks
+
+        # Shell metacharacters that indicate potential injection
+        self.SHELL_METACHARACTERS = {
+            ';', '&', '|', '$', '`', '(', ')',
+            '<', '>', '\\', '"', "'", '\n', '\r'
+        }
+
+        # Command injection patterns (case-insensitive)
+        self.INJECTION_PATTERNS = [
+            r';\s*rm\s+',           # rm command after semicolon
+            r';\s*curl\s+',         # curl command after semicolon
+            r';\s*wget\s+',         # wget command after semicolon
+            r';\s*cat\s+',          # cat command after semicolon
+            r'\|\s*nc\s+',          # netcat piping
+            r'\$\([^)]+\)',         # command substitution $(...)
+            r'`[^`]+`',             # command substitution `...`
+            r'&&\s*rm\s+',          # rm with AND operator
+            r'\|\|\s*curl\s+',      # curl with OR operator
+            r'>\s*/dev/',           # output redirection
+            r'<\s*/dev/',           # input redirection
+        ]
+
+        # Path traversal patterns
+        self.PATH_TRAVERSAL_PATTERNS = [
+            r'\.\./',               # Basic traversal
+            r'\.\.\\',              # Windows traversal
+            r'%2e%2e%2f',           # URL encoded traversal
+            r'%2e%2e%5c',           # URL encoded Windows traversal
+            r'\.\.%2f',             # Mixed encoding
+            r'\.\.%5c',             # Mixed encoding Windows
+            r'%252e%252e%252f',     # Double URL encoded
+            r'\.\./\.\./\.\.',      # Multiple traversal
+            r'/etc/passwd',         # Common target file
+            r'/etc/shadow',         # Common target file
+            r'/proc/version',       # System information
+            r'c:\\windows\\',       # Windows system path
+        ]
+
+        # Suspicious content patterns
+        self.SUSPICIOUS_PATTERNS = [
+            r'/bin/(bash|sh|zsh|csh|tcsh)',     # Shell executables
+            r'(python|perl|ruby|php)\s+',       # Scripting languages
+            r'eval\s*\(',                       # Code evaluation
+            r'exec\s*\(',                       # Code execution
+            r'system\s*\(',                     # System calls
+            r'chmod\s+[0-9]+',                  # Permission changes
+            r'chown\s+',                        # Ownership changes
+            r'sudo\s+',                         # Privilege escalation
+            r'su\s+',                           # User switching
+        ]
+
+    def sanitize_field(self, field_name, field_value, max_length=None):
+        """
+        Sanitize a single field value with comprehensive security checks.
+
+        Args:
+            field_name: Name of the field being sanitized
+            field_value: Value to sanitize
+            max_length: Optional field-specific maximum length
+
+        Returns:
+            dict: {'valid': bool, 'value': str, 'errors': list, 'warnings': list}
+        """
+        errors = []
+        warnings = []
+
+        if not isinstance(field_value, str):
+            field_value = str(field_value)
+
+        original_value = field_value
+
+        # 1. Length validation
+        if max_length is None:
+            max_length = self._get_field_max_length(field_name)
+
+        if len(field_value) > max_length:
+            errors.append(f"Field '{field_name}' exceeds maximum length ({max_length}): {len(field_value)} characters")
+            return {'valid': False, 'value': field_value, 'errors': errors, 'warnings': warnings}
+
+        # 2. Null byte detection
+        if '\x00' in field_value:
+            errors.append(f"Field '{field_name}' contains null bytes - potential injection attempt")
+            return {'valid': False, 'value': field_value, 'errors': errors, 'warnings': warnings}
+
+        # 3. Field-specific validation
+        field_result = self._validate_field_specific(field_name, field_value)
+        errors.extend(field_result['errors'])
+        warnings.extend(field_result['warnings'])
+
+        if not field_result['valid']:
+            return {'valid': False, 'value': field_value, 'errors': errors, 'warnings': warnings}
+
+        # 4. General security pattern detection
+        security_result = self._detect_security_patterns(field_name, field_value)
+        errors.extend(security_result['errors'])
+        warnings.extend(security_result['warnings'])
+
+        # 5. Basic sanitization (trim whitespace only - preserve content)
+        sanitized_value = field_value.strip()
+
+        return {
+            'valid': len(errors) == 0,
+            'value': sanitized_value,
+            'errors': errors,
+            'warnings': warnings
+        }
+
+    def _get_field_max_length(self, field_name):
+        """Get maximum length for specific field types."""
+        field_limits = {
+            'hostname': self.MAX_HOSTNAME_LENGTH,
+            'command': self.MAX_COMMAND_LENGTH,
+            'arguments': self.MAX_ARGUMENTS_LENGTH,
+            'task': 10,  # Task IDs should be short
+            'timeout': 10,  # Numeric fields
+            'loop': 10,
+            'retry_count': 10,
+            'retry_delay': 10,
+            'max_parallel': 10,
+        }
+        return field_limits.get(field_name, self.MAX_STRING_LENGTH)
+
+    def _validate_field_specific(self, field_name, field_value):
+        """Perform field-specific validation rules."""
+        errors = []
+        warnings = []
+
+        if field_name == 'hostname':
+            return self._validate_hostname(field_value)
+        elif field_name == 'command':
+            return self._validate_command(field_value)
+        elif field_name == 'arguments':
+            return self._validate_arguments(field_value)
+        elif field_name in ['task', 'on_success', 'on_failure']:
+            return self._validate_task_id(field_value)
+        elif field_name in ['timeout', 'sleep', 'loop', 'retry_count', 'retry_delay', 'max_parallel']:
+            return self._validate_numeric_field(field_name, field_value)
+        elif field_name in ['success', 'condition', 'next', 'loop_break']:
+            return self._validate_condition_field(field_value)
+        else:
+            # Default validation for other fields
+            return {'valid': True, 'errors': [], 'warnings': []}
+
+    def _validate_hostname(self, hostname):
+        """Validate hostname field for security and RFC compliance."""
+        errors = []
+        warnings = []
+
+        # Check for empty hostname
+        if not hostname.strip():
+            errors.append("Hostname cannot be empty")
+            return {'valid': False, 'errors': errors, 'warnings': warnings}
+
+        # Check for command injection in hostname
+        if any(char in hostname for char in self.SHELL_METACHARACTERS):
+            errors.append(f"Hostname contains shell metacharacters - potential injection: '{hostname}'")
+            return {'valid': False, 'errors': errors, 'warnings': warnings}
+
+        # Check for suspicious patterns
+        for pattern in self.INJECTION_PATTERNS:
+            if re.search(pattern, hostname, re.IGNORECASE):
+                errors.append(f"Hostname contains suspicious injection pattern: '{hostname}'")
+                return {'valid': False, 'errors': errors, 'warnings': warnings}
+
+        # Basic hostname format validation (simplified)
+        if not re.match(r'^[a-zA-Z0-9.-]+$', hostname):
+            warnings.append(f"Hostname contains unusual characters: '{hostname}'")
+
+        # Check for localhost variations (info only)
+        if hostname.lower() in ['localhost', '127.0.0.1', '::1']:
+            # This is fine, just informational
+            pass
+
+        return {'valid': True, 'errors': errors, 'warnings': warnings}
+
+    def _validate_command(self, command):
+        """Validate command field for security."""
+        errors = []
+        warnings = []
+
+        # Check for empty command
+        if not command.strip():
+            errors.append("Command cannot be empty")
+            return {'valid': False, 'errors': errors, 'warnings': warnings}
+
+        # Check for spaces in command (should use arguments field)
+        if ' ' in command.strip():
+            warnings.append(f"Command contains spaces - consider using 'arguments' field: '{command}'")
+
+        # Check for command injection patterns
+        for pattern in self.INJECTION_PATTERNS:
+            if re.search(pattern, command, re.IGNORECASE):
+                errors.append(f"Command contains injection pattern: '{command}'")
+                return {'valid': False, 'errors': errors, 'warnings': warnings}
+
+        # Check for shell metacharacters
+        dangerous_chars = self.SHELL_METACHARACTERS - {'-', '_', '.'}  # Allow common command chars
+        if any(char in command for char in dangerous_chars):
+            errors.append(f"Command contains shell metacharacters: '{command}'")
+            return {'valid': False, 'errors': errors, 'warnings': warnings}
+
+        return {'valid': True, 'errors': errors, 'warnings': warnings}
+
+    def _validate_arguments(self, arguments):
+        """Validate arguments field for security."""
+        errors = []
+        warnings = []
+
+        # Check for potential buffer overflow (very large arguments)
+        if len(arguments) > 2000:  # Stricter limit for potential buffer overflow detection
+            errors.append(f"Arguments field too large (potential buffer overflow): {len(arguments)} characters")
+            return {'valid': False, 'errors': errors, 'warnings': warnings}
+
+        # Check for command injection patterns
+        for pattern in self.INJECTION_PATTERNS:
+            if re.search(pattern, arguments, re.IGNORECASE):
+                errors.append(f"Arguments contain injection pattern: '{arguments}'")
+                return {'valid': False, 'errors': errors, 'warnings': warnings}
+
+        # Check for path traversal
+        for pattern in self.PATH_TRAVERSAL_PATTERNS:
+            if re.search(pattern, arguments, re.IGNORECASE):
+                errors.append(f"Arguments contain path traversal pattern: '{arguments}'")
+                return {'valid': False, 'errors': errors, 'warnings': warnings}
+
+        # Check for suspicious content
+        for pattern in self.SUSPICIOUS_PATTERNS:
+            if re.search(pattern, arguments, re.IGNORECASE):
+                warnings.append(f"Arguments contain potentially suspicious content: '{arguments}'")
+
+        return {'valid': True, 'errors': errors, 'warnings': warnings}
+
+    def _validate_task_id(self, task_id_str):
+        """Validate task ID fields."""
+        errors = []
+        warnings = []
+
+        try:
+            task_id = int(task_id_str)
+
+            if task_id < 0:
+                errors.append(f"Task ID cannot be negative: {task_id}")
+                return {'valid': False, 'errors': errors, 'warnings': warnings}
+
+            if task_id > self.MAX_TASK_ID:
+                errors.append(f"Task ID exceeds maximum ({self.MAX_TASK_ID}): {task_id}")
+                return {'valid': False, 'errors': errors, 'warnings': warnings}
+
+        except ValueError:
+            errors.append(f"Task ID must be an integer: '{task_id_str}'")
+            return {'valid': False, 'errors': errors, 'warnings': warnings}
+
+        return {'valid': True, 'errors': errors, 'warnings': warnings}
+
+    def _validate_numeric_field(self, field_name, value_str):
+        """Validate numeric fields with appropriate bounds."""
+        errors = []
+        warnings = []
+
+        try:
+            # Handle float for sleep field
+            if field_name == 'sleep':
+                value = float(value_str)
+            else:
+                value = int(value_str)
+
+            # Field-specific bounds checking
+            if field_name == 'timeout':
+                if value < self.MIN_TIMEOUT:
+                    errors.append(f"Timeout too small (minimum {self.MIN_TIMEOUT}): {value}")
+                elif value > self.MAX_TIMEOUT:
+                    errors.append(f"Timeout too large (maximum {self.MAX_TIMEOUT}): {value}")
+
+            elif field_name == 'loop':
+                if value < 0:
+                    errors.append(f"Loop count cannot be negative: {value}")
+                elif value > self.MAX_LOOP_COUNT:
+                    errors.append(f"Loop count too large (maximum {self.MAX_LOOP_COUNT}): {value}")
+
+            elif field_name in ['retry_count', 'retry_delay']:
+                if value < 0:
+                    errors.append(f"{field_name} cannot be negative: {value}")
+                elif field_name == 'retry_count' and value > self.MAX_RETRY_COUNT:
+                    errors.append(f"Retry count too large (maximum {self.MAX_RETRY_COUNT}): {value}")
+                elif field_name == 'retry_delay' and value > 3600:
+                    warnings.append(f"Retry delay very large (over 1 hour): {value}")
+
+            elif field_name == 'max_parallel':
+                if value < 1:
+                    errors.append(f"max_parallel must be at least 1: {value}")
+                elif value > self.MAX_PARALLEL_TASKS:
+                    errors.append(f"max_parallel too large (maximum {self.MAX_PARALLEL_TASKS}): {value}")
+
+            elif field_name == 'sleep':
+                if value < 0:
+                    errors.append(f"Sleep time cannot be negative: {value}")
+                elif value > 86400:  # 24 hours
+                    warnings.append(f"Sleep time very large (over 24 hours): {value}")
+
+            # General negative check for other numeric fields
+            elif value < 0:
+                warnings.append(f"{field_name} is negative: {value}")
+
+        except ValueError:
+            field_type = "number" if field_name != 'sleep' else "number (float allowed)"
+            errors.append(f"{field_name} must be a {field_type}: '{value_str}'")
+            return {'valid': False, 'errors': errors, 'warnings': warnings}
+
+        return {'valid': len(errors) == 0, 'errors': errors, 'warnings': warnings}
+
+    def _validate_condition_field(self, condition):
+        """Validate condition expressions for security."""
+        errors = []
+        warnings = []
+
+        # Check for command injection in conditions
+        for pattern in self.INJECTION_PATTERNS:
+            if re.search(pattern, condition, re.IGNORECASE):
+                errors.append(f"Condition contains injection pattern: '{condition}'")
+                return {'valid': False, 'errors': errors, 'warnings': warnings}
+
+        # Check for potentially dangerous shell metacharacters
+        dangerous_chars = {'$', '`', ';', '&', '|', '<', '>'}
+        if any(char in condition for char in dangerous_chars):
+            warnings.append(f"Condition contains shell metacharacters: '{condition}'")
+
+        return {'valid': True, 'errors': errors, 'warnings': warnings}
+
+    def _detect_security_patterns(self, field_name, field_value):
+        """Detect general security patterns across all fields."""
+        errors = []
+        warnings = []
+
+        # Check for format string attacks
+        format_string_pattern = r'%[sxdn]'
+        if re.search(format_string_pattern, field_value):
+            warnings.append(f"Field '{field_name}' contains format string patterns: '{field_value}'")
+
+        # Check for encoding attempts
+        encoding_patterns = [
+            r'%[0-9a-fA-F]{2}',     # URL encoding
+            r'\\x[0-9a-fA-F]{2}',   # Hex encoding
+            r'\\u[0-9a-fA-F]{4}',   # Unicode encoding
+        ]
+
+        for pattern in encoding_patterns:
+            if re.search(pattern, field_value):
+                warnings.append(f"Field '{field_name}' contains encoded characters: '{field_value}'")
+
+        # Check for extremely long repeated characters (potential buffer overflow)
+        if len(field_value) > 100:
+            char_counts = {}
+            for char in field_value:
+                char_counts[char] = char_counts.get(char, 0) + 1
+                if char_counts[char] > len(field_value) * 0.8:  # 80% same character
+                    warnings.append(f"Field '{field_name}' contains excessive repeated characters")
+                    break
+
+        return {'valid': len(errors) == 0, 'errors': errors, 'warnings': warnings}
+
+    def sanitize_global_variable(self, var_name, var_value):
+        """
+        Sanitize global variable definitions.
+
+        Returns:
+            dict: {'valid': bool, 'name': str, 'value': str, 'errors': list, 'warnings': list}
+        """
+        errors = []
+        warnings = []
+
+        # Validate variable name
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', var_name):
+            errors.append(f"Invalid global variable name '{var_name}'. Must start with letter/underscore and contain only letters, numbers, underscores.")
+            return {'valid': False, 'name': var_name, 'value': var_value, 'errors': errors, 'warnings': warnings}
+
+        # Length check for variable name
+        if len(var_name) > 64:
+            errors.append(f"Global variable name too long (maximum 64): '{var_name}'")
+            return {'valid': False, 'name': var_name, 'value': var_value, 'errors': errors, 'warnings': warnings}
+
+        # Sanitize variable value with enhanced security checks for global variables
+        value_result = self._validate_arguments(var_value)  # Treat global vars like arguments for security
+
+        # Also check basic field constraints
+        if len(var_value) > self.MAX_GLOBAL_VAR_LENGTH:
+            value_result['errors'].append(f"Global variable value too long (maximum {self.MAX_GLOBAL_VAR_LENGTH}): {len(var_value)} characters")
+            value_result['valid'] = False
+
+        # Add the errors and warnings from this function to those from argument validation
+        for error in errors:
+            value_result['errors'].append(error)
+        for warning in warnings:
+            value_result['warnings'].append(warning)
+
+        # Use sanitized value (just trimmed) or original if validation failed
+        final_value = var_value.strip() if value_result['valid'] else var_value
+
+        return {
+            'valid': value_result['valid'],
+            'name': var_name,
+            'value': final_value,
+            'errors': value_result['errors'],
+            'warnings': value_result['warnings']
+        }
+
+    def validate_task_structure(self, task_dict):
+        """
+        Validate overall task structure for security issues.
+
+        Returns:
+            dict: {'valid': bool, 'errors': list, 'warnings': list}
+        """
+        errors = []
+        warnings = []
+
+        # Check for suspicious field combinations
+        if 'command' in task_dict and 'exec' in task_dict:
+            if task_dict.get('exec') != 'local' and any(char in task_dict['command'] for char in self.SHELL_METACHARACTERS):
+                warnings.append("Remote command execution with shell metacharacters detected")
+
+        # Check for potential privilege escalation patterns
+        if 'command' in task_dict:
+            priv_patterns = ['sudo', 'su ', 'chmod', 'chown', 'passwd']
+            for pattern in priv_patterns:
+                if pattern in task_dict['command'].lower():
+                    warnings.append(f"Potential privilege escalation command detected: {task_dict['command']}")
+                    break
+
+        # Validate field count (prevent excessive fields)
+        if len(task_dict) > 25:  # Reasonable limit for task fields
+            warnings.append(f"Task has many fields ({len(task_dict)}) - potential DoS via field flooding")
+
+        return {'valid': len(errors) == 0, 'errors': errors, 'warnings': warnings}

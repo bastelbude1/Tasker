@@ -1015,20 +1015,21 @@ class TaskExecutor:
         
         # PHASE 2: Parse tasks (second pass)
         current_task = None
-        
+        parsed_tasks = {}  # Local dictionary to collect tasks
+
         for line in lines:
             line = line.strip()
-            
+
             # Skip empty lines and comments
             if not line or line.startswith('#'):
                 continue
-            
+
             # Parse key=value pairs
             if '=' in line:
                 key, value = line.split('=', 1)
                 key = key.strip()
                 value = value.strip()
-                
+
                 # Check if this is a new task definition
                 if key == 'task':
                     # Save the previous task if it exists
@@ -1036,21 +1037,24 @@ class TaskExecutor:
                         task_id = int(current_task['task'])
                         if 'arguments' not in current_task:
                             current_task['arguments'] = ''
-                        self.tasks[task_id] = current_task
-                    
+                        parsed_tasks[task_id] = current_task
+
                     # Start a new task
                     current_task = {'task': value}
                 else:
                     # Add to current task (only if it's a known task field)
                     if current_task is not None:
                         current_task[key] = value
-        
+
         # Add the last task if it exists
         if current_task is not None and 'task' in current_task:
             task_id = int(current_task['task'])
             if 'arguments' not in current_task:
                 current_task['arguments'] = ''
-            self.tasks[task_id] = current_task
+            parsed_tasks[task_id] = current_task
+
+        # Assign all parsed tasks at once (compatible with StateManager property system)
+        self.tasks = parsed_tasks
         
         # Validate tasks - now we only check that required fields are present
         valid_task_count = 0
@@ -1552,7 +1556,8 @@ class TaskExecutor:
 
         if not self.tasks:
             self.log_warn("No valid tasks found. Exiting.")
-            return
+            self.cleanup() # clean up resources before exit
+            ExitHandler.exit_with_code(ExitCodes.NO_TASKS_FOUND, "No valid tasks to execute", False)
 
         # Show execution plan if requested
         if self.show_plan:

@@ -36,25 +36,34 @@ run_test() {
     local test_name="$1"
     echo -e "${YELLOW}[Testing: $test_name]${NC}"
     total_tests=$((total_tests + 1))
-    
-    # Reset state and run with tasker.py (capture stderr to detect exceptions)
+
+    # Reset state and run with tasker.py
     reset_state
     echo "  Running refactored tasker.py..."
-    
-    # Capture stderr to check for Python exceptions while hiding normal output
+
+    # ENHANCEMENT: Capture FULL output for functional validation - don't hide stdout!
     # Set PATH to include test_scripts for mock commands and skip host validation for testing
-    error_output=$(PATH="../test_scripts:$PATH" timeout 60s ../tasker.py "$test_name" -r --skip-host-validation 2>&1 >/dev/null)
+    full_output=$(PATH="../test_scripts:$PATH" timeout 60s ../tasker.py "$test_name" -r --skip-host-validation 2>&1)
     tasker_exit=$?
-    
-    # Check for Python exceptions in stderr
-    if echo "$error_output" | grep -E "(Traceback|AttributeError|Exception|Error:)" > /dev/null; then
+
+    # ENHANCEMENT 3: Detect "No valid tasks found" as test failure
+    if echo "$full_output" | grep -q "No valid tasks found"; then
+        echo -e "    ${RED}PARSING FAILURE DETECTED:${NC}"
+        echo "    TASKER failed to parse any tasks from $test_name"
+        failed_tests+=("$test_name")
+        echo -e "  ❌ FAIL: Task parsing failed - 0 tasks parsed (CRITICAL REGRESSION)"
+        return
+    fi
+
+    # Check for Python exceptions
+    if echo "$full_output" | grep -E "(Traceback|AttributeError|Exception|Error:)" > /dev/null; then
         echo -e "    ${RED}EXCEPTION DETECTED in tasker.py:${NC}"
-        echo "$error_output" | head -3
+        echo "$full_output" | grep -A2 -B1 -E "(Traceback|AttributeError|Exception|Error:)" | head -5
         failed_tests+=("$test_name")
         echo -e "  ❌ FAIL: Python exception - refactoring regression"
         return
     fi
-    
+
     if [ $tasker_exit -eq 124 ]; then
         echo -e "    ${RED}TIMEOUT: tasker.py (60s timeout)${NC}"
         timeout_tests+=("$test_name")
@@ -62,7 +71,31 @@ run_test() {
         echo -e "  ❌ FAIL: Timeout after 60s - FAILURE"
         return
     fi
-    
+
+    # ENHANCEMENT 4: Add exit code 24 (NO_TASKS_FOUND) as invalid for test files that should have tasks
+    if [ $tasker_exit -eq 24 ]; then
+        echo -e "    ${RED}NO TASKS PARSED: exit code 24${NC}"
+        failed_tests+=("$test_name")
+        echo -e "  ❌ FAIL: No valid tasks found - parsing regression"
+        return
+    fi
+
+    # ENHANCEMENT 1: Parse count validation for successful tests
+    if [[ $tasker_exit -eq 0 || $tasker_exit -eq 5 ]]; then
+        # For successful executions, verify that tasks were actually parsed
+        if ! echo "$full_output" | grep -q "Successfully parsed [1-9][0-9]* valid tasks"; then
+            echo -e "    ${RED}PARSE COUNT VALIDATION FAILED:${NC}"
+            echo "    Expected to find 'Successfully parsed N valid tasks' in output"
+            failed_tests+=("$test_name")
+            echo -e "  ❌ FAIL: No tasks parsed despite exit code $tasker_exit (FALSE POSITIVE)"
+            return
+        else
+            # Extract and display parse count for verification
+            parsed_count=$(echo "$full_output" | grep -o "Successfully parsed [0-9]* valid tasks" | grep -o "[0-9]*")
+            echo -e "    ${GREEN}PARSE VALIDATION: $parsed_count tasks parsed${NC}"
+        fi
+    fi
+
     # Validate exit codes for expected ranges
     # Success scenarios: 0 (success), 5 (next=never)
     # Expected failure scenarios: 1 (general), 14 (conditional), 20 (validation), 21 (task dependency)

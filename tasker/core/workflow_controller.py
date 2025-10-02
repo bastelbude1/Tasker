@@ -238,9 +238,35 @@ class WorkflowController:
                 self.log_info(f"Task {task_id}: Invalid max_failed condition format")
                 return False
 
-        # Unknown condition
-        self.log_info(f"Task {task_id}: Unknown parallel next condition '{next_condition}', defaulting to False")
-        return False
+        # Delegate unknown/complex conditions to ConditionEvaluator for legacy compatibility
+        try:
+            # Create context with derived values for complex expression evaluation
+            successful_count = sum(1 for r in results if r['success'])
+            failed_count = sum(1 for r in results if not r['success'])
+            total_count = len(results)
+
+            # Construct aggregated context similar to how parallel loop_break works
+            aggregated_exit_code = 0 if successful_count == total_count else 1
+            aggregated_stdout = (f"Parallel execution summary: {successful_count} successful, "
+                               f"{failed_count} failed, {total_count} total")
+            aggregated_stderr = ""
+
+            # Attempt to evaluate as a complex condition using ConditionEvaluator
+            self.log_info(f"Task {task_id}: Attempting to evaluate complex condition '{next_condition}' via ConditionEvaluator")
+
+            result = ConditionEvaluator.evaluate_condition(
+                next_condition, aggregated_exit_code, aggregated_stdout, aggregated_stderr,
+                self.state_manager.global_vars, self.state_manager.task_results,
+                lambda msg: None  # Debug callback
+            )
+
+            self.log_info(f"Task {task_id}: Complex condition '{next_condition}' evaluated to: {result}")
+            return result
+
+        except Exception as e:
+            # If ConditionEvaluator cannot interpret the expression, log and default to False
+            self.log_info(f"Task {task_id}: Invalid/unsupported parallel next condition '{next_condition}': {str(e)}. Defaulting to False")
+            return False
 
     def handle_parallel_loop(self, parallel_task: Dict[str, Any],
                            results: List[Dict[str, Any]]) -> bool:

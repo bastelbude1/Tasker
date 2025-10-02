@@ -23,70 +23,72 @@ class InputSanitizer:
     This approach allows reasonable field sizes while maintaining strict security thresholds.
     """
 
+    # Security configuration constants
+    MAX_STRING_LENGTH = 10000      # Maximum field length
+    MAX_HOSTNAME_LENGTH = 253      # RFC compliant hostname length
+    MAX_COMMAND_LENGTH = 4096      # Maximum command length
+    MAX_ARGUMENTS_LENGTH = 8192    # Maximum arguments length (general limit)
+    MAX_ARGUMENTS_SECURE_LENGTH = 2000  # Stricter limit for buffer overflow protection
+    MAX_GLOBAL_VAR_LENGTH = 1024   # Maximum global variable length
+    MAX_TASK_ID = 9999             # Maximum task ID
+    MIN_TIMEOUT = 1                # Minimum timeout seconds
+    MAX_TIMEOUT = 86400            # Maximum timeout (24 hours)
+    MAX_LOOP_COUNT = 10000         # Maximum loop iterations
+    MAX_RETRY_COUNT = 100          # Maximum retry attempts
+    MAX_PARALLEL_TASKS = 1000      # Maximum parallel tasks
+
+    # Shell metacharacters that indicate potential injection
+    SHELL_METACHARACTERS = {
+        ';', '&', '|', '$', '`', '(', ')',
+        '<', '>', '\\', '"', "'", '\n', '\r'
+    }
+
+    # Command injection patterns (case-insensitive)
+    INJECTION_PATTERNS = [
+        r';\s*rm\s+',           # rm command after semicolon
+        r';\s*curl\s+',         # curl command after semicolon
+        r';\s*wget\s+',         # wget command after semicolon
+        r';\s*cat\s+',          # cat command after semicolon
+        r'\|\s*nc\s+',          # netcat piping
+        r'\$\([^)]+\)',         # command substitution $(...)
+        r'`[^`]+`',             # command substitution `...`
+        r'&&\s*rm\s+',          # rm with AND operator
+        r'\|\|\s*curl\s+',      # curl with OR operator
+        r'>\s*/dev/',           # output redirection
+        r'<\s*/dev/',           # input redirection
+    ]
+
+    # Path traversal patterns
+    PATH_TRAVERSAL_PATTERNS = [
+        r'\.\./',               # Basic traversal
+        r'\.\.\\',              # Windows traversal
+        r'%2e%2e%2f',           # URL encoded traversal
+        r'%2e%2e%5c',           # URL encoded Windows traversal
+        r'\.\.%2f',             # Mixed encoding
+        r'\.\.%5c',             # Mixed encoding Windows
+        r'%252e%252e%252f',     # Double URL encoded
+        r'\.\./\.\./\.\.',      # Multiple traversal
+        r'/etc/passwd',         # Common target file
+        r'/etc/shadow',         # Common target file
+        r'/proc/version',       # System information
+        r'c:\\windows\\',       # Windows system path
+    ]
+
+    # Suspicious content patterns
+    SUSPICIOUS_PATTERNS = [
+        r'/bin/(bash|sh|zsh|csh|tcsh)',     # Shell executables
+        r'(python|perl|ruby|php)\s+',       # Scripting languages
+        r'eval\s*\(',                       # Code evaluation
+        r'exec\s*\(',                       # Code execution
+        r'system\s*\(',                     # System calls
+        r'chmod\s+[0-9]+',                  # Permission changes
+        r'chown\s+',                        # Ownership changes
+        r'sudo\s+',                         # Privilege escalation
+        r'su\s+',                           # User switching
+    ]
+
     def __init__(self):
-        # Security configuration constants
-        self.MAX_STRING_LENGTH = 10000      # Maximum field length
-        self.MAX_HOSTNAME_LENGTH = 253      # RFC compliant hostname length
-        self.MAX_COMMAND_LENGTH = 4096      # Maximum command length
-        self.MAX_ARGUMENTS_LENGTH = 8192    # Maximum arguments length (general limit)
-        self.MAX_ARGUMENTS_SECURE_LENGTH = 2000  # Stricter limit for buffer overflow protection
-        self.MAX_GLOBAL_VAR_LENGTH = 1024   # Maximum global variable length
-        self.MAX_TASK_ID = 9999             # Maximum task ID
-        self.MIN_TIMEOUT = 1                # Minimum timeout seconds
-        self.MAX_TIMEOUT = 86400            # Maximum timeout (24 hours)
-        self.MAX_LOOP_COUNT = 10000         # Maximum loop iterations
-        self.MAX_RETRY_COUNT = 100          # Maximum retry attempts
-        self.MAX_PARALLEL_TASKS = 1000      # Maximum parallel tasks
-
-        # Shell metacharacters that indicate potential injection
-        self.SHELL_METACHARACTERS = {
-            ';', '&', '|', '$', '`', '(', ')',
-            '<', '>', '\\', '"', "'", '\n', '\r'
-        }
-
-        # Command injection patterns (case-insensitive)
-        self.INJECTION_PATTERNS = [
-            r';\s*rm\s+',           # rm command after semicolon
-            r';\s*curl\s+',         # curl command after semicolon
-            r';\s*wget\s+',         # wget command after semicolon
-            r';\s*cat\s+',          # cat command after semicolon
-            r'\|\s*nc\s+',          # netcat piping
-            r'\$\([^)]+\)',         # command substitution $(...)
-            r'`[^`]+`',             # command substitution `...`
-            r'&&\s*rm\s+',          # rm with AND operator
-            r'\|\|\s*curl\s+',      # curl with OR operator
-            r'>\s*/dev/',           # output redirection
-            r'<\s*/dev/',           # input redirection
-        ]
-
-        # Path traversal patterns
-        self.PATH_TRAVERSAL_PATTERNS = [
-            r'\.\./',               # Basic traversal
-            r'\.\.\\',              # Windows traversal
-            r'%2e%2e%2f',           # URL encoded traversal
-            r'%2e%2e%5c',           # URL encoded Windows traversal
-            r'\.\.%2f',             # Mixed encoding
-            r'\.\.%5c',             # Mixed encoding Windows
-            r'%252e%252e%252f',     # Double URL encoded
-            r'\.\./\.\./\.\.',      # Multiple traversal
-            r'/etc/passwd',         # Common target file
-            r'/etc/shadow',         # Common target file
-            r'/proc/version',       # System information
-            r'c:\\windows\\',       # Windows system path
-        ]
-
-        # Suspicious content patterns
-        self.SUSPICIOUS_PATTERNS = [
-            r'/bin/(bash|sh|zsh|csh|tcsh)',     # Shell executables
-            r'(python|perl|ruby|php)\s+',       # Scripting languages
-            r'eval\s*\(',                       # Code evaluation
-            r'exec\s*\(',                       # Code execution
-            r'system\s*\(',                     # System calls
-            r'chmod\s+[0-9]+',                  # Permission changes
-            r'chown\s+',                        # Ownership changes
-            r'sudo\s+',                         # Privilege escalation
-            r'su\s+',                           # User switching
-        ]
+        pass
 
     def sanitize_field(self, field_name, field_value, max_length=None):
         """

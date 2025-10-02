@@ -1993,7 +1993,7 @@ class TaskExecutor:
         if next_condition == 'success':
             self.log(f"Task {task_id}: Legacy 'success' condition treated as 'all_success'")
             result = self.evaluate_parallel_next_condition('all_success', results)
-            self.log(f"Task {task_id}: Condition 'success' (→ all_success) evaluated to: {result}")
+            self.log(f"Task {task_id}: Condition 'success' (-> all_success) evaluated to: {result}")
             return result
         
         # Handle parallel-specific conditions (simplified syntax)
@@ -2133,10 +2133,10 @@ class TaskExecutor:
                         self._check_shutdown()
 
                     if retry_config:
-                        # Mit retry config → .1, .2, etc.
+                        # With retry config -> .1, .2, etc.
                         future = executor.submit(self.execute_single_task_with_retry, task, master_timeout, retry_config)
                     else:
-                        # Ohne retry config → keine Nummer
+                        # Without retry config -> no number
                         future = executor.submit(self.execute_single_task_for_parallel, task, master_timeout, "")
                     future_to_task[future] = task
                 
@@ -2376,7 +2376,7 @@ class TaskExecutor:
         if next_condition == 'success':
             self.log(f"Task {task_id}: Legacy 'success' condition treated as 'all_success'")
             result = self.evaluate_parallel_next_condition('all_success', results)
-            self.log(f"Task {task_id}: Condition 'success' (→ all_success) evaluated to: {result}")
+            self.log(f"Task {task_id}: Condition 'success' (-> all_success) evaluated to: {result}")
             return result
         
         # Handle conditional-specific conditions (reuse parallel logic)

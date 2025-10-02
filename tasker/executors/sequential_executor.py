@@ -233,7 +233,7 @@ class SequentialExecutor(BaseExecutor):
                             executor_instance.log_debug(f"Task {task_id}{loop_display}: Sleep completed")
                             sleep_completion_event.set()
 
-                        sleep_timer = sleep_async(
+                        sleep_async(
                             sleep_time,
                             sleep_callback,
                             task_id=f"{task_id}{loop_display}-sleep",

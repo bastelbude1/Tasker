@@ -9,6 +9,7 @@ import time
 from .base_executor import BaseExecutor
 from ..core.condition_evaluator import ConditionEvaluator
 from ..core.utilities import ExitHandler, ExitCodes, format_output_for_log
+from ..core.streaming_output_handler import create_memory_efficient_handler
 
 
 class SequentialExecutor(BaseExecutor):
@@ -117,23 +118,34 @@ class SequentialExecutor(BaseExecutor):
             try:
                 # Execute using contect manager for automatic cleanup
                 import subprocess
-                with subprocess.Popen(
-                    cmd_array,
-                    shell=False, # More secure
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    universal_newlines=True
-                ) as process:
-                    try:
-                        stdout, stderr = process.communicate(timeout=task_timeout)
-                        exit_code = process.returncode
-                    except subprocess.TimeoutExpired: 
-                        # Process timed out - kill it
-                        executor_instance.log(f"Task {task_id}{loop_display}: Timeout after {task_timeout} seconds. Killing process.")
-                        process.kill()
-                        stdout, stderr = process.communicate()
-                        exit_code = 124  # Common exit code for timeout
-                        stderr += f"\nProcess killed after timeout of {task_timeout} seconds"
+
+                # Create memory-efficient output handler with 10MB default limit
+                max_memory_mb = 10
+
+                with create_memory_efficient_handler(max_memory_mb) as output_handler:
+                    with subprocess.Popen(
+                        cmd_array,
+                        shell=False, # More secure
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        universal_newlines=True
+                    ) as process:
+                        # Stream output with memory efficiency
+                        stdout, stderr, exit_code, timed_out = output_handler.stream_process_output(
+                            process, timeout=task_timeout
+                        )
+
+                        # Log memory usage for large outputs
+                        memory_info = output_handler.get_memory_usage_info()
+                        if memory_info['using_temp_files']:
+                            executor_instance.log_debug(f"Task {task_id}{loop_display}: Used temp files for large output "
+                                                       f"(stdout: {memory_info['stdout_size']} bytes, "
+                                                       f"stderr: {memory_info['stderr_size']} bytes)")
+
+                        if timed_out:
+                            executor_instance.log(f"Task {task_id}{loop_display}: Timeout after {task_timeout} seconds. Process killed.")
+                            exit_code = 124  # Common exit code for timeout
+                            stderr += f"\nProcess killed after timeout of {task_timeout} seconds"
             except Exception as e:
                 executor_instance.log(f"Task {task_id}{loop_display}: Error executing command: {str(e)}")
                 exit_code = 1

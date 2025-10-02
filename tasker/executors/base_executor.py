@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from ..core.utilities import format_output_for_log
 from ..core.condition_evaluator import ConditionEvaluator
 from ..core.execution_context import ExecutionContext
+from ..core.streaming_output_handler import StreamingOutputHandler, create_memory_efficient_handler
 
 
 class BaseExecutor(ABC):
@@ -184,34 +185,44 @@ class BaseExecutor(ABC):
                     'sleep_seconds': int(task.get('sleep', 0))
                 }
 
-            # 8. Real execution
+            # 8. Real execution with memory-efficient streaming
             start_time = time.time()
             try:
-                # Use Popen pattern for Python 3.6.8 compatibility
-                with subprocess.Popen(
-                    cmd_array,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    universal_newlines=True
-                ) as process:
-                    try:
-                        raw_stdout, raw_stderr = process.communicate(timeout=task_timeout)
-                        exit_code = process.returncode
+                # Create memory-efficient output handler with 10MB default limit
+                max_memory_mb = 10
+
+                with create_memory_efficient_handler(max_memory_mb) as output_handler:
+                    # Use Popen pattern for Python 3.6.8 compatibility
+                    with subprocess.Popen(
+                        cmd_array,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        universal_newlines=True
+                    ) as process:
+                        # Stream output with memory efficiency
+                        raw_stdout, raw_stderr, exit_code, timed_out = output_handler.stream_process_output(
+                            process, timeout=task_timeout
+                        )
                         execution_time = time.time() - start_time
-                    except subprocess.TimeoutExpired:
-                        execution_time = time.time() - start_time
-                        execution_context.log(f"Task {task_display_id}: TIMEOUT after {task_timeout}s")
-                        process.kill()
-                        raw_stdout, raw_stderr = process.communicate()
-                        return {
-                            'task_id': task_id,
-                            'exit_code': 124,
-                            'stdout': '',
-                            'stderr': f'Command timed out after {task_timeout} seconds',
-                            'success': False,
-                            'skipped': False,
-                            'sleep_seconds': int(task.get('sleep', 0))
-                        }
+
+                        # Log memory usage information for debugging
+                        memory_info = output_handler.get_memory_usage_info()
+                        if memory_info['using_temp_files']:
+                            execution_context.log_debug(f"Task {task_display_id}: Used temp files for large output "
+                                                      f"(stdout: {memory_info['stdout_size']} bytes, "
+                                                      f"stderr: {memory_info['stderr_size']} bytes)")
+
+                        if timed_out:
+                            execution_context.log(f"Task {task_display_id}: TIMEOUT after {task_timeout}s")
+                            return {
+                                'task_id': task_id,
+                                'exit_code': 124,
+                                'stdout': '',
+                                'stderr': f'Command timed out after {task_timeout} seconds',
+                                'success': False,
+                                'skipped': False,
+                                'sleep_seconds': int(task.get('sleep', 0))
+                            }
 
             except Exception as e:
                 execution_time = time.time() - start_time

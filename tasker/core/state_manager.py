@@ -1,6 +1,6 @@
 # tasker/core/state_manager.py
 """
-TASKER 2.0 - State Management Component
+TASKER 2.1 - State Management Component
 --------------------------------------
 Handles all state storage and retrieval operations in a thread-safe manner.
 

@@ -1,4 +1,4 @@
-# TASK ExecutoR - TASKER 2.0
+# TASK ExecutoR - TASKER 2.1
 
 **No-Code Workflow Automation** - Transform complex operations into simple configuration files
 
@@ -84,7 +84,7 @@ A sophisticated Python-based task execution system for running commands on remot
 
 ## Overview
 
-TASKER 2.0 is a next-generation task automation framework that reads task definitions from configuration files and executes them with advanced orchestration capabilities. Built on a modular architecture for maximum maintainability and scalability.
+TASKER 2.1 is a next-generation task automation framework that reads task definitions from configuration files and executes them with advanced orchestration capabilities. Built on a modular architecture for maximum maintainability and scalability.
 
 **Key Features:**
 - **Multiple Execution Models**: Sequential, parallel, and conditional task execution
@@ -620,7 +620,7 @@ command=connect_database
 
 ## Memory-Efficient Output Streaming
 
-TASKER 2.0 includes an advanced memory-efficient output streaming system that prevents Out-of-Memory (OOM) errors when processing commands that generate large amounts of output (1GB+). This system automatically manages memory usage and seamlessly handles outputs of any size.
+TASKER 2.1 includes an advanced memory-efficient output streaming system that prevents Out-of-Memory (OOM) errors when processing commands that generate large amounts of output (1GB+). This system automatically manages memory usage and seamlessly handles outputs of any size.
 
 ### The Problem with Large Outputs
 
@@ -2619,10 +2619,10 @@ Each execution creates:
 
 ## Modular Architecture
 
-TASKER 2.0 follows a clean modular architecture where each file has a specific purpose:
+TASKER 2.1 follows a clean modular architecture where each file has a specific purpose:
 
 ```
-TASKER 2.0 Project Structure
+TASKER 2.1 Project Structure
 ./
 ├── tasker.py                    # Main executable script (CLI entry point)
 │
@@ -3138,6 +3138,6 @@ tasks:
 
 ---
 
-*TASKER 2.0 - Professional Task Automation for Enterprise Environments*
+*TASKER 2.1 - Professional Task Automation for Enterprise Environments*
 
 <!-- Trigger for comprehensive CodeRabbit review -->

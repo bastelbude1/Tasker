@@ -1,8 +1,8 @@
 # tasker/core/task_executor_main.py
 """
-TASKER 2.0 - Main Task Executor Class
+TASKER 2.1 - Main Task Executor Class
 -------------------------------------
-The central orchestration engine for TASKER 2.0.
+The central orchestration engine for TASKER 2.1.
 
 This module contains the main TaskExecutor class that coordinates all task execution,
 logging, validation, and lifecycle management. It delegates specific execution types
@@ -57,7 +57,7 @@ from .task_runner import TaskRunner
 
 class TaskExecutor:
     """
-    TASKER 2.0 - Modular Task Execution System
+    TASKER 2.1 - Modular Task Execution System
     
     A sophisticated task execution framework that orchestrates sequential, parallel,
     and conditional task execution with comprehensive logging and validation.

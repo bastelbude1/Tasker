@@ -1,0 +1,49 @@
+# PATH TRAVERSAL ENCODING TEST
+# Tests various encoding techniques for path traversal
+
+# Valid start task
+task=0
+hostname=localhost
+command=echo
+arguments=Starting path traversal encoding test
+success=exit_0
+on_success=1
+
+# TRAVERSAL: URL-encoded path traversal
+task=1
+hostname=localhost
+command=cat
+arguments=%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd
+success=exit_0
+on_success=2
+
+# TRAVERSAL: Double URL-encoded path traversal
+task=2
+hostname=localhost
+command=cat
+arguments=%252e%252e%252f%252e%252e%252f%252e%252e%252fetc%252fpasswd
+success=exit_0
+on_success=3
+
+# TRAVERSAL: Unicode encoding attempt
+task=3
+hostname=localhost
+command=cat
+arguments=\u002e\u002e\u002f\u002e\u002e\u002f\u002e\u002e\u002fetc\u002fpasswd
+success=exit_0
+on_success=4
+
+# TRAVERSAL: Mixed case encoding
+task=4
+hostname=localhost
+command=cat
+arguments=..%2F..%2f..%2Fetc%2Fpasswd
+success=exit_0
+on_success=5
+
+# TRAVERSAL: Long path with encoding
+task=5
+hostname=localhost
+command=cat
+arguments=%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd
+success=exit_0

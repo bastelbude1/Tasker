@@ -104,7 +104,11 @@ class InputSanitizer:
         if max_length is None:
             max_length = self._get_field_max_length(field_name)
 
-        if len(field_value) > max_length:
+        # Skip length validation if value contains global variable placeholders
+        # These will be resolved later in the validation pipeline
+        has_placeholder = '@' in field_value and re.search(r'@[A-Za-z_][A-Za-z0-9_]*@', field_value)
+
+        if not has_placeholder and len(field_value) > max_length:
             errors.append(f"Field '{field_name}' exceeds maximum length ({max_length}): {len(field_value)} characters")
             return {'valid': False, 'value': field_value, 'errors': errors, 'warnings': warnings}
 
@@ -284,6 +288,12 @@ class InputSanitizer:
         """Validate numeric fields with appropriate bounds."""
         errors = []
         warnings = []
+
+        # Skip numeric validation if value contains global variable placeholders
+        # These will be resolved later in the validation pipeline
+        if '@' in value_str and re.search(r'@[A-Za-z_][A-Za-z0-9_]*@', value_str):
+            # This is a placeholder - defer validation until after resolution
+            return {'valid': True, 'errors': errors, 'warnings': warnings}
 
         try:
             # Handle float for sleep field

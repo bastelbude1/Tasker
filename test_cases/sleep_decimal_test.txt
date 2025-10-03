@@ -1,0 +1,30 @@
+# TASKER Decimal Sleep Test
+# Tests the fix for decimal sleep value parsing
+
+# Test 1: Decimal sleep value 0.5
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing sleep 0.5 seconds
+sleep=0.5
+success=exit_0
+
+# Test 2: Decimal sleep value 0.1
+task=1
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing sleep 0.1 seconds
+sleep=0.1
+success=exit_0
+
+# Test 3: Decimal sleep value 1.5
+task=2
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing sleep 1.5 seconds
+sleep=1.5
+success=exit_0
+next=never

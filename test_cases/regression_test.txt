@@ -1,0 +1,16 @@
+# TASKER Regression Test
+# Tests that original behavior is restored
+
+# Test 1: Normal execution (should succeed)
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Regression test task 1
+
+# Test 2: Normal execution (should succeed)
+task=1
+hostname=localhost
+exec=local
+command=echo
+arguments=Regression test task 2

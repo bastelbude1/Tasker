@@ -182,7 +182,7 @@ class BaseExecutor(ABC):
                     'stderr': '',
                     'success': True,
                     'skipped': False,
-                    'sleep_seconds': int(task.get('sleep', 0))
+                    'sleep_seconds': float(task.get('sleep', 0))
                 }
 
             # 8. Real execution with memory-efficient streaming
@@ -230,7 +230,7 @@ class BaseExecutor(ABC):
                     'stderr': str(e),
                     'success': False,
                     'skipped': False,
-                    'sleep_seconds': int(task.get('sleep', 0))
+                    'sleep_seconds': float(task.get('sleep', 0))
                 }
 
             # 9. Handle output splitting if configured
@@ -251,7 +251,7 @@ class BaseExecutor(ABC):
                 'stderr': processed_stderr,
                 'success': success,
                 'skipped': False,
-                'sleep_seconds': int(task.get('sleep', 0))
+                'sleep_seconds': float(task.get('sleep', 0))
             }
 
         except Exception as e:

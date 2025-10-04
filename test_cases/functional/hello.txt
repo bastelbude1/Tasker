@@ -1,0 +1,10 @@
+task=0
+hostname=localhost
+command=echo
+arguments=Hello TASKER!
+exec=local
+
+task=1
+hostname=localhost
+command=date
+exec=local

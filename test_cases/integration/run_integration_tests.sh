@@ -6,8 +6,16 @@ echo "=== INTEGRATION TESTS ==="
 echo "Testing system integration and complex workflows..."
 echo ""
 
-# Set PATH for supporting scripts
-export PATH="../bin:$PATH"
+# Get script directory for absolute path resolution
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEST_ROOT="$(dirname "$SCRIPT_DIR")"
+REPO_ROOT="$(dirname "$TEST_ROOT")"
+
+# Change to script directory to ensure consistent behavior
+cd "$SCRIPT_DIR"
+
+# Set PATH for supporting scripts using script-relative path
+export PATH="$TEST_ROOT/bin:$PATH"
 
 # Colors for output
 RED='\033[0;31m'
@@ -28,7 +36,7 @@ run_test() {
     echo -n "Testing $test_name... "
     TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
-    if timeout 90 ../../tasker.py "$test_file" -r --skip-host-validation >/dev/null 2>&1; then
+    if timeout 90 "$REPO_ROOT/tasker.py" "$test_file" -r --skip-host-validation >/dev/null 2>&1; then
         echo -e "${GREEN}✅ PASS${NC}"
         PASSED_TESTS=$((PASSED_TESTS + 1))
     else

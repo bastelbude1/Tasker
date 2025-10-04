@@ -161,6 +161,9 @@ logs/
 # Backup directory
 backups/
 
+# Deprecated files directory
+old/
+
 # IDE and editor files
 .vscode/
 .idea/

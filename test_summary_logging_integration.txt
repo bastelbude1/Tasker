@@ -1,9 +1,0 @@
-# Integration test for summary logging setup
-# Tests that ResultCollector.setup_summary_logging is properly called
-
-task=1
-hostname=localhost
-exec=local
-command=echo
-arguments=Testing summary logging integration
-success=exit_0

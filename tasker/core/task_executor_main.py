@@ -165,14 +165,17 @@ class TaskExecutor:
         self.log_file_path = os.path.join(self.log_dir, f"{sanitized_prefix}_{timestamp}.{log_appendix}")
         self.log_file = open(self.log_file_path, 'w')
 
-        # Copy the task file to the tasks directory as backup
-        try:
-            task_filename = os.path.basename(task_file)
-            task_copy_path = os.path.join(self.log_dir, f"{task_filename}_{timestamp}")
-            shutil.copy2(task_file, task_copy_path)
-            self.log_debug(f"Created task file copy: {task_copy_path}")
-        except Exception as e:
-            self.log_warn(f"Could not copy task file to tasks directory: {str(e)}")
+        # Copy the task file to the tasks directory as backup (only if file exists)
+        if os.path.exists(task_file):
+            try:
+                task_filename = os.path.basename(task_file)
+                task_copy_path = os.path.join(self.log_dir, f"{task_filename}_{timestamp}")
+                shutil.copy2(task_file, task_copy_path)
+                self.log_debug(f"Created task file copy: {task_copy_path}")
+            except Exception as e:
+                self.log_warn(f"Could not copy task file to tasks directory: {str(e)}")
+        else:
+            self.log_debug(f"Skipping task file copy - file does not exist: {task_file}")
 
         # Set up project summary logging if project is specified
         if self.project:
@@ -371,8 +374,7 @@ class TaskExecutor:
     def loop_counter(self, value):
         """Backward compatibility setter for loop_counter."""
         if hasattr(self, '_state_manager'):
-            # This is a complex operation, for now just store the fallback
-            self._loop_counter_fallback = value
+            self._state_manager.loop_counter = value
         else:
             self._loop_counter_fallback = value
 
@@ -388,8 +390,7 @@ class TaskExecutor:
     def loop_iterations(self, value):
         """Backward compatibility setter for loop_iterations."""
         if hasattr(self, '_state_manager'):
-            # This is a complex operation, for now just store the fallback
-            self._loop_iterations_fallback = value
+            self._state_manager.loop_iterations = value
         else:
             self._loop_iterations_fallback = value
 
@@ -979,36 +980,38 @@ class TaskExecutor:
         
         # PHASE 1: Collect global variables (first pass)
         self.log_info(f"# Parsing global variables from '{self.task_file}'")
-        global_count = 0
-        
+        parsed_global_vars = {}  # Local dictionary to collect global variables
+
         for line_num, line in enumerate(lines, 1):
             line = line.strip()
-            
+
             # Skip empty lines and comments
             if not line or line.startswith('#'):
                 continue
-                
+
             # Check if this is a global variable definition
             if '=' in line and not line.startswith('task='):
                 key, value = line.split('=', 1)
                 key = key.strip()
                 value = value.strip()
-                
+
                 # Check if this is a global variable (not a known task field)
                 known_task_fields = [
                     'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
-                    'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure', 
+                    'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure',
                     'on_success', 'success', 'condition', 'exec', 'timeout', 'return',
                     'type', 'max_parallel', 'tasks', 'retry_failed', 'retry_count', 'retry_delay',  # Parallel fields
                     'if_true_tasks', 'if_false_tasks'  # NEW: Conditional task fields
                 ]
-                
+
                 if key not in known_task_fields:
                     # This is a global variable
-                    self.global_vars[key] = value
-                    global_count += 1
+                    parsed_global_vars[key] = value
                     self.log_debug(f"Global variable: {key} = {value}")
-        
+
+        # Assign all global variables at once (compatible with StateManager property system)
+        self.global_vars = parsed_global_vars
+        global_count = len(parsed_global_vars)
         self.log_info(f"# Found {global_count} global variables")
         if global_count > 0:
             for key, value in self.global_vars.items():
@@ -1038,6 +1041,15 @@ class TaskExecutor:
                         task_id = int(current_task['task'])
                         if 'arguments' not in current_task:
                             current_task['arguments'] = ''
+
+                        # CRITICAL: Check for duplicate task IDs
+                        if task_id in parsed_tasks:
+                            self.log_error(f"DUPLICATE TASK ID {task_id} detected in task file!")
+                            self.log_debug(f"Previous task {task_id}: {parsed_tasks[task_id]}")
+                            self.log_debug(f"Duplicate task {task_id}: {current_task}")
+                            self.log_error(f"Each task ID must be unique. Please fix the task file.")
+                            ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, f"Duplicate task ID {task_id} found", False)
+
                         parsed_tasks[task_id] = current_task
 
                     # Start a new task
@@ -1052,6 +1064,15 @@ class TaskExecutor:
             task_id = int(current_task['task'])
             if 'arguments' not in current_task:
                 current_task['arguments'] = ''
+
+            # CRITICAL: Check for duplicate task IDs (last task)
+            if task_id in parsed_tasks:
+                self.log_error(f"DUPLICATE TASK ID {task_id} detected in task file!")
+                self.log_debug(f"Previous task {task_id}: {parsed_tasks[task_id]}")
+                self.log_debug(f"Duplicate task {task_id}: {current_task}")
+                self.log_error(f"Each task ID must be unique. Please fix the task file.")
+                ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, f"Duplicate task ID {task_id} found", False)
+
             parsed_tasks[task_id] = current_task
 
         # Assign all parsed tasks at once (compatible with StateManager property system)
@@ -1494,12 +1515,23 @@ class TaskExecutor:
         if next_condition == 'loop' and 'loop' in task:
             # Check if this is the first time we're seeing this task
             if task_id not in self.loop_counter:
-                self.loop_counter[task_id] = int(task['loop'])
-                self.loop_iterations[task_id] = 1  # Start at iteration 1
+                # Use StateManager methods if available, otherwise fallback to direct assignment
+                if hasattr(self, '_state_manager'):
+                    self._state_manager.set_loop_counter(task_id, int(task['loop']))
+                    self._state_manager.set_loop_iteration(task_id, 1)
+                else:
+                    self._loop_counter_fallback[task_id] = int(task['loop'])
+                    self._loop_iterations_fallback[task_id] = 1
+
                 self.log_info(f"Task {task_id}{loop_display}: Loop initialized with count "
-                        f"{self.loop_counter[task_id]}")
+                        f"{int(task['loop'])}")
             else:
-                self.loop_iterations[task_id] += 1  # Increment iteration counter
+                # Increment iteration counter
+                if hasattr(self, '_state_manager'):
+                    current_iterations = self._state_manager.get_loop_iteration(task_id)
+                    self._state_manager.set_loop_iteration(task_id, current_iterations + 1)
+                else:
+                    self._loop_iterations_fallback[task_id] += 1
 
             # Check loop_break condition first (if exists)
             if 'loop_break' in task:
@@ -1510,24 +1542,36 @@ class TaskExecutor:
                     # Break condition met
                     self.log_info(f"Task {task_id}: Breaking loop - loop_break condition "
                             f"'{task['loop_break']}' satisfied")
-                    del self.loop_counter[task_id]
-                    del self.loop_iterations[task_id]
+                    if hasattr(self, '_state_manager'):
+                        self._state_manager.clear_loop_tracking(task_id)
+                    else:
+                        self._loop_counter_fallback.pop(task_id, None)
+                        self._loop_iterations_fallback.pop(task_id, None)
                     self.log_info(f"Task {task_id}: Loop complete, proceeding to next task")
                     return True  # Proceed to next task
 
             # Decrement the counter
-            self.loop_counter[task_id] -= 1
-            
+            if hasattr(self, '_state_manager'):
+                remaining = self._state_manager.decrement_loop_counter(task_id)
+                current_iteration = self._state_manager.get_loop_iteration(task_id)
+            else:
+                self._loop_counter_fallback[task_id] -= 1
+                remaining = self._loop_counter_fallback[task_id]
+                current_iteration = self._loop_iterations_fallback[task_id]
+
             # If counter is still >= 0, continue looping
-            if self.loop_counter[task_id] >= 0:
-                self.log_debug(f"Task {task_id}: Looping (iteration {self.loop_iterations[task_id]}, "
-                        f"{self.loop_counter[task_id]} remaining)")
+            if remaining >= 0:
+                self.log_debug(f"Task {task_id}: Looping (iteration {current_iteration}, "
+                        f"{remaining} remaining)")
                 return "LOOP"  # Trigger the loop
             else:
                 # Max iterations reached
                 self.log_info(f"Task {task_id}: Loop complete - max iterations reached")
-                del self.loop_counter[task_id]
-                del self.loop_iterations[task_id]
+                if hasattr(self, '_state_manager'):
+                    self._state_manager.clear_loop_tracking(task_id)
+                else:
+                    self._loop_counter_fallback.pop(task_id, None)
+                    self._loop_iterations_fallback.pop(task_id, None)
                 return True  # Proceed to next task
         
         # Parse complex conditions
@@ -1670,6 +1714,35 @@ class TaskExecutor:
             start_task_id = 0
 
         next_task_id = start_task_id
+        tasks_executed_count = 0  # Track how many tasks actually executed
+
+        # HYBRID STARTING STRATEGY: Try starting task, auto-fallback for user-friendliness
+        if next_task_id not in self.tasks:
+            available_tasks = sorted(self.tasks.keys())
+
+            # If user explicitly specified --start-from, fail strictly
+            if self.start_from_task is not None:
+                self.log_error(f"Starting task {next_task_id} not found in task definitions")
+                self.log_error(f"Available tasks: {available_tasks}")
+                if available_tasks:
+                    suggested_start = available_tasks[0]
+                    self.log_error(f"Suggestion: Use --start-from {suggested_start} or add task {next_task_id} to the file")
+                ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, f"Starting task {next_task_id} not found", False)
+
+            # Auto-fallback for user-friendliness when defaulting to task 0
+            elif available_tasks and next_task_id == 0:
+                auto_start = available_tasks[0]
+                self.log_info(f"Task 0 not found, auto-starting from lowest available task {auto_start}")
+                if auto_start > 0:
+                    self.log_warn(f"# WARNING: Task dependencies @X_stdout@, @X_stderr@, @X_success@ for tasks 0-{auto_start-1} will be unresolved")
+                    self.log_warn(f"# Tasks {auto_start}+ may fail if they depend on results from earlier tasks")
+                next_task_id = auto_start
+            else:
+                # No tasks available at all
+                self.log_error(f"Starting task {next_task_id} not found in task definitions")
+                self.log_error(f"Available tasks: {available_tasks}")
+                ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, f"No executable tasks found", False)
+
         while next_task_id is not None and next_task_id in self.tasks:  # Changed condition
             # Check for shutdown before each task
             self._check_shutdown()
@@ -1680,6 +1753,7 @@ class TaskExecutor:
                 break
 
             result = self.execute_task(task)
+            tasks_executed_count += 1  # Increment count for each task executed
 
             # handle the special LOOP case
             if result == "LOOP":
@@ -1690,48 +1764,67 @@ class TaskExecutor:
 
         # Check how we exited the loop
         if next_task_id is None:
-            # We exited because a 'next' condition failed
+            # We exited because a task returned None (either 'next=never' or end of task sequence)
             if self.current_task in self.tasks:
                 last_task = self.tasks[self.current_task]
                 if 'next' in last_task and last_task['next'] == 'never':
                     # This is a successful completion with 'next=never'
                     self.log_info("SUCCESS: Task execution completed successfully with 'next=never'.")
-                    # Write summary before exiting
-                    if self.summary_log and self.final_task_id is not None:
-                        try:
-                            self.write_final_summary()
-                        except Exception as e:
-                            self.log_warn(f"Failed to write final summary: {e}")
-                    ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully with 'next=never'", False)
+                elif tasks_executed_count > 0:
+                    # This is a successful completion - we reached the end of the task sequence
+                    self.log_info(f"SUCCESS: Task execution completed successfully - {tasks_executed_count} task(s) executed.")
                 else:
-                    # This is a failure due to a 'next' condition
-                    self.log_error("FAILED: Task execution stopped: 'next' condition was not satisfied.")
+                    # This shouldn't happen, but handle it anyway
+                    self.log_error("FAILED: Task execution stopped with no tasks executed.")
                     # Write summary before exiting
                     if self.summary_log and self.final_task_id is not None:
                         try:
                             self.write_final_summary()
                         except Exception as e:
                             self.log_warn(f"Failed to write final summary: {e}")
-                    ExitHandler.exit_with_code(ExitCodes.CONDITIONAL_EXECUTION_FAILED, "Task execution stopped: 'next' condition was not satisfied", False)
+                    ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "No tasks executed", False)
             else:
-                self.log_error("FAILED: Task execution stopped for an unknown reason.")
-                # Write summary before exiting
-                if self.summary_log and self.final_task_id is not None:
-                    try:
-                        self.write_final_summary()
-                    except Exception as e:
-                        self.log_warn(f"Failed to write final summary: {e}")
-                ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for an unknown reason", False)
-        elif next_task_id not in self.tasks:  # Changed condition
-            # We've successfully completed all tasks or reached a non-existent task
-            self.log_info("SUCCESS: Task execution completed - reached end of defined tasks.")
-            # Write summary before exiting
+                # We don't have a current task reference, but if we executed tasks, it's a success
+                if tasks_executed_count > 0:
+                    self.log_info(f"SUCCESS: Task execution completed successfully - {tasks_executed_count} task(s) executed.")
+                else:
+                    self.log_error("FAILED: Task execution stopped with no tasks executed.")
+                    # Write summary before exiting
+                    if self.summary_log and self.final_task_id is not None:
+                        try:
+                            self.write_final_summary()
+                        except Exception as e:
+                            self.log_warn(f"Failed to write final summary: {e}")
+                    ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "No tasks executed", False)
+
+            # Write summary before exiting (for success cases)
             if self.summary_log and self.final_task_id is not None:
                 try:
                     self.write_final_summary()
                 except Exception as e:
                     self.log_warn(f"Failed to write final summary: {e}")
             ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully", False)
+        elif next_task_id not in self.tasks:  # Changed condition
+            # Check if we actually executed any tasks
+            if tasks_executed_count == 0:
+                available_tasks = sorted(self.tasks.keys())
+                self.log_error("FAILED: No tasks were executed.")
+                self.log_error(f"Available tasks in file: {available_tasks}")
+                if available_tasks:
+                    suggested_start = available_tasks[0]
+                    self.log_error(f"Suggestion: Use --start-from {suggested_start} to start from the first available task")
+                self.log_error("This often occurs when using --skip-task-validation with files that don't start from task 0")
+                ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, "No tasks executed", False)
+            else:
+                # We've successfully completed tasks
+                self.log_info(f"SUCCESS: Task execution completed - {tasks_executed_count} task(s) executed successfully.")
+                # Write summary before exiting
+                if self.summary_log and self.final_task_id is not None:
+                    try:
+                        self.write_final_summary()
+                    except Exception as e:
+                        self.log_warn(f"Failed to write final summary: {e}")
+                ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully", False)
         else:
             # Something else stopped execution
             self.log_error("FAILED: Task execution stopped for an unknown reason.")

@@ -1,0 +1,43 @@
+{
+  "simple_test.txt": {
+    "description": "Basic global variable resolution test",
+    "expected_behavior": {
+      "variables_must_resolve": ["EXEC", "HOSTNAME", "PATH_BASE", "SUBDIR", "TIMEOUT"],
+      "execution_type": "local",
+      "tasks_should_execute": [0, 1],
+      "tasks_should_skip": [],
+      "required_outputs": [
+        "Testing /tmp/test/data",
+        "mkdir -p /tmp/test/data"
+      ],
+      "forbidden_patterns": [
+        "Unknown execution type '@EXEC@'",
+        "Unresolved variables.*@EXEC@",
+        "Unresolved variables.*@HOSTNAME@",
+        "[Errno 2] No such file or directory: 'pbrun'",
+        "Task 1:.*evaluated to FALSE, skipping task"
+      ],
+      "required_patterns": [
+        "Task 0: Executing \\[local\\]:",
+        "Task 1: Executing \\[local\\]:",
+        "SUCCESS: Task execution completed"
+      ]
+    }
+  },
+  "comprehensive_globals_test.txt": {
+    "description": "Comprehensive global variable functionality test",
+    "expected_behavior": {
+      "variables_must_resolve": ["EXEC", "HOSTNAME", "VERSION", "BUILD_NUMBER", "TEST_USER"],
+      "execution_type": "local",
+      "required_outputs": [
+        "Starting test version 2.1.4 build 1234 with user admin",
+        "All tests passed for admin version 2.1.4"
+      ],
+      "forbidden_patterns": [
+        "Unknown execution type",
+        "Unresolved variables",
+        "using default 'pbrun'"
+      ]
+    }
+  }
+}

@@ -40,8 +40,8 @@ if [[ "$COMMAND" == "wwrs_test" ]]; then
         # Timeout scenarios
         "wwrs-timeout-host"|"timeout")
             echo "Testing wwrs connection to $HOSTNAME..." >&2
-            sleep 15  # Simulate timeout
-            echo "wwrs_clir test OK"  # Won't be reached
+            sleep 25  # Simulate timeout - exceeds harness timeout (~20s) to ensure kill
+            echo "wwrs_clir test OK"  # Won't be reached due to timeout
             exit 0
             ;;
         # DNS resolution test

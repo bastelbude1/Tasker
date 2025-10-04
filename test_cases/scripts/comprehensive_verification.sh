@@ -38,7 +38,7 @@ validate_test() {
     echo -e "${YELLOW}[Testing: $test_name]${NC}"
 
     # Run test with full logging
-    export PATH="../test_scripts:$PATH"
+    export PATH="../bin:$PATH"
     local log_file="/tmp/tasker_test_${test_name}_$$.log"
 
     echo "  Running TASKER with comprehensive logging..."

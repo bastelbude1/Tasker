@@ -62,7 +62,7 @@ The runner will:
 ### Manual Testing
 ```bash
 # Set PATH for mock commands and skip host validation
-export PATH="../test_scripts:$PATH"
+export PATH="../bin:$PATH"
 
 # Run individual test (should fail)
 ../tasker.py malformed_syntax_test.txt -r --skip-host-validation

@@ -27,7 +27,7 @@ SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Set PATH for mock commands and skip host validation
-export PATH="$SCRIPT_DIR/../test_scripts:$PATH"
+export PATH="$SCRIPT_DIR/../bin:$PATH"
 
 # Function to test a single security test file
 test_security_file() {

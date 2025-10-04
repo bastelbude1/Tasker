@@ -53,7 +53,7 @@ validate_standard_test() {
     echo -e "${PURPLE}[STANDARD TEST: $test_name]${NC}"
 
     # Run test with full logging
-    export PATH="../test_scripts:$PATH"
+    export PATH="../bin:$PATH"
     local log_file="/tmp/tasker_test_${test_name}_$$.log"
 
     echo "  Running TASKER with comprehensive logging..."
@@ -191,7 +191,7 @@ validate_security_test() {
     echo -e "${PURPLE}[SECURITY TEST: $test_name]${NC}"
 
     # Run security test
-    export PATH="../test_scripts:$PATH"
+    export PATH="../bin:$PATH"
     local log_file="/tmp/tasker_security_${test_name}_$$.log"
 
     echo "  Running security test (should fail)..."

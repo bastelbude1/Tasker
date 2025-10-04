@@ -1,0 +1,20 @@
+# TEST_METADATA: {"description": "Task execution path validation test", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_skipped_tasks": [], "expected_final_task": 2}
+
+# Test case for validating task execution path
+task=0
+hostname=localhost
+command=echo
+arguments=step1
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=step2
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=step3
+exec=local

@@ -2592,7 +2592,8 @@ tasker -r --start-from=15 --skip-validation tasks.txt
 | `-c, --connection-test` | Enable host connectivity testing | `tasker -r -c tasks.txt` |
 | `--skip-task-validation` | Skip task file validation (faster resume) | `tasker -r --skip-task-validation tasks.txt` |
 | `--skip-host-validation` | Skip host validation (WARNING: risky!) | `tasker -r --skip-host-validation tasks.txt` |
-| `--skip-validation` | Skip ALL validation (task + host) | `tasker -r --skip-validation tasks.txt` |
+| `--skip-command-validation` | Skip command existence validation (WARNING: risky!) | `tasker -r --skip-command-validation tasks.txt` |
+| `--skip-validation` | Skip ALL validation (task + host + command) | `tasker -r --skip-validation tasks.txt` |
 
 #### Resume and Recovery
 | Option | Description | Example |
@@ -2782,6 +2783,37 @@ With `TASKER_PARALLEL_INSTANCES=10`, each instance automatically reduces its thr
    # Execute with project tracking
    tasker -r -p PRODUCTION_DEPLOY_2024 production_workflow.txt
    ```
+
+### Test Execution Requirements
+
+When running TASKER test cases, supporting scripts must be available in your PATH:
+
+**PATH Setup for Test Execution:**
+```bash
+# From main TASKER directory:
+export PATH="/home/baste/tasker/test_cases/bin:$PATH"
+./tasker.py test_cases/functional/example_task.txt -r --skip-host-validation
+
+# From test_cases/functional directory:
+export PATH="../bin:$PATH"
+../../tasker.py example_task.txt -r --skip-host-validation
+```
+
+**Supporting Scripts Location:**
+- **Directory**: `/home/baste/tasker/test_cases/bin/`
+- **Scripts**: `increment_counter.sh`, `toggle_exit.sh`, `pbrun`, `p7s`, `wwrs_clir`
+- **Purpose**: Mock commands and utilities for test workflow execution
+
+**Why PATH is Required:**
+- Test cases use realistic command names (e.g., `increment_counter.sh`) rather than full paths
+- Mirrors production usage where commands are resolved via PATH
+- Enables portable test cases that work across different directory structures
+- Validates TASKER's command resolution and validation logic
+
+**Alternative Approaches:**
+- **Full paths**: Use `/home/baste/tasker/test_cases/bin/script.sh` in test files (less portable)
+- **Symbolic links**: Create symlinks in `/usr/local/bin` (requires admin privileges)
+- **Current approach** (recommended): Set PATH as shown above
 
 ## Exit Codes Reference
 

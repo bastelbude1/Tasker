@@ -918,6 +918,13 @@ class TaskValidator:
             except ValueError:
                 self.errors.append(f"Line {line_number}: Task {task_id} has invalid exit code in {field_name}: exit_{exit_code}")
 
+        # Check for common invalid condition syntax patterns
+        # Pattern 1: exit=X instead of exit_X (equals instead of underscore)
+        invalid_exit_equals = re.findall(r'exit=(\d+)', resolved_expression)
+        if invalid_exit_equals:
+            for code in invalid_exit_equals:
+                self.errors.append(f"Line {line_number}: Task {task_id} has invalid syntax in {field_name}: 'exit={code}'. Use 'exit_{code}' instead.")
+
     def is_valid_custom_delimiter(self, delimiter):
         """Check if a custom delimiter is valid."""
         # A valid custom delimiter is a non-empty string

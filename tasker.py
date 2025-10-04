@@ -134,7 +134,6 @@ Examples:
         start_from_task=args.start_from,
         skip_task_validation=skip_task_validation,
         skip_host_validation=skip_host_validation,
-        skip_command_validation=skip_command_validation,
         show_plan=args.show_plan,
         validate_only=args.validate_only
     ) as executor:

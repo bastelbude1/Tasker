@@ -31,7 +31,8 @@ FAILED_TESTS=0
 # Function to run a single test
 run_test() {
     local test_file="$1"
-    local test_name=$(basename "$test_file")
+    local test_name
+    test_name=$(basename "$test_file")
 
     echo -n "Testing $test_name... "
     TOTAL_TESTS=$((TOTAL_TESTS + 1))

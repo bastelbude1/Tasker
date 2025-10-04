@@ -23,7 +23,7 @@ timeout=@TIMEOUT@
 task=1
 hostname=@HOSTNAME@
 command=chmod
-arguments=+x ./toggle_exit.sh ./increment_counter.sh
+arguments=+x toggle_exit.sh increment_counter.sh
 exec=@EXEC@
 timeout=@TIMEOUT@
 
@@ -187,13 +187,13 @@ exec=@EXEC@
 # Task 101: Uses toggle_exit.sh - fails first time, succeeds on retry
 task=101
 hostname=@HOSTNAME@
-command=./toggle_exit.sh
+command=toggle_exit.sh
 exec=@EXEC@
 
 # Task 102: Uses increment_counter.sh with custom success condition
 task=102
 hostname=@HOSTNAME@
-command=./increment_counter.sh
+command=increment_counter.sh
 exec=@EXEC@
 success=exit_0&stdout~2
 
@@ -216,7 +216,7 @@ exec=@EXEC@
 # Task 201: Uses toggle_exit.sh for conditional retry test
 task=201
 hostname=@HOSTNAME@
-command=./toggle_exit.sh
+command=toggle_exit.sh
 exec=@EXEC@
 
 # Task 202: Counter-based task that needs multiple attempts
@@ -238,7 +238,7 @@ exec=@EXEC@
 # Task 301: Uses increment_counter with success condition for value 2
 task=301
 hostname=@HOSTNAME@
-command=./increment_counter.sh
+command=increment_counter.sh
 exec=@EXEC@
 success=exit_0&stdout~2
 
@@ -254,7 +254,7 @@ exec=@EXEC@
 # Task 400: Toggle exit that should succeed on retry
 task=400
 hostname=@HOSTNAME@
-command=./toggle_exit.sh
+command=toggle_exit.sh
 exec=@EXEC@
 
 # Task 401: File-based toggle simulation

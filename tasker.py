@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
 TASKER 2.1 - Command Line Interface
@@ -75,10 +75,12 @@ Examples:
     # Granular validation control
     parser.add_argument('--skip-task-validation', action='store_true', 
                        help='Skip task file and dependency validation (faster resume)')
-    parser.add_argument('--skip-host-validation', action='store_true', 
+    parser.add_argument('--skip-host-validation', action='store_true',
                        help='Skip host validation and use hostnames as-is (WARNING: risky!)')
-    parser.add_argument('--skip-validation', action='store_true', 
-                       help='Skip ALL validation (same as --skip-task-validation --skip-host-validation)')
+    parser.add_argument('--skip-command-validation', action='store_true',
+                       help='Skip command existence validation (WARNING: risky!)')
+    parser.add_argument('--skip-validation', action='store_true',
+                       help='Skip ALL validation (same as --skip-task-validation --skip-host-validation --skip-command-validation)')
     parser.add_argument('--validate-only', action='store_true',
                        help='Perform complete validation (task + host) and exit - no task execution')
     
@@ -111,10 +113,13 @@ Examples:
     # Handle convenience flag
     skip_task_validation = args.skip_task_validation or args.skip_validation
     skip_host_validation = args.skip_host_validation or args.skip_validation
+    skip_command_validation = args.skip_command_validation or args.skip_validation
 
-    # Warn about risky host validation skip
+    # Warn about risky validation skips
     if skip_host_validation:
         print("WARNING: Skipping host validation can lead to connection failures!")
+    if skip_command_validation:
+        print("WARNING: Skipping command validation can lead to execution failures!")
 
     # Execute tasks with context manager for proper cleanup
     with TaskExecutor(
@@ -129,6 +134,7 @@ Examples:
         start_from_task=args.start_from,
         skip_task_validation=skip_task_validation,
         skip_host_validation=skip_host_validation,
+        skip_command_validation=skip_command_validation,
         show_plan=args.show_plan,
         validate_only=args.validate_only
     ) as executor:

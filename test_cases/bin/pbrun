@@ -51,7 +51,7 @@ if [[ "$COMMAND" == "pbtest" ]]; then
         # Timeout scenarios
         "pbrun-timeout-host"|"timeout")
             echo "Testing connection to $HOSTNAME..." >&2
-            sleep 15  # Simulate timeout (longer than most test timeouts)
+            sleep 25  # Simulate timeout - exceeds harness timeout (~20s) to ensure kill
             echo "pbtest connection OK"  # Won't be reached due to timeout
             exit 0
             ;;

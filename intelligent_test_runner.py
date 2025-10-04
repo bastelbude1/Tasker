@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 TASKER Intelligent Test Runner - Phase 1
 Metadata-driven test execution and validation
@@ -16,8 +16,144 @@ import json
 import re
 import subprocess
 import argparse
+import threading
+import time
 from datetime import datetime
 from pathlib import Path
+
+# Try to import psutil for enhanced performance monitoring, graceful fallback if not available
+try:
+    # Add psutil path for Python 3.6.8 compatibility - use relative to script location
+    import sys
+    import os
+    from pathlib import Path
+
+    # Get the directory where this script is located
+    script_dir = Path(__file__).resolve().parent
+    psutil_path = script_dir / 'lib'
+
+    if psutil_path.exists() and str(psutil_path) not in sys.path:
+        sys.path.insert(0, str(psutil_path))
+
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    # Note: Performance monitoring will use standard library alternatives
+
+
+class PerformanceMonitor:
+    """Monitor system performance and resource usage during test execution."""
+
+    def __init__(self):
+        self.start_time = None
+        self.end_time = None
+        self.peak_memory_mb = 0
+        self.peak_cpu_percent = 0
+        self.monitoring = False
+        self.monitor_thread = None
+        self.process = None
+        self.task_timings = {}
+
+    def start_monitoring(self, process):
+        """Start monitoring system resources for a process."""
+        self.process = process
+        self.start_time = time.time()
+        self.monitoring = True
+        self.peak_memory_mb = 0
+        self.peak_cpu_percent = 0
+
+        self.monitor_thread = threading.Thread(target=self._monitor_resources)
+        self.monitor_thread.daemon = True
+        self.monitor_thread.start()
+
+    def stop_monitoring(self):
+        """Stop monitoring and return performance metrics."""
+        self.monitoring = False
+        self.end_time = time.time()
+
+        if self.monitor_thread:
+            self.monitor_thread.join(timeout=1.0)
+
+        return {
+            "execution_time": self.end_time - self.start_time,
+            "peak_memory_mb": self.peak_memory_mb,
+            "peak_cpu_percent": self.peak_cpu_percent,
+            "task_timings": self.task_timings.copy()
+        }
+
+    def _monitor_resources(self):
+        """Monitor resources in background thread - inspired by parallelr.py patterns."""
+        if not PSUTIL_AVAILABLE:
+            return
+
+        try:
+            # Monitor the TASKER subprocess process, not the test runner process
+            if self.process:
+                target_process = psutil.Process(self.process.pid)
+            else:
+                return
+
+            while self.monitoring:
+                try:
+                    # Monitor subprocess resources (following parallelr.py pattern)
+                    memory_mb = target_process.memory_info().rss / (1024 * 1024)
+                    cpu_percent = target_process.cpu_percent(interval=0)  # Non-blocking
+
+                    # Update peaks (parallelr.py pattern)
+                    if memory_mb > self.peak_memory_mb:
+                        self.peak_memory_mb = memory_mb
+                    if cpu_percent > self.peak_cpu_percent:
+                        self.peak_cpu_percent = cpu_percent
+
+                    time.sleep(0.1)  # Sample every 100ms
+
+                except (psutil.NoSuchProcess, psutil.AccessDenied, ProcessLookupError):
+                    # Process ended or no permission (parallelr.py pattern)
+                    break
+                except Exception:
+                    # Unexpected error - graceful degradation
+                    break
+
+        except Exception:
+            # Monitoring setup failed - graceful degradation
+            pass
+
+    def parse_task_timings(self, stdout_content):
+        """Parse individual task execution times from TASKER output."""
+        task_timings = {}
+        current_task = None
+        task_start_time = None
+
+        for line in stdout_content.split('\n'):
+            # Look for task execution start
+            task_match = re.search(r'\[(\d{2}\w{3}\d{2} \d{2}:\d{2}:\d{2})\] Task (\d+): Executing', line)
+            if task_match:
+                timestamp_str = task_match.group(1)
+                task_id = int(task_match.group(2))
+
+                try:
+                    # Parse timestamp (format: 04Oct25 18:30:45)
+                    task_start_time = datetime.strptime(timestamp_str, '%d%b%y %H:%M:%S')
+                    current_task = task_id
+                except ValueError:
+                    continue
+
+            # Look for task completion
+            if current_task is not None and task_start_time:
+                completion_match = re.search(r'\[(\d{2}\w{3}\d{2} \d{2}:\d{2}:\d{2})\] Task ' + str(current_task) + r': Exit code:', line)
+                if completion_match:
+                    timestamp_str = completion_match.group(1)
+                    try:
+                        task_end_time = datetime.strptime(timestamp_str, '%d%b%y %H:%M:%S')
+                        duration = (task_end_time - task_start_time).total_seconds()
+                        task_timings[current_task] = duration
+                        current_task = None
+                        task_start_time = None
+                    except ValueError:
+                        continue
+
+        return task_timings
 
 
 class TestMetadata:
@@ -37,20 +173,33 @@ class TestMetadata:
             return {"error": f"Failed to read test file: {e}"}
 
         # Extract JSON metadata from comments
-        # Pattern matches: # TEST_METADATA: { ... }
-        pattern = r'#\s*TEST_METADATA:\s*(\{.*?\})'
-        match = re.search(pattern, content, re.DOTALL)
+        # Pattern matches: # TEST_METADATA: { ... } on single line
+        pattern = r'#\s*TEST_METADATA:\s*(\{[^}]*\}(?:\s*[^#\n]*[^#\n])*)'
+        for line in content.split('\n'):
+            if 'TEST_METADATA:' in line:
+                # Find the JSON part of the line
+                start_idx = line.find('{')
+                if start_idx != -1:
+                    json_str = line[start_idx:]
+                    # Find the end of the JSON object
+                    brace_count = 0
+                    end_idx = -1
+                    for i, char in enumerate(json_str):
+                        if char == '{':
+                            brace_count += 1
+                        elif char == '}':
+                            brace_count -= 1
+                            if brace_count == 0:
+                                end_idx = i + 1
+                                break
+                    if end_idx != -1:
+                        metadata_str = json_str[:end_idx]
+                        try:
+                            return json.loads(metadata_str)
+                        except json.JSONDecodeError as e:
+                            return {"error": f"Invalid JSON in TEST_METADATA: {e}"}
 
-        if not match:
-            return {"error": "No TEST_METADATA found in file"}
-
-        try:
-            metadata_str = match.group(1)
-            # Clean up comment prefixes from multi-line JSON
-            cleaned = re.sub(r'\n\s*#\s*', '\n', metadata_str)
-            return json.loads(cleaned)
-        except json.JSONDecodeError as e:
-            return {"error": f"Invalid JSON in TEST_METADATA: {e}"}
+        return {"error": "No TEST_METADATA found in file"}
 
     def validate_metadata(self):
         """Validate that required metadata fields are present."""
@@ -95,6 +244,24 @@ class TestMetadata:
                 self.metadata["error"] = f"Invalid risk_level. Must be one of: {valid_risk_levels}"
                 return False
 
+        # Phase 5: Validate performance-specific metadata
+        if self.metadata["test_type"] == "performance":
+            # Validate performance benchmarks
+            if "performance_benchmarks" in self.metadata:
+                benchmarks = self.metadata["performance_benchmarks"]
+                required_benchmarks = ["max_execution_time"]
+                missing_benchmarks = [field for field in required_benchmarks if field not in benchmarks]
+
+                if missing_benchmarks:
+                    self.metadata["error"] = f"Performance tests require benchmarks: {missing_benchmarks}"
+                    return False
+
+                # Validate benchmark values
+                for key, value in benchmarks.items():
+                    if not isinstance(value, (int, float)) or value <= 0:
+                        self.metadata["error"] = f"Performance benchmark '{key}' must be a positive number"
+                        return False
+
         return True
 
     def is_valid(self):
@@ -108,6 +275,7 @@ class TaskerTestExecutor:
     def __init__(self, tasker_path="./tasker.py"):
         self.tasker_path = tasker_path
         self.results = {}
+        self.performance_monitor = PerformanceMonitor()
 
     def parse_execution_path(self, stdout_content):
         """Parse task execution path from TASKER output."""
@@ -206,34 +374,101 @@ class TaskerTestExecutor:
         if os.path.exists(bin_dir):
             env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
 
-        # Execute the test
+        # Execute the test with performance monitoring
         start_time = datetime.now()
+        performance_metrics = None
+
         try:
-            result = subprocess.run(
+            # Start subprocess - Python 3.6.8 compatible pattern
+            process = subprocess.Popen(
                 cmd_args,
-                capture_output=True,
-                text=True,
-                env=env,
-                timeout=60  # 60 second timeout for tests
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+                env=env
             )
+
+            try:
+                # Start performance monitoring for performance tests
+                if metadata.get("test_type") == "performance":
+                    self.performance_monitor.start_monitoring(process)
+
+                try:
+                    stdout, stderr = process.communicate(timeout=60)
+                    exit_code = process.returncode
+
+                    # Stop performance monitoring
+                    if metadata.get("test_type") == "performance":
+                        performance_metrics = self.performance_monitor.stop_monitoring()
+                        # Parse task timings from output
+                        task_timings = self.performance_monitor.parse_task_timings(stdout)
+                        performance_metrics["task_timings"] = task_timings
+
+                except subprocess.TimeoutExpired:
+                    # Terminate the process on timeout
+                    process.terminate()
+                    try:
+                        process.wait(timeout=5)  # Give process 5 seconds to terminate gracefully
+                    except subprocess.TimeoutExpired:
+                        process.kill()  # Force kill if it doesn't terminate
+
+                    # Capture any output before termination
+                    try:
+                        stdout, stderr = process.communicate(timeout=1)
+                    except subprocess.TimeoutExpired:
+                        stdout, stderr = "", "Process killed due to timeout"
+
+                    exit_code = 124
+                    if metadata.get("test_type") == "performance":
+                        performance_metrics = self.performance_monitor.stop_monitoring()
+
+            finally:
+                # Ensure process cleanup - avoid zombies
+                if process.poll() is None:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=2)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
 
             execution_time = (datetime.now() - start_time).total_seconds()
 
             # Parse execution path from output
-            execution_path_data = self.parse_execution_path(result.stdout)
+            execution_path_data = self.parse_execution_path(stdout)
 
-            return {
-                "exit_code": result.returncode,
-                "stdout": result.stdout,
-                "stderr": result.stderr,
+            result_data = {
+                "exit_code": exit_code,
+                "stdout": stdout,
+                "stderr": stderr,
                 "execution_time": execution_time,
-                "timed_out": False,
+                "timed_out": (exit_code == 124),
                 "error": None,
                 "execution_path": execution_path_data
             }
 
+            # Add performance metrics for performance tests
+            if performance_metrics:
+                # Use the main execution time instead of monitor's internal timing
+                performance_metrics["execution_time"] = execution_time
+                result_data["performance_metrics"] = performance_metrics
+
+            return result_data
+
         except subprocess.TimeoutExpired:
+            # Handle top-level timeout (shouldn't normally occur with the new pattern)
             execution_time = (datetime.now() - start_time).total_seconds()
+
+            # Try to clean up any remaining process
+            try:
+                if 'process' in locals() and process.poll() is None:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=2)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+            except:
+                pass
+
             return {
                 "exit_code": 124,
                 "stdout": "",
@@ -450,6 +685,103 @@ class TestValidator:
                     f"Critical/High risk security test must be rejected (risk_level: {risk_level})"
                 )
 
+        # Phase 5: Performance test validation
+        if metadata.get("test_type") == "performance":
+            performance_metrics = actual_results.get("performance_metrics", {})
+
+            # Validate performance benchmarks
+            if "performance_benchmarks" in metadata:
+                benchmarks = metadata["performance_benchmarks"]
+
+                # Execution time validation
+                if "max_execution_time" in benchmarks:
+                    max_time = benchmarks["max_execution_time"]
+                    actual_time = performance_metrics.get("execution_time", actual_results["execution_time"])
+
+                    if actual_time > max_time:
+                        validation_results["passed"] = False
+                        validation_results["failures"].append(
+                            f"Execution time exceeded benchmark: {actual_time:.2f}s > {max_time}s"
+                        )
+
+                # Memory usage validation
+                if "max_memory_usage_mb" in benchmarks:
+                    max_memory = benchmarks["max_memory_usage_mb"]
+                    actual_memory = performance_metrics.get("peak_memory_mb", 0)
+
+                    if actual_memory > max_memory:
+                        validation_results["passed"] = False
+                        validation_results["failures"].append(
+                            f"Memory usage exceeded benchmark: {actual_memory:.1f}MB > {max_memory}MB"
+                        )
+
+                # Throughput validation
+                if "min_throughput_tasks_per_second" in benchmarks:
+                    min_throughput = benchmarks["min_throughput_tasks_per_second"]
+                    execution_path = actual_results.get("execution_path", {})
+                    executed_tasks = len(execution_path.get("executed_tasks", []))
+                    actual_time = performance_metrics.get("execution_time", actual_results["execution_time"])
+
+                    if actual_time > 0:
+                        actual_throughput = executed_tasks / actual_time
+                        if actual_throughput < min_throughput:
+                            validation_results["passed"] = False
+                            validation_results["failures"].append(
+                                f"Throughput below benchmark: {actual_throughput:.2f} < {min_throughput} tasks/second"
+                            )
+
+            # Validate resource limits
+            if "resource_limits" in metadata:
+                limits = metadata["resource_limits"]
+
+                # CPU threshold validation
+                if "cpu_threshold_percent" in limits:
+                    cpu_threshold = limits["cpu_threshold_percent"]
+                    actual_cpu = performance_metrics.get("peak_cpu_percent", 0)
+
+                    if actual_cpu > cpu_threshold:
+                        validation_results["warnings"].append(
+                            f"CPU usage above threshold: {actual_cpu:.1f}% > {cpu_threshold}%"
+                        )
+
+                # Memory threshold validation
+                if "memory_threshold_mb" in limits:
+                    memory_threshold = limits["memory_threshold_mb"]
+                    actual_memory = performance_metrics.get("peak_memory_mb", 0)
+
+                    if actual_memory > memory_threshold:
+                        validation_results["warnings"].append(
+                            f"Memory usage above threshold: {actual_memory:.1f}MB > {memory_threshold}MB"
+                        )
+
+            # Validate individual task timing
+            if "timing_validation" in metadata:
+                timing_config = metadata["timing_validation"]
+                task_timings = performance_metrics.get("task_timings", {})
+
+                # Individual task duration validation
+                if "expected_task_duration" in timing_config:
+                    expected_durations = timing_config["expected_task_duration"]
+                    for task_id_str, expected_duration in expected_durations.items():
+                        task_id = int(task_id_str)
+                        actual_duration = task_timings.get(task_id, 0)
+
+                        if actual_duration > expected_duration * 1.5:  # 50% tolerance
+                            validation_results["warnings"].append(
+                                f"Task {task_id} duration exceeded expectation: {actual_duration:.2f}s > {expected_duration}s"
+                            )
+
+                # Total duration validation
+                if "max_total_duration" in timing_config:
+                    max_total = timing_config["max_total_duration"]
+                    actual_total = performance_metrics.get("execution_time", actual_results["execution_time"])
+
+                    if actual_total > max_total:
+                        validation_results["passed"] = False
+                        validation_results["failures"].append(
+                            f"Total execution time exceeded limit: {actual_total:.2f}s > {max_total}s"
+                        )
+
         return validation_results
 
 
@@ -562,6 +894,35 @@ class IntelligentTestRunner:
 
             if status == "PASSED":
                 print(f"    RESULT: ✅ Correctly rejected malicious input")
+
+        # Show performance information for performance tests (Phase 5)
+        if "metadata" in result and result["metadata"].get("test_type") == "performance":
+            metadata = result["metadata"]
+            performance_metrics = result.get("execution_results", {}).get("performance_metrics", {})
+
+            # Show performance metrics
+            execution_time = performance_metrics.get("execution_time", result.get("execution_time", 0))
+            peak_memory = performance_metrics.get("peak_memory_mb", 0)
+            peak_cpu = performance_metrics.get("peak_cpu_percent", 0)
+
+            print(f"    PERFORMANCE: ⏱️  {execution_time:.2f}s | 🧠 {peak_memory:.1f}MB | ⚡ {peak_cpu:.1f}% CPU")
+
+            # Show benchmark status
+            if "performance_benchmarks" in metadata:
+                benchmarks = metadata["performance_benchmarks"]
+                max_time = benchmarks.get("max_execution_time", float('inf'))
+                max_memory = benchmarks.get("max_memory_usage_mb", float('inf'))
+
+                time_status = "✅" if execution_time <= max_time else "⚠️"
+                memory_status = "✅" if peak_memory <= max_memory else "⚠️"
+
+                print(f"    BENCHMARKS: {time_status} Time: {execution_time:.2f}s/{max_time}s | {memory_status} Memory: {peak_memory:.1f}/{max_memory}MB")
+
+            # Show task timings if available
+            task_timings = performance_metrics.get("task_timings", {})
+            if task_timings:
+                timing_display = ", ".join([f"T{k}: {v:.2f}s" for k, v in sorted(task_timings.items())])
+                print(f"    TASK TIMING: {timing_display}")
 
         if status == "FAILED":
             failures = result["validation_results"]["failures"]

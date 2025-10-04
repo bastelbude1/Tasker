@@ -7,8 +7,16 @@ echo "=== HOST VALIDATION TEST RUNNER ==="
 echo "Testing host validation functionality with expected outcomes"
 echo ""
 
-# Ensure PATH includes test scripts
-export PATH="/home/baste/tasker/test_scripts:$PATH"
+# Get script directory for absolute path resolution
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEST_ROOT="$(dirname "$SCRIPT_DIR")"
+REPO_ROOT="$(dirname "$TEST_ROOT")"
+
+# Change to script directory to ensure consistent behavior
+cd "$SCRIPT_DIR"
+
+# Set PATH for supporting scripts using script-relative path
+export PATH="$TEST_ROOT/bin:$PATH"
 
 # Test results tracking
 total_tests=0
@@ -30,7 +38,7 @@ run_validation_test() {
     rm -f ~/.toggle_value ~/.my_counter
     
     # Run the test and capture output and exit code
-    output=$(../tasker.py "$test_file" -r 2>&1)
+    output=$("$REPO_ROOT/tasker.py" "$test_file" -r 2>&1)
     actual_exit_code=$?
     
     ((total_tests++))
@@ -97,7 +105,7 @@ validate_output_content() {
     rm -f ~/.toggle_value ~/.my_counter
     
     # Run test and capture output
-    output=$(../tasker.py "$test_file" -r 2>&1)
+    output=$("$REPO_ROOT/tasker.py" "$test_file" -r 2>&1)
     
     ((total_tests++))
     

@@ -1,0 +1,37 @@
+# TEST_METADATA: {"description": "Resource stress test with parallel execution", "test_type": "performance", "expected_exit_code": 0, "expected_success": true, "performance_benchmarks": {"max_execution_time": 5.0, "max_memory_usage_mb": 200, "min_parallel_efficiency": 0.8}, "resource_limits": {"cpu_threshold_percent": 90, "memory_threshold_mb": 300, "max_concurrent_tasks": 10}, "stress_test_config": {"parallel_tasks": 5, "task_complexity": "medium"}}
+
+# Stress test case - parallel execution with resource monitoring
+task=0
+hostname=localhost
+command=echo
+arguments=parallel task 1
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=parallel task 2
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=parallel task 3
+exec=local
+
+task=3
+hostname=localhost
+command=echo
+arguments=parallel task 4
+exec=local
+
+task=4
+hostname=localhost
+command=echo
+arguments=parallel task 5
+exec=local
+
+task=5
+type=parallel
+max_parallel=5
+tasks=0,1,2,3,4

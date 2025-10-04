@@ -283,7 +283,7 @@ class TaskValidator:
                             # Always add the field but use sanitized value if valid
                             if sanitize_result['valid']:
                                 current_task[key] = sanitize_result['value']
-                                self.debug_log(f"Sanitized task field: {key} = {sanitize_result['value']}")
+                                self.debug_log(f"{key} = {sanitize_result['value']}")
                             else:
                                 # Add original value but flag as invalid for later validation failure
                                 current_task[key] = value

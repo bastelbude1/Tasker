@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Enhanced Test Validator for TASKER
 ==================================
@@ -19,56 +19,49 @@ import sys
 import json
 import subprocess
 from typing import Dict, List, Tuple, Optional
-from dataclasses import dataclass
 from pathlib import Path
 
-@dataclass
 class TestExpectation:
     """Expected behavior for a test case."""
-    # Variable resolution expectations
-    expected_exec_type: str = "local"
-    expected_hostname: str = "localhost"
-    variables_must_resolve: List[str] = None
 
-    # Execution expectations
-    tasks_should_execute: List[int] = None
-    tasks_should_skip: List[int] = None
+    def __init__(self, expected_exec_type="local", expected_exit_code=0, expected_hostname="localhost",
+                 variables_must_resolve=None, tasks_should_execute=None, tasks_should_skip=None,
+                 forbidden_patterns=None, required_patterns=None, expected_commands=None, expected_outputs=None):
+        # Variable resolution expectations
+        self.expected_exec_type = expected_exec_type
+        self.expected_exit_code = expected_exit_code
+        self.expected_hostname = expected_hostname
+        self.variables_must_resolve = variables_must_resolve or []
 
-    # Pattern expectations
-    forbidden_patterns: List[str] = None
-    required_patterns: List[str] = None
+        # Execution expectations
+        self.tasks_should_execute = tasks_should_execute or []
+        self.tasks_should_skip = tasks_should_skip or []
 
-    # Output expectations
-    expected_commands: List[str] = None
-    expected_outputs: List[str] = None
+        # Pattern expectations
+        self.forbidden_patterns = forbidden_patterns or [
+            "Unknown execution type",
+            "Unresolved variables",
+            "[Errno 2] No such file or directory",
+            "evaluated to FALSE, skipping task"
+        ]
+        self.required_patterns = required_patterns or []
 
-    def __post_init__(self):
-        # Set defaults for mutable fields
-        if self.variables_must_resolve is None:
-            self.variables_must_resolve = []
-        if self.tasks_should_execute is None:
-            self.tasks_should_execute = []
-        if self.tasks_should_skip is None:
-            self.tasks_should_skip = []
-        if self.forbidden_patterns is None:
-            self.forbidden_patterns = [
-                "Unknown execution type",
-                "Unresolved variables",
-                "[Errno 2] No such file or directory",
-                "evaluated to FALSE, skipping task"
-            ]
-        if self.required_patterns is None:
-            self.required_patterns = []
-        if self.expected_commands is None:
-            self.expected_commands = []
-        if self.expected_outputs is None:
-            self.expected_outputs = []
+        # Output expectations
+        self.expected_commands = expected_commands or []
+        self.expected_outputs = expected_outputs or []
+
 
 class TestValidator:
     """Comprehensive test validation system."""
 
-    def __init__(self, test_scripts_path: str = "test_scripts"):
+    def __init__(self, test_scripts_path: Optional[str] = None, tasker_path: Optional[str] = None):
+        script_dir = Path(__file__).resolve().parent
+        if test_scripts_path is None:
+            test_scripts_path = str((script_dir.parent / "bin").resolve())
+        if tasker_path is None:
+            tasker_path = str((script_dir.parent.parent / "tasker.py").resolve())
         self.test_scripts_path = test_scripts_path
+        self.tasker_path = tasker_path
         self.failed_validations = []
 
     def validate_test(self, test_file: str, expectation: TestExpectation = None) -> Tuple[bool, Dict]:
@@ -136,7 +129,7 @@ class TestValidator:
         env["PATH"] = f"{self.test_scripts_path}:{env.get('PATH', '')}"
 
         cmd = [
-            "./tasker.py",
+            self.tasker_path,
             test_file,
             "-r",
             "--skip-host-validation",
@@ -363,12 +356,14 @@ def main():
     validator = TestValidator()
 
     # Test representative files from organized structure
+    script_dir = Path(__file__).resolve().parent
+    test_root = script_dir.parent
     test_files = [
-        "functional/simple_test.txt",
-        "integration/comprehensive_globals_test.txt",
-        "functional/clean_parallel_test.txt",
-        "edge_cases/simple_sleep_test.txt",
-        "integration/conditional_comprehensive_test.txt"
+        str((test_root / "functional" / "simple_test.txt").resolve()),
+        str((test_root / "integration" / "comprehensive_globals_test.txt").resolve()),
+        str((test_root / "functional" / "clean_parallel_test.txt").resolve()),
+        str((test_root / "edge_cases" / "simple_sleep_test.txt").resolve()),
+        str((test_root / "integration" / "conditional_comprehensive_test.txt").resolve())
     ]
 
     print("🔬 ENHANCED TEST VALIDATION")

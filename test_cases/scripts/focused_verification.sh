@@ -7,6 +7,11 @@
 
 set -e
 
+# Get script directory for absolute path resolution
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEST_ROOT="$(dirname "$SCRIPT_DIR")"
+REPO_ROOT="$(dirname "$TEST_ROOT")"
+
 # Colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -43,7 +48,7 @@ run_test() {
 
     # ENHANCEMENT: Capture FULL output for functional validation - don't hide stdout!
     # Set PATH to include bin for mock commands and skip host validation for testing
-    full_output=$(PATH="../bin:$PATH" timeout 60s ../../tasker.py "$test_name" -r --skip-host-validation 2>&1)
+    full_output=$(PATH="$TEST_ROOT/bin:$PATH" timeout 60s "$REPO_ROOT/tasker.py" "$test_name" -r --skip-host-validation 2>&1)
     tasker_exit=$?
 
     # ENHANCEMENT 3: Detect "No valid tasks found" as test failure
@@ -118,9 +123,9 @@ echo "Excluding security tests (negative testing) and validation test files desi
 test_categories=("functional" "edge_cases" "integration")
 
 for category in "${test_categories[@]}"; do
-    if [ -d "../$category" ]; then
+    if [ -d "$TEST_ROOT/$category" ]; then
         echo -e "${BLUE}--- Testing $category tests ---${NC}"
-        for txt_file in "../$category"/*.txt; do
+        for txt_file in "$TEST_ROOT/$category"/*.txt; do
             if [ -f "$txt_file" ]; then
                 # Get just the filename for display
                 test_name=$(basename "$txt_file")
@@ -136,13 +141,13 @@ for category in "${test_categories[@]}"; do
         done
         echo
     else
-        echo -e "${YELLOW}⚠️  Category directory not found: ../$category${NC}"
+        echo -e "${YELLOW}⚠️  Category directory not found: $TEST_ROOT/$category${NC}"
     fi
 done
 
 # Optionally test a few key files from security for validation (they should fail)
 echo -e "${BLUE}--- Testing security validation (should fail) ---${NC}"
-security_validation_tests=("../security/command_injection_basic_test.txt" "../security/malformed_syntax_test.txt")
+security_validation_tests=("$TEST_ROOT/security/command_injection_basic_test.txt" "$TEST_ROOT/security/malformed_syntax_test.txt")
 for security_test in "${security_validation_tests[@]}"; do
     if [ -f "$security_test" ]; then
         echo -e "${YELLOW}[Security Test: $security_test]${NC} - Should fail validation"
@@ -151,7 +156,7 @@ for security_test in "${security_validation_tests[@]}"; do
         reset_state
 
         # Security tests should fail - we expect non-zero exit codes
-        full_output=$(PATH="../bin:$PATH" timeout 60s ../../tasker.py "$security_test" --validate-only 2>&1)
+        full_output=$(PATH="$TEST_ROOT/bin:$PATH" timeout 60s "$REPO_ROOT/tasker.py" "$security_test" --validate-only 2>&1)
         security_exit=$?
 
         if [ $security_exit -eq 0 ]; then

@@ -166,6 +166,69 @@ cp tasker.py tasker.py.backup_YYYYMMDD
 
 ---
 
+## 🧪 MANDATORY: Test Case Metadata Standard
+
+### **CRITICAL: All Test Cases Must Include TEST_METADATA**
+**🚨 MANDATORY for Claude Code: Every test case MUST have metadata for intelligent validation**
+
+- **REQUIRED for new test cases**: Every new .txt test file MUST include TEST_METADATA comment
+- **REQUIRED for modified test cases**: When editing existing test cases, MUST add metadata
+- **REQUIRED tool**: Use `intelligent_test_runner.py` instead of basic exit code validation
+- **Format**: `# TEST_METADATA: {"description": "...", "test_type": "...", ...}`
+
+### **Required Metadata Fields**
+```json
+{
+  "description": "Clear description of what the test validates",
+  "test_type": "positive|negative|validation_only|security_negative|performance",
+  "expected_exit_code": 0,
+  "expected_success": true
+}
+```
+
+### **Test Type Guidelines**
+- **positive**: Normal successful workflow tests (exit_code: 0, success: true)
+- **negative**: Tests that should fail validation or execution (exit_code: non-zero, success: false)
+- **validation_only**: Tests run with --validate-only flag (quick validation)
+- **security_negative**: Security tests that should be rejected (exit_code: 20, success: false)
+- **performance**: Performance benchmark tests with timing/resource requirements
+
+### **Standard Metadata Examples**
+```bash
+# Basic positive test
+# TEST_METADATA: {"description": "Simple echo workflow", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Negative validation test
+# TEST_METADATA: {"description": "Invalid parameter test", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+
+# Security test
+# TEST_METADATA: {"description": "Command injection attempt", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false, "security_category": "command_injection", "risk_level": "high"}
+```
+
+### **Advanced Metadata Fields (Optional)**
+- **expected_execution_path**: Array of task IDs that should execute
+- **expected_skipped_tasks**: Array of task IDs that should be skipped
+- **expected_final_task**: Final task ID that should complete
+- **expected_variables**: Object with variable name/value pairs
+- **timeout_expected**: Boolean if timeout is expected
+- **performance_benchmarks**: Object with timing/resource limits
+- **security_category**: For security tests (command_injection, path_traversal, etc.)
+- **risk_level**: For security tests (low, medium, high, critical)
+
+### **Claude Code Enforcement Protocol**
+1. **When creating ANY test case**: Claude MUST add appropriate TEST_METADATA
+2. **When modifying ANY existing test case**: Claude MUST add missing metadata
+3. **Reference examples**: Use `test_cases/functional/metadata_example_test.txt` for formatting
+4. **Validation tool**: Use `test_cases/scripts/intelligent_test_runner.py` for testing
+5. **Template location**: Use templates in `test_cases/templates/` directory
+
+### **Migration Priority**
+- **Phase 1**: All functional tests and new test cases
+- **Phase 2**: Integration and edge case tests
+- **Phase 3**: Specialized and security tests
+
+---
+
 ## 🔄 FUTURE FEATURE REQUESTS
 
 ### Simplify Retry Configuration

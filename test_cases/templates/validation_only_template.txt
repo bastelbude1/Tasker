@@ -1,0 +1,23 @@
+# TEST_METADATA: {"description": "DESCRIPTION_HERE", "test_type": "validation_only", "expected_exit_code": 0, "expected_success": true, "validation_only": true}
+
+# DESCRIPTION: Brief description of what validation logic this test checks
+# TEMPLATE: Validation-only test - runs with --validate-only flag
+
+task=0
+hostname=localhost
+command=echo
+arguments=Validation test
+exec=local
+timeout=30
+
+task=1
+hostname=localhost
+command=date
+exec=local
+on_success=3
+
+task=3
+hostname=localhost
+command=echo
+arguments=Final task
+exec=local

@@ -32,7 +32,7 @@ TASKER processes multiple tasks with parallel execution, timeout management, and
 - Scalable to enterprise workload sizes
 
 ## Critical Performance Files
-- parallel_executor.py: Core parallel execution logic
-- timeout_manager.py: Timeout and cancellation handling
+- parallel_executor.py: Core parallel execution logic with ThreadPoolExecutor
 - condition_evaluator.py: Output processing and regex evaluation
-- format_utils.py: Output formatting efficiency
+- utilities.py: Core utility functions and logging
+- non_blocking_sleep.py: Non-blocking sleep implementation for performance

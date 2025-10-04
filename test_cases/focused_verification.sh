@@ -109,18 +109,62 @@ run_test() {
     echo
 }
 
-# Test all .txt files exactly once
-echo -e "${BLUE}=== Testing all .txt files ===${NC}"
-echo "Excluding validation test files designed to fail..."
+# Test all .txt files in organized directory structure
+echo -e "${BLUE}=== Testing categorized test files ===${NC}"
+echo "Testing functional, edge_cases, and integration tests..."
+echo "Excluding security tests (negative testing) and validation test files designed to fail..."
 
-for txt_file in *.txt; do
-    if [ -f "$txt_file" ]; then
-        # Skip validation test files that are designed to fail
-        if [[ "$txt_file" == "comprehensive_retry_validation_test.txt" ]]; then
-            echo -e "${YELLOW}[Skipping: $txt_file]${NC} - Validation test file (designed to fail)"
-            continue
+# Define test categories and files to run
+test_categories=("functional" "edge_cases" "integration")
+
+for category in "${test_categories[@]}"; do
+    if [ -d "$category" ]; then
+        echo -e "${BLUE}--- Testing $category tests ---${NC}"
+        for txt_file in "$category"/*.txt; do
+            if [ -f "$txt_file" ]; then
+                # Get just the filename for display
+                test_name=$(basename "$txt_file")
+
+                # Skip validation test files that are designed to fail
+                if [[ "$test_name" == "comprehensive_retry_validation_test.txt" ]]; then
+                    echo -e "${YELLOW}[Skipping: $txt_file]${NC} - Validation test file (designed to fail)"
+                    continue
+                fi
+
+                run_test "$txt_file"
+            fi
+        done
+        echo
+    else
+        echo -e "${YELLOW}⚠️  Category directory not found: $category${NC}"
+    fi
+done
+
+# Optionally test a few key files from security for validation (they should fail)
+echo -e "${BLUE}--- Testing security validation (should fail) ---${NC}"
+security_validation_tests=("security/command_injection_basic_test.txt" "security/malformed_syntax_test.txt")
+for security_test in "${security_validation_tests[@]}"; do
+    if [ -f "$security_test" ]; then
+        echo -e "${YELLOW}[Security Test: $security_test]${NC} - Should fail validation"
+        total_tests=$((total_tests + 1))
+
+        reset_state
+
+        # Security tests should fail - we expect non-zero exit codes
+        full_output=$(PATH="../test_scripts:$PATH" timeout 60s ../tasker.py "$security_test" --validate-only 2>&1)
+        security_exit=$?
+
+        if [ $security_exit -eq 0 ]; then
+            echo -e "  ❌ SECURITY VULNERABILITY: Test should have failed but passed!"
+            failed_tests+=("$security_test")
+        elif [ $security_exit -eq 20 ] || [ $security_exit -eq 21 ]; then
+            echo -e "  ✅ SECURITY PASS: Correctly rejected (exit $security_exit)"
+            passed_tests=$((passed_tests + 1))
+        else
+            echo -e "  ❌ SECURITY ISSUE: Unexpected exit code ($security_exit)"
+            failed_tests+=("$security_test")
         fi
-        run_test "$txt_file"
+        echo
     fi
 done
 

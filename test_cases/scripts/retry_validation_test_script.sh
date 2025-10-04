@@ -36,11 +36,11 @@ fi
 
 # Run the validation and capture output
 echo -e "${BLUE}Running validation test...${NC}"
-echo "Command: python $VALIDATOR_SCRIPT $TEST_FILE"
+echo "Command: python3 $VALIDATOR_SCRIPT $TEST_FILE"
 echo ""
 
 # Run validation (will exit with error code if validation fails, but we want to continue)
-if python "$VALIDATOR_SCRIPT" "$TEST_FILE" > "$LOG_FILE" 2>&1; then
+if python3 "$VALIDATOR_SCRIPT" "$TEST_FILE" > "$LOG_FILE" 2>&1; then
     echo -e "${YELLOW}Validation completed (exit code 0 - no errors found)${NC}"
 else
     echo -e "${YELLOW}Validation completed (exit code 1 - errors found as expected)${NC}"
@@ -138,8 +138,8 @@ echo "7. Mixed scenarios (various errors/warnings expected)"
 
 echo ""
 echo -e "${BLUE}To run individual tests:${NC}"
-echo "  python $VALIDATOR_SCRIPT $TEST_FILE"
-echo "  python $VALIDATOR_SCRIPT -d $TEST_FILE  # Debug mode"
+echo "  python3 $VALIDATOR_SCRIPT $TEST_FILE"
+echo "  python3 $VALIDATOR_SCRIPT -d $TEST_FILE  # Debug mode"
 
 # Optional: Show specific error/warning lines
 echo ""

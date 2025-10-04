@@ -77,12 +77,19 @@ echo ""
 
 # Performance-focused file list
 PERFORMANCE_FILES=(
+    "tasker/core/task_executor_main.py"
+    "tasker/core/condition_evaluator.py"
+    "tasker/core/execution_context.py"
+    "tasker/core/result_collector.py"
+    "tasker/core/state_manager.py"
+    "tasker/core/streaming_output_handler.py"
+    "tasker/core/task_runner.py"
+    "tasker/core/utilities.py"
+    "tasker/core/workflow_controller.py"
+    "tasker/executors/base_executor.py"
+    "tasker/executors/conditional_executor.py"
     "tasker/executors/parallel_executor.py"
     "tasker/executors/sequential_executor.py"
-    "tasker/executors/base_executor.py"
-    "tasker/core/condition_evaluator.py"
-    "tasker/core/task_executor_main.py"
-    "tasker/core/utilities.py"
     "tasker/utils/non_blocking_sleep.py"
 )
 

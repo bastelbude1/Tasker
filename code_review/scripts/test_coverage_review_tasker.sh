@@ -30,11 +30,11 @@ cat > "$CONTEXT_FILE" << 'EOF'
 # TASKER Test Coverage Review Context
 
 ## Test Suite Overview
-TASKER has 41 test cases with a 100% success rate requirement (ZERO TOLERANCE policy).
+TASKER has 86 test cases with a 100% success rate requirement (ZERO TOLERANCE policy).
 
 ## Test Architecture
-1. **Test Cases**: 41 .txt files with various workflow scenarios
-2. **Verification Protocol**: focused_verification.sh for automated testing
+1. **Test Cases**: 86 .txt files organized in categories (functional/, integration/, edge_cases/, security/)
+2. **Verification Protocol**: test_cases/scripts/focused_verification.sh for automated testing
 3. **Mock Commands**: Test doubles for pbrun, p7s, wwrs commands
 4. **State Management**: Clean state between tests
 5. **Exception Detection**: Robust error detection in test execution
@@ -76,8 +76,8 @@ TASKER has 41 test cases with a 100% success rate requirement (ZERO TOLERANCE po
 - **Error Detection**: Robust exception and failure detection
 
 ## Test Infrastructure
-- **Mock Commands**: ../test_scripts/ directory with pbrun, p7s, wwrs
-- **Verification Script**: focused_verification.sh for orchestration
+- **Mock Commands**: test_cases/bin/ directory with pbrun, p7s, wwrs_clir
+- **Verification Script**: test_cases/scripts/focused_verification.sh for orchestration
 - **State Reset**: Cleanup between tests to prevent interference
 - **Timeout Management**: 60-second timeout per test
 - **Exception Detection**: stderr monitoring for Python exceptions
@@ -101,16 +101,16 @@ echo ""
 
 # Test-focused file list
 TEST_FILES=(
-    "test_cases/focused_verification.sh"
-    "test_cases/TEST_EXECUTION_GUIDE.md"
-    "test_cases/delimiter_test.txt"
-    "test_cases/comprehensive_retry_test_case.txt"
-    "test_cases/parallel_timeout_flow_control_test.txt"
-    "test_cases/comprehensive_globals_test.txt"
-    "test_cases/host_validation_comprehensive_test.txt"
-    "test_scripts/pbrun"
-    "test_scripts/p7s"
-    "test_scripts/wwrs_clir"
+    "test_cases/scripts/focused_verification.sh"
+    "test_cases/scripts/run_all_categories.sh"
+    "test_cases/IMPLEMENTATION_HISTORY.md"
+    "test_cases/functional/simple_test.txt"
+    "test_cases/integration/comprehensive_globals_test.txt"
+    "test_cases/edge_cases/parallel_timeout_flow_control_test.txt"
+    "test_cases/security/command_injection_basic_test.txt"
+    "test_cases/bin/pbrun"
+    "test_cases/bin/p7s"
+    "test_cases/bin/wwrs_clir"
 )
 
 echo -e "${BLUE}🎯 Test files under coverage review:${NC}"

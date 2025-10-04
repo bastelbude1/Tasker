@@ -246,6 +246,32 @@ goto=50
 
 **Evidence**: Statistics Verification Test now shows `2/3 tasks succeeded` instead of `1/3 tasks succeeded`.
 
+### KeyError: 2 Loop Counter Regression (FIXED)
+**Issue**: KeyError: 2 when accessing loop counters - a regression of a previously fixed issue that reappeared during modular refactoring.
+
+**Root Cause**: Loop counter dictionary access without defensive programming checks, causing KeyError when counters were missing or deleted.
+
+**Fix Applied**: Added comprehensive defensive programming in `task_executor_main.py` with proper initialization checks and graceful handling of missing loop counters.
+
+**Evidence**: `example_task.txt` now executes successfully without KeyError exceptions.
+
+### Critical Workflow Security Issue - Missing Command Execution (FIXED)
+**Issue**: When local commands don't exist, TASKER treated "file not found" errors as normal workflow conditions (exit code 1) and continued execution, potentially leading to uncontrolled workflow behavior.
+
+**Root Cause**: No pre-execution validation of command existence and insufficient fatal error detection during runtime.
+
+**Fix Applied**:
+1. **Command validation in validation phase**: Added `validate_commands_exist()` method that runs during validation phase alongside task and host validation
+2. **Comprehensive execution type support**: Validates local commands (`exec=local`) and remote execution tools (`pbrun`, `p7s`, `wwrs_clir`)
+3. **Granular skip control**: Added `--skip-command-validation` flag with warning messages for risky operations
+4. **Runtime fatal error detection**: Added backup safety measure in sequential executor to immediately terminate on "No such file or directory" errors
+
+**Evidence**: Missing commands now trigger clear error messages and prevent workflow execution:
+```
+ERROR: Task 1: Command 'nonexistent_command' not found in PATH
+ERROR: # VALIDATION FAILED: Missing commands detected
+```
+
 ---
 
 *TASKER 2.0 - Professional Task Automation for Enterprise Environments*

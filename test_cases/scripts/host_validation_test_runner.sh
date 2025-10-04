@@ -8,7 +8,7 @@ echo "Testing host validation functionality with expected outcomes"
 echo ""
 
 # Ensure PATH includes test scripts
-export PATH="/home/baste/tasker/test_scripts:$PATH"
+export PATH="/home/baste/tasker/test_cases/bin:$PATH"
 
 # Test results tracking
 total_tests=0

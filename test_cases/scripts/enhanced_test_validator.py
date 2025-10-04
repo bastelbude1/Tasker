@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Enhanced Test Validator for TASKER
 ==================================
@@ -67,7 +67,7 @@ class TestExpectation:
 class TestValidator:
     """Comprehensive test validation system."""
 
-    def __init__(self, test_scripts_path: str = "test_scripts"):
+    def __init__(self, test_scripts_path: str = "../bin"):
         self.test_scripts_path = test_scripts_path
         self.failed_validations = []
 
@@ -136,7 +136,7 @@ class TestValidator:
         env["PATH"] = f"{self.test_scripts_path}:{env.get('PATH', '')}"
 
         cmd = [
-            "./tasker.py",
+            "../../tasker.py",
             test_file,
             "-r",
             "--skip-host-validation",
@@ -364,11 +364,11 @@ def main():
 
     # Test representative files from organized structure
     test_files = [
-        "functional/simple_test.txt",
-        "integration/comprehensive_globals_test.txt",
-        "functional/clean_parallel_test.txt",
-        "edge_cases/simple_sleep_test.txt",
-        "integration/conditional_comprehensive_test.txt"
+        "../functional/simple_test.txt",
+        "../integration/comprehensive_globals_test.txt",
+        "../functional/clean_parallel_test.txt",
+        "../edge_cases/simple_sleep_test.txt",
+        "../integration/conditional_comprehensive_test.txt"
     ]
 
     print("🔬 ENHANCED TEST VALIDATION")

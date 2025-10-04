@@ -27,7 +27,7 @@ timeout_tests=()
 
 # Function to reset state files
 reset_state() {
-    rm -f ../.toggle_value ../.my_counter
+    rm -f ../../.toggle_value ../../.my_counter
     rm -f /tmp/task*_attempt /tmp/task*_counter 2>/dev/null || true
 }
 
@@ -42,8 +42,8 @@ run_test() {
     echo "  Running refactored tasker.py..."
 
     # ENHANCEMENT: Capture FULL output for functional validation - don't hide stdout!
-    # Set PATH to include test_scripts for mock commands and skip host validation for testing
-    full_output=$(PATH="../test_scripts:$PATH" timeout 60s ../tasker.py "$test_name" -r --skip-host-validation 2>&1)
+    # Set PATH to include bin for mock commands and skip host validation for testing
+    full_output=$(PATH="../bin:$PATH" timeout 60s ../../tasker.py "$test_name" -r --skip-host-validation 2>&1)
     tasker_exit=$?
 
     # ENHANCEMENT 3: Detect "No valid tasks found" as test failure
@@ -118,9 +118,9 @@ echo "Excluding security tests (negative testing) and validation test files desi
 test_categories=("functional" "edge_cases" "integration")
 
 for category in "${test_categories[@]}"; do
-    if [ -d "$category" ]; then
+    if [ -d "../$category" ]; then
         echo -e "${BLUE}--- Testing $category tests ---${NC}"
-        for txt_file in "$category"/*.txt; do
+        for txt_file in "../$category"/*.txt; do
             if [ -f "$txt_file" ]; then
                 # Get just the filename for display
                 test_name=$(basename "$txt_file")
@@ -136,13 +136,13 @@ for category in "${test_categories[@]}"; do
         done
         echo
     else
-        echo -e "${YELLOW}⚠️  Category directory not found: $category${NC}"
+        echo -e "${YELLOW}⚠️  Category directory not found: ../$category${NC}"
     fi
 done
 
 # Optionally test a few key files from security for validation (they should fail)
 echo -e "${BLUE}--- Testing security validation (should fail) ---${NC}"
-security_validation_tests=("security/command_injection_basic_test.txt" "security/malformed_syntax_test.txt")
+security_validation_tests=("../security/command_injection_basic_test.txt" "../security/malformed_syntax_test.txt")
 for security_test in "${security_validation_tests[@]}"; do
     if [ -f "$security_test" ]; then
         echo -e "${YELLOW}[Security Test: $security_test]${NC} - Should fail validation"
@@ -151,7 +151,7 @@ for security_test in "${security_validation_tests[@]}"; do
         reset_state
 
         # Security tests should fail - we expect non-zero exit codes
-        full_output=$(PATH="../test_scripts:$PATH" timeout 60s ../tasker.py "$security_test" --validate-only 2>&1)
+        full_output=$(PATH="../bin:$PATH" timeout 60s ../../tasker.py "$security_test" --validate-only 2>&1)
         security_exit=$?
 
         if [ $security_exit -eq 0 ]; then

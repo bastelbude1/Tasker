@@ -1,3 +1,7 @@
+# Complex example task demonstrating conditional workflow paths
+# This test can have two different outcomes depending on toggle_exit.sh behavior
+# NOTE: Non-deterministic behavior - not suitable for automated testing without state management
+
 # echo hello
 task=0
 hostname=localhost
@@ -17,7 +21,7 @@ next=stdout~world
 # count from 1 .. 3 (loop as long as stdout does NOT contain 2)
 task=2
 hostname=localhost
-command=./increment_counter.sh
+command=increment_counter.sh
 exec=local
 sleep=1
 next=loop
@@ -27,7 +31,7 @@ loop_break=stdout~2
 # toggle between exit 0 and exit (exit 1 = echo 1 to stderr, otherwise to stdout)
 task=3
 hostname=localhost
-command=./toggle_exit.sh
+command=toggle_exit.sh
 exec=local
 next=exit_0|stderr~
 on_failure=6

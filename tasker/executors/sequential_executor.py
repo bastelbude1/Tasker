@@ -153,6 +153,16 @@ class SequentialExecutor(BaseExecutor):
                             stderr += f"\nProcess killed after timeout of {task_timeout} seconds"
             except Exception as e:
                 executor_instance.log(f"Task {task_id}{loop_display}: Error executing command: {str(e)}")
+
+                # CRITICAL: Fatal error detection for missing commands
+                error_msg = str(e).lower()
+                if "no such file or directory" in error_msg or "[errno 2]" in error_msg:
+                    executor_instance.log("FATAL ERROR: # EXECUTION TERMINATED: Missing command detected during runtime")
+
+                    # ExitCodes already imported at top of file
+                    import sys
+                    sys.exit(ExitCodes.TASK_FILE_VALIDATION_FAILED)
+
                 exit_code = 1
                 stdout = ""
                 stderr = str(e)

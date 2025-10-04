@@ -1,0 +1,28 @@
+# TEST_METADATA: {"description": "Conditional branching path validation", "test_type": "positive", "expected_exit_code": 1, "expected_success": false, "expected_execution_path": [0, 3], "expected_skipped_tasks": [1, 2], "expected_final_task": 3}
+
+# Test case for conditional branching (failure path)
+task=0
+hostname=localhost
+command=false
+exec=local
+next=exit_0
+on_failure=3
+
+task=1
+hostname=localhost
+command=echo
+arguments=should not execute
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=also skipped
+exec=local
+
+task=3
+hostname=localhost
+command=echo
+arguments=ERROR HANDLER
+exec=local
+return=1

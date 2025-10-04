@@ -1,0 +1,74 @@
+#!/bin/bash
+# Simulated pbrun command for testing
+# Usage: pbrun -n -h hostname command [args...]
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -n)
+            NON_INTERACTIVE=true
+            shift
+            ;;
+        -h)
+            HOSTNAME="$2"
+            shift 2
+            ;;
+        *)
+            COMMAND="$1"
+            shift
+            break
+            ;;
+    esac
+done
+
+# Remaining arguments are command arguments
+ARGS="$@"
+
+# Handle special test commands
+if [[ "$COMMAND" == "pbtest" ]]; then
+    # Connection test command - responds based on hostname pattern
+    case "$HOSTNAME" in
+        # Success scenarios
+        "pbrun-success-host"|"pbrun-connection-ok"|"validation-pass-server"|"connectivity-test"|"remotehost1"|"remotehost2"|"remotehost3"|"localhost")
+            echo "pbtest connection OK"
+            exit 0
+            ;;
+        # Access denied scenarios
+        "pbrun-denied-host"|"127.0.0.1")
+            echo "Access denied for $HOSTNAME" >&2
+            exit 1
+            ;;
+        # Connection failure scenarios
+        "pbrun-fail-host"|"validation-fail-server"|"badhost")
+            echo "Connection failed to $HOSTNAME" >&2
+            exit 1
+            ;;
+        # Empty response scenarios
+        "pbrun-empty-response"|"noresponse")
+            echo ""  # Empty stdout - should fail validation
+            exit 0
+            ;;
+        # Timeout scenarios
+        "pbrun-timeout-host"|"timeout")
+            echo "Testing connection to $HOSTNAME..." >&2
+            sleep 15  # Simulate timeout (longer than most test timeouts)
+            echo "pbtest connection OK"  # Won't be reached due to timeout
+            exit 0
+            ;;
+        # DNS resolution test
+        "dns-resolve-test")
+            echo "pbtest connection OK"
+            exit 0
+            ;;
+        # Unknown host scenarios
+        *)
+            echo "Unknown host: $HOSTNAME - connection failed" >&2
+            exit 1
+            ;;
+    esac
+fi
+
+# Handle regular commands
+echo "pbrun: Executing '$COMMAND $ARGS' on $HOSTNAME"
+echo "pbrun: Command completed on $HOSTNAME"
+exit 0

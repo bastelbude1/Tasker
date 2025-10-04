@@ -6,6 +6,10 @@ echo "=== TASKER COMPREHENSIVE TEST SUITE ==="
 echo "Running all test categories..."
 echo ""
 
+# Get script directory for absolute path resolution
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEST_ROOT="$(dirname "$SCRIPT_DIR")"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -13,8 +17,8 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Set PATH for supporting scripts
-export PATH="../bin:$PATH"
+# Set PATH for supporting scripts using absolute path
+export PATH="$TEST_ROOT/bin:$PATH"
 
 # Track overall results
 CATEGORY_RESULTS=()
@@ -34,15 +38,14 @@ run_category() {
 
     TOTAL_CATEGORIES=$((TOTAL_CATEGORIES + 1))
 
-    if cd "../$directory" && ./"$script"; then
+    # Execute script using absolute path without changing working directory
+    if "$TEST_ROOT/$directory/$script"; then
         echo -e "${GREEN}✅ $display_name PASSED${NC}"
         CATEGORY_RESULTS+=("$display_name: ✅ PASSED")
         PASSED_CATEGORIES=$((PASSED_CATEGORIES + 1))
-        cd - >/dev/null
     else
         echo -e "${RED}❌ $display_name FAILED${NC}"
         CATEGORY_RESULTS+=("$display_name: ❌ FAILED")
-        cd - >/dev/null
     fi
     echo ""
 }
@@ -67,15 +70,14 @@ echo ""
 
 TOTAL_CATEGORIES=$((TOTAL_CATEGORIES + 1))
 
-if cd "../security" && ./run_security_tests.sh; then
+# Execute security tests using absolute path without changing working directory
+if "$TEST_ROOT/security/run_security_tests.sh"; then
     echo -e "${GREEN}✅ SECURITY TESTS PASSED (correctly rejected malicious inputs)${NC}"
     CATEGORY_RESULTS+=("SECURITY TESTS: ✅ PASSED")
     PASSED_CATEGORIES=$((PASSED_CATEGORIES + 1))
-    cd - >/dev/null
 else
     echo -e "${RED}❌ SECURITY TESTS FAILED (vulnerability detected)${NC}"
     CATEGORY_RESULTS+=("SECURITY TESTS: ❌ FAILED")
-    cd - >/dev/null
 fi
 echo ""
 

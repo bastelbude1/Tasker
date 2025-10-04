@@ -16,15 +16,20 @@ tasker/
 ├── core/              # Core execution logic
 │   ├── task_executor_main.py
 │   ├── condition_evaluator.py
-│   └── timeout_manager.py
+│   ├── utilities.py
+│   ├── state_manager.py
+│   └── workflow_controller.py
 ├── executors/         # Task execution strategies
 │   ├── base_executor.py
 │   ├── sequential_executor.py
-│   └── parallel_executor.py
+│   ├── parallel_executor.py
+│   └── conditional_executor.py
 ├── validation/        # Input validation
-│   └── task_validator.py
+│   ├── task_validator.py
+│   ├── host_validator.py
+│   └── input_sanitizer.py
 └── utils/            # Utility functions
-    └── format_utils.py
+    └── non_blocking_sleep.py
 ```
 
 ## Architecture Principles

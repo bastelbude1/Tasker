@@ -89,12 +89,15 @@ COMPLIANCE_FILES=(
     "tasker.py"
     "tasker/core/task_executor_main.py"
     "tasker/core/condition_evaluator.py"
-    "tasker/core/timeout_manager.py"
+    "tasker/core/utilities.py"
     "tasker/executors/base_executor.py"
     "tasker/executors/sequential_executor.py"
     "tasker/executors/parallel_executor.py"
+    "tasker/executors/conditional_executor.py"
     "tasker/validation/task_validator.py"
-    "tasker/utils/format_utils.py"
+    "tasker/validation/host_validator.py"
+    "tasker/validation/input_sanitizer.py"
+    "tasker/utils/non_blocking_sleep.py"
 )
 
 echo -e "${BLUE}🎯 Files under compliance review:${NC}"

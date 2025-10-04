@@ -1,0 +1,14 @@
+# TEST_METADATA: {"description": "Basic sequential workflow", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Simple success workflow test case
+task=0
+hostname=localhost
+command=echo
+arguments=hello
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=world
+exec=local

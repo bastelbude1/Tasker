@@ -362,11 +362,13 @@ def main():
     """Run enhanced validation on test cases."""
     validator = TestValidator()
 
-    # Test the specific case that failed
+    # Test representative files from organized structure
     test_files = [
-        "test_cases/simple_test.txt",
-        "test_cases/comprehensive_globals_test.txt",
-        "test_cases/clean_parallel_test.txt"
+        "functional/simple_test.txt",
+        "integration/comprehensive_globals_test.txt",
+        "functional/clean_parallel_test.txt",
+        "edge_cases/simple_sleep_test.txt",
+        "integration/conditional_comprehensive_test.txt"
     ]
 
     print("🔬 ENHANCED TEST VALIDATION")

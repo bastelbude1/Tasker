@@ -1,0 +1,21 @@
+# TEST_METADATA: {"description": "Failure workflow with error handling", "test_type": "positive", "expected_exit_code": 1, "expected_success": false}
+
+# Failure workflow test case
+task=0
+hostname=localhost
+command=false
+exec=local
+on_failure=2
+
+task=1
+hostname=localhost
+command=echo
+arguments=should not execute
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=ERROR HANDLER
+exec=local
+return=1

@@ -1,0 +1,8 @@
+# TEST_METADATA: {"description": "Command injection security test", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false, "security_category": "command_injection", "risk_level": "critical", "expected_rejection_phase": "validation", "expected_error_patterns": ["security validation", "rejected", "invalid characters"]}
+
+# Command injection attempt - should be rejected during validation
+task=0
+hostname=localhost
+command=echo
+arguments=hello; rm -rf /tmp/*
+exec=local

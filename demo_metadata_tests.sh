@@ -15,19 +15,19 @@ echo "=========================================="
 echo "Test 1: POSITIVE TEST (Success Workflow)"
 echo "Expected: PASS - Simple workflow should succeed"
 echo "==========================================="
-./intelligent_test_runner.py test_cases/functional/metadata_example_test.txt
+./test_cases/scripts/intelligent_test_runner.py test_cases/functional/metadata_example_test.txt
 echo
 
 echo "Test 2: POSITIVE TEST (Failure Workflow)"
 echo "Expected: PASS - Failure workflow should return exit code 1"
 echo "=========================================="
-./intelligent_test_runner.py test_cases/functional/metadata_failure_test.txt
+./test_cases/scripts/intelligent_test_runner.py test_cases/functional/metadata_failure_test.txt
 echo
 
 echo "Test 3: SECURITY NEGATIVE TEST"
 echo "Expected: PASS - Security validation should reject malicious input"
 echo "===================================="
-./intelligent_test_runner.py test_cases/functional/metadata_security_test.txt
+./test_cases/scripts/intelligent_test_runner.py test_cases/functional/metadata_security_test.txt
 echo
 
 echo "=========================================="
@@ -52,11 +52,11 @@ echo "  • Phase 6: CI/CD integration and HTML reporting"
 echo
 echo "📝 USAGE:"
 echo "  # Single test:"
-echo "  ./intelligent_test_runner.py test_file.txt"
+echo "  ./test_cases/scripts/intelligent_test_runner.py test_file.txt"
 echo
 echo "  # Directory of tests:"
-echo "  ./intelligent_test_runner.py test_directory/"
+echo "  ./test_cases/scripts/intelligent_test_runner.py test_directory/"
 echo
 echo "  # Recursive search:"
-echo "  ./intelligent_test_runner.py test_directory/ --recursive"
+echo "  ./test_cases/scripts/intelligent_test_runner.py test_directory/ --recursive"
 echo

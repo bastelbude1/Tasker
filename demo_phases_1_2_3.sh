@@ -30,35 +30,35 @@ echo "🔹 TEST 1: BASIC SUCCESS WORKFLOW (Phase 1)"
 echo "Expected: Basic sequential execution with exit code validation"
 echo "Features: JSON parsing, exit code validation, test classification"
 echo "------------------------------------------------------------"
-./intelligent_test_runner.py test_cases/functional/metadata_example_test.txt
+./test_cases/scripts/intelligent_test_runner.py test_cases/functional/metadata_example_test.txt
 echo
 
 echo "🔹 TEST 2: CONDITIONAL BRANCHING (Phase 2)"
 echo "Expected: Failure path with task skipping and jump validation"
 echo "Features: Execution path tracking, skipped task detection"
 echo "------------------------------------------------------------"
-./intelligent_test_runner.py test_cases/functional/metadata_branching_test.txt
+./test_cases/scripts/intelligent_test_runner.py test_cases/functional/metadata_branching_test.txt
 echo
 
 echo "🔹 TEST 3: VARIABLE SUBSTITUTION (Phase 3)"
 echo "Expected: Variable flow between tasks with output capture"
 echo "Features: Variable tracking, inter-task data flow validation"
 echo "------------------------------------------------------------"
-./intelligent_test_runner.py test_cases/functional/metadata_variables_test.txt
+./test_cases/scripts/intelligent_test_runner.py test_cases/functional/metadata_variables_test.txt
 echo
 
 echo "🔹 TEST 4: SECURITY VALIDATION (Phase 1 Advanced)"
 echo "Expected: Malicious input rejection with proper exit code"
 echo "Features: Security test classification, rejection validation"
 echo "------------------------------------------------------------"
-./intelligent_test_runner.py test_cases/functional/metadata_security_test.txt
+./test_cases/scripts/intelligent_test_runner.py test_cases/functional/metadata_security_test.txt
 echo
 
 echo "🔹 TEST 5: SEQUENTIAL PATH VALIDATION (Phase 2 Basic)"
 echo "Expected: Simple linear execution path validation"
 echo "Features: Linear task execution tracking"
 echo "------------------------------------------------------------"
-./intelligent_test_runner.py test_cases/functional/metadata_execution_path_test.txt
+./test_cases/scripts/intelligent_test_runner.py test_cases/functional/metadata_execution_path_test.txt
 echo
 
 echo "=================================================================="
@@ -102,16 +102,16 @@ echo "   • Security validation and malicious input rejection"
 echo
 echo "📝 USAGE EXAMPLES:"
 echo "   # Single test validation:"
-echo "   ./intelligent_test_runner.py test_file.txt"
+echo "   ./test_cases/scripts/intelligent_test_runner.py test_file.txt"
 echo
 echo "   # Directory batch processing:"
-echo "   ./intelligent_test_runner.py test_directory/"
+echo "   ./test_cases/scripts/intelligent_test_runner.py test_directory/"
 echo
 echo "   # Recursive directory search:"
-echo "   ./intelligent_test_runner.py test_directory/ --recursive"
+echo "   ./test_cases/scripts/intelligent_test_runner.py test_directory/ --recursive"
 echo
 echo "   # Custom TASKER executable:"
-echo "   ./intelligent_test_runner.py test.txt --tasker-path /path/to/tasker.py"
+echo "   ./test_cases/scripts/intelligent_test_runner.py test.txt --tasker-path /path/to/tasker.py"
 echo
 echo "=================================================================="
 echo "✨ METADATA-DRIVEN TEST FRAMEWORK: PHASES 1-3 COMPLETE! ✨"

@@ -694,8 +694,12 @@ class TaskValidator:
                     elif next_value == 'loop' and 'loop' not in task:
                         self.errors.append(f"Line {line_number}: Task {task_id} uses 'next=loop' but has no 'loop' count defined.")
                 else:
-                    # Not a special value, validate as condition expression
-                    self.validate_condition_expression(next_value, 'next', task_id, line_number)
+                    # Check for invalid numeric next values (task jumping)
+                    if next_value.isdigit():
+                        self.errors.append(f"Line {line_number}: Task {task_id} has invalid 'next={next_value}'. Direct task jumping is not supported.")
+                    else:
+                        # Not a special value, validate as condition expression
+                        self.validate_condition_expression(next_value, 'next', task_id, line_number)
 
         # Validate 'success' field
         if 'success' in task:

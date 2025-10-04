@@ -1,0 +1,8 @@
+# TEST_METADATA: {"description": "Security test - command injection attempt", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false}
+
+# Security negative test - should be rejected by TASKER validation
+task=0
+hostname=localhost
+command=echo
+arguments=; rm -rf /
+exec=local

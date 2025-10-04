@@ -1,0 +1,12 @@
+# TEST_METADATA: {"description": "DESCRIPTION_HERE", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false, "security_category": "command_injection", "risk_level": "high", "expected_rejection_phase": "validation"}
+
+# DESCRIPTION: Brief description of the security vulnerability this test attempts
+# TEMPLATE: Security negative test - malicious input that should be rejected
+# SECURITY_CATEGORY: command_injection, path_traversal, buffer_overflow, format_string, etc.
+# RISK_LEVEL: low, medium, high, critical
+
+task=0
+hostname=localhost
+command=echo
+arguments=; rm -rf /
+exec=local

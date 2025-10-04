@@ -1,0 +1,15 @@
+# TEST_METADATA: {"description": "DESCRIPTION_HERE", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# DESCRIPTION: Brief description of what this test validates
+# TEMPLATE: Basic positive test - successful workflow execution
+
+task=0
+hostname=localhost
+command=echo
+arguments=Hello World
+exec=local
+
+task=1
+hostname=localhost
+command=date
+exec=local

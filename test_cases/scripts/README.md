@@ -2,14 +2,51 @@
 
 This directory contains general test execution scripts that work across multiple test categories or provide specialized testing functionality.
 
+## 🧪 NEW: Metadata-Driven Testing
+
+**IMPORTANT**: TASKER now uses metadata-driven testing for all new and modified test cases.
+
+### **Key Benefits**
+- **Beyond Exit Codes**: Validates execution paths, variables, timing, resource usage
+- **Self-Documenting**: Each test clearly states its purpose and expectations
+- **Security Testing**: Proper validation of security test scenarios
+- **Performance Monitoring**: Built-in performance benchmarking capabilities
+- **Future-Proof**: Extensible metadata system for new validation types
+
+### **Requirements for New Tests**
+All new test cases MUST include TEST_METADATA:
+```bash
+# TEST_METADATA: {"description": "Test purpose", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+```
+
+### **Migration Strategy**
+- **Phase 1**: All functional tests and new test cases
+- **Phase 2**: Integration and edge case tests
+- **Phase 3**: Specialized and security tests
+
+### **Resources**
+- **Templates**: See `../templates/` for ready-to-use templates
+- **Specification**: See `../TEST_METADATA_SPECIFICATION.md` for complete documentation
+- **Examples**: See `../functional/metadata_*.txt` for working examples
+- **Guidelines**: See `../../CLAUDE.md` for Claude Code enforcement policies
+
 ## 🎯 Primary Testing Scripts
 
-### **focused_verification.sh** ⭐ **RECOMMENDED**
-- **Purpose**: Main testing script for daily development and validation
+### **intelligent_test_runner.py** ⭐ **NEW STANDARD**
+- **Purpose**: Metadata-driven test execution with sophisticated validation
+- **Usage**: `./intelligent_test_runner.py test_file.txt` or `./intelligent_test_runner.py directory/`
+- **Coverage**: Execution path, variable validation, performance benchmarking, security testing
+- **Features**: Beyond exit codes - validates expected behavior, timing, resource usage
+- **Time**: Variable based on test complexity
+- **Status**: ✅ Ready for production use
+
+### **focused_verification.sh** ⭐ **LEGACY STANDARD**
+- **Purpose**: Traditional exit code testing for daily development and validation
 - **Usage**: `./focused_verification.sh`
 - **Coverage**: All functional, edge_cases, and integration tests
 - **Time**: ~5-10 minutes
 - **Updated**: ✅ Works with new directory structure
+- **Note**: ⚠️ Basic exit code validation only - consider migrating to intelligent_test_runner.py
 
 ### **complete_system_validation.sh** ⭐ **COMPREHENSIVE**
 - **Purpose**: Full system validation with enhanced behavioral testing
@@ -24,6 +61,7 @@ This directory contains general test execution scripts that work across multiple
 - **Coverage**: Variable resolution, execution path, pattern validation
 - **Time**: ~2-5 minutes
 - **Updated**: ✅ Works with new directory structure
+- **Note**: ⚠️ Consider intelligent_test_runner.py for new tests with metadata
 
 ## 🔧 Quick Testing Scripts
 

@@ -1,0 +1,23 @@
+# TEST_METADATA: {"description": "DESCRIPTION_HERE", "test_type": "performance", "expected_exit_code": 0, "expected_success": true, "performance_benchmarks": {"max_execution_time": 10.0, "max_memory_usage_mb": 50}, "resource_limits": {"cpu_threshold_percent": 80, "memory_threshold_mb": 100}}
+
+# DESCRIPTION: Brief description of what performance aspect this test measures
+# TEMPLATE: Performance test - measures execution time and resource usage
+# BENCHMARKS: Set appropriate limits for execution time and memory usage
+
+task=0
+hostname=localhost
+command=echo
+arguments=Performance test start
+exec=local
+
+task=1
+hostname=localhost
+command=sleep
+arguments=2
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=Performance test end
+exec=local

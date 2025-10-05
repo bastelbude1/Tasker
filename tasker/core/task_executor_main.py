@@ -214,7 +214,7 @@ class TaskExecutor:
             self.log_debug(f"# Execution type (Default): {exec_type} (if not overriden by task)")
 
         if dry_run:
-            self.log_info(f"# Dry run mode")
+            self.log_info("# Dry run mode")
         self.log_debug(f"# Default timeout: {timeout} [s]")
     
         # Only add minimal warning for shared summary files
@@ -233,7 +233,7 @@ class TaskExecutor:
                         except (OSError, IOError):
                             # File is currently locked by another process
                             self.log_info(f"Info: Summary file '{self.project}.summary' is currently in use by another tasker instance.")
-                            self.log_info(f"Summary writes will wait for the other instance to complete.")
+                            self.log_info("Summary writes will wait for the other instance to complete.")
                 except Exception:
                     pass  # Ignore test errors
 
@@ -1047,7 +1047,7 @@ class TaskExecutor:
                             self.log_error(f"DUPLICATE TASK ID {task_id} detected in task file!")
                             self.log_debug(f"Previous task {task_id}: {parsed_tasks[task_id]}")
                             self.log_debug(f"Duplicate task {task_id}: {current_task}")
-                            self.log_error(f"Each task ID must be unique. Please fix the task file.")
+                            self.log_error("Each task ID must be unique. Please fix the task file.")
                             ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, f"Duplicate task ID {task_id} found", False)
 
                         parsed_tasks[task_id] = current_task
@@ -1070,7 +1070,7 @@ class TaskExecutor:
                 self.log_error(f"DUPLICATE TASK ID {task_id} detected in task file!")
                 self.log_debug(f"Previous task {task_id}: {parsed_tasks[task_id]}")
                 self.log_debug(f"Duplicate task {task_id}: {current_task}")
-                self.log_error(f"Each task ID must be unique. Please fix the task file.")
+                self.log_error("Each task ID must be unique. Please fix the task file.")
                 ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, f"Duplicate task ID {task_id} found", False)
 
             parsed_tasks[task_id] = current_task

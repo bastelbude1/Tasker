@@ -1,0 +1,22 @@
+# TEST_METADATA: {"description": "Conditional Block test - invalid empty branches (should fail validation)", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_error_expected": true}
+
+# This test should FAIL validation - conditional blocks with empty branches are not allowed
+task=0
+hostname=localhost
+command=echo
+arguments=TEST
+exec=local
+
+# INVALID: Conditional with empty branches
+task=1
+type=conditional
+condition=@0_stdout@=TEST
+if_true_tasks=
+if_false_tasks=
+
+# This task should never execute
+task=2
+hostname=localhost
+command=echo
+arguments=Should not reach here
+exec=local

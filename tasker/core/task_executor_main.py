@@ -1182,10 +1182,40 @@ class TaskExecutor:
         
             if task_type == 'parallel':
                 tasks_str = task.get('tasks', '')
-                self.log_info(f"  Task {task_id}: PARALLEL -> tasks [{tasks_str}]")
+                next_param = task.get('next', '')
+                on_success = task.get('on_success', '')
+                on_failure = task.get('on_failure', '')
+
+                self.log_info(f"  Task {task_id}: PARALLEL -> execute [{tasks_str}]")
+                if next_param:
+                    self.log_info(f"            -> then continue based on 'next={next_param}'")
+                elif on_success or on_failure:
+                    if on_success:
+                        self.log_info(f"            -> on success: task {on_success}")
+                    if on_failure:
+                        self.log_info(f"            -> on failure: task {on_failure}")
+                else:
+                    self.log_info(f"            -> then continue to task {task_id + 1}")
             elif task_type == 'conditional':
                 condition = task.get('condition', 'N/A')
+                if_true = task.get('if_true_tasks', '')
+                if_false = task.get('if_false_tasks', '')
+                on_success = task.get('on_success', '')
+                on_failure = task.get('on_failure', '')
+
                 self.log_info(f"  Task {task_id}: CONDITIONAL [{condition}]")
+                if if_true:
+                    self.log_info(f"            -> if TRUE: execute [{if_true}]")
+                if if_false:
+                    self.log_info(f"            -> if FALSE: execute [{if_false}]")
+
+                if on_success or on_failure:
+                    if on_success:
+                        self.log_info(f"            -> on success: task {on_success}")
+                    if on_failure:
+                        self.log_info(f"            -> on failure: task {on_failure}")
+                else:
+                    self.log_info(f"            -> then continue to task {task_id + 1}")
             elif 'return' in task:
                 return_code = task.get('return', 'N/A')
                 self.log_info(f"  Task {task_id}: RETURN {return_code}")

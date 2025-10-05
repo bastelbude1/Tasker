@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Nested conditional/parallel task validation test", "test_type": "validation_only", "expected_exit_code": 20, "expected_success": false}
 # Test nested conditional tasks to verify task ID format
 
 # Parent task that succeeds

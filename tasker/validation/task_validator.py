@@ -447,15 +447,13 @@ class TaskValidator:
                     # 3. Next task is NOT in special ranges
                     if not gap_is_reachable and not has_explicit_routing and not in_special_range:
                         missing_ids = list(range(current_id + 1, next_id))
-                        if self.debug:
-                            # Detailed error message for debug mode
-                            self.errors.append(
-                                f"Task sequence has gap: Task {current_id} is followed by Task {next_id}. "
-                                f"Missing task(s): {missing_ids}. Sequential execution will stop at Task {current_id}."
-                            )
-                        else:
-                            # Concise error message for normal mode
-                            self.errors.append("Task sequence has gaps")
+                        # Always add concise error message
+                        self.errors.append("Task sequence has gaps")
+                        # Add detailed debug information
+                        self.debug_log(
+                            f"Task sequence has gap: Task {current_id} is followed by Task {next_id}. "
+                            f"Missing task(s): {missing_ids}. Sequential execution will stop at Task {current_id}."
+                        )
 
         # Check for missing but referenced tasks
         missing_refs = referenced_tasks - task_ids

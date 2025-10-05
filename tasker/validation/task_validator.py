@@ -224,6 +224,39 @@ class TaskValidator:
             # Handle any unexpected errors gracefully
             return None
 
+    def _check_nested_conditional_or_parallel(self, referenced_task_ids, line_number, task_id):
+        """
+        Check if any referenced tasks are conditional or parallel tasks (NOT SUPPORTED).
+
+        TASKER does not support nested conditional/parallel tasks. This method validates
+        that all referenced task IDs point to regular execution tasks, not to other
+        conditional or parallel tasks.
+
+        Args:
+            referenced_task_ids: List of task IDs being referenced
+            line_number: Line number in task file for error reporting
+            task_id: ID of the task doing the referencing
+
+        Side effects:
+            Appends errors to self.errors if nested tasks are detected
+            Calls self.debug_log with detailed information in DEBUG mode
+        """
+        for ref_id in referenced_task_ids:
+            # Find the referenced task in our parsed tasks (tasks stored as tuples: (task_dict, line_num))
+            # Use safe lookup to handle malformed task IDs gracefully
+            ref_task = next((t[0] for t in self.tasks if self._safe_task_id_from_entry(t) == ref_id), None)
+            if ref_task and 'type' in ref_task:
+                ref_type = ref_task.get('type')
+                if ref_type in ['conditional', 'parallel']:
+                    # Simple error for INFO mode
+                    self.errors.append(
+                        f"Line {line_number}: Nested conditional/parallel tasks are NOT supported."
+                    )
+                    # Detailed info for DEBUG mode
+                    self.debug_log(
+                        f"Task {task_id} references task {ref_id} which is a '{ref_type}' task."
+                    )
+
     def parse_file(self):
         """Parse the task file into global variables and individual tasks."""
         if not os.path.exists(self.task_file):
@@ -696,22 +729,7 @@ class TaskValidator:
                         self.errors.append(f"Line {line_number}: Task {task_id} cannot reference itself in parallel tasks.")
 
                     # CRITICAL: Check for nested conditional/parallel tasks (NOT SUPPORTED)
-                    # This check validates that referenced tasks are NOT conditional or parallel themselves
-                    for ref_id in referenced_task_ids:
-                        # Find the referenced task in our parsed tasks (tasks stored as tuples: (task_dict, line_num))
-                        # Use safe lookup to handle malformed task IDs gracefully
-                        ref_task = next((t[0] for t in self.tasks if self._safe_task_id_from_entry(t) == ref_id), None)
-                        if ref_task and 'type' in ref_task:
-                            ref_type = ref_task.get('type')
-                            if ref_type in ['conditional', 'parallel']:
-                                # Simple error for INFO mode
-                                self.errors.append(
-                                    f"Line {line_number}: Nested conditional/parallel tasks are NOT supported."
-                                )
-                                # Detailed info for DEBUG mode
-                                self.debug_log(
-                                    f"Task {task_id} references task {ref_id} which is a '{ref_type}' task."
-                                )
+                    self._check_nested_conditional_or_parallel(referenced_task_ids, line_number, task_id)
 
                     # Check max_parallel vs number of tasks
                     if 'max_parallel' in task:
@@ -787,22 +805,7 @@ class TaskValidator:
                 self.errors.append(f"Line {line_number}: Task {task_id} cannot reference itself in {field_name}.")
 
             # CRITICAL: Check for nested conditional/parallel tasks (NOT SUPPORTED)
-            # This check validates that referenced tasks are NOT conditional or parallel themselves
-            for ref_id in referenced_task_ids:
-                # Find the referenced task in our parsed tasks (tasks stored as tuples: (task_dict, line_num))
-                # Use safe lookup to handle malformed task IDs gracefully
-                ref_task = next((t[0] for t in self.tasks if self._safe_task_id_from_entry(t) == ref_id), None)
-                if ref_task and 'type' in ref_task:
-                    ref_type = ref_task.get('type')
-                    if ref_type in ['conditional', 'parallel']:
-                        # Simple error for INFO mode
-                        self.errors.append(
-                            f"Line {line_number}: Nested conditional/parallel tasks are NOT supported."
-                        )
-                        # Detailed info for DEBUG mode
-                        self.debug_log(
-                            f"Task {task_id} references task {ref_id} which is a '{ref_type}' task."
-                        )
+            self._check_nested_conditional_or_parallel(referenced_task_ids, line_number, task_id)
 
         except ValueError as e:
             self.errors.append(f"Line {line_number}: Task {task_id} has invalid task reference in {field_name} field: {str(e)}")

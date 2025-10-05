@@ -440,8 +440,7 @@ class TaskValidator:
                             'on_success' in current_task or
                             'on_failure' in current_task or
                             'next' in current_task or
-                            'return' in current_task or
-                            current_task.get('type') in ['parallel', 'conditional']
+                            'return' in current_task
                         )
 
                     # Check if next task is in a special range

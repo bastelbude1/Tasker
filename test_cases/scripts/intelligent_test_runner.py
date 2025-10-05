@@ -43,6 +43,27 @@ except ImportError:
     # Note: Performance monitoring will use standard library alternatives
 
 
+def _resolve_tasker_path(tasker_path=None):
+    """Resolve tasker executable path using PATH discovery with fallbacks."""
+    if tasker_path is None:
+        # First try to find 'tasker' in PATH
+        resolved = shutil.which("tasker")
+        if resolved is None:
+            # Fallback to tasker.py in current directory if not in PATH
+            if os.path.exists("./tasker.py"):
+                resolved = "./tasker.py"
+            elif os.path.exists("../tasker.py"):
+                # Also check parent directory (common when running from test_cases/)
+                resolved = "../tasker.py"
+            else:
+                # Last resort - use ./tasker.py and let it fail with clear error
+                resolved = "./tasker.py"
+                print("WARNING: Could not find 'tasker' in PATH or './tasker.py'")
+                print(f"         Using default: {resolved}")
+        return resolved
+    return tasker_path
+
+
 class PerformanceMonitor:
     """Monitor system performance and resource usage during test execution."""
 
@@ -274,24 +295,7 @@ class TaskerTestExecutor:
     """Execute TASKER test cases and capture results."""
 
     def __init__(self, tasker_path=None):
-        # Use shutil.which to find tasker in PATH, fallback to provided path or default
-        if tasker_path is None:
-            # First try to find 'tasker' in PATH
-            self.tasker_path = shutil.which("tasker")
-            if self.tasker_path is None:
-                # Fallback to tasker.py in current directory if not in PATH
-                if os.path.exists("./tasker.py"):
-                    self.tasker_path = "./tasker.py"
-                elif os.path.exists("../tasker.py"):
-                    # Also check parent directory (common when running from test_cases/)
-                    self.tasker_path = "../tasker.py"
-                else:
-                    # Last resort - use ./tasker.py and let it fail with clear error
-                    self.tasker_path = "./tasker.py"
-                    print(f"WARNING: Could not find 'tasker' in PATH or './tasker.py'")
-                    print(f"         Using default: {self.tasker_path}")
-        else:
-            self.tasker_path = tasker_path
+        self.tasker_path = _resolve_tasker_path(tasker_path)
         self.results = {}
         self.performance_monitor = PerformanceMonitor()
 
@@ -830,24 +834,7 @@ class IntelligentTestRunner:
     """Main test runner orchestrator."""
 
     def __init__(self, tasker_path=None):
-        # Use shutil.which to find tasker in PATH, fallback to provided path or default
-        if tasker_path is None:
-            # First try to find 'tasker' in PATH
-            self.tasker_path = shutil.which("tasker")
-            if self.tasker_path is None:
-                # Fallback to tasker.py in current directory if not in PATH
-                if os.path.exists("./tasker.py"):
-                    self.tasker_path = "./tasker.py"
-                elif os.path.exists("../tasker.py"):
-                    # Also check parent directory (common when running from test_cases/)
-                    self.tasker_path = "../tasker.py"
-                else:
-                    # Last resort - use ./tasker.py and let it fail with clear error
-                    self.tasker_path = "./tasker.py"
-                    print(f"WARNING: Could not find 'tasker' in PATH or './tasker.py'")
-                    print(f"         Using default: {self.tasker_path}")
-        else:
-            self.tasker_path = tasker_path
+        self.tasker_path = _resolve_tasker_path(tasker_path)
         self.executor = TaskerTestExecutor(self.tasker_path)
         self.validator = TestValidator()
         self.results = []
@@ -897,7 +884,7 @@ class IntelligentTestRunner:
         test_files = []
 
         if recursive:
-            for root, dirs, files in os.walk(directory):
+            for root, _dirs, files in os.walk(directory):
                 for file in files:
                     if file.endswith('.txt'):
                         test_files.append(os.path.join(root, file))
@@ -1071,25 +1058,27 @@ def main():
     runner = IntelligentTestRunner(args.tasker_path)
 
     # Handle multiple targets
-    test_files = []
+    test_files_set = set()
 
     for target in args.targets:
         if os.path.isfile(target):
-            # Single file - add to list
-            test_files.append(target)
+            # Single file - add to set with absolute path
+            test_files_set.add(os.path.abspath(target))
         elif os.path.isdir(target):
             # Directory - collect all .txt files
             if args.recursive:
-                for root, dirs, files in os.walk(target):
+                for root, _dirs, files in os.walk(target):
                     for file in files:
                         if file.endswith('.txt'):
-                            test_files.append(os.path.join(root, file))
+                            test_files_set.add(os.path.abspath(os.path.join(root, file)))
             else:
                 for file in os.listdir(target):
                     if file.endswith('.txt'):
-                        test_files.append(os.path.join(target, file))
+                        test_files_set.add(os.path.abspath(os.path.join(target, file)))
         else:
             print(f"Warning: '{target}' is not a valid file or directory - skipping")
+
+    test_files = sorted(test_files_set)
 
     if not test_files:
         print("Error: No valid test files found")
@@ -1099,7 +1088,7 @@ def main():
     print(f"Running {len(test_files)} individual test files")
     print("=" * 60)
 
-    for test_file in sorted(test_files):
+    for test_file in test_files:
         result = runner.run_single_test(test_file)
         runner.print_result_summary(result)
         print("-" * 60)

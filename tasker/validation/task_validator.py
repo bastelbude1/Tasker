@@ -394,6 +394,37 @@ class TaskValidator:
         for id in duplicate_ids:
             self.errors.append(f"Task ID {id} is defined multiple times.")
 
+        # Check for gaps in task sequence
+        sorted_task_ids = sorted(task_ids)
+        if sorted_task_ids:
+            # Check for gaps in the sequence
+            for i in range(len(sorted_task_ids) - 1):
+                current_id = sorted_task_ids[i]
+                next_id = sorted_task_ids[i + 1]
+
+                # If there's a gap between consecutive tasks
+                if next_id - current_id > 1:
+                    # Check if any task explicitly routes to the next task (on_success/on_failure)
+                    gap_is_reachable = False
+                    for task, _ in self.tasks:
+                        task_id_str = task.get('task', '')
+                        try:
+                            check_task_id = int(task_id_str)
+                            # Check if this task can jump over the gap
+                            if check_task_id <= current_id:
+                                if task.get('on_success') == str(next_id) or task.get('on_failure') == str(next_id):
+                                    gap_is_reachable = True
+                                    break
+                        except ValueError:
+                            continue
+
+                    if not gap_is_reachable:
+                        missing_ids = list(range(current_id + 1, next_id))
+                        self.errors.append(
+                            f"Task sequence has gap: Task {current_id} is followed by Task {next_id}. "
+                            f"Missing task(s): {missing_ids}. Sequential execution will stop at Task {current_id}."
+                        )
+
         # Check for missing but referenced tasks
         missing_refs = referenced_tasks - task_ids
         for ref in missing_refs:

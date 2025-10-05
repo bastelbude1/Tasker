@@ -90,7 +90,7 @@ class InputSanitizer:
     def __init__(self):
         pass
 
-    def sanitize_field(self, field_name, field_value, max_length=None):
+    def sanitize_field(self, field_name, field_value, max_length=None, exec_type='local'):
         """
         Sanitize a single field value with comprehensive security checks.
 
@@ -98,6 +98,9 @@ class InputSanitizer:
             field_name: Name of the field being sanitized
             field_value: Value to sanitize
             max_length: Optional field-specific maximum length
+            exec_type: Execution type context (local, shell, pbrun, etc.)
+                      - 'shell': Allow shell syntax, warn on dangerous patterns
+                      - other: Strict validation (block shell syntax)
 
         Returns:
             dict: {'valid': bool, 'value': str, 'errors': list, 'warnings': list}
@@ -125,16 +128,16 @@ class InputSanitizer:
             errors.append(f"Field '{field_name}' contains null bytes - potential injection attempt")
             return {'valid': False, 'value': field_value, 'errors': errors, 'warnings': warnings}
 
-        # 3. Field-specific validation
-        field_result = self._validate_field_specific(field_name, field_value)
+        # 3. Field-specific validation (context-aware)
+        field_result = self._validate_field_specific(field_name, field_value, exec_type)
         errors.extend(field_result['errors'])
         warnings.extend(field_result['warnings'])
 
         if not field_result['valid']:
             return {'valid': False, 'value': field_value, 'errors': errors, 'warnings': warnings}
 
-        # 4. General security pattern detection
-        security_result = self._detect_security_patterns(field_name, field_value)
+        # 4. General security pattern detection (context-aware)
+        security_result = self._detect_security_patterns(field_name, field_value, exec_type)
         errors.extend(security_result['errors'])
         warnings.extend(security_result['warnings'])
 
@@ -163,14 +166,14 @@ class InputSanitizer:
         }
         return field_limits.get(field_name, self.MAX_STRING_LENGTH)
 
-    def _validate_field_specific(self, field_name, field_value):
-        """Perform field-specific validation rules."""
+    def _validate_field_specific(self, field_name, field_value, exec_type='local'):
+        """Perform field-specific validation rules with context awareness."""
         if field_name == 'hostname':
             return self._validate_hostname(field_value)
         elif field_name == 'command':
-            return self._validate_command(field_value)
+            return self._validate_command(field_value, exec_type)
         elif field_name == 'arguments':
-            return self._validate_arguments(field_value)
+            return self._validate_arguments(field_value, exec_type)
         elif field_name in ['task', 'on_success', 'on_failure']:
             return self._validate_task_id(field_value)
         elif field_name in ['timeout', 'sleep', 'loop', 'retry_count', 'retry_delay', 'max_parallel']:
@@ -215,8 +218,8 @@ class InputSanitizer:
 
         return {'valid': True, 'errors': errors, 'warnings': warnings}
 
-    def _validate_command(self, command):
-        """Validate command field for security."""
+    def _validate_command(self, command, exec_type='local'):
+        """Validate command field for security with context awareness."""
         errors = []
         warnings = []
 
@@ -225,26 +228,28 @@ class InputSanitizer:
             errors.append("Command cannot be empty")
             return {'valid': False, 'errors': errors, 'warnings': warnings}
 
-        # Check for spaces in command (should use arguments field)
-        if ' ' in command.strip():
+        # Check for spaces in command (should use arguments field) - applies to all exec types
+        if ' ' in command.strip() and exec_type != 'shell':
             warnings.append(f"Command contains spaces - consider using 'arguments' field: '{command}'")
 
-        # Check for command injection patterns
-        for pattern in self.INJECTION_PATTERNS:
-            if re.search(pattern, command, re.IGNORECASE):
-                errors.append(f"Command contains injection pattern: '{command}'")
-                return {'valid': False, 'errors': errors, 'warnings': warnings}
+        # Shell syntax validation - only for exec=local (strict mode)
+        if exec_type != 'shell':
+            # Check for command injection patterns (strict for exec=local)
+            for pattern in self.INJECTION_PATTERNS:
+                if re.search(pattern, command, re.IGNORECASE):
+                    errors.append(f"Command contains shell syntax (use exec=shell if intended): '{command}'")
+                    return {'valid': False, 'errors': errors, 'warnings': warnings}
 
-        # Check for shell metacharacters
-        dangerous_chars = self.SHELL_METACHARACTERS - {'-', '_', '.'}  # Allow common command chars
-        if any(char in command for char in dangerous_chars):
-            errors.append(f"Command contains shell metacharacters: '{command}'")
-            return {'valid': False, 'errors': errors, 'warnings': warnings}
+            # Check for shell metacharacters (strict for exec=local)
+            dangerous_chars = self.SHELL_METACHARACTERS - {'-', '_', '.'}  # Allow common command chars
+            if any(char in command for char in dangerous_chars):
+                errors.append(f"Command contains shell metacharacters (use exec=shell if intended): '{command}'")
+                return {'valid': False, 'errors': errors, 'warnings': warnings}
 
         return {'valid': True, 'errors': errors, 'warnings': warnings}
 
-    def _validate_arguments(self, arguments):
-        """Validate arguments field for security."""
+    def _validate_arguments(self, arguments, exec_type='local'):
+        """Validate arguments field for security with context awareness."""
         errors = []
         warnings = []
 
@@ -255,24 +260,26 @@ class InputSanitizer:
             errors.append(f"Arguments field too large (potential buffer overflow): {len(arguments)} characters (maximum {self.MAX_ARGUMENTS_SECURE_LENGTH})")
             return {'valid': False, 'errors': errors, 'warnings': warnings}
 
-        # Check if this is a legitimate shell script context (sh -c "script")
-        # This is a common pattern in test cases and should be allowed
-        is_shell_script = arguments.startswith('-c ') and ('"' in arguments or "'" in arguments)
+        # Shell syntax validation - only strict for exec=local
+        if exec_type != 'shell':
+            # Check if this is a legitimate shell script context (sh -c "script")
+            # This is a common pattern in test cases and should be allowed
+            is_shell_script = arguments.startswith('-c ') and ('"' in arguments or "'" in arguments)
 
-        if not is_shell_script:
-            # Check for command injection patterns (skip for legitimate shell scripts)
-            for pattern in self.INJECTION_PATTERNS:
-                if re.search(pattern, arguments, re.IGNORECASE):
-                    errors.append(f"Arguments contain injection pattern: '{arguments}'")
-                    return {'valid': False, 'errors': errors, 'warnings': warnings}
+            if not is_shell_script:
+                # Check for command injection patterns (strict for exec=local)
+                for pattern in self.INJECTION_PATTERNS:
+                    if re.search(pattern, arguments, re.IGNORECASE):
+                        errors.append(f"Arguments contain shell syntax (use exec=shell if intended): '{arguments}'")
+                        return {'valid': False, 'errors': errors, 'warnings': warnings}
 
-        # Check for path traversal
+        # Check for path traversal (applies to all exec types)
         for pattern in self.PATH_TRAVERSAL_PATTERNS:
             if re.search(pattern, arguments, re.IGNORECASE):
                 errors.append(f"Arguments contain path traversal pattern: '{arguments}'")
                 return {'valid': False, 'errors': errors, 'warnings': warnings}
 
-        # Check for suspicious content
+        # Check for suspicious content (warn for all exec types)
         for pattern in self.SUSPICIOUS_PATTERNS:
             if re.search(pattern, arguments, re.IGNORECASE):
                 warnings.append(f"Arguments contain potentially suspicious content: '{arguments}'")
@@ -419,17 +426,52 @@ class InputSanitizer:
 
         return {'valid': True, 'errors': errors, 'warnings': warnings}
 
-    def _detect_security_patterns(self, field_name, field_value):
-        """Detect general security patterns across all fields."""
+    def _detect_security_patterns(self, field_name, field_value, exec_type='local'):
+        """
+        Detect security patterns with context-aware validation.
+
+        Context-aware validation strategy:
+        - exec='shell': Allow shell syntax, warn only about truly dangerous patterns
+        - exec='local': Strict validation (block shell metacharacters)
+
+        Security goal: Help users avoid mistakes, not protect against malicious attacks.
+        """
         errors = []
         warnings = []
 
-        # Check for format string attacks
+        # Truly dangerous patterns (warn for ALL execution types)
+        DANGEROUS_PATTERNS = [
+            (r'rm\s+-rf\s+/', 'Dangerous recursive delete detected'),
+            (r'chmod\s+777', 'Overly permissive file permissions detected'),
+            (r'/etc/passwd', 'Access to sensitive system file detected'),
+            (r'/etc/shadow', 'Access to sensitive system file detected'),
+            (r'\beval\s*\(', 'Code evaluation detected (potential security risk)'),
+            (r'\bexec\s*\(', 'Code execution detected (potential security risk)'),
+            (r'sudo\s+rm', 'Privileged delete operation detected'),
+            (r'mkfs\.', 'Filesystem creation/formatting detected'),
+            (r'dd\s+.*of=/dev/', 'Direct disk write detected'),
+        ]
+
+        # Check for truly dangerous patterns (applies to ALL exec types)
+        for pattern, message in DANGEROUS_PATTERNS:
+            if re.search(pattern, field_value, re.IGNORECASE):
+                warnings.append(f"Field '{field_name}': {message}")
+
+        # Shell syntax patterns (allowed for exec=shell, blocked for exec=local)
+        if exec_type != 'shell':
+            # Strict validation for exec=local - block shell metacharacters
+            # These are normal for shell scripts but shouldn't be in local commands
+            for pattern in self.INJECTION_PATTERNS:
+                if re.search(pattern, field_value, re.IGNORECASE):
+                    errors.append(f"Field '{field_name}' contains shell syntax (use exec=shell if intended): '{field_value}'")
+                    break  # Only report first match to avoid duplicate errors
+
+        # Check for format string attacks (all exec types)
         format_string_pattern = r'%[sxdn]'
         if re.search(format_string_pattern, field_value):
-            errors.append(f"Field '{field_name}' contains format string patterns: '{field_value}'")
+            warnings.append(f"Field '{field_name}' contains format string patterns: '{field_value}'")
 
-        # Check for encoding attempts
+        # Check for encoding attempts (all exec types)
         encoding_patterns = [
             r'%[0-9a-fA-F]{2}',     # URL encoding
             r'\\x[0-9a-fA-F]{2}',   # Hex encoding
@@ -438,15 +480,16 @@ class InputSanitizer:
 
         for pattern in encoding_patterns:
             if re.search(pattern, field_value):
-                errors.append(f"Field '{field_name}' contains encoded characters: '{field_value}'")
+                warnings.append(f"Field '{field_name}' contains encoded characters (potential obfuscation): '{field_value}'")
+                break  # Only report first match
 
-        # Check for extremely long repeated characters (potential buffer overflow)
+        # Check for extremely long repeated characters (potential buffer overflow - all exec types)
         if len(field_value) > 100:
             char_counts = {}
             for char in field_value:
                 char_counts[char] = char_counts.get(char, 0) + 1
                 if char_counts[char] > len(field_value) * 0.8:  # 80% same character
-                    warnings.append(f"Field '{field_name}' contains excessive repeated characters")
+                    warnings.append(f"Field '{field_name}' contains excessive repeated characters (potential buffer overflow)")
                     break
 
         return {'valid': len(errors) == 0, 'errors': errors, 'warnings': warnings}

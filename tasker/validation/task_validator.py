@@ -337,8 +337,8 @@ class TaskValidator:
                 task_type = 'conditional'
 
             # SECURITY VALIDATION: Now that all fields are parsed, validate them
-            # Skip security validation for command/arguments when exec=shell
-            exec_type = task.get('exec', '')
+            # Context-aware validation: exec_type determines validation strictness
+            exec_type = task.get('exec', 'local')  # Default to 'local' if not specified
             field_lines = task.get('field_lines', {})
 
             for field_name in ['command', 'arguments', 'hostname']:
@@ -346,19 +346,18 @@ class TaskValidator:
                     field_value = task[field_name]
                     field_line = field_lines.get(field_name, line_number)
 
-                    # Skip security check for shell commands
-                    skip_security = (exec_type == 'shell' and field_name in ['command', 'arguments'])
+                    # Context-aware security validation
+                    # - exec=shell: Allow shell syntax, warn about dangerous patterns
+                    # - exec=local: Strict validation (block shell metacharacters)
+                    sanitize_result = self.sanitizer.sanitize_field(field_name, field_value, exec_type=exec_type)
 
-                    if not skip_security:
-                        sanitize_result = self.sanitizer.sanitize_field(field_name, field_value)
-
-                        # Add any sanitization errors/warnings
-                        for error in sanitize_result['errors']:
-                            self.errors.append(f"Line {field_line}: Task field security error")
-                            self.debug_log(f"Security validation failed: {error}")
-                        for warning in sanitize_result['warnings']:
-                            self.warnings.append(f"Line {field_line}: Task field security warning")
-                            self.debug_log(f"Security warning: {warning}")
+                    # Add any sanitization errors/warnings
+                    for error in sanitize_result['errors']:
+                        self.errors.append(f"Line {field_line}: Task field security error")
+                        self.debug_log(f"Security validation failed: {error}")
+                    for warning in sanitize_result['warnings']:
+                        self.warnings.append(f"Line {field_line}: Task field security warning")
+                        self.debug_log(f"Security warning: {warning}")
 
             # Check for required fields based on task type
             for field in self.required_fields:
@@ -1022,7 +1021,7 @@ class TaskValidator:
         if 'exec' in task:
             exec_resolved = self.resolve_global_variables_for_validation(task['exec'])
             exec_clean = self.clean_field_value(exec_resolved)
-            valid_exec_types = ['pbrun','p7s','local','wwrs']
+            valid_exec_types = ['pbrun','p7s','local','wwrs','shell']
             if exec_clean not in valid_exec_types:
                 self.warnings.append(f"Line {line_number}: Task {task_id} has unknown execution_type: '{exec_clean}'. Valid types are: {','.join(valid_exec_types)}")
         

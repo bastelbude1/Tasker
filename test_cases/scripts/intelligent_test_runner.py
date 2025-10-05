@@ -847,6 +847,38 @@ class TestValidator:
                             f"Total execution time exceeded limit: {actual_total:.2f}s > {max_total}s"
                         )
 
+        # Validate warning count
+        if "expected_warnings" in metadata:
+            expected_warning_count = metadata["expected_warnings"]
+            # Count WARN lines in stdout
+            actual_warning_count = actual_results["stdout"].count("WARN:")
+
+            if actual_warning_count != expected_warning_count:
+                validation_results["passed"] = False
+                validation_results["failures"].append(
+                    f"Warning count mismatch: expected {expected_warning_count}, got {actual_warning_count}"
+                )
+
+        # Validate stdout patterns per task
+        if "expected_stdout" in metadata:
+            expected_stdout = metadata["expected_stdout"]
+            actual_variables = execution_path.get("variables", {})
+
+            for task_id, expected_pattern in expected_stdout.items():
+                stdout_var = f"{task_id}_stdout"
+                if stdout_var not in actual_variables:
+                    validation_results["passed"] = False
+                    validation_results["failures"].append(
+                        f"Task {task_id} stdout not found in execution results"
+                    )
+                else:
+                    actual_stdout = actual_variables[stdout_var]
+                    if expected_pattern not in actual_stdout:
+                        validation_results["passed"] = False
+                        validation_results["failures"].append(
+                            f"Task {task_id} stdout pattern mismatch: expected '{expected_pattern}' in '{actual_stdout}'"
+                        )
+
         return validation_results
 
 

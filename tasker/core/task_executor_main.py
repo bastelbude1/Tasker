@@ -143,9 +143,9 @@ class TaskExecutor:
             if self.skip_task_validation:
                 self.log_warn(f"# Task Validation will be skipped")
             if self.skip_host_validation:
-                self.log_warn(f"# Host Validation will be skipped - ATTENTION")
+                self.log_warn("# Host Validation will be skipped - ATTENTION")
             if self.skip_security_validation:
-                self.log_warn(f"# Security Validation will be skipped - ATTENTION")
+                self.log_warn("# Security Validation will be skipped - ATTENTION")
 
         # Initialize summary tracking variables
         self.final_task_id = None

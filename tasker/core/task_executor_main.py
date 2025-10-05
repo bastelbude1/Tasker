@@ -205,17 +205,17 @@ class TaskExecutor:
 
         if self.exec_type:
             exec_type=self.exec_type
-            self.log_info(f"# Execution type from args: {exec_type}")
+            self.log_debug(f"# Execution type from args: {exec_type}")
         elif 'TASK_EXECUTOR_TYPE' in os.environ:
             exec_type = os.environ.get('TASK_EXECUTOR_TYPE')
-            self.log_info(f"# Execution type from environment: {exec_type}")
+            self.log_debug(f"# Execution type from environment: {exec_type}")
         else:
             exec_type = self.default_exec_type
-            self.log_info(f"# Execution type (Default): {exec_type} (if not overriden by task)")
+            self.log_debug(f"# Execution type (Default): {exec_type} (if not overriden by task)")
 
-        if dry_run: 
+        if dry_run:
             self.log_info(f"# Dry run mode")
-        self.log_info(f"# Default timeout: {timeout} [s]")
+        self.log_debug(f"# Default timeout: {timeout} [s]")
     
         # Only add minimal warning for shared summary files
         if self.project:

@@ -430,8 +430,8 @@ class ParallelExecutor(BaseExecutor):
                                 success_text += " (timeout)"
                             elif result.get('skipped', False):
                                 success_text += " (skipped)"
-                            
-                            executor_instance.log(f"Task {task_id}: Completed task {result['task_id']} - {success_text}")
+
+                            executor_instance.log(f"Task {task_id}-{result['task_id']}: Completed - {success_text}")
                                 
                         except Exception as e:
                             task_id_inner = int(task['task'])

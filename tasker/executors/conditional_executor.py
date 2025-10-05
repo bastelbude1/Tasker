@@ -143,8 +143,8 @@ class ConditionalExecutor(BaseExecutor):
                 success_text += " (timeout)"
             elif result.get('skipped', False):
                 success_text += " (skipped)"
-            
-            executor_instance.log(f"Task {task_id}: Completed task {result['task_id']} - {success_text}")
+
+            executor_instance.log(f"Task {task_id}-{result['task_id']}: Completed - {success_text}")
             
             # For sequential execution, we could stop on first failure if needed
             # But for consistency with parallel tasks, we continue executing all tasks

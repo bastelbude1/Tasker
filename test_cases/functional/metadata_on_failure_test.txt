@@ -1,0 +1,44 @@
+# TEST_METADATA: {"description": "Success Check Block with on_failure routing when condition fails", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "expected_execution_path": [0, 1, 99], "expected_final_task": 99, "expected_variables": {"0_stdout": "initialization", "1_stdout": "stopped", "99_stdout": "failure path executed"}}
+
+# Test case for Success Check Block with on_success/on_failure routing - FAILURE PATH
+# Task 1 checks success condition: success=exit_0&stdout~running
+# Task 1 outputs "stopped" instead of "running", so condition fails -> jump to task 99
+
+HOSTNAME=localhost
+
+task=0
+hostname=@HOSTNAME@
+exec=local
+command=controlled_output.sh
+arguments=0 "initialization" "NONE"
+
+task=1
+hostname=@HOSTNAME@
+exec=local
+command=controlled_output.sh
+arguments=0 "stopped" "NONE"
+success=exit_0&stdout~running
+on_success=20
+on_failure=99
+
+# Success path (task 20-21) - NOT EXECUTED in this test
+task=20
+hostname=@HOSTNAME@
+exec=local
+command=controlled_output.sh
+arguments=0 "success path executed" "NONE"
+
+task=21
+hostname=@HOSTNAME@
+exec=local
+command=controlled_output.sh
+arguments=0 "workflow completed" "NONE"
+next=never
+
+# Failure path - End Failure Block (task 99)
+task=99
+hostname=@HOSTNAME@
+exec=local
+command=controlled_output.sh
+arguments=1 "failure path executed" "error condition met"
+return=1

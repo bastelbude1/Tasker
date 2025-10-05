@@ -88,8 +88,10 @@ TASKER 2.1 is a next-generation task automation framework that reads task defini
 
 **Key Features:**
 - **Multiple Execution Models**: Sequential, parallel, and conditional task execution
+- **Multiple Execution Types**: Direct subprocess (`local`), shell execution (`shell`), enterprise tools (`pbrun`, `p7s`, `wwrs`)
 - **Advanced Flow Control**: Complex conditions, loops, branching, and error handling
 - **Variable System**: Dynamic substitution and data flow between tasks
+- **Context-Aware Security**: Different validation rules for shell vs direct execution
 - **Enterprise Scaling**: Support for 1-1000+ servers with robust timeout management
 - **Professional Logging**: Structured output with debug capabilities and project tracking
 
@@ -1266,7 +1268,7 @@ These parameters are fundamental to all task types:
 | `hostname` | Yes* | String | Target server hostname | Any valid hostname, IP, or `@VARIABLE@` |
 | `command` | Yes* | String | Command to execute | Any executable command |
 | `arguments` | No | String | Command arguments | Any valid arguments |
-| `exec` | No | String | Execution method | `pbrun`, `p7s`, `local`, `wwrs` (default: pbrun for remote) |
+| `exec` | No | String | Execution method | `local`, `shell`, `pbrun`, `p7s`, `wwrs` (default: pbrun for remote) - [See Execution Types](#execution-types-exec) |
 | `timeout` | No | Integer | Command timeout in seconds | 5-3600 (default: 30) |
 | `sleep` | No | Integer | Delay after task completion | 0-300 seconds |
 | `success` | No | String | Custom success criteria | `exit_0` (default), `stdout~text`, combinations |
@@ -1346,6 +1348,132 @@ Parameters for branching based on runtime conditions:
 - To get different behavior, explicitly specify `next` condition (e.g., `next=majority_success`)
 
 **Important:** Tasks listed in `if_true_tasks`/`if_false_tasks` have their flow control (`on_success`, `on_failure`, `next`) ignored, but their `success` criteria is respected.
+
+## Execution Types (`exec`)
+
+The `exec` parameter determines how commands are executed. TASKER supports multiple execution methods optimized for different use cases.
+
+### Available Execution Types
+
+| Type | Description | Use Case | Command Execution |
+|------|-------------|----------|-------------------|
+| `local` | Direct subprocess execution (no shell) | Simple commands without shell syntax | `subprocess.Popen(['command', 'arg1', 'arg2'])` |
+| `shell` | Shell execution via `/bin/bash -c` | Commands requiring shell features (pipes, redirects, substitution) | `/bin/bash -c "command arg1 arg2"` |
+| `pbrun` | PowerBroker sudo execution | Privileged remote operations | `pbrun -h hostname command args` |
+| `p7s` | P7S execution engine | Enterprise P7S environments | `p7s command execution` |
+| `wwrs` | WWRS execution engine | WWRS-managed systems | `wwrs_clir command execution` |
+
+**Default Behavior:** If `exec` is not specified, TASKER defaults to `pbrun` for remote hosts and `local` for localhost.
+
+### exec=local vs exec=shell
+
+The choice between `local` and `shell` is critical for security and functionality:
+
+#### exec=local (Recommended for simple commands)
+```bash
+# Direct execution - NO shell interpretation
+task=0
+hostname=localhost
+command=echo
+arguments=Hello World
+exec=local
+# Executes: echo "Hello" "World"
+# Shell metacharacters are NOT interpreted
+```
+
+**Characteristics:**
+- ✅ **Faster**: No shell overhead
+- ✅ **Safer**: Shell injection impossible
+- ✅ **Simpler**: Arguments passed directly as array
+- ❌ **Limited**: No pipes, redirects, wildcards, or command substitution
+
+**Security Note:** TASKER validation blocks shell syntax in `exec=local` to prevent user mistakes.
+
+#### exec=shell (Use for shell features)
+```bash
+# Shell execution - FULL shell interpretation
+task=0
+hostname=localhost
+command=echo
+arguments=User: $(whoami) | tee /tmp/log.txt
+exec=shell
+# Executes: /bin/bash -c "echo User: $(whoami) | tee /tmp/log.txt"
+# Shell features ARE executed
+```
+
+**Characteristics:**
+- ✅ **Powerful**: Full bash shell features available
+- ✅ **Flexible**: Pipes (`|`), redirects (`>`), wildcards (`*`), substitution (`$(...)`)
+- ✅ **Complex**: Multi-command sequences possible
+- ⚠️ **Slower**: Shell startup overhead
+- ⚠️ **Risk**: Requires careful input validation
+
+**Security Note:** TASKER validation allows shell syntax with `exec=shell` but warns about dangerous patterns (e.g., `rm -rf /`).
+
+### Shell Type Aliases
+
+For convenience, TASKER recognizes common aliases that map to `exec=shell`:
+
+| Alias | Maps To | Example |
+|-------|---------|---------|
+| `bash` | `shell` | `exec=bash` → `exec=shell` |
+| `sh` | `shell` | `exec=sh` → `exec=shell` |
+| `/bin/bash` | `shell` | `exec=/bin/bash` → `exec=shell` |
+| `/bin/sh` | `shell` | `exec=/bin/sh` → `exec=shell` |
+
+### Execution Type Examples
+
+#### Example 1: Simple Command (exec=local)
+```bash
+# Best practice for simple commands
+task=0
+hostname=localhost
+command=date
+exec=local
+```
+
+#### Example 2: Shell Piping (exec=shell)
+```bash
+# Extract disk usage percentage
+task=0
+hostname=localhost
+command=df -h / | grep -v Filesystem | awk '{print $5}'
+exec=shell
+```
+
+#### Example 3: Command Substitution (exec=shell)
+```bash
+# Capture current user in output
+task=0
+hostname=localhost
+command=echo
+arguments=Deployed by $(whoami) at $(date +%Y-%m-%d)
+exec=shell
+```
+
+#### Example 4: Using Global Variables for exec Type
+```bash
+# Define execution type globally
+EXEC_MODE=shell
+
+task=0
+hostname=localhost
+command=ps aux | grep nginx | wc -l
+exec=@EXEC_MODE@
+```
+
+### When to Use Which exec Type?
+
+| Scenario | Recommended Type | Reason |
+|----------|------------------|--------|
+| Run a single command | `local` | Faster, safer |
+| Use pipes (`\|`) or redirects (`>`) | `shell` | Shell features required |
+| Command substitution `$(...)` or `` `...` `` | `shell` | Shell expansion needed |
+| Wildcards (`*.txt`) | `shell` | Shell globbing required |
+| Simple date/echo/ls commands | `local` | No shell needed |
+| Multi-command sequences | `shell` | Shell chaining needed |
+| Privileged remote operations | `pbrun` | Enterprise sudo |
+| Complex text processing | `shell` or `local` with tools | Depends on complexity |
 
 ## Multi-Task Success Evaluation Conditions
 
@@ -1456,23 +1584,91 @@ The following parameters are recognized but **not yet implemented**:
 
 ### 🛡️ Security Validation (Input Sanitization)
 
-**TASKER 2.0 includes comprehensive input validation hardening:**
+**TASKER 2.1 includes comprehensive context-aware input validation:**
 
-5. **Command Injection Prevention**: Detects shell metacharacters and injection patterns
-6. **Path Traversal Protection**: Blocks directory traversal attempts (`../`, encoded variants)
-7. **Buffer Overflow Protection**: Enforces field length limits (hostname: 253, arguments: 2000 chars)
-8. **Boundary Validation**: Strict numeric limits (timeout: 1-86400s, max_parallel: 1-1000)
-9. **Global Variable Security**: Enhanced validation treats global variables as potential attack vectors
-10. **Inline Comment Detection**: Security-enforced prohibition of inline comments after `key=value` pairs
+#### Validation Features:
 
-**Security Error Examples:**
+1. **Command Injection Prevention**: Detects shell metacharacters and injection patterns
+2. **Path Traversal Protection**: Blocks directory traversal attempts (`../`, encoded variants)
+3. **Buffer Overflow Protection**: Enforces field length limits (hostname: 253, arguments: 2000 chars)
+4. **Boundary Validation**: Strict numeric limits (timeout: 1-86400s, max_parallel: 1-1000)
+5. **Global Variable Security**: Enhanced validation treats global variables as potential attack vectors
+6. **Inline Comment Detection**: Security-enforced prohibition of inline comments after `key=value` pairs
+7. **Context-Aware Validation**: Different validation rules based on `exec` type
+
+#### Context-Aware Security Validation
+
+TASKER applies different validation rules based on the execution type:
+
+| exec Type | Validation Mode | Shell Syntax | Dangerous Patterns |
+|-----------|-----------------|--------------|-------------------|
+| `exec=local` | **Strict** | ❌ Blocked | ⚠️ Warned |
+| `exec=shell` | **Relaxed** | ✅ Allowed | ⚠️ Warned |
+| `exec=pbrun/p7s/wwrs` | **Strict** | ❌ Blocked | ⚠️ Warned |
+
+**Validation Behavior:**
+
 ```bash
-# These will be BLOCKED by security validation:
-hostname=localhost; cat /etc/passwd    # Command injection
-arguments=../../../etc/passwd          # Path traversal
-arguments=[2000+ character string]     # Buffer overflow
-timeout=999999                         # Boundary violation
+# exec=local: Shell syntax is BLOCKED (prevents user mistakes)
+task=0
+hostname=localhost
+command=echo
+arguments=test $(whoami)    # ❌ VALIDATION ERROR
+exec=local
+
+# exec=shell: Shell syntax is ALLOWED (shell execution intended)
+task=1
+hostname=localhost
+command=echo
+arguments=test $(whoami)    # ✅ VALIDATION PASSES
+exec=shell
+
+# Dangerous patterns are WARNED for all exec types
+task=2
+hostname=localhost
+command=rm -rf /            # ⚠️ WARNING (all exec types)
+exec=shell
 ```
+
+#### Security Error Examples
+
+**Blocked with exec=local (strict validation):**
+```bash
+hostname=localhost; cat /etc/passwd    # Command injection blocked
+arguments=test $(whoami)               # Command substitution blocked
+arguments=file1 | grep pattern         # Pipe operator blocked
+command=ls *.txt                       # Wildcard blocked (use exec=shell)
+```
+
+**Warned for all exec types (dangerous patterns):**
+```bash
+arguments=rm -rf /                     # Dangerous delete operation
+arguments=chmod 777 /etc/passwd        # Overly permissive permissions
+arguments=cat /etc/shadow              # Sensitive file access
+arguments=dd if=/dev/zero of=/dev/sda  # Dangerous disk operation
+```
+
+**Allowed with exec=shell (relaxed validation):**
+```bash
+arguments=ps aux | grep nginx          # Pipe allowed
+arguments=echo $(whoami)               # Command substitution allowed
+arguments=cat *.log                    # Wildcard allowed
+arguments=cmd1 && cmd2 || cmd3         # Command chaining allowed
+```
+
+#### Skipping Security Validation
+
+For advanced users or migration scenarios, security validation can be bypassed:
+
+```bash
+# Skip only security validation
+tasker --skip-security-validation tasks.txt -r
+
+# Skip all validation (including security)
+tasker --skip-validation tasks.txt -r
+```
+
+**⚠️ Warning:** Skipping security validation disables input sanitization checks and should only be used when you fully understand the risks.
 
 ### Examples of Parameter Combinations
 
@@ -2548,13 +2744,19 @@ tasker -r --log-level=DEBUG tasks.txt
 ### Validation Commands
 
 ```bash
-# Full validation without execution
+# Full validation without execution (task + host + command + security)
 tasker --validate-only tasks.txt
 
 # Validation with connectivity testing
 tasker -c --validate-only tasks.txt
 
-# Skip validation (use with caution)
+# Skip specific validation types
+tasker -r --skip-task-validation tasks.txt       # Skip task file validation
+tasker -r --skip-host-validation tasks.txt       # Skip host validation
+tasker -r --skip-command-validation tasks.txt    # Skip command checks
+tasker -r --skip-security-validation tasks.txt   # Skip security checks
+
+# Skip ALL validation (use with caution)
 tasker -r --skip-validation tasks.txt
 ```
 
@@ -2588,17 +2790,77 @@ tasker -r --start-from=15 --skip-validation tasks.txt
 | Option | Description | Example |
 |--------|-------------|---------|
 | `--show-plan` | Display execution plan and ask for confirmation | `tasker --show-plan -r tasks.txt` |
-| `--validate-only` | Perform full validation without execution | `tasker --validate-only tasks.txt` |
+| `--validate-only` | Perform complete validation (task + host + command + security) and exit | `tasker --validate-only tasks.txt` |
 | `-c, --connection-test` | Enable host connectivity testing | `tasker -r -c tasks.txt` |
-| `--skip-task-validation` | Skip task file validation (faster resume) | `tasker -r --skip-task-validation tasks.txt` |
-| `--skip-host-validation` | Skip host validation (WARNING: risky!) | `tasker -r --skip-host-validation tasks.txt` |
-| `--skip-command-validation` | Skip command existence validation (WARNING: risky!) | `tasker -r --skip-command-validation tasks.txt` |
-| `--skip-validation` | Skip ALL validation (task + host + command) | `tasker -r --skip-validation tasks.txt` |
+| `--skip-task-validation` | Skip task file and dependency validation (use for faster resume) | `tasker -r --skip-task-validation tasks.txt` |
+| `--skip-host-validation` | Skip host validation - use hostnames as-is (WARNING: may cause connection failures) | `tasker -r --skip-host-validation tasks.txt` |
+| `--skip-command-validation` | Skip command existence validation (WARNING: may cause execution failures) | `tasker -r --skip-command-validation tasks.txt` |
+| `--skip-security-validation` | Skip security pattern validation - disables input sanitization (WARNING: allows risky patterns) | `tasker -r --skip-security-validation tasks.txt` |
+| `--skip-validation` | Skip ALL validation (task + host + command + security) | `tasker -r --skip-validation tasks.txt` |
 
 #### Resume and Recovery
 | Option | Description | Example |
 |--------|-------------|---------|
 | `--start-from` | Resume execution from specific task ID | `tasker -r --start-from=5 tasks.txt` |
+
+### Complete Usage Reference
+
+```
+usage: tasker [-h] [-r] [-l LOG_DIR] [--log-level {ERROR,WARN,INFO,DEBUG}]
+              [-t {pbrun,p7s,local,wwrs}] [-o TIMEOUT] [-c] [-p PROJECT]
+              [--start-from TASK_ID] [--skip-task-validation]
+              [--skip-host-validation] [--skip-command-validation]
+              [--skip-security-validation] [--skip-validation]
+              [--validate-only] [--show-plan] [-d]
+              task_file
+
+TASKER 2.1 - Execute tasks on remote servers with comprehensive flow control.
+
+positional arguments:
+  task_file             Path to the task file
+
+optional arguments:
+  -h, --help            Show this help message and exit
+  -r, --run             Actually run the commands (not dry run)
+  -l LOG_DIR, --log-dir LOG_DIR
+                        Directory to store log files
+  --log-level {ERROR,WARN,INFO,DEBUG}
+                        Set logging level (default: INFO)
+  -t {pbrun,p7s,local,wwrs}, --type {pbrun,p7s,local,wwrs}
+                        Execution type (overridden by task-specific settings)
+  -o TIMEOUT, --timeout TIMEOUT
+                        Default command timeout in seconds (5-1000, default: 30)
+  -c, --connection-test
+                        Check connectivity for pbrun,p7s,wwrs hosts
+  -p PROJECT, --project PROJECT
+                        Project name for summary logging
+  --start-from TASK_ID  Start execution from specific task ID (resume capability)
+  --skip-task-validation
+                        Skip task file and dependency validation (use for faster resume)
+  --skip-host-validation
+                        Skip host validation - use hostnames as-is without FQDN/connectivity
+                        checks (WARNING: may cause connection failures)
+  --skip-command-validation
+                        Skip command existence validation - allows missing local commands
+                        (WARNING: may cause execution failures)
+  --skip-security-validation
+                        Skip security pattern validation - disables input sanitization checks
+                        (WARNING: allows potentially risky patterns)
+  --skip-validation     Skip ALL validation checks (same as --skip-task-validation
+                        --skip-host-validation --skip-command-validation
+                        --skip-security-validation)
+  --validate-only       Perform complete validation (task + host + command + security)
+                        and exit without task execution
+  --show-plan           Show execution plan and require confirmation before running
+  -d, --debug           Enable debug logging (shorthand for --log-level=DEBUG)
+
+Examples:
+  tasker tasks.txt -r                    # Execute tasks (real run)
+  tasker tasks.txt --log-level=DEBUG     # Execute with debug logging
+  tasker tasks.txt --show-plan           # Show execution plan first
+  tasker tasks.txt --start-from=5        # Resume from task 5
+  tasker tasks.txt --validate-only       # Only validate, don't execute
+```
 
 ## Log Directory Structure
 

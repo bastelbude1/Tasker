@@ -1,0 +1,5 @@
+# TEST_METADATA: {"description": "Test invalid return value validation", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_error_pattern": "invalid.*return"}
+
+# Quick test for invalid return value
+task=0
+return=abc

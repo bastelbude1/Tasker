@@ -1,0 +1,29 @@
+# TEST_METADATA: {"description": "Test firewall handler pattern with task 99", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "expected_execution_path": [0, 1, 99]}
+
+# Main workflow
+task=0
+hostname=localhost
+command=echo
+arguments=Starting workflow
+exec=local
+
+task=1
+hostname=localhost
+command=false
+arguments=
+exec=local
+on_failure=99
+
+task=2
+hostname=localhost
+command=echo
+arguments=This should not execute
+exec=local
+
+# Firewall/cleanup handler - common pattern in special range 90-99
+task=99
+hostname=localhost
+command=echo
+arguments=ERROR HANDLER: Cleaning up after failure
+exec=local
+return=1

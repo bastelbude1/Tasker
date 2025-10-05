@@ -1,0 +1,27 @@
+# TEST_METADATA: {"description": "Test detection of orphaned task", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_error_pattern": "Task sequence has gap"}
+
+# Main workflow
+task=0
+hostname=localhost
+command=echo
+arguments=Starting workflow
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Continuing workflow
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=Ending workflow
+exec=local
+
+# This task is orphaned - never referenced and not in sequence
+task=50
+hostname=localhost
+command=echo
+arguments=I am an orphaned task - will never execute
+exec=local

@@ -16,23 +16,23 @@ next=all_success
 # Parallel subtask 1: sleep 1 second
 task=10
 hostname=localhost
-command=bash
-arguments=-c "echo 'Task 10 start:' $(date +%H:%M:%S.%N); sleep 1; echo 'Task 10 end:' $(date +%H:%M:%S.%N)"
-exec=local
+command=echo 'Task 10 start:' $(date +%H:%M:%S.%N);
+arguments=sleep 1; echo 'Task 10 end:' $(date +%H:%M:%S.%N)
+exec=shell
 
 # Parallel subtask 2: sleep 2 seconds
 task=11
 hostname=localhost
-command=bash
-arguments=-c "echo 'Task 11 start:' $(date +%H:%M:%S.%N); sleep 2; echo 'Task 11 end:' $(date +%H:%M:%S.%N)"
-exec=local
+command=echo 'Task 11 start:' $(date +%H:%M:%S.%N);
+arguments=sleep 2; echo 'Task 11 end:' $(date +%H:%M:%S.%N)
+exec=shell
 
 # Parallel subtask 3: sleep 3 seconds
 task=12
 hostname=localhost
-command=bash
-arguments=-c "echo 'Task 12 start:' $(date +%H:%M:%S.%N); sleep 3; echo 'Task 12 end:' $(date +%H:%M:%S.%N)"
-exec=local
+command=echo 'Task 12 start:' $(date +%H:%M:%S.%N);
+arguments=sleep 3; echo 'Task 12 end:' $(date +%H:%M:%S.%N)
+exec=shell
 
 # Final task after parallel completion
 task=2

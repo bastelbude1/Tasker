@@ -685,7 +685,30 @@ class TestValidator:
                     f"Critical/High risk security test must be rejected (risk_level: {risk_level})"
                 )
 
-        # Phase 5: Performance test validation
+        # Phase 5: Duration validation (for any test type with min/max duration benchmarks)
+        if "performance_benchmarks" in metadata:
+            benchmarks = metadata["performance_benchmarks"]
+            actual_time = actual_results.get("execution_time", 0)
+
+            # Validate minimum duration
+            if "min_duration" in benchmarks:
+                min_duration = benchmarks["min_duration"]
+                if actual_time < min_duration:
+                    validation_results["passed"] = False
+                    validation_results["failures"].append(
+                        f"Execution time below minimum: {actual_time:.2f}s < {min_duration}s"
+                    )
+
+            # Validate maximum duration
+            if "max_duration" in benchmarks:
+                max_duration = benchmarks["max_duration"]
+                if actual_time > max_duration:
+                    validation_results["passed"] = False
+                    validation_results["failures"].append(
+                        f"Execution time exceeded maximum: {actual_time:.2f}s > {max_duration}s"
+                    )
+
+        # Phase 6: Performance test validation
         if metadata.get("test_type") == "performance":
             performance_metrics = actual_results.get("performance_metrics", {})
 

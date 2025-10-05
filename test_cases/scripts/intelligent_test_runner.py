@@ -406,8 +406,17 @@ class TaskerTestExecutor:
         else:
             cmd_args.append("-r")  # Run mode
 
-        # Always skip host validation for test execution
-        cmd_args.append("--skip-host-validation")
+        # Add skip flags from metadata
+        if metadata.get("skip_host_validation", False):
+            cmd_args.append("--skip-host-validation")
+        if metadata.get("skip_task_validation", False):
+            cmd_args.append("--skip-task-validation")
+        if metadata.get("skip_command_validation", False):
+            cmd_args.append("--skip-command-validation")
+        if metadata.get("skip_security_validation", False):
+            cmd_args.append("--skip-security-validation")
+        if metadata.get("skip_validation", False):
+            cmd_args.append("--skip-validation")
 
         # Set environment for supporting scripts
         env = os.environ.copy()
@@ -850,8 +859,11 @@ class TestValidator:
         # Validate warning count
         if "expected_warnings" in metadata:
             expected_warning_count = metadata["expected_warnings"]
-            # Count WARN lines in stdout
-            actual_warning_count = actual_results["stdout"].count("WARN:")
+            # Count unique warning lines (lines containing WARN: or WARNING:)
+            # to avoid double-counting lines that contain both strings
+            warning_lines = [line for line in actual_results["stdout"].split('\n')
+                           if 'WARN:' in line or 'WARNING:' in line]
+            actual_warning_count = len(warning_lines)
 
             if actual_warning_count != expected_warning_count:
                 validation_results["passed"] = False

@@ -1,0 +1,79 @@
+# Test nested conditional tasks to verify task ID format
+
+# Parent task that succeeds
+task=0
+hostname=localhost
+command=true
+exec=local
+
+# First level conditional
+task=1
+type=conditional
+condition=@0_success@=true
+if_true_tasks=10,20
+if_false_tasks=11
+
+# Subtask 10 - itself a conditional (nested)
+task=10
+type=conditional
+condition=@0_exit_code@=0
+if_true_tasks=100,101
+if_false_tasks=102
+
+# Subtask 20 - a parallel task
+task=20
+type=parallel
+tasks=200,201,202
+max_parallel=3
+
+# Nested subtasks under 10
+task=100
+hostname=localhost
+command=echo
+arguments=Nested subtask 100 executed
+exec=local
+
+task=101
+hostname=localhost
+command=echo
+arguments=Nested subtask 101 executed
+exec=local
+
+task=102
+hostname=localhost
+command=echo
+arguments=This should not execute
+exec=local
+
+# Parallel subtasks under task 20
+task=200
+hostname=localhost
+command=echo
+arguments=Parallel subtask 200 executed
+exec=local
+
+task=201
+hostname=localhost
+command=echo
+arguments=Parallel subtask 201 executed
+exec=local
+
+task=202
+hostname=localhost
+command=echo
+arguments=Parallel subtask 202 executed
+exec=local
+
+# Subtask 11 (false branch of task 1)
+task=11
+hostname=localhost
+command=echo
+arguments=This should not execute
+exec=local
+
+# Final task
+task=2
+hostname=localhost
+command=echo
+arguments=All nested conditionals tested
+exec=local

@@ -71,7 +71,9 @@ def _collect_test_files(target_path, recursive=False):
         for root, _dirs, files in os.walk(target_path):
             for file in files:
                 if file.endswith('.txt'):
-                    test_files.append(os.path.join(root, file))
+                    file_path = os.path.join(root, file)
+                    if os.path.isfile(file_path):
+                        test_files.append(file_path)
     else:
         for file in os.listdir(target_path):
             file_path = os.path.join(target_path, file)

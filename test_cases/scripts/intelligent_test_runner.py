@@ -272,7 +272,7 @@ class TestMetadata:
 class TaskerTestExecutor:
     """Execute TASKER test cases and capture results."""
 
-    def __init__(self, tasker_path="./tasker.py"):
+    def __init__(self, tasker_path="tasker"):
         self.tasker_path = tasker_path
         self.results = {}
         self.performance_monitor = PerformanceMonitor()
@@ -811,7 +811,7 @@ class TestValidator:
 class IntelligentTestRunner:
     """Main test runner orchestrator."""
 
-    def __init__(self, tasker_path="./tasker.py"):
+    def __init__(self, tasker_path="tasker"):
         self.tasker_path = tasker_path
         self.executor = TaskerTestExecutor(tasker_path)
         self.validator = TestValidator()
@@ -1015,13 +1015,14 @@ def main():
         description="TASKER Intelligent Test Runner - Metadata-driven test validation"
     )
     parser.add_argument(
-        "target",
-        help="Test file or directory to run"
+        "targets",
+        nargs="+",
+        help="Test file(s) or directory to run"
     )
     parser.add_argument(
         "--tasker-path",
-        default="./tasker.py",
-        help="Path to tasker.py executable (default: ./tasker.py)"
+        default="tasker",
+        help="Path to tasker executable (default: tasker from PATH)"
     )
     parser.add_argument(
         "--recursive", "-r",
@@ -1034,15 +1035,39 @@ def main():
     # Initialize test runner
     runner = IntelligentTestRunner(args.tasker_path)
 
-    # Check if target is file or directory
-    if os.path.isfile(args.target):
-        result = runner.run_single_test(args.target)
-        runner.print_result_summary(result)
-    elif os.path.isdir(args.target):
-        runner.run_tests_in_directory(args.target, args.recursive)
-    else:
-        print(f"Error: '{args.target}' is not a valid file or directory")
+    # Handle multiple targets
+    test_files = []
+
+    for target in args.targets:
+        if os.path.isfile(target):
+            # Single file - add to list
+            test_files.append(target)
+        elif os.path.isdir(target):
+            # Directory - collect all .txt files
+            if args.recursive:
+                for root, dirs, files in os.walk(target):
+                    for file in files:
+                        if file.endswith('.txt'):
+                            test_files.append(os.path.join(root, file))
+            else:
+                for file in os.listdir(target):
+                    if file.endswith('.txt'):
+                        test_files.append(os.path.join(target, file))
+        else:
+            print(f"Warning: '{target}' is not a valid file or directory - skipping")
+
+    if not test_files:
+        print("Error: No valid test files found")
         return 1
+
+    # Run all collected test files
+    print(f"Running {len(test_files)} individual test files")
+    print("=" * 60)
+
+    for test_file in sorted(test_files):
+        result = runner.run_single_test(test_file)
+        runner.print_result_summary(result)
+        print("-" * 60)
 
     # Generate summary report
     exit_code = runner.generate_summary_report()

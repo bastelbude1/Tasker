@@ -1722,8 +1722,6 @@ class TaskExecutor:
                 ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Task file validation failed", False)
             # Add shutdown check after potentially long operation
             self._check_shutdown()
-        else:
-            self.log_info("# Skipping task file validation due to --skip_task_validation flag")
 
         # Show execution plan if requested (AFTER validation passes)
         if self.show_plan:
@@ -1741,8 +1739,6 @@ class TaskExecutor:
             self.validate_task_dependencies()
             # Check for shutdown after dependency validation
             self._check_shutdown()
-        else:
-            self.log_info("# Skipping task dependency validation due to --skip_task_validation flag")
 
         # Conditional host validation
         if not self.skip_host_validation:
@@ -1793,8 +1789,6 @@ class TaskExecutor:
                     if orig_hostname != fqdn:
                         self.log_debug(f"Replacing hostname '{orig_hostname}' with validated FQDN '{fqdn}'")
                         task['hostname'] = fqdn
-        elif self.skip_host_validation:
-            self.log_info("# Skipping hostname FQDN replacement due to --skip-host-validation flag")
 
         # If validate-only mode, exit after all validations complete
         if self.validate_only:

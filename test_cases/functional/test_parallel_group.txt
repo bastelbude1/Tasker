@@ -1,0 +1,39 @@
+# TEST_METADATA: {"description": "Test parallel task groups in 100+ range", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 2]}
+
+# Main workflow
+task=0
+hostname=localhost
+command=echo
+arguments=Starting parallel execution
+exec=local
+
+task=1
+type=parallel
+max_parallel=3
+tasks=100,101,102
+next=all_success
+
+task=2
+hostname=localhost
+command=echo
+arguments=All parallel tasks completed
+exec=local
+
+# Parallel task group in 100+ range - common pattern
+task=100
+hostname=localhost
+command=echo
+arguments=Parallel task 100
+exec=local
+
+task=101
+hostname=localhost
+command=echo
+arguments=Parallel task 101
+exec=local
+
+task=102
+hostname=localhost
+command=echo
+arguments=Parallel task 102
+exec=local

@@ -1,0 +1,3 @@
+# Quick test for return=0 (success)
+task=0
+return=0

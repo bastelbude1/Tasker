@@ -1,0 +1,3 @@
+# Quick test for invalid return value
+task=0
+return=abc

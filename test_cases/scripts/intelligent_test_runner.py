@@ -869,9 +869,10 @@ class TestValidator:
         if "expected_warnings" in metadata:
             expected_warning_count = metadata["expected_warnings"]
             # Count unique warning lines (lines containing WARN: or WARNING:)
-            # to avoid double-counting lines that contain both strings
+            # Exclude CLI warnings that start with "WARNING:" (no timestamp prefix)
+            # Only count workflow warnings with timestamps: [timestamp] WARN: or WARNING:
             warning_lines = [line for line in actual_results["stdout"].split('\n')
-                           if 'WARN:' in line or 'WARNING:' in line]
+                           if ('WARN:' in line or 'WARNING:' in line) and not line.startswith('WARNING:')]
             actual_warning_count = len(warning_lines)
 
             if actual_warning_count != expected_warning_count:

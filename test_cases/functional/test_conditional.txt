@@ -1,0 +1,48 @@
+# Test conditional 
+# TEST_METADATA: {"description": "Test conditional block", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2]}
+
+task=0
+hostname=localhost
+command=echo
+arguments=Starting test
+exec=local
+
+# Conditional block
+task=1
+type=conditional
+condition=@0_stdout@=Starting test
+if_true_tasks=10,11
+if_false_tasks=20,21
+
+# True branch
+task=10
+hostname=localhost
+command=echo
+arguments=Executing TRUE branch task 10
+exec=local
+
+task=11
+hostname=localhost
+command=echo
+arguments=Executing TRUE branch task 11
+exec=local
+
+# False branch
+task=20
+hostname=localhost
+command=echo
+arguments=Executing FALSE branch task 20
+exec=local
+
+task=21
+hostname=localhost
+command=echo
+arguments=Executing FALSE branch task 21
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=last task
+exec=local
+next=never

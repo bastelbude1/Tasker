@@ -205,17 +205,17 @@ class TaskExecutor:
 
         if self.exec_type:
             exec_type=self.exec_type
-            self.log_info(f"# Execution type from args: {exec_type}")
+            self.log_debug(f"# Execution type from args: {exec_type}")
         elif 'TASK_EXECUTOR_TYPE' in os.environ:
             exec_type = os.environ.get('TASK_EXECUTOR_TYPE')
-            self.log_info(f"# Execution type from environment: {exec_type}")
+            self.log_debug(f"# Execution type from environment: {exec_type}")
         else:
             exec_type = self.default_exec_type
-            self.log_info(f"# Execution type (Default): {exec_type} (if not overriden by task)")
+            self.log_debug(f"# Execution type (Default): {exec_type} (if not overriden by task)")
 
-        if dry_run: 
-            self.log_info(f"# Dry run mode")
-        self.log_info(f"# Default timeout: {timeout} [s]")
+        if dry_run:
+            self.log_info("# Dry run mode")
+        self.log_debug(f"# Default timeout: {timeout} [s]")
     
         # Only add minimal warning for shared summary files
         if self.project:
@@ -233,7 +233,7 @@ class TaskExecutor:
                         except (OSError, IOError):
                             # File is currently locked by another process
                             self.log_info(f"Info: Summary file '{self.project}.summary' is currently in use by another tasker instance.")
-                            self.log_info(f"Summary writes will wait for the other instance to complete.")
+                            self.log_info("Summary writes will wait for the other instance to complete.")
                 except Exception:
                     pass  # Ignore test errors
 
@@ -953,7 +953,7 @@ class TaskExecutor:
                 self.log_info("# Task validation FAILED.")
                 # Log each error
                 for error in result['errors']:
-                    self.log_error(f"ERROR: {error}")
+                    self.log_error(error)
                 return False
             else:
                 # Log warnings if any
@@ -1047,7 +1047,7 @@ class TaskExecutor:
                             self.log_error(f"DUPLICATE TASK ID {task_id} detected in task file!")
                             self.log_debug(f"Previous task {task_id}: {parsed_tasks[task_id]}")
                             self.log_debug(f"Duplicate task {task_id}: {current_task}")
-                            self.log_error(f"Each task ID must be unique. Please fix the task file.")
+                            self.log_error("Each task ID must be unique. Please fix the task file.")
                             ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, f"Duplicate task ID {task_id} found", False)
 
                         parsed_tasks[task_id] = current_task
@@ -1070,7 +1070,7 @@ class TaskExecutor:
                 self.log_error(f"DUPLICATE TASK ID {task_id} detected in task file!")
                 self.log_debug(f"Previous task {task_id}: {parsed_tasks[task_id]}")
                 self.log_debug(f"Duplicate task {task_id}: {current_task}")
-                self.log_error(f"Each task ID must be unique. Please fix the task file.")
+                self.log_error("Each task ID must be unique. Please fix the task file.")
                 ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, f"Duplicate task ID {task_id} found", False)
 
             parsed_tasks[task_id] = current_task

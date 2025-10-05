@@ -1,0 +1,8 @@
+# TEST_METADATA: {"description": "Test exec=local blocks shell syntax", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false}
+
+# Test: Exec=local should block shell metacharacters (command substitution)
+task=0
+hostname=localhost
+command=echo
+arguments=test $(whoami) injection
+exec=local

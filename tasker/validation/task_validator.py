@@ -23,6 +23,9 @@ class TaskValidator:
         # Security hardening: Initialize input sanitizer
         self.sanitizer = InputSanitizer()
 
+        # Validation control flags
+        self.skip_security_validation = False
+
         # Global variables support
         self.global_vars = {}  # Store global variables for validation
         self.referenced_global_vars = set()  # Track which global variables are used
@@ -67,16 +70,18 @@ class TaskValidator:
         self.valid_operators = ['!=', '!~', '<=', '>=', '=', '~', '<', '>']
 
     @staticmethod
-    def validate_task_file(task_file, debug=False, log_callback=None, debug_callback=None):
+    def validate_task_file(task_file, debug=False, log_callback=None, debug_callback=None,
+                          skip_security_validation=False):
         """
         Validate a task file and return results.
-        
+
         Args:
             task_file: Path to task file to validate
             debug: Enable debug mode
             log_callback: Optional function for main logging
             debug_callback: Optional function for debug logging
-            
+            skip_security_validation: Skip security pattern validation
+
         Returns:
             dict with 'success', 'errors', 'warnings', 'global_vars', 'tasks'
         """
@@ -85,7 +90,8 @@ class TaskValidator:
         validator.debug = debug
         validator._log_callback = log_callback
         validator._debug_callback = debug_callback
-        
+        validator.skip_security_validation = skip_security_validation
+
         # Parse and validate
         parse_success = validator.parse_file()
         if parse_success:
@@ -337,20 +343,33 @@ class TaskValidator:
                 task_type = 'conditional'
 
             # SECURITY VALIDATION: Now that all fields are parsed, validate them
-            # Skip security validation for command/arguments when exec=shell
-            exec_type = task.get('exec', '')
-            field_lines = task.get('field_lines', {})
+            # Context-aware validation: exec_type determines validation strictness
+            if not self.skip_security_validation:
+                # Resolve exec placeholders before sanitizing commands
+                raw_exec = task.get('exec', 'local')
+                resolved_exec = self.resolve_global_variables_for_validation(raw_exec) if raw_exec else ''
+                exec_type = (self.clean_field_value(resolved_exec) or 'local').lower()
 
-            for field_name in ['command', 'arguments', 'hostname']:
-                if field_name in task:
-                    field_value = task[field_name]
-                    field_line = field_lines.get(field_name, line_number)
+                # Map common aliases to standard values
+                alias_map = {
+                    'sh': 'shell',
+                    'bash': 'shell',
+                    '/bin/sh': 'shell',
+                    '/bin/bash': 'shell'
+                }
+                exec_type = alias_map.get(exec_type, exec_type)
 
-                    # Skip security check for shell commands
-                    skip_security = (exec_type == 'shell' and field_name in ['command', 'arguments'])
+                field_lines = task.get('field_lines', {})
 
-                    if not skip_security:
-                        sanitize_result = self.sanitizer.sanitize_field(field_name, field_value)
+                for field_name in ['command', 'arguments', 'hostname']:
+                    if field_name in task:
+                        field_value = task[field_name]
+                        field_line = field_lines.get(field_name, line_number)
+
+                        # Context-aware security validation
+                        # - exec=shell: Allow shell syntax, warn about dangerous patterns
+                        # - exec=local: Strict validation (block shell metacharacters)
+                        sanitize_result = self.sanitizer.sanitize_field(field_name, field_value, exec_type=exec_type)
 
                         # Add any sanitization errors/warnings
                         for error in sanitize_result['errors']:
@@ -372,9 +391,10 @@ class TaskValidator:
 
             # Check for unknown fields
             all_known_fields = set(self.required_fields + self.conditional_fields['normal'] +
-                                  self.conditional_fields['return'] + self.conditional_fields['parallel'] + 
+                                  self.conditional_fields['return'] + self.conditional_fields['parallel'] +
                                   self.conditional_fields['conditional'] +  # NEW: Add conditional fields
-                                  self.optional_fields + self.parallel_conditional_specific_fields + ['line_start'])
+                                  self.optional_fields + self.parallel_conditional_specific_fields +
+                                  ['line_start', 'field_lines'])
             for field in task:
                 if field not in all_known_fields:
                     self.warnings.append(f"Line {line_number}: Task {task_id} has unknown field '{field}'.")
@@ -1020,11 +1040,16 @@ class TaskValidator:
                 self.errors.append(f"Line {line_number}: Task {task_id} has invalid timeout: '{timeout_clean}'.")
         
         if 'exec' in task:
+            # Resolve placeholders and validate exec type
             exec_resolved = self.resolve_global_variables_for_validation(task['exec'])
-            exec_clean = self.clean_field_value(exec_resolved)
-            valid_exec_types = ['pbrun','p7s','local','wwrs']
-            if exec_clean not in valid_exec_types:
-                self.warnings.append(f"Line {line_number}: Task {task_id} has unknown execution_type: '{exec_clean}'. Valid types are: {','.join(valid_exec_types)}")
+            exec_clean = self.clean_field_value(exec_resolved).lower()
+            valid_exec_types = ['pbrun','p7s','local','wwrs','shell']
+
+            # Common aliases that map to shell (don't warn for these)
+            known_aliases = ['sh', 'bash', '/bin/sh', '/bin/bash']
+
+            if exec_clean not in valid_exec_types and exec_clean not in known_aliases:
+                self.warnings.append(f"Line {line_number}: Task {task_id} has unknown execution_type: '{exec_clean}'. Valid types are: {','.join(valid_exec_types)} (aliases: sh, bash)")
         
         # Validate split specifications
         for split_field in ['stdout_split', 'stderr_split']:

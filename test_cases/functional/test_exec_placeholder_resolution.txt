@@ -1,0 +1,18 @@
+# TEST_METADATA: {"description": "Test exec placeholder resolution and alias mapping", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Global variable for exec type
+EXEC_TYPE=shell
+
+# Test 1: Exec with global variable placeholder
+task=0
+hostname=localhost
+command=echo
+arguments=test with semicolon; echo "should work with shell"
+exec=@EXEC_TYPE@
+
+# Test 2: Exec with bash alias (should map to shell)
+task=1
+hostname=localhost
+command=echo
+arguments=test with pipe | grep test
+exec=bash

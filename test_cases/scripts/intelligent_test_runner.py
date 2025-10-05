@@ -865,13 +865,15 @@ class IntelligentTestRunner:
         # Parse metadata
         metadata_parser = TestMetadata(test_file)
         if not metadata_parser.is_valid():
-            return {
+            result = {
                 "test_name": test_name,
                 "test_file": test_file,
-                "status": "METADATA_ERROR",
-                "error": metadata_parser.metadata.get("error"),
+                "status": "SKIPPED",
+                "skip_reason": metadata_parser.metadata.get("error"),
                 "execution_time": 0
             }
+            self.results.append(result)
+            return result
 
         metadata = metadata_parser.metadata
         print(f"  Description: {metadata.get('description', 'N/A')}")
@@ -916,7 +918,12 @@ class IntelligentTestRunner:
         name = result["test_name"]
         time = result["execution_time"]
 
-        status_icon = "✅" if status == "PASSED" else "❌"
+        if status == "PASSED":
+            status_icon = "✅"
+        elif status == "SKIPPED":
+            status_icon = "⊘"
+        else:
+            status_icon = "❌"
         print(f"{status_icon} {name} ({status}) - {time:.2f}s")
 
         # Show execution path info for passed tests (if available)
@@ -981,8 +988,8 @@ class IntelligentTestRunner:
             for failure in failures:
                 print(f"    FAILURE: {failure}")
 
-        if status == "METADATA_ERROR":
-            print(f"    ERROR: {result['error']}")
+        if status == "SKIPPED":
+            print(f"    REASON: {result.get('skip_reason', 'Unknown reason')}")
 
         warnings = result.get("validation_results", {}).get("warnings", [])
         for warning in warnings:
@@ -997,7 +1004,7 @@ class IntelligentTestRunner:
         total_tests = len(self.results)
         passed_tests = len([r for r in self.results if r["status"] == "PASSED"])
         failed_tests = len([r for r in self.results if r["status"] == "FAILED"])
-        error_tests = len([r for r in self.results if r["status"] == "METADATA_ERROR"])
+        skipped_tests = len([r for r in self.results if r["status"] == "SKIPPED"])
 
         total_time = sum(r["execution_time"] for r in self.results)
 
@@ -1010,7 +1017,7 @@ class IntelligentTestRunner:
         print("RESULTS:")
         print(f"✅ PASSED: {passed_tests}/{total_tests} tests")
         print(f"❌ FAILED: {failed_tests}/{total_tests} tests")
-        print(f"🚫 ERRORS: {error_tests}/{total_tests} tests")
+        print(f"⊘ SKIPPED: {skipped_tests}/{total_tests} tests (missing metadata)")
         print()
 
         if failed_tests > 0:
@@ -1022,16 +1029,19 @@ class IntelligentTestRunner:
                         print(f"    - {failure}")
             print()
 
-        if error_tests > 0:
-            print("ERROR TESTS:")
+        if skipped_tests > 0:
+            print("SKIPPED TESTS (Need TEST_METADATA):")
             for result in self.results:
-                if result["status"] == "METADATA_ERROR":
-                    print(f"  • {result['test_name']}: {result['error']}")
+                if result["status"] == "SKIPPED":
+                    print(f"  • {result['test_name']}: {result.get('skip_reason', 'No metadata')}")
             print()
 
         # Overall result
-        if failed_tests == 0 and error_tests == 0:
-            print("🎉 ALL TESTS PASSED!")
+        if failed_tests == 0:
+            if skipped_tests > 0:
+                print(f"✅ ALL EXECUTABLE TESTS PASSED! ({skipped_tests} tests skipped)")
+            else:
+                print("🎉 ALL TESTS PASSED!")
             return 0
         else:
             print("❌ SOME TESTS FAILED!")

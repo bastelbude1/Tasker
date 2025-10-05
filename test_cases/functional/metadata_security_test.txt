@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Security test - command injection attempt", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false}
+# TEST_METADATA: {"description": "Security test - command injection attempt", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false, "security_category": "command_injection", "risk_level": "critical"}
 
 # Security negative test - should be rejected by TASKER validation
 task=0

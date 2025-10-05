@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test exec placeholder resolution and alias mapping", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# TEST_METADATA: {"description": "Test exec placeholder resolution and alias mapping", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_warnings": 0, "expected_stdout": {"0": "test with semicolon", "1": "test with pipe"}, "skip_host_validation": false}
 
 # Global variable for exec type
 EXEC_TYPE=shell

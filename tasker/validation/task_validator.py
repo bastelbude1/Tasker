@@ -23,6 +23,9 @@ class TaskValidator:
         # Security hardening: Initialize input sanitizer
         self.sanitizer = InputSanitizer()
 
+        # Validation control flags
+        self.skip_security_validation = False
+
         # Global variables support
         self.global_vars = {}  # Store global variables for validation
         self.referenced_global_vars = set()  # Track which global variables are used
@@ -67,16 +70,18 @@ class TaskValidator:
         self.valid_operators = ['!=', '!~', '<=', '>=', '=', '~', '<', '>']
 
     @staticmethod
-    def validate_task_file(task_file, debug=False, log_callback=None, debug_callback=None):
+    def validate_task_file(task_file, debug=False, log_callback=None, debug_callback=None,
+                          skip_security_validation=False):
         """
         Validate a task file and return results.
-        
+
         Args:
             task_file: Path to task file to validate
             debug: Enable debug mode
             log_callback: Optional function for main logging
             debug_callback: Optional function for debug logging
-            
+            skip_security_validation: Skip security pattern validation
+
         Returns:
             dict with 'success', 'errors', 'warnings', 'global_vars', 'tasks'
         """
@@ -85,7 +90,8 @@ class TaskValidator:
         validator.debug = debug
         validator._log_callback = log_callback
         validator._debug_callback = debug_callback
-        
+        validator.skip_security_validation = skip_security_validation
+
         # Parse and validate
         parse_success = validator.parse_file()
         if parse_success:
@@ -338,26 +344,27 @@ class TaskValidator:
 
             # SECURITY VALIDATION: Now that all fields are parsed, validate them
             # Context-aware validation: exec_type determines validation strictness
-            exec_type = task.get('exec', 'local')  # Default to 'local' if not specified
-            field_lines = task.get('field_lines', {})
+            if not self.skip_security_validation:
+                exec_type = task.get('exec', 'local')  # Default to 'local' if not specified
+                field_lines = task.get('field_lines', {})
 
-            for field_name in ['command', 'arguments', 'hostname']:
-                if field_name in task:
-                    field_value = task[field_name]
-                    field_line = field_lines.get(field_name, line_number)
+                for field_name in ['command', 'arguments', 'hostname']:
+                    if field_name in task:
+                        field_value = task[field_name]
+                        field_line = field_lines.get(field_name, line_number)
 
-                    # Context-aware security validation
-                    # - exec=shell: Allow shell syntax, warn about dangerous patterns
-                    # - exec=local: Strict validation (block shell metacharacters)
-                    sanitize_result = self.sanitizer.sanitize_field(field_name, field_value, exec_type=exec_type)
+                        # Context-aware security validation
+                        # - exec=shell: Allow shell syntax, warn about dangerous patterns
+                        # - exec=local: Strict validation (block shell metacharacters)
+                        sanitize_result = self.sanitizer.sanitize_field(field_name, field_value, exec_type=exec_type)
 
-                    # Add any sanitization errors/warnings
-                    for error in sanitize_result['errors']:
-                        self.errors.append(f"Line {field_line}: Task field security error")
-                        self.debug_log(f"Security validation failed: {error}")
-                    for warning in sanitize_result['warnings']:
-                        self.warnings.append(f"Line {field_line}: Task field security warning")
-                        self.debug_log(f"Security warning: {warning}")
+                        # Add any sanitization errors/warnings
+                        for error in sanitize_result['errors']:
+                            self.errors.append(f"Line {field_line}: Task field security error")
+                            self.debug_log(f"Security validation failed: {error}")
+                        for warning in sanitize_result['warnings']:
+                            self.warnings.append(f"Line {field_line}: Task field security warning")
+                            self.debug_log(f"Security warning: {warning}")
 
             # Check for required fields based on task type
             for field in self.required_fields:

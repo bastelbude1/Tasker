@@ -82,7 +82,8 @@ class TaskExecutor:
     def __init__(self, task_file, log_dir='logs', dry_run=True, log_level='INFO',
                  exec_type=None, timeout=30, connection_test=False, project=None,
                  start_from_task=None, skip_task_validation=False,
-                 skip_host_validation=False, show_plan=False, validate_only=False):
+                 skip_host_validation=False, skip_security_validation=False,
+                 show_plan=False, validate_only=False):
         # Clear debug logging cache for new execution session
         from .condition_evaluator import ConditionEvaluator
         ConditionEvaluator.clear_debug_cache()
@@ -134,6 +135,7 @@ class TaskExecutor:
         self.start_from_task = start_from_task
         self.skip_task_validation = skip_task_validation
         self.skip_host_validation = skip_host_validation
+        self.skip_security_validation = skip_security_validation
 
         # Log resume information
         if self.start_from_task is not None:
@@ -142,6 +144,8 @@ class TaskExecutor:
                 self.log_warn(f"# Task Validation will be skipped")
             if self.skip_host_validation:
                 self.log_warn(f"# Host Validation will be skipped - ATTENTION")
+            if self.skip_security_validation:
+                self.log_warn(f"# Security Validation will be skipped - ATTENTION")
 
         # Initialize summary tracking variables
         self.final_task_id = None
@@ -943,10 +947,11 @@ class TaskExecutor:
         try:
             # Use the new TaskValidator module
             result = TaskValidator.validate_task_file(
-                self.task_file, 
+                self.task_file,
                 debug=(self.log_level == 'DEBUG'),
                 log_callback=self.log_info,
-                debug_callback=self.log_debug if self.log_level == 'DEBUG' else None
+                debug_callback=self.log_debug if self.log_level == 'DEBUG' else None,
+                skip_security_validation=self.skip_security_validation
             )
             
             if not result['success']:

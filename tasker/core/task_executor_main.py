@@ -1288,6 +1288,11 @@ class TaskExecutor:
             return ["pbrun", "-n", "-h", hostname, command] + shlex.split(expanded_arguments)
         elif exec_type == 'p7s':
             return ["p7s", hostname, command] + shlex.split(expanded_arguments)
+        elif exec_type == 'shell':
+            # Execute via bash -c with command+arguments as a single shell script
+            # This allows complex shell syntax: pipes, redirects, command substitution, etc.
+            full_script = f"{command} {expanded_arguments}".strip()
+            return ["/bin/bash", "-c", full_script]
         elif exec_type == 'local':
             return [command] + shlex.split(expanded_arguments)
         elif exec_type == 'wwrs':

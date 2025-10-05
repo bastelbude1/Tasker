@@ -213,13 +213,12 @@ class TaskValidator:
             # Handle task ID already being an int
             if isinstance(task_id_str, int):
                 return task_id_str
-
             # Handle string task IDs - check if numeric before conversion
-            if isinstance(task_id_str, str) and task_id_str.isdigit():
+            elif isinstance(task_id_str, str) and task_id_str.isdigit():
                 return int(task_id_str)
-
-            # Non-numeric or invalid task ID - return None
-            return None
+            else:
+                # Non-numeric or invalid task ID - return None
+                return None
         except (ValueError, KeyError, IndexError, TypeError):
             # Handle any unexpected errors gracefully
             return None

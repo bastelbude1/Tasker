@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test parallel task groups in 100+ range", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 2]}
+# TEST_METADATA: {"description": "Test parallel task groups in 100+ range", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2]}
 
 # Main workflow
 task=0
@@ -25,15 +25,19 @@ hostname=localhost
 command=echo
 arguments=Parallel task 100
 exec=local
+sleep=3
 
 task=101
 hostname=localhost
 command=echo
 arguments=Parallel task 101
 exec=local
+sleep=1
+
 
 task=102
 hostname=localhost
 command=echo
 arguments=Parallel task 102
 exec=local
+sleep=2

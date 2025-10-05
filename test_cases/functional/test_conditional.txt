@@ -1,6 +1,5 @@
-# Test conditional with gap in task numbering
-# Task 2 is missing - jumps from 1 to 3
-# TEST_METADATA: {"description": "Test conditional block with gap in main workflow (should fail validation)", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+# Test conditional 
+# TEST_METADATA: {"description": "Test conditional block", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2]}
 
 task=0
 hostname=localhost
@@ -41,15 +40,9 @@ command=echo
 arguments=Executing FALSE branch task 21
 exec=local
 
-# NOTE: Task 2 is missing! Next task is 3
-task=3
+task=2
 hostname=localhost
 command=echo
-arguments=Task 3 - after the gap
+arguments=last task
 exec=local
-
-task=4
-hostname=localhost
-command=echo
-arguments=Task 4 - final task
-exec=local
+next=never

@@ -104,7 +104,7 @@ class TaskValidator:
         if self.debug and hasattr(self, '_debug_callback') and self._debug_callback:
             self._debug_callback(f"TaskValidator: {message}")
         elif self.debug:
-            print(f"DEBUG: TaskValidator: {message}")
+            print(f"# DEBUG: TaskValidator: {message}")
 
     def check_for_inline_comments(self, key, value, line_number):
         """Check if a field value contains inline comments and flag as error."""

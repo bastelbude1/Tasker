@@ -1,0 +1,60 @@
+# TEST_METADATA: {"description": "Conditional Block test - multiple tasks per branch", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_skipped_tasks": []}
+
+# Test conditional block with multiple tasks in each branch
+task=0
+hostname=localhost
+command=echo
+arguments=ACTIVE
+exec=local
+
+# Conditional with multiple tasks per branch
+task=1
+type=conditional
+condition=@0_stdout@=ACTIVE
+if_true_tasks=10,11,12
+if_false_tasks=20,21,22
+
+# True branch tasks
+task=10
+hostname=localhost
+command=echo
+arguments=True branch task 10
+exec=local
+
+task=11
+hostname=localhost
+command=echo
+arguments=True branch task 11
+exec=local
+
+task=12
+hostname=localhost
+command=echo
+arguments=True branch task 12
+exec=local
+
+# False branch tasks
+task=20
+hostname=localhost
+command=echo
+arguments=False branch task 20
+exec=local
+
+task=21
+hostname=localhost
+command=echo
+arguments=False branch task 21
+exec=local
+
+task=22
+hostname=localhost
+command=echo
+arguments=False branch task 22
+exec=local
+
+# Continue after conditional
+task=2
+hostname=localhost
+command=echo
+arguments=Conditional completed
+exec=local

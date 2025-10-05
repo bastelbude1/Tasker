@@ -62,30 +62,74 @@ class SequentialExecutor(BaseExecutor):
         executor_instance.final_hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', 'N/A'), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
         executor_instance.final_command, _ = ConditionEvaluator.replace_variables(task.get('command', 'N/A'), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
         
-        # Check if this is a return task
-        if 'return' in task:
-            if executor_instance.final_command == 'N/A': executor_instance.final_command = 'return'
+        # Check if this is a return-only task (has return but no command)
+        if 'return' in task and 'command' not in task:
+            # Pure return block - no command to execute
+            executor_instance.log(f"Task {task_id}{loop_display}: Return-only task (no command to execute)")
+
+            # Parse and validate the return value FIRST
+            if executor_instance.final_command == 'N/A':
+                executor_instance.final_command = 'return'
+
             try:
                 return_code = int(task['return'])
                 executor_instance.log(f"Task {task_id}{loop_display}: Returning with exit code {return_code}")
+
+                # Determine exit_code and success based on the actual return value
+                exit_code = return_code
+                stdout = ""
+                stderr = ""
+                success_result = (return_code == 0)
+
+                # Store the accurate results
+                executor_instance.store_task_result(task_id, {
+                    'exit_code': exit_code,
+                    'stdout': stdout,
+                    'stderr': stderr,
+                    'success': success_result
+                })
+
+                # Update final status
                 executor_instance.final_exit_code = return_code
-                executor_instance.final_success = (return_code == 0)  # Consider success if return code is 0
-                
-                # Add completion message before immediate exit
+                executor_instance.final_success = success_result
+
+                # Log success or failure
                 if return_code == 0:
                     executor_instance.log("SUCCESS: Task execution completed successfully with return code 0")
                 else:
                     executor_instance.log(f"FAILURE: Task execution failed with return code {return_code}")
-                
-                executor_instance.cleanup() # clean up resources before exit
+
+                # Cleanup and exit
+                executor_instance.cleanup()
                 ExitHandler.exit_with_code(return_code, f"Task execution completed with return code {return_code}", False)
+
             except ValueError:
                 executor_instance.log(f"Task {task_id}{loop_display}: Invalid return code '{task['return']}'. Exiting with code 1.")
-                executor_instance.final_exit_code = 1  # Use 1 for invalid return codes (this is correct)
+
+                # Store failure results for invalid return code
+                exit_code = 1
+                stdout = ""
+                stderr = f"Invalid return code: {task['return']}"
+                success_result = False
+
+                executor_instance.store_task_result(task_id, {
+                    'exit_code': exit_code,
+                    'stdout': stdout,
+                    'stderr': stderr,
+                    'success': success_result
+                })
+
+                # Update final status
+                executor_instance.final_exit_code = 1
                 executor_instance.final_success = False
+
                 executor_instance.log("FAILURE: Task execution failed with invalid return code")
-                executor_instance.cleanup() # clean up resources before exit
+
+                # Cleanup and exit
+                executor_instance.cleanup()
                 ExitHandler.exit_with_code(ExitCodes.INVALID_ARGUMENTS, "Invalid return code specified", False)
+            # This point is never reached due to exit above
+            return None
         
         # Replace variables in command and arguments
         hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', ''), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
@@ -266,7 +310,32 @@ class SequentialExecutor(BaseExecutor):
                     executor_instance.log(f"Task {task_id}{loop_display}: Unresolved variables in sleep time. Skipping sleep.")
             except ValueError:
                 executor_instance.log(f"Task {task_id}{loop_display}: Invalid sleep time '{task['sleep']}'. Continuing.")
-        
+
+        # Check if this task has a return parameter (processed AFTER task execution)
+        # This handles tasks that have both command AND return
+        if 'return' in task and 'command' in task:
+            try:
+                return_code = int(task['return'])
+                executor_instance.log(f"Task {task_id}{loop_display}: Returning with exit code {return_code}")
+                executor_instance.final_exit_code = return_code
+                executor_instance.final_success = (return_code == 0)  # Consider success if return code is 0
+
+                # Add completion message before immediate exit
+                if return_code == 0:
+                    executor_instance.log("SUCCESS: Task execution completed successfully with return code 0")
+                else:
+                    executor_instance.log(f"FAILURE: Task execution failed with return code {return_code}")
+
+                executor_instance.cleanup() # clean up resources before exit
+                ExitHandler.exit_with_code(return_code, f"Task execution completed with return code {return_code}", False)
+            except ValueError:
+                executor_instance.log(f"Task {task_id}{loop_display}: Invalid return code '{task['return']}'. Exiting with code 1.")
+                executor_instance.final_exit_code = 1  # Use 1 for invalid return codes
+                executor_instance.final_success = False
+                executor_instance.log("FAILURE: Task execution failed with invalid return code")
+                executor_instance.cleanup() # clean up resources before exit
+                ExitHandler.exit_with_code(ExitCodes.INVALID_ARGUMENTS, "Invalid return code specified", False)
+
         # Check the 'next' condition to determine if we should continue
         should_continue = executor_instance.check_next_condition(task, exit_code, stdout, stderr, success_result)
 
@@ -290,7 +359,7 @@ class SequentialExecutor(BaseExecutor):
                 on_success_task = int(task['on_success'])
                 # Use main task ID (without loop display) if loop is completed
                 display_id = task_id if task_id not in executor_instance.loop_iterations else f"{task_id}{loop_display}"
-                executor_instance.log(f"Task {display_id}: 'next' condition succeeded, jumping to Task {on_success_task}")
+                executor_instance.log(f"Task {display_id}: Success condition met, jumping to Task {on_success_task}")
                 return on_success_task
             except ValueError:
                 executor_instance.log(f"Task {task_id}{loop_display}: Invalid 'on_success' task '{task['on_success']}'. Continuing to next task.")
@@ -300,7 +369,7 @@ class SequentialExecutor(BaseExecutor):
         if not should_continue and 'on_failure' in task:
             try:
                 on_failure_task = int(task['on_failure'])
-                executor_instance.log(f"Task {task_id}{loop_display}: 'next' condition failed, jumping to Task {on_failure_task}")
+                executor_instance.log(f"Task {task_id}{loop_display}: Success condition not met, jumping to Task {on_failure_task}")
                 return on_failure_task
             except ValueError:
                 executor_instance.log(f"Task {task_id}{loop_display}: Invalid 'on_failure' task '{task['on_failure']}'. Stopping.")

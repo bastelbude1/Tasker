@@ -70,7 +70,7 @@ flowchart TD
 ### Example
 ```
 # Applied to existing task:
-success=@1_exit_code@=0&@1_stdout@~running
+success=exit_0&stdout~running
 next=success
 ```
 
@@ -118,7 +118,7 @@ flowchart TD
 ### Example
 ```
 # Applied to existing task:
-success=@1_exit_code@=0&@1_stdout@~running
+success=exit_0&stdout~running
 on_success=20
 on_failure=99
 ```

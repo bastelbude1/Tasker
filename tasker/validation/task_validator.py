@@ -662,13 +662,27 @@ class TaskValidator:
                     # Check for self-reference
                     if task_id in referenced_task_ids:
                         self.errors.append(f"Line {line_number}: Task {task_id} cannot reference itself in parallel tasks.")
-                    
+
+                    # CRITICAL: Check for nested conditional/parallel tasks (NOT SUPPORTED)
+                    # This check validates that referenced tasks are NOT conditional or parallel themselves
+                    for ref_id in referenced_task_ids:
+                        # Find the referenced task in our parsed tasks (tasks stored as tuples: (task_dict, line_num))
+                        # Task IDs might be strings or ints, so compare both
+                        ref_task = next((t[0] for t in self.tasks if int(t[0].get('task', -1)) == ref_id), None)
+                        if ref_task and 'type' in ref_task:
+                            ref_type = ref_task.get('type')
+                            if ref_type in ['conditional', 'parallel']:
+                                self.errors.append(
+                                    f"Line {line_number}: Task {task_id} references task {ref_id} which is a '{ref_type}' task. "
+                                    f"Nested conditional/parallel tasks are NOT supported. Referenced tasks in 'tasks' field must be regular execution tasks."
+                                )
+
                     # Check max_parallel vs number of tasks
                     if 'max_parallel' in task:
                         max_parallel = int(task['max_parallel'])
                         if len(referenced_task_ids) < max_parallel:
                             self.warnings.append(f"Line {line_number}: Task {task_id} has max_parallel ({max_parallel}) greater than number of tasks ({len(referenced_task_ids)}).")
-                            
+
                 except ValueError as e:
                     self.errors.append(f"Line {line_number}: Task {task_id} has invalid task reference in tasks field: {str(e)}")
 
@@ -718,7 +732,7 @@ class TaskValidator:
             else:
                 self.warnings.append(f"Line {line_number}: Task {task_id} has empty {field_name} field.")
             return
-        
+
         try:
             # Parse comma-separated task IDs
             referenced_task_ids = []
@@ -728,14 +742,28 @@ class TaskValidator:
                     ref_id = int(task_ref)
                     referenced_task_ids.append(ref_id)
                     conditional_tasks.add(ref_id)
-            
+
             if len(referenced_task_ids) == 0:
                 self.errors.append(f"Line {line_number}: Task {task_id} has no valid task references in {field_name} field.")
-            
+
             # Check for self-reference
             if task_id in referenced_task_ids:
                 self.errors.append(f"Line {line_number}: Task {task_id} cannot reference itself in {field_name}.")
-                
+
+            # CRITICAL: Check for nested conditional/parallel tasks (NOT SUPPORTED)
+            # This check validates that referenced tasks are NOT conditional or parallel themselves
+            for ref_id in referenced_task_ids:
+                # Find the referenced task in our parsed tasks (tasks stored as tuples: (task_dict, line_num))
+                # Task IDs might be strings or ints, so compare both
+                ref_task = next((t[0] for t in self.tasks if int(t[0].get('task', -1)) == ref_id), None)
+                if ref_task and 'type' in ref_task:
+                    ref_type = ref_task.get('type')
+                    if ref_type in ['conditional', 'parallel']:
+                        self.errors.append(
+                            f"Line {line_number}: Task {task_id} references task {ref_id} which is a '{ref_type}' task. "
+                            f"Nested conditional/parallel tasks are NOT supported. Referenced tasks in {field_name} must be regular execution tasks."
+                        )
+
         except ValueError as e:
             self.errors.append(f"Line {line_number}: Task {task_id} has invalid task reference in {field_name} field: {str(e)}")
 

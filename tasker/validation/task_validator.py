@@ -397,6 +397,13 @@ class TaskValidator:
         # Check for gaps in task sequence
         sorted_task_ids = sorted(task_ids)
         if sorted_task_ids:
+            # Build set of all explicitly reachable tasks
+            # (via on_success, on_failure, parallel tasks, conditional branch tasks)
+            explicitly_reachable = set()
+            explicitly_reachable.update(referenced_tasks)
+            explicitly_reachable.update(parallel_tasks)
+            explicitly_reachable.update(conditional_tasks)
+
             # Check for gaps in the sequence
             for i in range(len(sorted_task_ids) - 1):
                 current_id = sorted_task_ids[i]
@@ -404,19 +411,8 @@ class TaskValidator:
 
                 # If there's a gap between consecutive tasks
                 if next_id - current_id > 1:
-                    # Check if any task explicitly routes to the next task (on_success/on_failure)
-                    gap_is_reachable = False
-                    for task, _ in self.tasks:
-                        task_id_str = task.get('task', '')
-                        try:
-                            check_task_id = int(task_id_str)
-                            # Check if this task can jump over the gap
-                            if check_task_id <= current_id:
-                                if task.get('on_success') == str(next_id) or task.get('on_failure') == str(next_id):
-                                    gap_is_reachable = True
-                                    break
-                        except ValueError:
-                            continue
+                    # Check if the next task after the gap is explicitly reachable
+                    gap_is_reachable = next_id in explicitly_reachable
 
                     if not gap_is_reachable:
                         missing_ids = list(range(current_id + 1, next_id))

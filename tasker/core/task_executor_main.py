@@ -1617,11 +1617,8 @@ class TaskExecutor:
             self.cleanup() # clean up resources before exit
             ExitHandler.exit_with_code(ExitCodes.NO_TASKS_FOUND, "No valid tasks to execute", False)
 
-        # Show execution plan if requested
-        if self.show_plan:
-            self.show_execution_plan()
-
         # Conditional validation based on resume mode
+        # IMPORTANT: Validation must happen BEFORE showing execution plan
         if not self.skip_task_validation:
             validation_successful = self.validate_tasks()
             if not validation_successful:
@@ -1630,6 +1627,10 @@ class TaskExecutor:
             self._check_shutdown()
         else:
             self.log_info("# Skipping task file validation due to --skip_task_validation flag")
+
+        # Show execution plan if requested (AFTER validation passes)
+        if self.show_plan:
+            self.show_execution_plan()
 
         # Additional validation for --start-from
         if self.start_from_task is not None:

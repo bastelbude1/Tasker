@@ -64,6 +64,22 @@ def _resolve_tasker_path(tasker_path=None):
     return tasker_path
 
 
+def _collect_test_files(target_path, recursive=False):
+    """Collect .txt test files from a directory."""
+    test_files = []
+    if recursive:
+        for root, _dirs, files in os.walk(target_path):
+            for file in files:
+                if file.endswith('.txt'):
+                    test_files.append(os.path.join(root, file))
+    else:
+        for file in os.listdir(target_path):
+            file_path = os.path.join(target_path, file)
+            if file.endswith('.txt') and os.path.isfile(file_path):
+                test_files.append(file_path)
+    return test_files
+
+
 class PerformanceMonitor:
     """Monitor system performance and resource usage during test execution."""
 
@@ -881,19 +897,7 @@ class IntelligentTestRunner:
 
     def run_tests_in_directory(self, directory, recursive=False):
         """Run all test files in a directory."""
-        test_files = []
-
-        if recursive:
-            for root, _dirs, files in os.walk(directory):
-                for file in files:
-                    if file.endswith('.txt'):
-                        test_files.append(os.path.join(root, file))
-        else:
-            for file in os.listdir(directory):
-                file_path = os.path.join(directory, file)
-                if file.endswith('.txt') and os.path.isfile(file_path):
-                    test_files.append(file_path)
-
+        test_files = _collect_test_files(directory, recursive)
         test_files.sort()
 
         print(f"Found {len(test_files)} test files")
@@ -1066,17 +1070,10 @@ def main():
             # Single file - add to set with absolute path
             test_files_set.add(os.path.abspath(target))
         elif os.path.isdir(target):
-            # Directory - collect all .txt files
-            if args.recursive:
-                for root, _dirs, files in os.walk(target):
-                    for file in files:
-                        if file.endswith('.txt'):
-                            test_files_set.add(os.path.abspath(os.path.join(root, file)))
-            else:
-                for file in os.listdir(target):
-                    file_path = os.path.join(target, file)
-                    if file.endswith('.txt') and os.path.isfile(file_path):
-                        test_files_set.add(os.path.abspath(file_path))
+            # Directory - collect all .txt files using helper
+            collected = _collect_test_files(target, args.recursive)
+            for test_file in collected:
+                test_files_set.add(os.path.abspath(test_file))
         else:
             print(f"Warning: '{target}' is not a valid file or directory - skipping")
 

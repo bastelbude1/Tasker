@@ -88,22 +88,29 @@ class InputSanitizer:
     ]
 
     def __init__(self):
+        """
+        Create a new InputSanitizer instance.
+        """
         pass
 
     def sanitize_field(self, field_name, field_value, max_length=None, exec_type='local'):
         """
-        Sanitize a single field value with comprehensive security checks.
-
-        Args:
-            field_name: Name of the field being sanitized
-            field_value: Value to sanitize
-            max_length: Optional field-specific maximum length
-            exec_type: Execution type context (local, shell, pbrun, etc.)
-                      - 'shell': Allow shell syntax, warn on dangerous patterns
-                      - other: Strict validation (block shell syntax)
-
+        Sanitize a single task field value using field-specific and general security checks.
+        
+        Performs observable validations and transformations: coerces the input to a string, enforces a maximum length (unless a global-variable placeholder is present), rejects null bytes, runs field-specific validators, detects dangerous security patterns in a context-aware manner, and returns the trimmed value if valid.
+        
+        Parameters:
+            field_name (str): Name of the field being sanitized.
+            field_value: Value to sanitize; will be coerced to a string.
+            max_length (int, optional): Override for the field's maximum allowed length. If omitted, the field's default limit is used.
+            exec_type (str, optional): Execution context that alters validation strictness. Use 'shell' to allow shell syntax (will still warn on dangerous patterns); use other values (e.g., 'local') for stricter blocking of shell-like constructs.
+        
         Returns:
-            dict: {'valid': bool, 'value': str, 'errors': list, 'warnings': list}
+            dict: A result object with keys:
+                - valid (bool): `true` if the field passed all checks, `false` otherwise.
+                - value (str): The sanitized (trimmed) string value; when invalid this is the original coerced string.
+                - errors (list): List of error messages that caused validation to fail.
+                - warnings (list): List of non-fatal warnings about suspicious or risky content.
         """
         errors = []
         warnings = []
@@ -152,7 +159,14 @@ class InputSanitizer:
         }
 
     def _get_field_max_length(self, field_name):
-        """Get maximum length for specific field types."""
+        """
+        Return the maximum allowed length for a given task field.
+        
+        Uses predefined per-field limits for known fields (hostname, command, arguments, numeric fields, task id) and falls back to MAX_STRING_LENGTH for unknown fields.
+        
+        Returns:
+            int: Maximum number of characters permitted for the specified field.
+        """
         field_limits = {
             'hostname': self.MAX_HOSTNAME_LENGTH,
             'command': self.MAX_COMMAND_LENGTH,
@@ -167,7 +181,20 @@ class InputSanitizer:
         return field_limits.get(field_name, self.MAX_STRING_LENGTH)
 
     def _validate_field_specific(self, field_name, field_value, exec_type='local'):
-        """Perform field-specific validation rules with context awareness."""
+        """
+        Dispatches validation to the appropriate field-specific validator and returns that validator's result.
+        
+        Parameters:
+            field_name (str): The name of the field to validate (e.g., 'command', 'hostname', 'arguments').
+            field_value (str): The field value to validate.
+            exec_type (str): Execution context affecting validation rules; typically 'local' or 'shell'. When not 'shell', stricter checks are applied for command/arguments.
+        
+        Returns:
+            dict: Validation result with keys:
+                - valid (bool): Whether the field passed validation.
+                - errors (list): List of error messages (empty if valid).
+                - warnings (list): List of warning messages (may be empty).
+        """
         if field_name == 'hostname':
             return self._validate_hostname(field_value)
         elif field_name == 'command':
@@ -187,7 +214,18 @@ class InputSanitizer:
             return {'valid': True, 'errors': [], 'warnings': []}
 
     def _validate_hostname(self, hostname):
-        """Validate hostname field for security and RFC compliance."""
+        """
+        Validate a hostname string for security concerns and basic format rules.
+        
+        Parameters:
+            hostname (str): Hostname or host expression to validate; may include TASKER placeholders like @VAR@.
+        
+        Returns:
+            result (dict): Validation outcome with keys:
+                valid (bool): True if the hostname passed checks, False otherwise.
+                errors (list): Blocking error messages.
+                warnings (list): Non-blocking warnings or informational messages.
+        """
         errors = []
         warnings = []
 
@@ -219,7 +257,19 @@ class InputSanitizer:
         return {'valid': True, 'errors': errors, 'warnings': warnings}
 
     def _validate_command(self, command, exec_type='local'):
-        """Validate command field for security with context awareness."""
+        """
+        Validate the command field for security according to the execution context.
+        
+        Parameters:
+            command (str): The raw command string to validate.
+            exec_type (str): Execution context, e.g., 'local' for strict validation or 'shell' to allow shell syntax.
+        
+        Returns:
+            dict: Validation result with keys:
+                valid (bool): `True` if the command passes security checks, `False` otherwise.
+                errors (list): List of error messages explaining why validation failed.
+                warnings (list): List of warnings about potentially problematic but non-fatal issues.
+        """
         errors = []
         warnings = []
 
@@ -249,7 +299,21 @@ class InputSanitizer:
         return {'valid': True, 'errors': errors, 'warnings': warnings}
 
     def _validate_arguments(self, arguments, exec_type='local'):
-        """Validate arguments field for security with context awareness."""
+        """
+        Validate the task arguments field for size and security concerns with context-aware rules.
+        
+        Performs a two-tier size check to guard against buffer-overflow risks, rejects argument values that contain path traversal patterns, and applies stricter injection/malformed-shell checks when exec_type is not 'shell'. If exec_type is not 'shell', a common shell-script invocation form (starting with '-c ' and containing quotes) is treated as an allowed shell script context. Suspicious patterns are reported as warnings for all contexts.
+        
+        Parameters:
+            arguments (str): The arguments string to validate.
+            exec_type (str): Execution context, e.g., 'local' or 'shell'; affects strictness of shell/injection checks.
+        
+        Returns:
+            dict: Validation result with keys:
+                valid (bool): `True` when the arguments pass checks, `False` when an error prevents usage.
+                errors (list): Error messages explaining why validation failed.
+                warnings (list): Non-fatal warnings about suspicious content.
+        """
         errors = []
         warnings = []
 
@@ -399,7 +463,20 @@ class InputSanitizer:
         return {'valid': True, 'errors': errors, 'warnings': warnings}
 
     def _validate_condition_field(self, condition):
-        """Validate condition expressions for security."""
+        """
+        Validate a TASKER condition expression for security concerns.
+        
+        Checks the condition for command-injection patterns and disallowed shell metacharacters while allowing recognized TASKER condition syntax.
+        
+        Parameters:
+        	condition (str): The condition expression to validate.
+        
+        Returns:
+        	result (dict): Dictionary with keys:
+        		- `valid` (bool): `False` if injection patterns are found, `True` otherwise.
+        		- `errors` (list): Error messages for fatal validation failures (e.g., injection detected).
+        		- `warnings` (list): Non-fatal warnings (e.g., presence of shell metacharacters outside TASKER condition syntax).
+        """
         errors = []
         warnings = []
 
@@ -428,13 +505,21 @@ class InputSanitizer:
 
     def _detect_security_patterns(self, field_name, field_value, exec_type='local'):
         """
-        Detect security patterns with context-aware validation.
-
-        Context-aware validation strategy:
-        - exec='shell': Allow shell syntax, warn only about truly dangerous patterns
-        - exec='local': Strict validation (block shell metacharacters)
-
-        Security goal: Help users avoid mistakes, not protect against malicious attacks.
+        Detect dangerous or suspicious security patterns in a field value using execution-context rules.
+        
+        Performs context-aware checks: in 'shell' mode only raises warnings for risky shell constructs, while in modes other than 'shell' it treats shell-injection patterns as errors. Flags truly dangerous operations, format-string patterns, encoded/obfuscated content, and excessive repeated characters.
+        
+        Parameters:
+            field_name (str): The name of the field being inspected (used in messages).
+            field_value (str): The string value to analyze for security concerns.
+            exec_type (str): Execution context that controls strictness; commonly 'local' or 'shell'.
+        
+        Returns:
+            result (dict): {
+                'valid': bool,       # True if no errors were found
+                'errors': list,      # Blocking issues (e.g., shell syntax in non-shell context)
+                'warnings': list     # Non-blocking concerns (dangerous commands, encoding, format strings, etc.)
+            }
         """
         errors = []
         warnings = []

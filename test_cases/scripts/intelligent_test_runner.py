@@ -276,13 +276,20 @@ class TaskerTestExecutor:
     def __init__(self, tasker_path=None):
         # Use shutil.which to find tasker in PATH, fallback to provided path or default
         if tasker_path is None:
+            # First try to find 'tasker' in PATH
             self.tasker_path = shutil.which("tasker")
             if self.tasker_path is None:
                 # Fallback to tasker.py in current directory if not in PATH
                 if os.path.exists("./tasker.py"):
                     self.tasker_path = "./tasker.py"
+                elif os.path.exists("../tasker.py"):
+                    # Also check parent directory (common when running from test_cases/)
+                    self.tasker_path = "../tasker.py"
                 else:
-                    self.tasker_path = "tasker"  # Last resort - hope it's in PATH
+                    # Last resort - use ./tasker.py and let it fail with clear error
+                    self.tasker_path = "./tasker.py"
+                    print(f"WARNING: Could not find 'tasker' in PATH or './tasker.py'")
+                    print(f"         Using default: {self.tasker_path}")
         else:
             self.tasker_path = tasker_path
         self.results = {}
@@ -825,13 +832,20 @@ class IntelligentTestRunner:
     def __init__(self, tasker_path=None):
         # Use shutil.which to find tasker in PATH, fallback to provided path or default
         if tasker_path is None:
+            # First try to find 'tasker' in PATH
             self.tasker_path = shutil.which("tasker")
             if self.tasker_path is None:
                 # Fallback to tasker.py in current directory if not in PATH
                 if os.path.exists("./tasker.py"):
                     self.tasker_path = "./tasker.py"
+                elif os.path.exists("../tasker.py"):
+                    # Also check parent directory (common when running from test_cases/)
+                    self.tasker_path = "../tasker.py"
                 else:
-                    self.tasker_path = "tasker"  # Last resort - hope it's in PATH
+                    # Last resort - use ./tasker.py and let it fail with clear error
+                    self.tasker_path = "./tasker.py"
+                    print(f"WARNING: Could not find 'tasker' in PATH or './tasker.py'")
+                    print(f"         Using default: {self.tasker_path}")
         else:
             self.tasker_path = tasker_path
         self.executor = TaskerTestExecutor(self.tasker_path)

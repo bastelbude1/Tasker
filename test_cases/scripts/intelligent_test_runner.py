@@ -327,8 +327,10 @@ class TaskerTestExecutor:
 
         # Parse task execution lines
         for line in stdout_content.split('\n'):
-            # Look for task execution patterns
-            if re.search(r'Task \d+: Executing', line):
+            # Look for task execution patterns (regular tasks, parallel, conditional)
+            if re.search(r'Task \d+: Executing', line) or \
+               re.search(r'Task \d+: Starting parallel execution', line) or \
+               re.search(r'Task \d+: Executing (TRUE|FALSE) branch', line):
                 match = re.search(r'Task (\d+):', line)
                 if match:
                     task_id = int(match.group(1))

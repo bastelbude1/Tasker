@@ -1,0 +1,22 @@
+# TEST_METADATA: {"description": "Test real gap in main sequence (should fail)", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_error_pattern": "Task sequence has gap"}
+
+# Main workflow with missing task 1
+task=0
+hostname=localhost
+command=echo
+arguments=Starting workflow
+exec=local
+
+# Task 1 is missing - this should cause an error
+
+task=2
+hostname=localhost
+command=echo
+arguments=Continuing workflow
+exec=local
+
+task=3
+hostname=localhost
+command=echo
+arguments=Ending workflow
+exec=local

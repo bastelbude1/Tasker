@@ -1314,8 +1314,35 @@ class TaskExecutor:
             self.log_debug(f"Task {task_display_id}{loop_display}: Using default execution type: {exec_type}")
         return exec_type
 
+    def normalize_exec_type(self, exec_type):
+        """
+        Normalize execution type by mapping aliases to standard values.
+
+        Args:
+            exec_type: Raw execution type (may be an alias)
+
+        Returns:
+            Normalized execution type
+        """
+        if not exec_type:
+            return 'pbrun'
+
+        # Map common aliases to standard values
+        alias_map = {
+            'sh': 'shell',
+            'bash': 'shell',
+            '/bin/sh': 'shell',
+            '/bin/bash': 'shell'
+        }
+
+        normalized = exec_type.lower().strip()
+        return alias_map.get(normalized, normalized)
+
     def build_command_array(self, exec_type, hostname, command, arguments):
         """Build the command array based on execution type."""
+        # Normalize exec type (map aliases like bash → shell)
+        exec_type = self.normalize_exec_type(exec_type)
+
         # Expand environment variables in arguments
         expanded_arguments = os.path.expandvars(arguments) if arguments else ""
 

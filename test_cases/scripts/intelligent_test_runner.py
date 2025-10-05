@@ -406,8 +406,17 @@ class TaskerTestExecutor:
         else:
             cmd_args.append("-r")  # Run mode
 
-        # Always skip host validation for test execution
-        cmd_args.append("--skip-host-validation")
+        # Add skip flags from metadata
+        if metadata.get("skip_host_validation", False):
+            cmd_args.append("--skip-host-validation")
+        if metadata.get("skip_task_validation", False):
+            cmd_args.append("--skip-task-validation")
+        if metadata.get("skip_command_validation", False):
+            cmd_args.append("--skip-command-validation")
+        if metadata.get("skip_security_validation", False):
+            cmd_args.append("--skip-security-validation")
+        if metadata.get("skip_validation", False):
+            cmd_args.append("--skip-validation")
 
         # Set environment for supporting scripts
         env = os.environ.copy()
@@ -845,6 +854,41 @@ class TestValidator:
                         validation_results["passed"] = False
                         validation_results["failures"].append(
                             f"Total execution time exceeded limit: {actual_total:.2f}s > {max_total}s"
+                        )
+
+        # Validate warning count
+        if "expected_warnings" in metadata:
+            expected_warning_count = metadata["expected_warnings"]
+            # Count unique warning lines (lines containing WARN: or WARNING:)
+            # to avoid double-counting lines that contain both strings
+            warning_lines = [line for line in actual_results["stdout"].split('\n')
+                           if 'WARN:' in line or 'WARNING:' in line]
+            actual_warning_count = len(warning_lines)
+
+            if actual_warning_count != expected_warning_count:
+                validation_results["passed"] = False
+                validation_results["failures"].append(
+                    f"Warning count mismatch: expected {expected_warning_count}, got {actual_warning_count}"
+                )
+
+        # Validate stdout patterns per task
+        if "expected_stdout" in metadata:
+            expected_stdout = metadata["expected_stdout"]
+            actual_variables = execution_path.get("variables", {})
+
+            for task_id, expected_pattern in expected_stdout.items():
+                stdout_var = f"{task_id}_stdout"
+                if stdout_var not in actual_variables:
+                    validation_results["passed"] = False
+                    validation_results["failures"].append(
+                        f"Task {task_id} stdout not found in execution results"
+                    )
+                else:
+                    actual_stdout = actual_variables[stdout_var]
+                    if expected_pattern not in actual_stdout:
+                        validation_results["passed"] = False
+                        validation_results["failures"].append(
+                            f"Task {task_id} stdout pattern mismatch: expected '{expected_pattern}' in '{actual_stdout}'"
                         )
 
         return validation_results

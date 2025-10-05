@@ -394,7 +394,7 @@ class TaskValidator:
         for id in duplicate_ids:
             self.errors.append(f"Task ID {id} is defined multiple times.")
 
-        # Check for gaps in task sequence
+        # Smart gap validation with hybrid approach
         sorted_task_ids = sorted(task_ids)
         if sorted_task_ids:
             # Build set of all explicitly reachable tasks
@@ -403,6 +403,13 @@ class TaskValidator:
             explicitly_reachable.update(referenced_tasks)
             explicitly_reachable.update(parallel_tasks)
             explicitly_reachable.update(conditional_tasks)
+
+            # Define special task ranges (e.g., cleanup handlers, parallel groups)
+            # These are commonly used patterns that shouldn't trigger gap warnings
+            special_ranges = [
+                (90, 99),    # Common range for cleanup/error handlers
+                (100, 999),  # Common range for parallel task groups and special handlers
+            ]
 
             # Check for gaps in the sequence
             for i in range(len(sorted_task_ids) - 1):
@@ -414,7 +421,31 @@ class TaskValidator:
                     # Check if the next task after the gap is explicitly reachable
                     gap_is_reachable = next_id in explicitly_reachable
 
-                    if not gap_is_reachable:
+                    # Check if current task has explicit routing (breaks sequential flow intentionally)
+                    current_task = None
+                    for task, _ in self.tasks:
+                        if task.get('task') == str(current_id):
+                            current_task = task
+                            break
+
+                    has_explicit_routing = False
+                    if current_task:
+                        has_explicit_routing = (
+                            'on_success' in current_task or
+                            'on_failure' in current_task or
+                            'next' in current_task or
+                            'return' in current_task or
+                            current_task.get('type') in ['parallel', 'conditional']
+                        )
+
+                    # Check if next task is in a special range
+                    in_special_range = any(start <= next_id <= end for start, end in special_ranges)
+
+                    # Only flag gap if:
+                    # 1. Next task is NOT explicitly reachable, AND
+                    # 2. Current task does NOT have explicit routing, AND
+                    # 3. Next task is NOT in special ranges
+                    if not gap_is_reachable and not has_explicit_routing and not in_special_range:
                         missing_ids = list(range(current_id + 1, next_id))
                         self.errors.append(
                             f"Task sequence has gap: Task {current_id} is followed by Task {next_id}. "
@@ -435,6 +466,9 @@ class TaskValidator:
         missing_conditional_refs = conditional_tasks - task_ids
         for ref in missing_conditional_refs:
             self.errors.append(f"Task {ref} is referenced by conditional task but not defined.")
+
+        # Perform reachability analysis to find orphaned tasks
+        self.check_task_reachability(task_ids, referenced_tasks, parallel_tasks, conditional_tasks)
 
         # Check for unused global variables
         self.check_unused_global_variables()
@@ -673,10 +707,122 @@ class TaskValidator:
                             f"invalid task reference '@{task_num}_{output_type}@'"
                         )
 
+    def check_task_reachability(self, task_ids, referenced_tasks, parallel_tasks, conditional_tasks):
+        """Check for unreachable/orphaned tasks using graph traversal."""
+        if not task_ids:
+            return
+
+        # Build task graph (who can reach whom)
+        task_graph = {}
+        for task, _ in self.tasks:
+            try:
+                task_id = int(task.get('task'))
+                task_graph[task_id] = set()
+
+                # Add sequential progression (task_id -> task_id + 1)
+                # unless task has explicit routing or is special type
+                if (task_id + 1 in task_ids and
+                    'on_success' not in task and
+                    'on_failure' not in task and
+                    'return' not in task and
+                    task.get('type') not in ['parallel', 'conditional']):
+                    task_graph[task_id].add(task_id + 1)
+
+                # Add on_success/on_failure jumps
+                if 'on_success' in task:
+                    try:
+                        target = int(task['on_success'])
+                        if target in task_ids:
+                            task_graph[task_id].add(target)
+                    except ValueError:
+                        pass
+
+                if 'on_failure' in task:
+                    try:
+                        target = int(task['on_failure'])
+                        if target in task_ids:
+                            task_graph[task_id].add(target)
+                    except ValueError:
+                        pass
+
+                # Add parallel task references
+                if task.get('type') == 'parallel' and 'tasks' in task:
+                    tasks_str = task['tasks']
+                    for task_ref in tasks_str.split(','):
+                        try:
+                            ref_id = int(task_ref.strip())
+                            if ref_id in task_ids:
+                                task_graph[task_id].add(ref_id)
+                        except ValueError:
+                            pass
+
+                # Add conditional task references
+                if task.get('type') == 'conditional':
+                    for field in ['if_true_tasks', 'if_false_tasks']:
+                        if field in task:
+                            tasks_str = task[field]
+                            for task_ref in tasks_str.split(','):
+                                try:
+                                    ref_id = int(task_ref.strip())
+                                    if ref_id in task_ids:
+                                        task_graph[task_id].add(ref_id)
+                                except ValueError:
+                                    pass
+
+            except (ValueError, TypeError):
+                continue
+
+        # Find starting task (usually task 0, or lowest task ID)
+        start_task = min(task_ids) if task_ids else 0
+
+        # Perform breadth-first traversal to find all reachable tasks
+        reachable = set()
+        queue = [start_task]
+        reachable.add(start_task)
+
+        while queue:
+            current = queue.pop(0)
+            if current in task_graph:
+                for next_task in task_graph[current]:
+                    if next_task not in reachable:
+                        reachable.add(next_task)
+                        queue.append(next_task)
+
+        # Find unreachable tasks
+        unreachable = task_ids - reachable
+
+        # Special handling: Tasks in special ranges might be intentionally unreachable
+        # (e.g., error handlers that are only jumped to via on_failure)
+        special_ranges = [(90, 99), (100, 999)]
+
+        for task_id in sorted(unreachable):
+            # Check if this task is explicitly referenced somewhere
+            is_referenced = (task_id in referenced_tasks or
+                           task_id in parallel_tasks or
+                           task_id in conditional_tasks)
+
+            # Check if in special range
+            in_special_range = any(start <= task_id <= end for start, end in special_ranges)
+
+            if is_referenced:
+                # Task is referenced but not reachable from start - this is often intentional
+                # (e.g., error handlers)
+                if not in_special_range:
+                    self.warnings.append(
+                        f"Task {task_id} is referenced but not reachable from starting task {start_task}. "
+                        f"This may be intentional (e.g., error handler)."
+                    )
+            else:
+                # Task is neither referenced nor reachable - likely an orphan
+                self.warnings.append(
+                    f"Task {task_id} is unreachable and never referenced. "
+                    f"It will never execute. Consider removing it or adding a reference."
+                )
+
     def check_unused_global_variables(self):
         """Check for global variables that are defined but never used."""
         unused_vars = set(self.global_vars.keys()) - self.referenced_global_vars
-        
+
         if unused_vars:
             unused_list = sorted(unused_vars)
             self.warnings.append(f"Found {len(unused_vars)} unused global variable(s): {', '.join(unused_list)}")

@@ -1,6 +1,6 @@
 # Test conditional with gap in task numbering
 # Task 2 is missing - jumps from 1 to 3
-# TEST_METADATA: {"description": "Test conditional block with missing task 2 (gap in numbering)", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_error_pattern": "Task sequence has gap.*Missing task.*\\[2\\]"}
+# TEST_METADATA: {"description": "Test conditional block with gap after conditional (now allowed)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1]}
 
 task=0
 hostname=localhost

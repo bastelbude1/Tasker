@@ -1,0 +1,5 @@
+# TEST_METADATA: {"description": "Test return=0 for successful workflow completion", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0]}
+
+# Quick test for return=0 (success)
+task=0
+return=0

@@ -1,0 +1,83 @@
+# TEST_METADATA: {"description": "Conditional Block test - exit code based conditions", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3], "expected_skipped_tasks": []}
+
+# Test conditional blocks with different condition types
+# Using exit_code and success conditions
+
+# Task that succeeds (exit 0)
+task=0
+hostname=localhost
+command=true
+exec=local
+
+# Conditional based on exit code (should take false branch)
+task=1
+type=conditional
+condition=@0_exit_code@=1
+if_true_tasks=10,11
+if_false_tasks=20,21
+
+# True branch - should be skipped (exit code is 0, not 1)
+task=10
+hostname=localhost
+command=echo
+arguments=ERROR: Should not execute - exit code was 0
+exec=local
+
+task=11
+hostname=localhost
+command=echo
+arguments=ERROR: This indicates condition logic failure
+exec=local
+
+# False branch - should execute
+task=20
+hostname=localhost
+command=echo
+arguments=Correct: Task 0 exited with 0, not 1
+exec=local
+
+task=21
+hostname=localhost
+command=echo
+arguments=Exit code condition working correctly
+exec=local
+
+# Another conditional using success condition
+task=2
+type=conditional
+condition=@0_success@=true
+if_true_tasks=30,31
+if_false_tasks=40,41
+
+# True branch - should execute (task 0 succeeded)
+task=30
+hostname=localhost
+command=echo
+arguments=Correct: Task 0 was successful
+exec=local
+
+task=31
+hostname=localhost
+command=echo
+arguments=Success condition working correctly
+exec=local
+
+# False branch - should be skipped
+task=40
+hostname=localhost
+command=echo
+arguments=ERROR: Should not execute - task 0 succeeded
+exec=local
+
+task=41
+hostname=localhost
+command=echo
+arguments=ERROR: This indicates success condition failure
+exec=local
+
+# Final task
+task=3
+hostname=localhost
+command=echo
+arguments=All exit code conditions tested successfully
+exec=local

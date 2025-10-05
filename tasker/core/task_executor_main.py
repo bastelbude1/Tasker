@@ -953,7 +953,7 @@ class TaskExecutor:
                 self.log_info("# Task validation FAILED.")
                 # Log each error
                 for error in result['errors']:
-                    self.log_debug(f"# ERROR: {error}")
+                    self.log_error(f"ERROR: {error}")
                 return False
             else:
                 # Log warnings if any

@@ -1,0 +1,78 @@
+# TEST_METADATA: {"description": "Conditional Block test - with global variables", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_skipped_tasks": []}
+
+# Global variables
+ENV_TYPE=PRODUCTION
+FEATURE_FLAG=ENABLED
+
+# Test conditional blocks with variable comparisons
+task=0
+hostname=localhost
+command=echo
+arguments=@ENV_TYPE@
+exec=local
+
+# Conditional comparing stdout to global variable value
+task=1
+type=conditional
+condition=@0_stdout@=PRODUCTION
+if_true_tasks=10,11
+if_false_tasks=20,21
+
+# True branch - should execute
+task=10
+hostname=localhost
+command=echo
+arguments=Environment is PRODUCTION
+exec=local
+
+task=11
+hostname=localhost
+command=echo
+arguments=Loading production configuration
+exec=local
+
+# False branch - should be skipped
+task=20
+hostname=localhost
+command=echo
+arguments=Environment is not PRODUCTION
+exec=local
+
+task=21
+hostname=localhost
+command=echo
+arguments=This should be skipped
+exec=local
+
+# Another conditional with direct variable comparison in condition
+task=2
+type=conditional
+condition=@FEATURE_FLAG@=ENABLED
+if_true_tasks=30,31
+if_false_tasks=40,41
+
+# True branch - should execute
+task=30
+hostname=localhost
+command=echo
+arguments=Feature flag is ENABLED
+exec=local
+
+task=31
+hostname=localhost
+command=echo
+arguments=Activating new feature
+exec=local
+
+# False branch - should be skipped
+task=40
+hostname=localhost
+command=echo
+arguments=Feature flag is DISABLED
+exec=local
+
+task=41
+hostname=localhost
+command=echo
+arguments=This should be skipped
+exec=local

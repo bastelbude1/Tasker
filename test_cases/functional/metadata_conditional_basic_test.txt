@@ -1,0 +1,50 @@
+# TEST_METADATA: {"description": "Conditional Block test - basic true/false branching", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_skipped_tasks": []}
+
+# Test basic conditional block with stdout comparison
+# Task 0 outputs "OPEN", so if_true branch should execute
+
+task=0
+hostname=localhost
+command=echo
+arguments=OPEN
+exec=local
+
+# Conditional block based on task 0's output
+task=1
+type=conditional
+condition=@0_stdout@=OPEN
+if_true_tasks=10,11
+if_false_tasks=20,21
+
+# True branch - these should execute
+task=10
+hostname=localhost
+command=echo
+arguments=Executing TRUE branch task 10
+exec=local
+
+task=11
+hostname=localhost
+command=echo
+arguments=Executing TRUE branch task 11
+exec=local
+
+# False branch - these should be skipped
+task=20
+hostname=localhost
+command=echo
+arguments=Executing FALSE branch task 20
+exec=local
+
+task=21
+hostname=localhost
+command=echo
+arguments=Executing FALSE branch task 21
+exec=local
+
+# Final task to confirm workflow continues
+task=2
+hostname=localhost
+command=echo
+arguments=Conditional block completed
+exec=local

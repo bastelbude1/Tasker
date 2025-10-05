@@ -394,6 +394,37 @@ class TaskValidator:
         for id in duplicate_ids:
             self.errors.append(f"Task ID {id} is defined multiple times.")
 
+        # Check for gaps in task sequence
+        sorted_task_ids = sorted(task_ids)
+        if sorted_task_ids:
+            # Check for gaps in the sequence
+            for i in range(len(sorted_task_ids) - 1):
+                current_id = sorted_task_ids[i]
+                next_id = sorted_task_ids[i + 1]
+
+                # If there's a gap between consecutive tasks
+                if next_id - current_id > 1:
+                    # Check if any task explicitly routes to the next task (on_success/on_failure)
+                    gap_is_reachable = False
+                    for task, _ in self.tasks:
+                        task_id_str = task.get('task', '')
+                        try:
+                            check_task_id = int(task_id_str)
+                            # Check if this task can jump over the gap
+                            if check_task_id <= current_id:
+                                if task.get('on_success') == str(next_id) or task.get('on_failure') == str(next_id):
+                                    gap_is_reachable = True
+                                    break
+                        except ValueError:
+                            continue
+
+                    if not gap_is_reachable:
+                        missing_ids = list(range(current_id + 1, next_id))
+                        self.errors.append(
+                            f"Task sequence has gap: Task {current_id} is followed by Task {next_id}. "
+                            f"Missing task(s): {missing_ids}. Sequential execution will stop at Task {current_id}."
+                        )
+
         # Check for missing but referenced tasks
         missing_refs = referenced_tasks - task_ids
         for ref in missing_refs:
@@ -552,27 +583,35 @@ class TaskValidator:
             # Use existing condition validation
             self.validate_condition_expression(task['condition'], 'condition', task_id, line_number)
         
-        # Validate that at least one branch is defined
+        # CRITICAL: Both branches MUST be defined for conditional blocks
+        # A conditional without both branches defeats the purpose of conditional execution
         has_true_branch = 'if_true_tasks' in task
         has_false_branch = 'if_false_tasks' in task
-        
-        if not has_true_branch and not has_false_branch:
-            self.errors.append(f"Line {line_number}: Task {task_id} has no task branches defined. At least one of 'if_true_tasks' or 'if_false_tasks' is required.")
-        
-        # Validate 'if_true_tasks' field
-        if has_true_branch:
-            self.validate_conditional_task_list(task, task_id, line_number, 'if_true_tasks', conditional_tasks)
-        
-        # Validate 'if_false_tasks' field
-        if has_false_branch:
-            self.validate_conditional_task_list(task, task_id, line_number, 'if_false_tasks', conditional_tasks)
 
-    def validate_conditional_task_list(self, task, task_id, line_number, field_name, conditional_tasks):
+        # Require BOTH branches to be present
+        if not has_true_branch:
+            self.errors.append(f"Line {line_number}: Task {task_id} is missing required 'if_true_tasks' field. Conditional blocks must define both true and false branches.")
+        if not has_false_branch:
+            self.errors.append(f"Line {line_number}: Task {task_id} is missing required 'if_false_tasks' field. Conditional blocks must define both true and false branches.")
+
+        # Validate 'if_true_tasks' field (must be non-empty)
+        if has_true_branch:
+            self.validate_conditional_task_list(task, task_id, line_number, 'if_true_tasks', conditional_tasks, require_non_empty=True)
+
+        # Validate 'if_false_tasks' field (must be non-empty)
+        if has_false_branch:
+            self.validate_conditional_task_list(task, task_id, line_number, 'if_false_tasks', conditional_tasks, require_non_empty=True)
+
+    def validate_conditional_task_list(self, task, task_id, line_number, field_name, conditional_tasks, require_non_empty=False):
         """Helper method to validate conditional task lists (if_true_tasks, if_false_tasks)."""
         tasks_str = task.get(field_name, '')
-        
+
         if not tasks_str.strip():
-            self.warnings.append(f"Line {line_number}: Task {task_id} has empty {field_name} field.")
+            # CRITICAL: Empty branches in conditional blocks are now ERRORS, not warnings
+            if require_non_empty:
+                self.errors.append(f"Line {line_number}: Task {task_id} has empty {field_name} field. Conditional blocks must have at least one task in each branch.")
+            else:
+                self.warnings.append(f"Line {line_number}: Task {task_id} has empty {field_name} field.")
             return
         
         try:

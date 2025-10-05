@@ -1772,8 +1772,6 @@ class TaskExecutor:
             # Check for shutdown after host validation
             self._check_shutdown()
         else:
-            self.log_warn("# WARNING: Skipping host validation due to --skip-host-validation flag")
-            self.log_warn("# WARNING: Using hostnames as-is without FQDN resolution or reachability check")
             # Create dummy validated_hosts dict for resume mode
             validated_hosts = {}
     

@@ -1,0 +1,37 @@
+# TEST_METADATA: {"description": "Sleep Block test - sleep with variable references", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3], "performance_benchmarks": {"min_duration": 5.0, "max_duration": 6.5}}
+
+# Global variables for sleep durations
+SHORT_SLEEP=0.5
+MEDIUM_SLEEP=1.5
+LONG_SLEEP=3
+
+# Test sleep with variable references
+task=0
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+
+# Sleep using SHORT_SLEEP variable
+task=1
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+sleep=@SHORT_SLEEP@
+
+# Sleep using MEDIUM_SLEEP variable
+task=2
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+sleep=@MEDIUM_SLEEP@
+
+# Sleep using LONG_SLEEP variable
+task=3
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+sleep=@LONG_SLEEP@

@@ -67,8 +67,21 @@ class WorkflowController:
             loop_display = f".{loop_iteration}"
 
         if 'next' not in task:
-            self.log_info(f"Task {task_id}{loop_display}: No 'next' condition specified, proceeding to next task")
-            return True  # Default to True if not specified
+            # When on_success/on_failure are present but next is not, use the success result for routing
+            if ('on_success' in task or 'on_failure' in task):
+                # Use the provided success status if available (this is the evaluated success condition)
+                if current_task_success is not None:
+                    self.log_info(f"Task {task_id}{loop_display}: No 'next' condition specified, using success evaluation for routing: {current_task_success}")
+                    return current_task_success
+                else:
+                    # Fallback to exit code if no explicit success evaluation was provided
+                    success_by_exit = (exit_code == 0)
+                    self.log_info(f"Task {task_id}{loop_display}: No 'next' condition specified, using exit code for routing: {success_by_exit}")
+                    return success_by_exit
+            else:
+                # No routing parameters at all - continue to next sequential task
+                self.log_info(f"Task {task_id}{loop_display}: No 'next' condition specified, proceeding to next task")
+                return True  # Default to True if not specified
 
         next_condition = task['next']
 

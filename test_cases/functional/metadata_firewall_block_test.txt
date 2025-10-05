@@ -1,0 +1,24 @@
+# TEST_METADATA: {"description": "Firewall block test - minimal return-only task", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "expected_execution_path": [0, 1, 2], "expected_final_task": 2, "expected_variables": {"0_stdout": "initialization", "1_stdout": "processing"}}
+
+# Test case for minimal firewall block (End Failure Block)
+# Task 2 has ONLY task and return parameters - no command, no hostname
+# This tests that return works as a standalone termination mechanism
+
+HOSTNAME=localhost
+
+task=0
+hostname=@HOSTNAME@
+exec=local
+command=controlled_output.sh
+arguments=0 "initialization" "NONE"
+
+task=1
+hostname=@HOSTNAME@
+exec=local
+command=controlled_output.sh
+arguments=0 "processing" "NONE"
+
+# Minimal firewall block - ONLY task and return
+# Sequential flow from task 1 -> task 2
+task=2
+return=1

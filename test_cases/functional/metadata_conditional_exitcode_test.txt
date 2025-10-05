@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Conditional Block test - exit code based conditions", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, "1-20", "1-21", 2, "2-30", "2-31", 3], "expected_skipped_tasks": [], "expected_conditional_tasks": {"1": ["20", "21"], "2": ["30", "31"]}}
+# TEST_METADATA: {"description": "Conditional Block test - exit code based conditions", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3], "expected_skipped_tasks": [], "expected_conditional_tasks": {"1": ["20", "21"], "2": ["30", "31"]}}
 
 # Test conditional blocks with different condition types
 # Using exit_code and success conditions

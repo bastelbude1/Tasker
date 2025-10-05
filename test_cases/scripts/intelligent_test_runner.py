@@ -1037,8 +1037,13 @@ class IntelligentTestRunner:
         if status == "PASSED" and "execution_results" in result:
             execution_path = result["execution_results"].get("execution_path", {})
             executed_tasks = execution_path.get("executed_tasks", [])
+            executed_subtasks = execution_path.get("executed_subtasks", [])
+
             if executed_tasks:
                 print(f"    EXECUTION PATH: {executed_tasks}")
+
+            if executed_subtasks:
+                print(f"    SUBTASKS: {executed_subtasks}")
 
             # Show variables if captured (Phase 3)
             variables = execution_path.get("variables", {})

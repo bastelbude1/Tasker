@@ -678,8 +678,7 @@ class TaskValidator:
                                 )
                                 # Detailed info for DEBUG mode
                                 self.debug_log(
-                                    f"Task {task_id} references task {ref_id} which is a '{ref_type}' task. "
-                                    f"Referenced tasks in 'tasks' field must be regular execution tasks."
+                                    f"Task {task_id} references task {ref_id} which is a '{ref_type}' task."
                                 )
 
                     # Check max_parallel vs number of tasks
@@ -770,8 +769,7 @@ class TaskValidator:
                         )
                         # Detailed info for DEBUG mode
                         self.debug_log(
-                            f"Task {task_id} references task {ref_id} which is a '{ref_type}' task. "
-                            f"Referenced tasks in {field_name} must be regular execution tasks."
+                            f"Task {task_id} references task {ref_id} which is a '{ref_type}' task."
                         )
 
         except ValueError as e:

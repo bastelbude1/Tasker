@@ -345,7 +345,20 @@ class TaskValidator:
             # SECURITY VALIDATION: Now that all fields are parsed, validate them
             # Context-aware validation: exec_type determines validation strictness
             if not self.skip_security_validation:
-                exec_type = task.get('exec', 'local')  # Default to 'local' if not specified
+                # Resolve exec placeholders before sanitizing commands
+                raw_exec = task.get('exec', 'local')
+                resolved_exec = self.resolve_global_variables_for_validation(raw_exec) if raw_exec else ''
+                exec_type = (self.clean_field_value(resolved_exec) or 'local').lower()
+
+                # Map common aliases to standard values
+                alias_map = {
+                    'sh': 'shell',
+                    'bash': 'shell',
+                    '/bin/sh': 'shell',
+                    '/bin/bash': 'shell'
+                }
+                exec_type = alias_map.get(exec_type, exec_type)
+
                 field_lines = task.get('field_lines', {})
 
                 for field_name in ['command', 'arguments', 'hostname']:
@@ -1027,11 +1040,16 @@ class TaskValidator:
                 self.errors.append(f"Line {line_number}: Task {task_id} has invalid timeout: '{timeout_clean}'.")
         
         if 'exec' in task:
+            # Resolve placeholders and validate exec type
             exec_resolved = self.resolve_global_variables_for_validation(task['exec'])
-            exec_clean = self.clean_field_value(exec_resolved)
+            exec_clean = self.clean_field_value(exec_resolved).lower()
             valid_exec_types = ['pbrun','p7s','local','wwrs','shell']
-            if exec_clean not in valid_exec_types:
-                self.warnings.append(f"Line {line_number}: Task {task_id} has unknown execution_type: '{exec_clean}'. Valid types are: {','.join(valid_exec_types)}")
+
+            # Common aliases that map to shell (don't warn for these)
+            known_aliases = ['sh', 'bash', '/bin/sh', '/bin/bash']
+
+            if exec_clean not in valid_exec_types and exec_clean not in known_aliases:
+                self.warnings.append(f"Line {line_number}: Task {task_id} has unknown execution_type: '{exec_clean}'. Valid types are: {','.join(valid_exec_types)} (aliases: sh, bash)")
         
         # Validate split specifications
         for split_field in ['stdout_split', 'stderr_split']:

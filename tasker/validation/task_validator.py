@@ -104,7 +104,7 @@ class TaskValidator:
         if self.debug and hasattr(self, '_debug_callback') and self._debug_callback:
             self._debug_callback(f"TaskValidator: {message}")
         elif self.debug:
-            print(f"# DEBUG: {message}")
+            print(f"# DEBUG: TaskValidator: {message}")
 
     def check_for_inline_comments(self, key, value, line_number):
         """Check if a field value contains inline comments and flag as error."""
@@ -210,9 +210,11 @@ class TaskValidator:
 
                         # Add any sanitization errors/warnings
                         for error in sanitize_result['errors']:
-                            self.errors.append(f"Line {line_number}: Global variable security error - {error}")
+                            self.errors.append(f"Line {line_number}: Global variable security error")
+                            self.debug_log(f"Security validation failed: {error}")
                         for warning in sanitize_result['warnings']:
-                            self.warnings.append(f"Line {line_number}: Global variable security warning - {warning}")
+                            self.warnings.append(f"Line {line_number}: Global variable security warning")
+                            self.debug_log(f"Security warning: {warning}")
 
                         # Only add if sanitization passed
                         if sanitize_result['valid']:
@@ -257,9 +259,11 @@ class TaskValidator:
 
                         # Add any sanitization errors/warnings for task ID
                         for error in sanitize_result['errors']:
-                            self.errors.append(f"Line {line_number}: Task ID security error - {error}")
+                            self.errors.append(f"Line {line_number}: Task ID security error")
+                            self.debug_log(f"Security validation failed: {error}")
                         for warning in sanitize_result['warnings']:
-                            self.warnings.append(f"Line {line_number}: Task ID security warning - {warning}")
+                            self.warnings.append(f"Line {line_number}: Task ID security warning")
+                            self.debug_log(f"Security warning: {warning}")
 
                         # Start a new task with sanitized or original value
                         task_value = sanitize_result['value'] if sanitize_result['valid'] else value
@@ -276,9 +280,11 @@ class TaskValidator:
 
                             # Add any sanitization errors/warnings
                             for error in sanitize_result['errors']:
-                                self.errors.append(f"Line {line_number}: Task field security error - {error}")
+                                self.errors.append(f"Line {line_number}: Task field security error")
+                                self.debug_log(f"Security validation failed: {error}")
                             for warning in sanitize_result['warnings']:
-                                self.warnings.append(f"Line {line_number}: Task field security warning - {warning}")
+                                self.warnings.append(f"Line {line_number}: Task field security warning")
+                                self.debug_log(f"Security warning: {warning}")
 
                             # Always add the field but use sanitized value if valid
                             if sanitize_result['valid']:
@@ -447,7 +453,10 @@ class TaskValidator:
                     # 3. Next task is NOT in special ranges
                     if not gap_is_reachable and not has_explicit_routing and not in_special_range:
                         missing_ids = list(range(current_id + 1, next_id))
-                        self.errors.append(
+                        # Always add concise error message
+                        self.errors.append("Task sequence has gaps")
+                        # Add detailed debug information
+                        self.debug_log(
                             f"Task sequence has gap: Task {current_id} is followed by Task {next_id}. "
                             f"Missing task(s): {missing_ids}. Sequential execution will stop at Task {current_id}."
                         )

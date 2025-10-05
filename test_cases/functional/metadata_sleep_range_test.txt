@@ -1,0 +1,48 @@
+# TEST_METADATA: {"description": "Sleep Block test - testing sleep values from 1 to 10 seconds", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3, 4, 5], "performance_benchmarks": {"min_duration": 19.0, "max_duration": 21.0}}
+
+# Test sleep with values ranging from 1 to 10 seconds
+task=0
+hostname=localhost
+command=echo
+arguments=Starting sleep range test
+exec=local
+
+# Sleep for 1 second
+task=1
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+sleep=1
+
+# Sleep for 2.5 seconds
+task=2
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+sleep=2.5
+
+# Sleep for 5 seconds
+task=3
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+sleep=5
+
+# Sleep for 7.5 seconds
+task=4
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+sleep=7.5
+
+# Sleep for 10 seconds
+task=5
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+sleep=10

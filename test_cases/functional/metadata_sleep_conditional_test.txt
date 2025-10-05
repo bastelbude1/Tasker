@@ -1,0 +1,34 @@
+# TEST_METADATA: {"description": "Sleep Block test - conditional execution with sleep", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_skipped_tasks": [3], "performance_benchmarks": {"min_duration": 3.2, "max_duration": 4.5}}
+
+# Test sleep combined with conditional execution
+task=0
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+sleep=1.2
+
+# Only execute if task 0 succeeded
+task=1
+condition=@0_success@=true
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+sleep=2
+
+# This should execute after sleep
+task=2
+hostname=localhost
+command=echo
+arguments=Sleep blocks completed successfully
+exec=local
+
+# This task should be skipped (condition will be false)
+task=3
+condition=@0_exit_code@=1
+hostname=localhost
+command=echo
+arguments=This should not execute
+exec=local
+sleep=100

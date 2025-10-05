@@ -890,8 +890,9 @@ class IntelligentTestRunner:
                         test_files.append(os.path.join(root, file))
         else:
             for file in os.listdir(directory):
-                if file.endswith('.txt'):
-                    test_files.append(os.path.join(directory, file))
+                file_path = os.path.join(directory, file)
+                if file.endswith('.txt') and os.path.isfile(file_path):
+                    test_files.append(file_path)
 
         test_files.sort()
 
@@ -1073,8 +1074,9 @@ def main():
                             test_files_set.add(os.path.abspath(os.path.join(root, file)))
             else:
                 for file in os.listdir(target):
-                    if file.endswith('.txt'):
-                        test_files_set.add(os.path.abspath(os.path.join(target, file)))
+                    file_path = os.path.join(target, file)
+                    if file.endswith('.txt') and os.path.isfile(file_path):
+                        test_files_set.add(os.path.abspath(file_path))
         else:
             print(f"Warning: '{target}' is not a valid file or directory - skipping")
 

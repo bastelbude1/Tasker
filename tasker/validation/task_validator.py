@@ -192,6 +192,38 @@ class TaskValidator:
             return value
         return value.strip()
 
+    def _safe_task_id_from_entry(self, task_entry):
+        """
+        Safely extract task ID from a task entry tuple.
+
+        Tasks are stored as tuples: (task_dict, line_number)
+        This method safely extracts and converts the task ID to an integer,
+        handling malformed or non-numeric task IDs gracefully.
+
+        Args:
+            task_entry: Tuple of (task_dict, line_number)
+
+        Returns:
+            Integer task ID if valid, None otherwise.
+        """
+        try:
+            task_dict = task_entry[0]
+            task_id_str = task_dict.get('task', '')
+
+            # Handle task ID already being an int
+            if isinstance(task_id_str, int):
+                return task_id_str
+
+            # Handle string task IDs - check if numeric before conversion
+            if isinstance(task_id_str, str) and task_id_str.isdigit():
+                return int(task_id_str)
+
+            # Non-numeric or invalid task ID - return None
+            return None
+        except (ValueError, KeyError, IndexError, TypeError):
+            # Handle any unexpected errors gracefully
+            return None
+
     def parse_file(self):
         """Parse the task file into global variables and individual tasks."""
         if not os.path.exists(self.task_file):
@@ -667,8 +699,8 @@ class TaskValidator:
                     # This check validates that referenced tasks are NOT conditional or parallel themselves
                     for ref_id in referenced_task_ids:
                         # Find the referenced task in our parsed tasks (tasks stored as tuples: (task_dict, line_num))
-                        # Task IDs might be strings or ints, so compare both
-                        ref_task = next((t[0] for t in self.tasks if int(t[0].get('task', -1)) == ref_id), None)
+                        # Use safe lookup to handle malformed task IDs gracefully
+                        ref_task = next((t[0] for t in self.tasks if self._safe_task_id_from_entry(t) == ref_id), None)
                         if ref_task and 'type' in ref_task:
                             ref_type = ref_task.get('type')
                             if ref_type in ['conditional', 'parallel']:
@@ -758,8 +790,8 @@ class TaskValidator:
             # This check validates that referenced tasks are NOT conditional or parallel themselves
             for ref_id in referenced_task_ids:
                 # Find the referenced task in our parsed tasks (tasks stored as tuples: (task_dict, line_num))
-                # Task IDs might be strings or ints, so compare both
-                ref_task = next((t[0] for t in self.tasks if int(t[0].get('task', -1)) == ref_id), None)
+                # Use safe lookup to handle malformed task IDs gracefully
+                ref_task = next((t[0] for t in self.tasks if self._safe_task_id_from_entry(t) == ref_id), None)
                 if ref_task and 'type' in ref_task:
                     ref_type = ref_task.get('type')
                     if ref_type in ['conditional', 'parallel']:

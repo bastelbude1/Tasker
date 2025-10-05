@@ -327,8 +327,14 @@ class TaskerTestExecutor:
 
         # Parse task execution lines
         for line in stdout_content.split('\n'):
+            # Look for conditional/parallel subtask execution (e.g., Task 1-20:, Task 2-30:)
+            if re.search(r'Task \d+-\d+: Executing', line):
+                match = re.search(r'Task (\d+-\d+):', line)
+                if match:
+                    task_id = match.group(1)
+                    executed_tasks.append(task_id)
             # Look for task execution patterns (regular tasks, parallel, conditional)
-            if re.search(r'Task \d+: Executing', line) or \
+            elif re.search(r'Task \d+: Executing', line) or \
                re.search(r'Task \d+: Starting parallel execution', line) or \
                re.search(r'Task \d+: Executing (TRUE|FALSE) branch', line):
                 match = re.search(r'Task (\d+):', line)
@@ -368,8 +374,9 @@ class TaskerTestExecutor:
                                 skipped_tasks.append(skip_task)
 
             # Capture task output for variable validation (Phase 3)
-            elif re.search(r'Task \d+: STDOUT:', line):
-                match = re.search(r'Task (\d+): STDOUT: (.+)', line)
+            # Support both regular tasks (Task 1:) and subtasks (Task 1-20:)
+            elif re.search(r'Task (\d+|\d+-\d+): STDOUT:', line):
+                match = re.search(r'Task (\d+|\d+-\d+): STDOUT: (.+)', line)
                 if match:
                     task_id = match.group(1)
                     stdout_value = match.group(2)
@@ -377,8 +384,8 @@ class TaskerTestExecutor:
                     # Add to output patterns for pattern matching
                     output_patterns["stdout"].append(stdout_value)
 
-            elif re.search(r'Task \d+: STDERR:', line):
-                match = re.search(r'Task (\d+): STDERR: (.+)', line)
+            elif re.search(r'Task (\d+|\d+-\d+): STDERR:', line):
+                match = re.search(r'Task (\d+|\d+-\d+): STDERR: (.+)', line)
                 if match:
                     task_id = match.group(1)
                     stderr_value = match.group(2)
@@ -890,6 +897,58 @@ class TestValidator:
                         validation_results["failures"].append(
                             f"Task {task_id} stdout pattern mismatch: expected '{expected_pattern}' in '{actual_stdout}'"
                         )
+
+        # Validate conditional task execution
+        if "expected_conditional_tasks" in metadata:
+            expected_conditional = metadata["expected_conditional_tasks"]
+            actual_path = execution_path.get("executed_tasks", [])
+
+            for parent_task, config in expected_conditional.items():
+                # Support both shorthand array syntax and explicit object syntax
+                if isinstance(config, list):
+                    expected_tasks = config
+                    match_mode = "exact"  # default
+                elif isinstance(config, dict):
+                    expected_tasks = config.get("expected", [])
+                    match_mode = config.get("match_mode", "exact")
+                else:
+                    validation_results["passed"] = False
+                    validation_results["failures"].append(
+                        f"Invalid expected_conditional_tasks format for task {parent_task}"
+                    )
+                    continue
+
+                # Convert task IDs to strings for comparison
+                expected_tasks = [str(t) for t in expected_tasks]
+                actual_path_str = [str(t) for t in actual_path]
+
+                # Find all conditional subtasks that executed
+                # TASKER uses hyphen format: 1-20, 1-21, not dot format: 1.20, 1.21
+                executed_subtasks = [
+                    t.split('-')[1] if '-' in t else t
+                    for t in actual_path_str
+                    if t.startswith(f"{parent_task}-")
+                ]
+
+                # Validate based on match_mode
+                if match_mode == "exact":
+                    if executed_subtasks != expected_tasks:
+                        validation_results["passed"] = False
+                        validation_results["failures"].append(
+                            f"Conditional task {parent_task}: expected exact execution {expected_tasks}, got {executed_subtasks}"
+                        )
+                elif match_mode == "parallel":
+                    # All expected tasks must execute, order doesn't matter
+                    if set(executed_subtasks) != set(expected_tasks):
+                        validation_results["passed"] = False
+                        validation_results["failures"].append(
+                            f"Parallel task {parent_task}: expected {expected_tasks} (any order), got {executed_subtasks}"
+                        )
+                else:
+                    validation_results["passed"] = False
+                    validation_results["failures"].append(
+                        f"Invalid match_mode '{match_mode}' for task {parent_task}"
+                    )
 
         return validation_results
 

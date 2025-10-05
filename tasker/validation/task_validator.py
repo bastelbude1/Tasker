@@ -210,9 +210,11 @@ class TaskValidator:
 
                         # Add any sanitization errors/warnings
                         for error in sanitize_result['errors']:
-                            self.errors.append(f"Line {line_number}: Global variable security error - {error}")
+                            self.errors.append(f"Line {line_number}: Global variable security error")
+                            self.debug_log(f"Security validation failed: {error}")
                         for warning in sanitize_result['warnings']:
-                            self.warnings.append(f"Line {line_number}: Global variable security warning - {warning}")
+                            self.warnings.append(f"Line {line_number}: Global variable security warning")
+                            self.debug_log(f"Security warning: {warning}")
 
                         # Only add if sanitization passed
                         if sanitize_result['valid']:
@@ -257,9 +259,11 @@ class TaskValidator:
 
                         # Add any sanitization errors/warnings for task ID
                         for error in sanitize_result['errors']:
-                            self.errors.append(f"Line {line_number}: Task ID security error - {error}")
+                            self.errors.append(f"Line {line_number}: Task ID security error")
+                            self.debug_log(f"Security validation failed: {error}")
                         for warning in sanitize_result['warnings']:
-                            self.warnings.append(f"Line {line_number}: Task ID security warning - {warning}")
+                            self.warnings.append(f"Line {line_number}: Task ID security warning")
+                            self.debug_log(f"Security warning: {warning}")
 
                         # Start a new task with sanitized or original value
                         task_value = sanitize_result['value'] if sanitize_result['valid'] else value
@@ -276,9 +280,11 @@ class TaskValidator:
 
                             # Add any sanitization errors/warnings
                             for error in sanitize_result['errors']:
-                                self.errors.append(f"Line {line_number}: Task field security error - {error}")
+                                self.errors.append(f"Line {line_number}: Task field security error")
+                                self.debug_log(f"Security validation failed: {error}")
                             for warning in sanitize_result['warnings']:
-                                self.warnings.append(f"Line {line_number}: Task field security warning - {warning}")
+                                self.warnings.append(f"Line {line_number}: Task field security warning")
+                                self.debug_log(f"Security warning: {warning}")
 
                             # Always add the field but use sanitized value if valid
                             if sanitize_result['valid']:

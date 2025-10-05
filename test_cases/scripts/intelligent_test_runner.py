@@ -320,6 +320,7 @@ class TaskerTestExecutor:
     def parse_execution_path(self, stdout_content):
         """Parse task execution path from TASKER output."""
         executed_tasks = []
+        executed_subtasks = []  # Track conditional/parallel subtasks separately
         skipped_tasks = []
         final_task = None
         variables = {}
@@ -332,7 +333,7 @@ class TaskerTestExecutor:
                 match = re.search(r'Task (\d+-\d+):', line)
                 if match:
                     task_id = match.group(1)
-                    executed_tasks.append(task_id)
+                    executed_subtasks.append(task_id)
             # Look for task execution patterns (regular tasks, parallel, conditional)
             elif re.search(r'Task \d+: Executing', line) or \
                re.search(r'Task \d+: Starting parallel execution', line) or \
@@ -395,6 +396,7 @@ class TaskerTestExecutor:
 
         return {
             "executed_tasks": executed_tasks,
+            "executed_subtasks": executed_subtasks,
             "skipped_tasks": skipped_tasks,
             "final_task": final_task,
             "variables": variables,
@@ -901,7 +903,7 @@ class TestValidator:
         # Validate conditional task execution
         if "expected_conditional_tasks" in metadata:
             expected_conditional = metadata["expected_conditional_tasks"]
-            actual_path = execution_path.get("executed_tasks", [])
+            actual_subtasks = execution_path.get("executed_subtasks", [])
 
             for parent_task, config in expected_conditional.items():
                 # Support both shorthand array syntax and explicit object syntax
@@ -920,13 +922,13 @@ class TestValidator:
 
                 # Convert task IDs to strings for comparison
                 expected_tasks = [str(t) for t in expected_tasks]
-                actual_path_str = [str(t) for t in actual_path]
+                actual_subtasks_str = [str(t) for t in actual_subtasks]
 
-                # Find all conditional subtasks that executed
+                # Find all conditional subtasks that executed for this parent task
                 # TASKER uses hyphen format: 1-20, 1-21, not dot format: 1.20, 1.21
                 executed_subtasks = [
                     t.split('-')[1] if '-' in t else t
-                    for t in actual_path_str
+                    for t in actual_subtasks_str
                     if t.startswith(f"{parent_task}-")
                 ]
 

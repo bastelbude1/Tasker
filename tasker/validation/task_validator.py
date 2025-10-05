@@ -14,6 +14,29 @@ from .input_sanitizer import InputSanitizer
 
 class TaskValidator:
     def __init__(self):
+        """
+        Initialize a TaskValidator with default validation state, schemas, and helpers.
+        
+        Sets up internal state used across parsing and validation, including:
+        - debug: Flag to enable debug logging.
+        - task_file: Path to the tasks file being validated.
+        - tasks: Parsed list of task dictionaries.
+        - errors: Collected error messages with context.
+        - warnings: Collected warning messages with context.
+        - sanitizer: InputSanitizer instance used for security-related checks.
+        - skip_security_validation: When True, skip sanitizer checks during validation.
+        - global_vars: Mapping of defined global variables (name -> value).
+        - referenced_global_vars: Set of global variable names referenced by tasks.
+        - required_fields: Fields that every task must include (default: ['task']).
+        - conditional_fields: Required fields per task category ('normal', 'return', 'parallel', 'conditional').
+        - optional_fields: Fields permitted but not required for tasks.
+        - parallel_conditional_specific_fields: Optional fields specific to parallel/conditional tasks (retry-related).
+        - valid_next_values: Allowed values for the `next` field, including parallel/conditional-specific semantics.
+        - valid_direct_modifiers: Allowed direct modifier names (e.g., min_success).
+        - valid_task_types: Recognized composite task types (parallel, conditional).
+        - known_delimiters: Supported named delimiters for stdout/stderr splitting.
+        - valid_operators: Supported operators for condition expressions.
+        """
         self.debug = False # For validation purpose
         self.task_file = None
         self.tasks = []
@@ -73,18 +96,20 @@ class TaskValidator:
     def validate_task_file(task_file, debug=False, log_callback=None, debug_callback=None,
                           skip_security_validation=False):
         """
-        Validate a task file and return results.
-
-        Args:
-            task_file: Path to task file to validate
-            debug: Enable debug mode
-            log_callback: Optional function for main logging
-            debug_callback: Optional function for debug logging
-            skip_security_validation: Skip security pattern validation
-
-        Returns:
-            dict with 'success', 'errors', 'warnings', 'global_vars', 'tasks'
-        """
+                          Validate the task file at the given path and report parsing and validation results.
+                          
+                          Parameters:
+                              task_file (str): Path to the task file to validate.
+                              skip_security_validation (bool): If True, skip pattern-based security checks during validation; other flags control logging/debug output.
+                          
+                          Returns:
+                              dict: Validation summary with keys:
+                                  'success' (bool): True if no errors were found, False otherwise.
+                                  'errors' (list): List of error messages collected during parsing/validation.
+                                  'warnings' (list): List of warning messages collected during parsing/validation.
+                                  'global_vars' (dict): Mapping of parsed global variable names to their values.
+                                  'tasks' (int): Number of tasks parsed from the file.
+                          """
         validator = TaskValidator()
         validator.task_file = task_file
         validator.debug = debug
@@ -307,7 +332,14 @@ class TaskValidator:
         return len(self.errors) == 0
 
     def validate_tasks(self):
-        """Validate all tasks for correctness including global variable references, parallel tasks, conditional tasks, and retry logic."""
+        """
+        Validate all parsed tasks for correctness, references, and structure.
+        
+        Performs comprehensive validation across all parsed tasks: ensures task IDs are valid and unique, enforces required fields per task type (normal, return, parallel, conditional), performs context-aware security sanitization (unless skip_security_validation is set), validates retry/parallel/conditional-specific configurations, checks global variable references, detects unknown fields, collects task references, performs gap and reachability analysis, and runs final structure-level security checks. Validation results are recorded in self.errors and self.warnings and relevant tracking sets (e.g., referenced tasks, parallel/conditional task sets, referenced_global_vars) are updated.
+        
+        Returns:
+            True if no validation errors were recorded, False otherwise.
+        """
         if not self.tasks:
             self.errors.append("No tasks found in the file.")
             return False
@@ -873,7 +905,25 @@ class TaskValidator:
                 self.warnings.append(f"  Unused global variable: {var} = {self.global_vars[var]}")
 
     def validate_field_values(self, task, task_id, line_number):
-        """Validate the values of specific fields in a task."""
+        """
+        Validate the semantic correctness of field values for a single parsed task and record any errors or warnings.
+        
+        Performs checks and appends human-readable messages to self.errors and self.warnings for issues including:
+        - hostname presence (required except for local execution, parallel, or conditional tasks).
+        - next field semantics, including special next values, direct modifiers (min_success/max_failed/etc.), loop handling, and condition expressions.
+        - condition-style fields: `success`, `condition`, and `loop_break` are validated as condition expressions.
+        - command presence and formatting (commands are skipped for parallel and conditional tasks); warns if command contains spaces.
+        - task completeness: requires either command+hostname, a `return` value, or being a parallel/conditional task (local exec allowed without hostname).
+        - numeric fields: `return`, `loop`, `sleep`, and `timeout` are validated for type and sensible ranges (timeout min/max warnings).
+        - on_failure and on_success: must be forward-only numeric task references (no backward jumps).
+        - exec: resolves and normalizes execution type and emits a warning for unknown types or unrecognized aliases.
+        - stdout_split/stderr_split: must be "delimiter,index"; validates delimiter against known delimiters and index as a non-negative integer.
+        
+        Parameters:
+            task (dict): Parsed task fields mapped to their raw string values.
+            task_id (int): Numeric identifier of the task (used for validation context and forward/backward checks).
+            line_number (int): Line number in the source file for generating location-aware error/warning messages.
+        """
 
         # Check that hostname has a value if it exists (except for local execution, parallel, and conditional tasks)
         if 'hostname' in task:

@@ -85,7 +85,28 @@ class TaskExecutor:
                  skip_host_validation=False, skip_security_validation=False,
                  show_plan=False, validate_only=False):
         # Clear debug logging cache for new execution session
-        from .condition_evaluator import ConditionEvaluator
+        """
+                 Initialize a TaskExecutor instance and prepare environment, logging, state, and modular components for task orchestration.
+                 
+                 Constructs internal state and logging artifacts, configures summary/project logging when requested, registers signal handlers for graceful shutdown, and instantiates the modular runtime components (StateManager, ResultCollector, WorkflowController, TaskRunner) used to validate and execute tasks. Also prepares resume-related flags and emits initial startup/log messages.
+                 
+                 Parameters:
+                     task_file: Path to the task definition file to parse and execute.
+                     log_dir: Directory where logs, task copies, and summary files will be written.
+                     dry_run: If true, the executor operates in dry-run mode (no side-effecting task execution).
+                     log_level: Minimum log level name to emit (e.g., "INFO", "DEBUG").
+                     exec_type: Optional execution type override (e.g., 'pbrun', 'shell'); used as the default executor when tasks do not specify one.
+                     timeout: Default per-task timeout fallback used when a task does not specify its own timeout.
+                     connection_test: If true, enables connection checks during host validation.
+                     project: Optional project name used to enable shared summary logging; sanitized before use.
+                     start_from_task: Optional task id to resume execution from; enables resume mode and influences startup logging.
+                     skip_task_validation: If true, task file validation is skipped (useful in resume scenarios).
+                     skip_host_validation: If true, host validation is skipped (hostname checks will be bypassed).
+                     skip_security_validation: If true, security-specific validation steps are skipped during task validation.
+                     show_plan: If true, the executor may display an execution plan before running tasks.
+                     validate_only: If true, the executor performs parsing/validation and exits without running tasks.
+                 """
+                 from .condition_evaluator import ConditionEvaluator
         ConditionEvaluator.clear_debug_cache()
 
         self.task_file = task_file
@@ -941,7 +962,16 @@ class TaskExecutor:
     # ===== 3. VALIDATION & SETUP =====
     
     def validate_tasks(self):
-        """Validate the task file using TaskValidator module."""
+        """
+        Validate the configured task file, logging any validation errors or warnings.
+        
+        Performs validation of the task file (honoring the instance's debug/log settings and
+        the skip_security_validation flag), logs encountered warnings at debug level and
+        errors at error level, and handles validation failures or exceptions gracefully.
+        
+        Returns:
+            True if validation succeeded, False otherwise.
+        """
         self.log_info(f"# Validating task file: {self.task_file}")
         
         try:

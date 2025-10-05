@@ -1,0 +1,32 @@
+# TEST_METADATA: {"description": "Sleep Block test - floating point sleep values", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3], "performance_benchmarks": {"min_duration": 5.5, "max_duration": 7.0}}
+
+# Test sleep with floating point values
+task=0
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+
+# Sleep for 1.5 seconds
+task=1
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+sleep=1.5
+
+# Sleep for 2.75 seconds
+task=2
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+sleep=2.75
+
+# Sleep for 1.25 seconds
+task=3
+hostname=localhost
+command=date
+arguments=+%H:%M:%S.%N
+exec=local
+sleep=1.25

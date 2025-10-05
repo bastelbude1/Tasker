@@ -67,40 +67,65 @@ class SequentialExecutor(BaseExecutor):
             # Pure return block - no command to execute
             executor_instance.log(f"Task {task_id}{loop_display}: Return-only task (no command to execute)")
 
-            # Set minimal values for return-only tasks
-            exit_code = 0
-            stdout = ""
-            stderr = ""
-            success_result = True
+            # Parse and validate the return value FIRST
+            if executor_instance.final_command == 'N/A':
+                executor_instance.final_command = 'return'
 
-            # Store minimal results
-            executor_instance.store_task_result(task_id, {
-                'exit_code': exit_code,
-                'stdout': stdout,
-                'stderr': stderr,
-                'success': success_result
-            })
-
-            # Now handle the return
-            if executor_instance.final_command == 'N/A': executor_instance.final_command = 'return'
             try:
                 return_code = int(task['return'])
                 executor_instance.log(f"Task {task_id}{loop_display}: Returning with exit code {return_code}")
-                executor_instance.final_exit_code = return_code
-                executor_instance.final_success = (return_code == 0)
 
+                # Determine exit_code and success based on the actual return value
+                exit_code = return_code
+                stdout = ""
+                stderr = ""
+                success_result = (return_code == 0)
+
+                # Store the accurate results
+                executor_instance.store_task_result(task_id, {
+                    'exit_code': exit_code,
+                    'stdout': stdout,
+                    'stderr': stderr,
+                    'success': success_result
+                })
+
+                # Update final status
+                executor_instance.final_exit_code = return_code
+                executor_instance.final_success = success_result
+
+                # Log success or failure
                 if return_code == 0:
                     executor_instance.log("SUCCESS: Task execution completed successfully with return code 0")
                 else:
                     executor_instance.log(f"FAILURE: Task execution failed with return code {return_code}")
 
+                # Cleanup and exit
                 executor_instance.cleanup()
                 ExitHandler.exit_with_code(return_code, f"Task execution completed with return code {return_code}", False)
+
             except ValueError:
                 executor_instance.log(f"Task {task_id}{loop_display}: Invalid return code '{task['return']}'. Exiting with code 1.")
+
+                # Store failure results for invalid return code
+                exit_code = 1
+                stdout = ""
+                stderr = f"Invalid return code: {task['return']}"
+                success_result = False
+
+                executor_instance.store_task_result(task_id, {
+                    'exit_code': exit_code,
+                    'stdout': stdout,
+                    'stderr': stderr,
+                    'success': success_result
+                })
+
+                # Update final status
                 executor_instance.final_exit_code = 1
                 executor_instance.final_success = False
+
                 executor_instance.log("FAILURE: Task execution failed with invalid return code")
+
+                # Cleanup and exit
                 executor_instance.cleanup()
                 ExitHandler.exit_with_code(ExitCodes.INVALID_ARGUMENTS, "Invalid return code specified", False)
             # This point is never reached due to exit above

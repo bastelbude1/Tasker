@@ -18,6 +18,7 @@ import subprocess
 import argparse
 import threading
 import time
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -272,8 +273,18 @@ class TestMetadata:
 class TaskerTestExecutor:
     """Execute TASKER test cases and capture results."""
 
-    def __init__(self, tasker_path="tasker"):
-        self.tasker_path = tasker_path
+    def __init__(self, tasker_path=None):
+        # Use shutil.which to find tasker in PATH, fallback to provided path or default
+        if tasker_path is None:
+            self.tasker_path = shutil.which("tasker")
+            if self.tasker_path is None:
+                # Fallback to tasker.py in current directory if not in PATH
+                if os.path.exists("./tasker.py"):
+                    self.tasker_path = "./tasker.py"
+                else:
+                    self.tasker_path = "tasker"  # Last resort - hope it's in PATH
+        else:
+            self.tasker_path = tasker_path
         self.results = {}
         self.performance_monitor = PerformanceMonitor()
 
@@ -811,9 +822,19 @@ class TestValidator:
 class IntelligentTestRunner:
     """Main test runner orchestrator."""
 
-    def __init__(self, tasker_path="tasker"):
-        self.tasker_path = tasker_path
-        self.executor = TaskerTestExecutor(tasker_path)
+    def __init__(self, tasker_path=None):
+        # Use shutil.which to find tasker in PATH, fallback to provided path or default
+        if tasker_path is None:
+            self.tasker_path = shutil.which("tasker")
+            if self.tasker_path is None:
+                # Fallback to tasker.py in current directory if not in PATH
+                if os.path.exists("./tasker.py"):
+                    self.tasker_path = "./tasker.py"
+                else:
+                    self.tasker_path = "tasker"  # Last resort - hope it's in PATH
+        else:
+            self.tasker_path = tasker_path
+        self.executor = TaskerTestExecutor(self.tasker_path)
         self.validator = TestValidator()
         self.results = []
 
@@ -1021,8 +1042,8 @@ def main():
     )
     parser.add_argument(
         "--tasker-path",
-        default="tasker",
-        help="Path to tasker executable (default: tasker from PATH)"
+        default=None,
+        help="Path to tasker executable (default: auto-detect using shutil.which)"
     )
     parser.add_argument(
         "--recursive", "-r",

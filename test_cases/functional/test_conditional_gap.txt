@@ -1,0 +1,55 @@
+# Test conditional with gap in task numbering
+# Task 2 is missing - jumps from 1 to 3
+# TEST_METADATA: {"description": "Test conditional block with missing task 2 (gap in numbering)", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_error_pattern": "Task sequence has gap.*Missing task.*\\[2\\]"}
+
+task=0
+hostname=localhost
+command=echo
+arguments=Starting test
+exec=local
+
+# Conditional block
+task=1
+type=conditional
+condition=@0_stdout@=Starting test
+if_true_tasks=10,11
+if_false_tasks=20,21
+
+# True branch
+task=10
+hostname=localhost
+command=echo
+arguments=Executing TRUE branch task 10
+exec=local
+
+task=11
+hostname=localhost
+command=echo
+arguments=Executing TRUE branch task 11
+exec=local
+
+# False branch
+task=20
+hostname=localhost
+command=echo
+arguments=Executing FALSE branch task 20
+exec=local
+
+task=21
+hostname=localhost
+command=echo
+arguments=Executing FALSE branch task 21
+exec=local
+
+# NOTE: Task 2 is missing! Next task is 3
+task=3
+hostname=localhost
+command=echo
+arguments=Task 3 - after the gap
+exec=local
+
+task=4
+hostname=localhost
+command=echo
+arguments=Task 4 - final task
+exec=local

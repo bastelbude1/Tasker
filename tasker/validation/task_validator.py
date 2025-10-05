@@ -672,9 +672,14 @@ class TaskValidator:
                         if ref_task and 'type' in ref_task:
                             ref_type = ref_task.get('type')
                             if ref_type in ['conditional', 'parallel']:
+                                # Simple error for INFO mode
                                 self.errors.append(
-                                    f"Line {line_number}: Task {task_id} references task {ref_id} which is a '{ref_type}' task. "
-                                    f"Nested conditional/parallel tasks are NOT supported. Referenced tasks in 'tasks' field must be regular execution tasks."
+                                    f"Line {line_number}: Nested conditional/parallel tasks are NOT supported."
+                                )
+                                # Detailed info for DEBUG mode
+                                self.debug_log(
+                                    f"Task {task_id} references task {ref_id} which is a '{ref_type}' task. "
+                                    f"Referenced tasks in 'tasks' field must be regular execution tasks."
                                 )
 
                     # Check max_parallel vs number of tasks
@@ -759,9 +764,14 @@ class TaskValidator:
                 if ref_task and 'type' in ref_task:
                     ref_type = ref_task.get('type')
                     if ref_type in ['conditional', 'parallel']:
+                        # Simple error for INFO mode
                         self.errors.append(
-                            f"Line {line_number}: Task {task_id} references task {ref_id} which is a '{ref_type}' task. "
-                            f"Nested conditional/parallel tasks are NOT supported. Referenced tasks in {field_name} must be regular execution tasks."
+                            f"Line {line_number}: Nested conditional/parallel tasks are NOT supported."
+                        )
+                        # Detailed info for DEBUG mode
+                        self.debug_log(
+                            f"Task {task_id} references task {ref_id} which is a '{ref_type}' task. "
+                            f"Referenced tasks in {field_name} must be regular execution tasks."
                         )
 
         except ValueError as e:

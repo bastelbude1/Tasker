@@ -275,25 +275,16 @@ class TaskValidator:
                             if self.check_for_inline_comments(key, value, line_number):
                                 continue  # Skip this field if it has inline comments
 
-                            # SECURITY HARDENING: Sanitize task field
-                            sanitize_result = self.sanitizer.sanitize_field(key, value)
+                            # Store field first, security validation happens later
+                            # This allows exec=shell to be checked before validating command/arguments
+                            current_task[key] = value
 
-                            # Add any sanitization errors/warnings
-                            for error in sanitize_result['errors']:
-                                self.errors.append(f"Line {line_number}: Task field security error")
-                                self.debug_log(f"Security validation failed: {error}")
-                            for warning in sanitize_result['warnings']:
-                                self.warnings.append(f"Line {line_number}: Task field security warning")
-                                self.debug_log(f"Security warning: {warning}")
+                            # Store line number for later security validation
+                            if 'field_lines' not in current_task:
+                                current_task['field_lines'] = {}
+                            current_task['field_lines'][key] = line_number
 
-                            # Always add the field but use sanitized value if valid
-                            if sanitize_result['valid']:
-                                current_task[key] = sanitize_result['value']
-                                self.debug_log(f"{key} = {sanitize_result['value']}")
-                            else:
-                                # Add original value but flag as invalid for later validation failure
-                                current_task[key] = value
-                                self.debug_log(f"Task field failed sanitization: {key} = {value}")
+                            self.debug_log(f"{key} = {value}")
                         else:
                             # Only warn if it's not a global variable
                             if key not in self.global_vars:
@@ -344,6 +335,30 @@ class TaskValidator:
                 task_type = 'parallel'
             elif 'type' in task and task['type'] == 'conditional':  # NEW: Conditional task detection
                 task_type = 'conditional'
+
+            # SECURITY VALIDATION: Now that all fields are parsed, validate them
+            # Skip security validation for command/arguments when exec=shell
+            exec_type = task.get('exec', '')
+            field_lines = task.get('field_lines', {})
+
+            for field_name in ['command', 'arguments', 'hostname']:
+                if field_name in task:
+                    field_value = task[field_name]
+                    field_line = field_lines.get(field_name, line_number)
+
+                    # Skip security check for shell commands
+                    skip_security = (exec_type == 'shell' and field_name in ['command', 'arguments'])
+
+                    if not skip_security:
+                        sanitize_result = self.sanitizer.sanitize_field(field_name, field_value)
+
+                        # Add any sanitization errors/warnings
+                        for error in sanitize_result['errors']:
+                            self.errors.append(f"Line {field_line}: Task field security error")
+                            self.debug_log(f"Security validation failed: {error}")
+                        for warning in sanitize_result['warnings']:
+                            self.warnings.append(f"Line {field_line}: Task field security warning")
+                            self.debug_log(f"Security warning: {warning}")
 
             # Check for required fields based on task type
             for field in self.required_fields:

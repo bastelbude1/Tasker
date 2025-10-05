@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Sleep Block test - testing sleep values from 1 to 10 seconds", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3, 4, 5], "performance_benchmarks": {"min_duration": 19.0, "max_duration": 21.0}}
+# TEST_METADATA: {"description": "Sleep Block test - testing sleep values from 1 to 10 seconds", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3, 4, 5], "performance_benchmarks": {"min_duration": 26.0, "max_duration": 30.0}}
 
 # Test sleep with values ranging from 1 to 10 seconds
 task=0

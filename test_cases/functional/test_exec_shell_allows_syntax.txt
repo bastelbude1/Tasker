@@ -1,0 +1,9 @@
+# TEST_METADATA: {"description": "Test exec=shell allows shell syntax and executes it", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Test: exec=shell allows and executes shell syntax
+# This demonstrates the difference - shell metacharacters are executed
+task=0
+hostname=localhost
+command=echo
+arguments=Current user: $(whoami)
+exec=shell

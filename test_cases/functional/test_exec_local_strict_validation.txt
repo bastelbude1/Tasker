@@ -1,6 +1,8 @@
-# TEST_METADATA: {"description": "Test exec=local blocks shell syntax", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false}
+# TEST_METADATA: {"description": "Test that validation warns about shell syntax in exec=local", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false}
 
-# Test: Exec=local should block shell metacharacters (command substitution)
+# Test: Validation should warn users about shell syntax in exec=local
+# This prevents user mistakes (shell syntax won't execute with exec=local anyway)
+# For actual shell execution, users should use exec=shell
 task=0
 hostname=localhost
 command=echo

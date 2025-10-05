@@ -378,9 +378,10 @@ class TaskValidator:
 
             # Check for unknown fields
             all_known_fields = set(self.required_fields + self.conditional_fields['normal'] +
-                                  self.conditional_fields['return'] + self.conditional_fields['parallel'] + 
+                                  self.conditional_fields['return'] + self.conditional_fields['parallel'] +
                                   self.conditional_fields['conditional'] +  # NEW: Add conditional fields
-                                  self.optional_fields + self.parallel_conditional_specific_fields + ['line_start'])
+                                  self.optional_fields + self.parallel_conditional_specific_fields +
+                                  ['line_start', 'field_lines'])
             for field in task:
                 if field not in all_known_fields:
                     self.warnings.append(f"Line {line_number}: Task {task_id} has unknown field '{field}'.")

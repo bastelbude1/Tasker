@@ -1,0 +1,71 @@
+# TEST_METADATA: {"description": "Conditional Block test - nested conditionals", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_skipped_tasks": []}
+
+# Test nested conditional blocks
+# First level: true branch, Second level: true branch
+
+task=0
+hostname=localhost
+command=echo
+arguments=PRODUCTION
+exec=local
+
+# First level conditional
+task=1
+type=conditional
+condition=@0_stdout@=PRODUCTION
+if_true_tasks=10,11
+if_false_tasks=20
+
+# True branch task that sets up nested condition
+task=10
+hostname=localhost
+command=echo
+arguments=ACTIVE
+exec=local
+
+# Nested conditional within true branch
+task=11
+type=conditional
+condition=@10_stdout@=ACTIVE
+if_true_tasks=100,101
+if_false_tasks=200,201
+
+# Nested true branch - should execute
+task=100
+hostname=localhost
+command=echo
+arguments=Nested TRUE: System is PRODUCTION and ACTIVE
+exec=local
+
+task=101
+hostname=localhost
+command=echo
+arguments=Performing production operations
+exec=local
+
+# Nested false branch - should be skipped
+task=200
+hostname=localhost
+command=echo
+arguments=Nested FALSE: Should not execute
+exec=local
+
+task=201
+hostname=localhost
+command=echo
+arguments=This should be skipped
+exec=local
+
+# First level false branch - should be skipped
+task=20
+hostname=localhost
+command=echo
+arguments=First level FALSE: Should not execute
+exec=local
+
+# Final task
+task=2
+hostname=localhost
+command=echo
+arguments=Nested conditional completed
+exec=local

@@ -67,14 +67,17 @@ class ConditionalExecutor(BaseExecutor):
         elif not condition_result and 'if_false_tasks' in conditional_task:
             tasks_str = conditional_task['if_false_tasks']
         else:
-            # No matching branch - skip to next task
-            executor_instance.log(f"Task {task_id}: No tasks defined for {branch} branch, skipping to next task")
-            return task_id + 1
-        
-        # Parse task references
+            # CRITICAL: Missing branch is a fatal error - conditional blocks must have both branches
+            executor_instance.log(f"ERROR: Task {task_id}: FATAL - Conditional block missing {branch} branch (if_{branch.lower()}_tasks). Both branches are mandatory.")
+            executor_instance.log("ERROR: Conditional blocks must define both if_true_tasks and if_false_tasks to ensure deterministic workflow.")
+            return None  # Fatal error - stop execution
+
+        # Parse task references - empty branches are also fatal
         if not tasks_str.strip():
-            executor_instance.log(f"Task {task_id}: Empty task list for {branch} branch, skipping to next task")
-            return task_id + 1
+            # CRITICAL: Empty branch is a fatal error - defeats the purpose of conditional execution
+            executor_instance.log(f"ERROR: Task {task_id}: FATAL - Empty task list for {branch} branch. Conditional blocks must have at least one task in each branch.")
+            executor_instance.log("ERROR: Empty conditional branches create ambiguous workflow paths and are not permitted.")
+            return None  # Fatal error - stop execution
         
         try:
             referenced_task_ids = []

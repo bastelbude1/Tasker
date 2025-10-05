@@ -18,6 +18,7 @@ import subprocess
 import argparse
 import threading
 import time
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -40,6 +41,45 @@ try:
 except ImportError:
     PSUTIL_AVAILABLE = False
     # Note: Performance monitoring will use standard library alternatives
+
+
+def _resolve_tasker_path(tasker_path=None):
+    """Resolve tasker executable path using PATH discovery with fallbacks."""
+    if tasker_path is None:
+        # First try to find 'tasker' in PATH
+        resolved = shutil.which("tasker")
+        if resolved is None:
+            # Fallback to tasker.py in current directory if not in PATH
+            if os.path.exists("./tasker.py"):
+                resolved = "./tasker.py"
+            elif os.path.exists("../tasker.py"):
+                # Also check parent directory (common when running from test_cases/)
+                resolved = "../tasker.py"
+            else:
+                # Last resort - use ./tasker.py and let it fail with clear error
+                resolved = "./tasker.py"
+                print("WARNING: Could not find 'tasker' in PATH or './tasker.py'")
+                print(f"         Using default: {resolved}")
+        return resolved
+    return tasker_path
+
+
+def _collect_test_files(target_path, recursive=False):
+    """Collect .txt test files from a directory."""
+    test_files = []
+    if recursive:
+        for root, _dirs, files in os.walk(target_path):
+            for file in files:
+                if file.endswith('.txt'):
+                    file_path = os.path.join(root, file)
+                    if os.path.isfile(file_path):
+                        test_files.append(file_path)
+    else:
+        for file in os.listdir(target_path):
+            file_path = os.path.join(target_path, file)
+            if file.endswith('.txt') and os.path.isfile(file_path):
+                test_files.append(file_path)
+    return test_files
 
 
 class PerformanceMonitor:
@@ -272,8 +312,8 @@ class TestMetadata:
 class TaskerTestExecutor:
     """Execute TASKER test cases and capture results."""
 
-    def __init__(self, tasker_path="./tasker.py"):
-        self.tasker_path = tasker_path
+    def __init__(self, tasker_path=None):
+        self.tasker_path = _resolve_tasker_path(tasker_path)
         self.results = {}
         self.performance_monitor = PerformanceMonitor()
 
@@ -811,9 +851,9 @@ class TestValidator:
 class IntelligentTestRunner:
     """Main test runner orchestrator."""
 
-    def __init__(self, tasker_path="./tasker.py"):
-        self.tasker_path = tasker_path
-        self.executor = TaskerTestExecutor(tasker_path)
+    def __init__(self, tasker_path=None):
+        self.tasker_path = _resolve_tasker_path(tasker_path)
+        self.executor = TaskerTestExecutor(self.tasker_path)
         self.validator = TestValidator()
         self.results = []
 
@@ -859,18 +899,7 @@ class IntelligentTestRunner:
 
     def run_tests_in_directory(self, directory, recursive=False):
         """Run all test files in a directory."""
-        test_files = []
-
-        if recursive:
-            for root, dirs, files in os.walk(directory):
-                for file in files:
-                    if file.endswith('.txt'):
-                        test_files.append(os.path.join(root, file))
-        else:
-            for file in os.listdir(directory):
-                if file.endswith('.txt'):
-                    test_files.append(os.path.join(directory, file))
-
+        test_files = _collect_test_files(directory, recursive)
         test_files.sort()
 
         print(f"Found {len(test_files)} test files")
@@ -1015,13 +1044,14 @@ def main():
         description="TASKER Intelligent Test Runner - Metadata-driven test validation"
     )
     parser.add_argument(
-        "target",
-        help="Test file or directory to run"
+        "targets",
+        nargs="+",
+        help="Test file(s) or directory to run"
     )
     parser.add_argument(
         "--tasker-path",
-        default="./tasker.py",
-        help="Path to tasker.py executable (default: ./tasker.py)"
+        default=None,
+        help="Path to tasker executable (default: auto-detect using shutil.which)"
     )
     parser.add_argument(
         "--recursive", "-r",
@@ -1034,15 +1064,35 @@ def main():
     # Initialize test runner
     runner = IntelligentTestRunner(args.tasker_path)
 
-    # Check if target is file or directory
-    if os.path.isfile(args.target):
-        result = runner.run_single_test(args.target)
-        runner.print_result_summary(result)
-    elif os.path.isdir(args.target):
-        runner.run_tests_in_directory(args.target, args.recursive)
-    else:
-        print(f"Error: '{args.target}' is not a valid file or directory")
+    # Handle multiple targets
+    test_files_set = set()
+
+    for target in args.targets:
+        if os.path.isfile(target):
+            # Single file - add to set with absolute path
+            test_files_set.add(os.path.abspath(target))
+        elif os.path.isdir(target):
+            # Directory - collect all .txt files using helper
+            collected = _collect_test_files(target, args.recursive)
+            for test_file in collected:
+                test_files_set.add(os.path.abspath(test_file))
+        else:
+            print(f"Warning: '{target}' is not a valid file or directory - skipping")
+
+    test_files = sorted(test_files_set)
+
+    if not test_files:
+        print("Error: No valid test files found")
         return 1
+
+    # Run all collected test files
+    print(f"Running {len(test_files)} individual test files")
+    print("=" * 60)
+
+    for test_file in test_files:
+        result = runner.run_single_test(test_file)
+        runner.print_result_summary(result)
+        print("-" * 60)
 
     # Generate summary report
     exit_code = runner.generate_summary_report()

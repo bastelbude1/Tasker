@@ -179,12 +179,6 @@ old/
 ehthumbs.db
 Thumbs.db
 
-# Shell script output files
-increment_counter.sh
-toggle_exit.sh
-
 # Test case artifacts (keep the .txt files but ignore generated outputs)
 test_cases/*_*_*.log
 test_cases/*_*_*.dryrun
-test_cases/increment_counter.sh
-test_cases/ultra_simple_test.sh

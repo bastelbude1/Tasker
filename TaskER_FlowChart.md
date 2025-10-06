@@ -263,7 +263,7 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `loop` | Integer | ✅ Yes | Number of iterations to execute (1-100) |
+| `loop` | Integer | ✅ Yes | Number of iterations to execute (1-1000) |
 | `next` | String | ✅ Yes | Must be "loop" |
 | `loop_break` | String | ❌ Optional | Condition to break out of loop early |
 

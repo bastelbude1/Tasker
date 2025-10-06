@@ -320,6 +320,7 @@ class TaskerTestExecutor:
     def parse_execution_path(self, stdout_content):
         """Parse task execution path from TASKER output."""
         executed_tasks = []
+        loop_execution_path = []  # Track loop iterations like "0.1", "0.2", "0.3"
         executed_subtasks = []  # Track conditional/parallel subtasks separately
         skipped_tasks = []
         final_task = None
@@ -328,12 +329,29 @@ class TaskerTestExecutor:
 
         # Parse task execution lines
         for line in stdout_content.split('\n'):
+            # Look for loop iteration patterns (Task X.Y format) - only count execution start lines
+            # Match patterns like "Task 1.1: [DRY RUN] Would execute" or "Task 1.1: Executing"
+            loop_match = re.search(r'Task (\d+)\.(\d+): (?:\[DRY RUN\] Would execute|Executing)', line)
+            if loop_match:
+                task_id = int(loop_match.group(1))
+                iteration = int(loop_match.group(2))
+                iteration_id = f"{task_id}.{iteration}"
+                # Only add if not already in the list (avoid duplicates)
+                if iteration_id not in loop_execution_path:
+                    loop_execution_path.append(iteration_id)
+                # Add base task_id to executed_tasks if not already there
+                if task_id not in executed_tasks:
+                    executed_tasks.append(task_id)
+                final_task = task_id
+                continue
+
             # Look for conditional/parallel subtask execution (e.g., Task 1-20:, Task 2-30:)
             if re.search(r'Task \d+-\d+: Executing', line):
                 match = re.search(r'Task (\d+-\d+):', line)
                 if match:
                     task_id = match.group(1)
                     executed_subtasks.append(task_id)
+
             # Look for task execution patterns (regular tasks, parallel, conditional)
             elif re.search(r'Task \d+: Executing', line) or \
                re.search(r'Task \d+: Starting parallel execution', line) or \
@@ -396,6 +414,7 @@ class TaskerTestExecutor:
 
         return {
             "executed_tasks": executed_tasks,
+            "loop_execution_path": loop_execution_path,
             "executed_subtasks": executed_subtasks,
             "skipped_tasks": skipped_tasks,
             "final_task": final_task,
@@ -601,6 +620,17 @@ class TestValidator:
                 validation_results["passed"] = False
                 validation_results["failures"].append(
                     f"Execution path mismatch: expected {expected_path}, got {actual_path}"
+                )
+
+        # Validate loop execution path (NEW)
+        if "expected_loop_execution_path" in metadata:
+            expected_loop_path = metadata["expected_loop_execution_path"]
+            actual_loop_path = execution_path.get("loop_execution_path", [])
+
+            if actual_loop_path != expected_loop_path:
+                validation_results["passed"] = False
+                validation_results["failures"].append(
+                    f"Loop execution path mismatch: expected {expected_loop_path}, got {actual_loop_path}"
                 )
 
         if "expected_skipped_tasks" in metadata:
@@ -1038,10 +1068,14 @@ class IntelligentTestRunner:
         if status == "PASSED" and "execution_results" in result:
             execution_path = result["execution_results"].get("execution_path", {})
             executed_tasks = execution_path.get("executed_tasks", [])
+            loop_execution_path = execution_path.get("loop_execution_path", [])
             executed_subtasks = execution_path.get("executed_subtasks", [])
 
             if executed_tasks:
                 print(f"    EXECUTION PATH: {executed_tasks}")
+
+            if loop_execution_path:
+                print(f"    LOOP ITERATIONS: {loop_execution_path}")
 
             if executed_subtasks:
                 print(f"    SUBTASKS: {executed_subtasks}")

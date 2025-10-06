@@ -1288,7 +1288,7 @@ Parameters specific to sequential task execution:
 | `on_success` | Integer | Task ID to jump to on success | Any valid task ID |
 | `on_failure` | Integer | Task ID to jump to on failure | Any valid task ID |
 | `return` | Integer | Exit workflow with return code | 0-255 |
-| `loop` | Integer | Additional execution iterations | 1-100 (sequential tasks only) |
+| `loop` | Integer | Additional execution iterations | 1-1000 (sequential tasks only) |
 | `loop_break` | String | Condition to break loop early | Any valid condition (sequential only) |
 
 **Important Notes:**

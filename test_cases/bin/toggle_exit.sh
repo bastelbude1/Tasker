@@ -24,7 +24,4 @@ echo "$new_value" > "$TOGGLE_FILE"
 # Print the new value
 echo "$new_value" >&2
 
-# Force flush
-(>&1)
-
 exit "$new_value"

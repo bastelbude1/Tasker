@@ -1,0 +1,17 @@
+# TEST_METADATA: {"description": "Loop placeholder resolution - verify @X_stdout@ contains last iteration result", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# Test that placeholder @0_stdout@ resolves to the LAST loop iteration's output
+# Task 0 loops 3 times, incrementing counter: output should be "3"
+# Task 1 verifies by echoing the resolved placeholder
+
+task=0
+hostname=localhost
+command=increment_counter.sh
+exec=local
+loop=3
+next=loop
+
+task=1
+hostname=localhost
+command=echo
+arguments=Final counter value: @0_stdout@
+exec=local

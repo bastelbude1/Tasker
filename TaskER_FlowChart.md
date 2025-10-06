@@ -287,7 +287,7 @@ Applied to any Execution Block
 - `loop=3` means task executes exactly 3 times (Task X.1, X.2, X.3)
 - `next=loop` is mandatory to enable loop functionality
 - `loop_break` condition can terminate loop early if met
-- Each iteration gets separate task result storage
+- **Only the LAST iteration result is stored** - `@X_stdout@` references get final iteration output
 - Task IDs are displayed with iteration numbers (e.g., Task 5.1, 5.2, 5.3)
 - Useful for retry patterns or periodic checks
 

@@ -1,10 +1,19 @@
 #!/bin/bash
+set -euo pipefail
+# shellcheck disable=SC2086
+
 # conditional_exit.sh [target_iteration]
 # Exits with code 0 when counter reaches target iteration, otherwise exit 1
 # Used for loop_break testing
 
 COUNTER_FILE="/tmp/conditional_exit_counter_shared"
 TARGET=${1:-3}  # Default target is iteration 3
+
+# Validate TARGET is a positive integer
+if ! [[ "$TARGET" =~ ^[0-9]+$ ]] || [ "$TARGET" -le 0 ]; then
+    echo "Error: Invalid target iteration: $TARGET (must be positive integer)" >&2
+    exit 2
+fi
 
 # Initialize or increment counter (with atomic operation)
 (

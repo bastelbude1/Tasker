@@ -15,19 +15,33 @@ if ! [[ "$TARGET" =~ ^[0-9]+$ ]] || [ "$TARGET" -le 0 ]; then
     exit 2
 fi
 
-# Initialize or increment counter (with atomic operation)
+# Initialize or increment counter (with atomic operation and process ownership)
 (
     flock -x 200
+
+    # Use CONDITIONAL_EXIT_OWNER env var if set, otherwise use parent process ID
+    # This allows test isolation while supporting manual testing
+    OWNER=${CONDITIONAL_EXIT_OWNER:-$PPID}
+
     if [ ! -f "$COUNTER_FILE" ]; then
         COUNTER=1
-        echo "$COUNTER" > "$COUNTER_FILE"
     else
-        COUNTER=$(cat "$COUNTER_FILE")
-        COUNTER=$((COUNTER + 1))
-        echo "$COUNTER" > "$COUNTER_FILE"
+        # Read owner and counter from file
+        read -r STORED_OWNER STORED_COUNTER < "$COUNTER_FILE" || STORED_OWNER=
+
+        # Only increment if same owner and counter is valid
+        if [ "$STORED_OWNER" = "$OWNER" ] && [[ "$STORED_COUNTER" =~ ^[0-9]+$ ]]; then
+            COUNTER=$((STORED_COUNTER + 1))
+        else
+            # Different owner or invalid counter - reset to 1
+            COUNTER=1
+        fi
     fi
 
-    echo "Iteration: $COUNTER, Target: $TARGET"
+    # Store owner and counter
+    printf '%s %s\n' "$OWNER" "$COUNTER" > "$COUNTER_FILE"
+
+    echo "Iteration: $COUNTER, Target: $TARGET (Owner: $OWNER)"
 
     # Check if we've reached the target
     if [ "$COUNTER" -eq "$TARGET" ]; then

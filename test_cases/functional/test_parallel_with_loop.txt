@@ -1,0 +1,41 @@
+# TEST_METADATA: {"description": "Parallel block with loop tasks - loops are ignored", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_subtasks": {"1": ["10", "11"]}}
+# Test parallel execution where subtasks have loop parameter
+# Loop control is ONLY available for sequential tasks - NOT for parallel/conditional subtasks
+# Expected behavior: loop parameters are silently ignored, tasks execute once
+# Expected task IDs: 1-10, 1-11 (NOT 1-10.1, 1-10.2, etc.)
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting parallel with loops test
+exec=local
+
+# Parallel block with loop tasks
+task=1
+type=parallel
+tasks=10,11
+max_parallel=2
+
+# Subtask 10 with loop=3
+task=10
+hostname=localhost
+command=/usr/bin/echo
+arguments=Parallel subtask 10 iteration
+exec=local
+loop=3
+next=loop
+
+# Subtask 11 with loop=2
+task=11
+hostname=localhost
+command=/usr/bin/echo
+arguments=Parallel subtask 11 iteration
+exec=local
+loop=2
+next=loop
+
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=Parallel with loops completed
+exec=local

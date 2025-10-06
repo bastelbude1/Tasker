@@ -256,6 +256,50 @@ class TaskValidator:
                         f"Task {task_id} references task {ref_id} which is a '{ref_type}' task."
                     )
 
+    def _check_loop_in_subtasks(self, referenced_task_ids, line_number, parent_task_id, parent_type):
+        """
+        Check if any referenced subtasks have loop parameters (NOT SUPPORTED).
+
+        Loop control (loop, loop_break, next=loop) is ONLY available for sequential tasks.
+        Parallel and conditional subtasks cannot use loop parameters - they execute once.
+
+        Args:
+            referenced_task_ids: List of task IDs being referenced
+            line_number: Line number in task file for error reporting
+            parent_task_id: ID of the parent task (parallel/conditional)
+            parent_type: Type of parent task ('parallel' or 'conditional')
+
+        Side effects:
+            Appends errors to self.errors if loop parameters are detected in subtasks
+            Calls self.debug_log with detailed information in DEBUG mode
+        """
+        for ref_id in referenced_task_ids:
+            # Find the referenced task in our parsed tasks
+            ref_task = next((t[0] for t in self.tasks if self._safe_task_id_from_entry(t) == ref_id), None)
+            if ref_task:
+                # Check for any loop-related parameters
+                has_loop = 'loop' in ref_task
+                has_loop_break = 'loop_break' in ref_task
+                has_loop_next = ref_task.get('next') == 'loop'
+
+                if has_loop or has_loop_break or has_loop_next:
+                    # Build list of detected loop parameters
+                    loop_params = []
+                    if has_loop:
+                        loop_params.append(f"loop={ref_task['loop']}")
+                    if has_loop_break:
+                        loop_params.append(f"loop_break={ref_task['loop_break']}")
+                    if has_loop_next:
+                        loop_params.append("next=loop")
+
+                    params_str = ", ".join(loop_params)
+
+                    # Self-contained error with subtask ID and parameters
+                    details = f"subtask {ref_id} ({params_str})"
+                    self.errors.append(
+                        f"Line {line_number}: Task {parent_task_id} ({parent_type}) references {details}. Loop control is only available for sequential tasks."
+                    )
+
     def parse_file(self):
         """Parse the task file into global variables and individual tasks."""
         if not os.path.exists(self.task_file):
@@ -730,6 +774,9 @@ class TaskValidator:
                     # CRITICAL: Check for nested conditional/parallel tasks (NOT SUPPORTED)
                     self._check_nested_conditional_or_parallel(referenced_task_ids, line_number, task_id)
 
+                    # CRITICAL: Check for loop parameters in subtasks (NOT SUPPORTED)
+                    self._check_loop_in_subtasks(referenced_task_ids, line_number, task_id, 'parallel')
+
                     # Check max_parallel vs number of tasks
                     if 'max_parallel' in task:
                         max_parallel = int(task['max_parallel'])
@@ -805,6 +852,9 @@ class TaskValidator:
 
             # CRITICAL: Check for nested conditional/parallel tasks (NOT SUPPORTED)
             self._check_nested_conditional_or_parallel(referenced_task_ids, line_number, task_id)
+
+            # CRITICAL: Check for loop parameters in subtasks (NOT SUPPORTED)
+            self._check_loop_in_subtasks(referenced_task_ids, line_number, task_id, 'conditional')
 
         except ValueError as e:
             self.errors.append(f"Line {line_number}: Task {task_id} has invalid task reference in {field_name} field: {str(e)}")

@@ -1,0 +1,42 @@
+# TEST_METADATA: {"description": "Conditional block with loop tasks - validation should reject", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "skip_host_validation": true, "validation_only": true}
+# Test conditional execution where subtasks have loop parameter
+# Loop control is ONLY available for sequential tasks - NOT for parallel/conditional subtasks
+# Expected behavior: Validation fails with exit code 20, rejecting loop parameters in subtasks
+# This test verifies that loop parameters in conditional subtasks are correctly rejected by validation
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=PRODUCTION
+exec=local
+
+# Conditional block with loop task in true branch (will execute)
+task=1
+type=conditional
+condition=@0_stdout@=PRODUCTION
+if_true_tasks=10
+if_false_tasks=20
+
+# True branch subtask with loop=3 (executes once, loop ignored)
+task=10
+hostname=localhost
+command=/usr/bin/echo
+arguments=Conditional subtask TRUE iteration
+exec=local
+loop=3
+next=loop
+
+# False branch subtask with loop (should be skipped)
+task=20
+hostname=localhost
+command=/usr/bin/echo
+arguments=Conditional subtask FALSE - should not execute
+exec=local
+loop=2
+next=loop
+
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=Conditional with loops completed
+exec=local

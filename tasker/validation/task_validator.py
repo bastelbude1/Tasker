@@ -192,6 +192,70 @@ class TaskValidator:
             return value
         return value.strip()
 
+    def _safe_task_id_from_entry(self, task_entry):
+        """
+        Safely extract task ID from a task entry tuple.
+
+        Tasks are stored as tuples: (task_dict, line_number)
+        This method safely extracts and converts the task ID to an integer,
+        handling malformed or non-numeric task IDs gracefully.
+
+        Args:
+            task_entry: Tuple of (task_dict, line_number)
+
+        Returns:
+            Integer task ID if valid, None otherwise.
+        """
+        try:
+            task_dict = task_entry[0]
+            task_id_str = task_dict.get('task', '')
+
+            # Handle task ID already being an int
+            if isinstance(task_id_str, int):
+                return task_id_str
+            # Handle string task IDs - check if numeric before conversion
+            elif isinstance(task_id_str, str) and task_id_str.isdigit():
+                return int(task_id_str)
+            else:
+                # Non-numeric or invalid task ID - return None
+                return None
+        except (ValueError, KeyError, IndexError, TypeError):
+            # Handle any unexpected errors gracefully
+            return None
+
+    def _check_nested_conditional_or_parallel(self, referenced_task_ids, line_number, task_id):
+        """
+        Check if any referenced tasks are conditional or parallel tasks (NOT SUPPORTED).
+
+        TASKER does not support nested conditional/parallel tasks. This method validates
+        that all referenced task IDs point to regular execution tasks, not to other
+        conditional or parallel tasks.
+
+        Args:
+            referenced_task_ids: List of task IDs being referenced
+            line_number: Line number in task file for error reporting
+            task_id: ID of the task doing the referencing
+
+        Side effects:
+            Appends errors to self.errors if nested tasks are detected
+            Calls self.debug_log with detailed information in DEBUG mode
+        """
+        for ref_id in referenced_task_ids:
+            # Find the referenced task in our parsed tasks (tasks stored as tuples: (task_dict, line_num))
+            # Use safe lookup to handle malformed task IDs gracefully
+            ref_task = next((t[0] for t in self.tasks if self._safe_task_id_from_entry(t) == ref_id), None)
+            if ref_task and 'type' in ref_task:
+                ref_type = ref_task.get('type')
+                if ref_type in ['conditional', 'parallel']:
+                    # Simple error for INFO mode
+                    self.errors.append(
+                        f"Line {line_number}: Nested conditional/parallel tasks are NOT supported."
+                    )
+                    # Detailed info for DEBUG mode
+                    self.debug_log(
+                        f"Task {task_id} references task {ref_id} which is a '{ref_type}' task."
+                    )
+
     def parse_file(self):
         """Parse the task file into global variables and individual tasks."""
         if not os.path.exists(self.task_file):
@@ -662,13 +726,16 @@ class TaskValidator:
                     # Check for self-reference
                     if task_id in referenced_task_ids:
                         self.errors.append(f"Line {line_number}: Task {task_id} cannot reference itself in parallel tasks.")
-                    
+
+                    # CRITICAL: Check for nested conditional/parallel tasks (NOT SUPPORTED)
+                    self._check_nested_conditional_or_parallel(referenced_task_ids, line_number, task_id)
+
                     # Check max_parallel vs number of tasks
                     if 'max_parallel' in task:
                         max_parallel = int(task['max_parallel'])
                         if len(referenced_task_ids) < max_parallel:
                             self.warnings.append(f"Line {line_number}: Task {task_id} has max_parallel ({max_parallel}) greater than number of tasks ({len(referenced_task_ids)}).")
-                            
+
                 except ValueError as e:
                     self.errors.append(f"Line {line_number}: Task {task_id} has invalid task reference in tasks field: {str(e)}")
 
@@ -718,7 +785,7 @@ class TaskValidator:
             else:
                 self.warnings.append(f"Line {line_number}: Task {task_id} has empty {field_name} field.")
             return
-        
+
         try:
             # Parse comma-separated task IDs
             referenced_task_ids = []
@@ -728,14 +795,17 @@ class TaskValidator:
                     ref_id = int(task_ref)
                     referenced_task_ids.append(ref_id)
                     conditional_tasks.add(ref_id)
-            
+
             if len(referenced_task_ids) == 0:
                 self.errors.append(f"Line {line_number}: Task {task_id} has no valid task references in {field_name} field.")
-            
+
             # Check for self-reference
             if task_id in referenced_task_ids:
                 self.errors.append(f"Line {line_number}: Task {task_id} cannot reference itself in {field_name}.")
-                
+
+            # CRITICAL: Check for nested conditional/parallel tasks (NOT SUPPORTED)
+            self._check_nested_conditional_or_parallel(referenced_task_ids, line_number, task_id)
+
         except ValueError as e:
             self.errors.append(f"Line {line_number}: Task {task_id} has invalid task reference in {field_name} field: {str(e)}")
 

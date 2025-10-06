@@ -1,0 +1,11 @@
+# TEST_METADATA: {"description": "Loop parameter validation test - invalid loop values", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+# Test loop parameter validation with invalid values
+
+# Test loop=0 (should fail validation)
+task=0
+hostname=localhost
+command=echo
+arguments=test
+exec=local
+loop=0
+next=loop

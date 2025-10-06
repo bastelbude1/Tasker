@@ -8,6 +8,6 @@ hostname=localhost
 command=date
 arguments=+%H:%M:%S
 exec=local
-loop=2
+loop=3
 next=loop
 sleep=1

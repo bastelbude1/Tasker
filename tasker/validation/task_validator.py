@@ -1056,10 +1056,12 @@ class TaskValidator:
             loop_clean = self.clean_field_value(loop_resolved)
             try:
                 loop_count = int(loop_clean)
-                if loop_count < 0:
-                    self.warnings.append(f"Line {line_number}: Task {task_id} has negative loop count: {loop_count}")
+                if loop_count < 1:
+                    self.errors.append(f"Line {line_number}: Task {task_id} has invalid loop count: {loop_count}. Must be >= 1.")
+                elif loop_count > 100:
+                    self.warnings.append(f"Line {line_number}: Task {task_id} has high loop count: {loop_count}. Consider if this is intentional.")
             except ValueError:
-                self.errors.append(f"Line {line_number}: Task {task_id} has invalid loop count: '{loop_clean}'.")
+                self.errors.append(f"Line {line_number}: Task {task_id} has invalid loop count: '{loop_clean}'. Must be an integer.")
 
             # Critical validation: loop parameter requires next=loop to function
             if 'next' not in task or task['next'] != 'loop':

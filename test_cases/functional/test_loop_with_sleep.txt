@@ -1,0 +1,12 @@
+# TEST_METADATA: {"description": "Loop with sleep timing test", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# Test loop functionality with sleep timing
+# Each iteration should have a 1-second delay
+
+task=1
+hostname=localhost
+command=date
+arguments=+%H:%M:%S
+exec=local
+loop=2
+next=loop
+sleep=1

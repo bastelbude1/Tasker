@@ -1,0 +1,18 @@
+# TEST_METADATA: {"description": "Basic loop functionality test without break condition", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# Test basic loop functionality
+# Task 1 should execute 4 times total (original + 3 loops)
+
+# Setup task
+task=0
+hostname=localhost
+command=increment_counter.sh
+arguments=0
+exec=local
+
+# Loop task - executes 4 times total
+task=1
+hostname=localhost
+command=increment_counter.sh
+exec=local
+loop=3
+next=loop

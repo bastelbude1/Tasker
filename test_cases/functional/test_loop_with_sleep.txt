@@ -2,7 +2,7 @@
 # Test loop functionality with sleep timing
 # Each iteration should have a 1-second delay
 
-task=1
+task=0
 hostname=localhost
 command=date
 arguments=+%H:%M:%S

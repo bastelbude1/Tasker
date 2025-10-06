@@ -1,6 +1,7 @@
 # TEST_METADATA: {"description": "Loop with sleep timing test", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
 # Test loop functionality with sleep timing
-# Each iteration should have a 1-second delay
+# Task 0 with loop=2 executes exactly 2 times as Task 0.1, 0.2
+# Each iteration has a 1-second delay between executions
 
 task=0
 hostname=localhost

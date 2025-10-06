@@ -34,8 +34,29 @@ class SequentialExecutor(BaseExecutor):
             return ParallelExecutor.execute_parallel_tasks(task, executor_instance)
 
         # Get loop iteration display if looping
+        # For tasks with loop parameter, always show iteration number starting from .1
         loop_display = ""
-        if task_id in executor_instance.loop_iterations:
+        if 'loop' in task and task.get('next') == 'loop':
+            # Initialize both loop counter AND iteration counter on first encounter
+            if hasattr(executor_instance, '_state_manager'):
+                if executor_instance._state_manager.get_loop_counter(task_id) == 0:
+                    # First time seeing this loop task - initialize everything
+                    executor_instance._state_manager.set_loop_counter(task_id, int(task['loop']))
+                    executor_instance._state_manager.set_loop_iteration(task_id, 1)
+                loop_display = f".{executor_instance._state_manager.get_loop_iteration(task_id)}"
+            else:
+                if not hasattr(executor_instance, 'loop_iterations'):
+                    executor_instance.loop_iterations = {}
+                if not hasattr(executor_instance, 'loop_counter'):
+                    executor_instance.loop_counter = {}
+
+                if task_id not in executor_instance.loop_counter:
+                    # First time seeing this loop task - initialize everything
+                    executor_instance.loop_counter[task_id] = int(task['loop'])
+                    executor_instance.loop_iterations[task_id] = 1
+                loop_display = f".{executor_instance.loop_iterations[task_id]}"
+        elif hasattr(executor_instance, 'loop_iterations') and task_id in executor_instance.loop_iterations:
+            # For tasks already in loop (after first iteration)
             loop_display = f".{executor_instance.loop_iterations[task_id]}"
 
         # Check for shutdown before task execution

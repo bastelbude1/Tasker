@@ -1059,7 +1059,7 @@ class TaskValidator:
                 if loop_count < 1:
                     self.errors.append(f"Line {line_number}: Task {task_id} has invalid loop count: {loop_count}. Must be between 1 and 1000.")
                 elif loop_count > 1000:
-                    self.errors.append(f"Line {line_number}: Task {task_id} has loop count exceeds maximum: {loop_count}. Maximum allowed is 1000.")
+                    self.errors.append(f"Line {line_number}: Task {task_id} has a loop count that exceeds the maximum: {loop_count}. Maximum allowed is 1000.")
                 elif loop_count > 100:
                     self.warnings.append(f"Line {line_number}: Task {task_id} has high loop count: {loop_count}. Consider if this is intentional.")
             except ValueError:

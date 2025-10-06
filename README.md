@@ -327,6 +327,8 @@ success=exit_0
 
 **Loop Semantics:** `loop=N` executes exactly N times, displayed as Task X.1, X.2, ... X.N
 
+**Placeholder Resolution:** When referencing loop task results with `@X_stdout@`, `@X_stderr@`, or `@X_exit_code@`, you will get the **last iteration's output** only. Previous iterations are not stored.
+
 **Note:** Loop control is only available for sequential tasks. See [Sequential Execution Parameters](#sequential-execution-parameters-default-mode) table below.
 
 ### Output Processing Parameters

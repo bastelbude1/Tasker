@@ -223,7 +223,7 @@ class TaskValidator:
             # Handle any unexpected errors gracefully
             return None
 
-    def _check_nested_conditional_or_parallel(self, referenced_task_ids, line_number, task_id):
+    def _check_nested_conditional_or_parallel(self, referenced_task_ids, line_number, task_id, parent_type):
         """
         Check if any referenced tasks are conditional or parallel tasks (NOT SUPPORTED).
 
@@ -235,10 +235,10 @@ class TaskValidator:
             referenced_task_ids: List of task IDs being referenced
             line_number: Line number in task file for error reporting
             task_id: ID of the task doing the referencing
+            parent_type: Type of parent task ('parallel' or 'conditional')
 
         Side effects:
             Appends errors to self.errors if nested tasks are detected
-            Calls self.debug_log with detailed information in DEBUG mode
         """
         for ref_id in referenced_task_ids:
             # Find the referenced task in our parsed tasks (tasks stored as tuples: (task_dict, line_num))
@@ -247,10 +247,10 @@ class TaskValidator:
             if ref_task and 'type' in ref_task:
                 ref_type = ref_task.get('type')
                 if ref_type in ['conditional', 'parallel']:
-                    # Self-contained error with subtask ID and type
+                    # Self-contained error with parent type, subtask ID, and subtask type
                     details = f"subtask {ref_id} ({ref_type})"
                     self.errors.append(
-                        f"Line {line_number}: Task {task_id} references {details}. Nested conditional/parallel tasks are NOT supported."
+                        f"Line {line_number}: Task {task_id} ({parent_type}) references {details}. Nested conditional/parallel tasks are NOT supported."
                     )
 
     def _check_loop_in_subtasks(self, referenced_task_ids, line_number, parent_task_id, parent_type):
@@ -769,7 +769,7 @@ class TaskValidator:
                         self.errors.append(f"Line {line_number}: Task {task_id} cannot reference itself in parallel tasks.")
 
                     # CRITICAL: Check for nested conditional/parallel tasks (NOT SUPPORTED)
-                    self._check_nested_conditional_or_parallel(referenced_task_ids, line_number, task_id)
+                    self._check_nested_conditional_or_parallel(referenced_task_ids, line_number, task_id, 'parallel')
 
                     # CRITICAL: Check for loop parameters in subtasks (NOT SUPPORTED)
                     self._check_loop_in_subtasks(referenced_task_ids, line_number, task_id, 'parallel')
@@ -848,7 +848,7 @@ class TaskValidator:
                 self.errors.append(f"Line {line_number}: Task {task_id} cannot reference itself in {field_name}.")
 
             # CRITICAL: Check for nested conditional/parallel tasks (NOT SUPPORTED)
-            self._check_nested_conditional_or_parallel(referenced_task_ids, line_number, task_id)
+            self._check_nested_conditional_or_parallel(referenced_task_ids, line_number, task_id, 'conditional')
 
             # CRITICAL: Check for loop parameters in subtasks (NOT SUPPORTED)
             self._check_loop_in_subtasks(referenced_task_ids, line_number, task_id, 'conditional')

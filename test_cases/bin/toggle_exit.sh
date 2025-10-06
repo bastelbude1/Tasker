@@ -19,12 +19,12 @@ else
 fi
 
 # Save the new value back to the file
-echo $new_value > "$TOGGLE_FILE"
+echo "$new_value" > "$TOGGLE_FILE"
 
 # Print the new value
-echo $new_value >&2
+echo "$new_value" >&2
 
 # Force flush
 (>&1)
 
-exit $new_value
+exit "$new_value"

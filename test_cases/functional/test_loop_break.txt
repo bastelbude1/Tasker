@@ -2,7 +2,7 @@
 # Test loop break functionality
 # Loop should break when conditional_exit.sh returns exit_0 on iteration 3
 
-task=1
+task=0
 hostname=localhost
 command=conditional_exit.sh
 arguments=3

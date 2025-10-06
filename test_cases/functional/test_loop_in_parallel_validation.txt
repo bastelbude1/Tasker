@@ -1,0 +1,49 @@
+# TEST_METADATA: {"description": "Parallel block with loop subtasks - validation should fail", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_only": true}
+# Test that parallel blocks reject subtasks with loop parameters
+# Loop control (loop, loop_break, next=loop) is ONLY available for sequential tasks
+# This test verifies that the validator correctly rejects loop parameters in parallel subtasks
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting parallel loop validation test
+exec=local
+
+# Parallel block with loop subtasks (VALIDATION SHOULD FAIL)
+task=1
+type=parallel
+tasks=10,11,12
+max_parallel=3
+
+# Subtask 10 with loop=3 (NOT SUPPORTED - should trigger validation error)
+task=10
+hostname=localhost
+command=/usr/bin/echo
+arguments=Parallel subtask 10 iteration
+exec=local
+loop=3
+next=loop
+
+# Subtask 11 with loop_break (NOT SUPPORTED - should trigger validation error)
+task=11
+hostname=localhost
+command=/usr/bin/echo
+arguments=Parallel subtask 11 iteration
+exec=local
+loop=5
+loop_break=@11_exit_code@=0
+next=loop
+
+# Subtask 12 with only next=loop (NOT SUPPORTED - should trigger validation error)
+task=12
+hostname=localhost
+command=/usr/bin/echo
+arguments=Parallel subtask 12 iteration
+exec=local
+next=loop
+
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=This should never execute
+exec=local

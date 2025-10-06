@@ -1,0 +1,10 @@
+# TEST_METADATA: {"description": "Loop with loop=1 - execute exactly once", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# Test loop=1 which should execute exactly once as Task 0.1
+
+task=0
+hostname=localhost
+command=echo
+arguments=Single loop execution
+exec=local
+loop=1
+next=loop

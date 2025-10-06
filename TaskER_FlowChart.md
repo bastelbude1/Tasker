@@ -263,19 +263,20 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `loop` | Integer | ✅ Yes | Number of additional iterations (1-100) |
+| `loop` | Integer | ✅ Yes | Number of iterations to execute (1-1000) |
 | `next` | String | ✅ Yes | Must be "loop" |
 | `loop_break` | String | ❌ Optional | Condition to break out of loop early |
 
 ### Example
 ```
-# Applied to existing task:
-hostname=server01
-command=ping
-arguments=-c 1 google.com
-loop=3
+task=0
+hostname=localhost
+command=conditional_exit.sh
+arguments=3
+exec=local
+loop=10
 next=loop
-loop_break=@5_stdout@~unreachable
+loop_break=exit_0
 ```
 
 ### Entry Point
@@ -283,10 +284,11 @@ Applied to any Execution Block
 
 ### Behavior
 - Repeats the same task for specified number of iterations
-- `loop=3` means task executes 4 times total (original + 3 loops)
+- `loop=3` means task executes exactly 3 times (Task X.1, X.2, X.3)
 - `next=loop` is mandatory to enable loop functionality
 - `loop_break` condition can terminate loop early if met
-- Each iteration gets separate task result storage
+- **Only the LAST iteration result is stored** - `@X_stdout@` references get final iteration output
+- Task IDs are displayed with iteration numbers (e.g., Task 5.1, 5.2, 5.3)
 - Useful for retry patterns or periodic checks
 
 </td>

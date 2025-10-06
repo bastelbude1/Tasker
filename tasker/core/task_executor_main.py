@@ -1563,9 +1563,9 @@ class TaskExecutor:
         # Decrement the counter
         self.loop_counter[task_id] -= 1
         
-        if self.loop_counter[task_id] >= 0:
+        if self.loop_counter[task_id] > 0:
             self.log_debug(f"Task {task_id}: Looping (iteration {self.loop_iterations[task_id]}, "
-                    f"{self.loop_counter[task_id]} remaining)")
+                    f"{self.loop_counter[task_id] - 1} more to go)")
             return "LOOP"
         else:
             self.log_info(f"Task {task_id}: Loop complete - max iterations reached")
@@ -1669,10 +1669,10 @@ class TaskExecutor:
                 remaining = self._loop_counter_fallback[task_id]
                 current_iteration = self._loop_iterations_fallback[task_id]
 
-            # If counter is still >= 0, continue looping
-            if remaining >= 0:
+            # If counter is still > 0, continue looping (changed from >= to > for exact N executions)
+            if remaining > 0:
                 self.log_debug(f"Task {task_id}: Looping (iteration {current_iteration}, "
-                        f"{remaining} remaining)")
+                        f"{remaining - 1} more to go)")
                 return "LOOP"  # Trigger the loop
             else:
                 # Max iterations reached

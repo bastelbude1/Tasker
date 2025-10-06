@@ -1,0 +1,10 @@
+# TEST_METADATA: {"description": "Loop parameter validation test - excessive loop value", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+# Test loop parameter with excessively large value (> 1000)
+
+task=0
+hostname=localhost
+command=echo
+arguments=test
+exec=local
+loop=10000
+next=loop

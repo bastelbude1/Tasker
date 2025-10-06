@@ -1,0 +1,13 @@
+# TEST_METADATA: {"description": "Loop with sleep timing test", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_loop_execution_path": ["0.1", "0.2", "0.3"]}
+# Test loop functionality with sleep timing
+# Task 0 with loop=3 executes exactly 3 times as Task 0.1, 0.2, 0.3
+# Each iteration has a 1-second delay between executions
+
+task=0
+hostname=localhost
+command=date
+arguments=+%H:%M:%S
+exec=local
+loop=3
+next=loop
+sleep=1

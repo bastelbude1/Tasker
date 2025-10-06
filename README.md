@@ -312,7 +312,7 @@ Advanced loop control with break conditions:
 task=0
 hostname=server1
 command=check_service_status
-# Execute up to 11 times total
+# Execute exactly 10 times (Task 0.1 through 0.10)
 loop=10
 next=loop
 # Break loop when output contains "HEALTHY"
@@ -324,6 +324,8 @@ success=exit_0
 ```
 
 **Important:** Loop functionality requires `next=loop` parameter. Without `next=loop`, the `loop` parameter is ignored and the task executes only once.
+
+**Loop Semantics:** `loop=N` executes exactly N times, displayed as Task X.1, X.2, ... X.N
 
 **Note:** Loop control is only available for sequential tasks. See [Sequential Execution Parameters](#sequential-execution-parameters-default-mode) table below.
 
@@ -2309,7 +2311,7 @@ Repeat tasks with the `loop` parameter:
 task=0
 hostname=retry-server
 command=attempt_connection
-# Execute 4 times total (original + 3 loops)
+# Execute exactly 3 times (Task 0.1, 0.2, 0.3)
 loop=3
 next=loop
 success=exit_0&stdout~connected
@@ -2318,7 +2320,7 @@ exec=pbrun
 
 **Important**: Loop functionality requires `next=loop` parameter. Without `next=loop`, the `loop` parameter is ignored and the task executes only once.
 
-**Note**: `loop=2` means the task executes 3 times total (original + 2 additional loops).
+**Loop Semantics**: `loop=N` executes exactly N times, displayed as Task X.1, X.2, ... X.N
 
 ### Task Routing
 

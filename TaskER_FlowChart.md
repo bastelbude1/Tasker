@@ -263,19 +263,20 @@ flowchart TD
 ### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `loop` | Integer | ✅ Yes | Number of additional iterations (1-100) |
+| `loop` | Integer | ✅ Yes | Number of iterations to execute (1-100) |
 | `next` | String | ✅ Yes | Must be "loop" |
 | `loop_break` | String | ❌ Optional | Condition to break out of loop early |
 
 ### Example
 ```
-# Applied to existing task:
-hostname=server01
-command=ping
-arguments=-c 1 google.com
-loop=3
+task=0
+hostname=localhost
+command=conditional_exit.sh
+arguments=3
+exec=local
+loop=10
 next=loop
-loop_break=@5_stdout@~unreachable
+loop_break=exit_0
 ```
 
 ### Entry Point

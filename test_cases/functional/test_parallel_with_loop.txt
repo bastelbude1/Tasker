@@ -1,8 +1,8 @@
-# TEST_METADATA: {"description": "Parallel block with loop tasks - loops are ignored", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_subtasks": {"1": ["10", "11"]}}
+# TEST_METADATA: {"description": "Parallel block with loop tasks - validation should reject", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "skip_host_validation": true, "validation_only": true}
 # Test parallel execution where subtasks have loop parameter
 # Loop control is ONLY available for sequential tasks - NOT for parallel/conditional subtasks
-# Expected behavior: loop parameters are silently ignored, tasks execute once
-# Expected task IDs: 1-10, 1-11 (NOT 1-10.1, 1-10.2, etc.)
+# Expected behavior: Validation fails with exit code 20, rejecting loop parameters in subtasks
+# This test verifies that loop parameters in parallel subtasks are correctly rejected by validation
 
 task=0
 hostname=localhost

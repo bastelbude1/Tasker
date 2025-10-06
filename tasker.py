@@ -119,6 +119,8 @@ Examples:
     skip_security_validation = args.skip_security_validation or args.skip_validation
 
     # Warn about risky validation skips
+    if skip_task_validation:
+        print("WARNING: Skipping task validation can lead to invalid workflows!")
     if skip_host_validation:
         print("WARNING: Skipping host validation can lead to connection failures!")
     if skip_command_validation:

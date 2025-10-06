@@ -294,12 +294,13 @@ class TaskValidator:
 
                     params_str = ", ".join(loop_params)
 
-                    # Concise error for INFO mode
+                    # Self-contained error for INFO mode with subtask ID and parameters
+                    details = f"subtask {ref_id} ({params_str})"
                     self.errors.append(
-                        f"Line {line_number}: Task {parent_task_id} ({parent_type}): Loop control is only available for sequential tasks."
+                        f"Line {line_number}: Task {parent_task_id} ({parent_type}) references {details}. Loop control is only available for sequential tasks."
                     )
 
-                    # Detailed info for DEBUG mode with parameter details
+                    # Additional context for DEBUG mode
                     self.debug_log(
                         f"Line {line_number}: Task {parent_task_id} ({parent_type}): Subtask {ref_id} has loop parameters ({params_str}) which are not supported in {parent_type} execution."
                     )

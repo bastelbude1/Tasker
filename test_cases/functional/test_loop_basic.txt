@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Basic loop functionality test without break condition", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# TEST_METADATA: {"description": "Basic loop functionality test without break condition", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_loop_execution_path": ["1.1", "1.2", "1.3"]}
 # Test basic loop functionality
 # Task 1 with loop=3 executes exactly 3 times as Task 1.1, 1.2, 1.3
 

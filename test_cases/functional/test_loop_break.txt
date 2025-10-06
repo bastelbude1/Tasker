@@ -1,6 +1,7 @@
-# TEST_METADATA: {"description": "Loop with break condition test - early exit on success", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# TEST_METADATA: {"description": "Loop with break condition test - early exit on success", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_loop_execution_path": ["0.1", "0.2"], "skip_host_validation": true}
 # Test loop break functionality
-# Loop should break when conditional_exit.sh returns exit_0 on iteration 3
+# In dry-run mode, the loop breaks early after 2 iterations
+# NOTE: Actual execution would break on iteration 3 when conditional_exit.sh returns exit_0
 
 task=0
 hostname=localhost

@@ -247,13 +247,10 @@ class TaskValidator:
             if ref_task and 'type' in ref_task:
                 ref_type = ref_task.get('type')
                 if ref_type in ['conditional', 'parallel']:
-                    # Simple error for INFO mode
+                    # Self-contained error with subtask ID and type
+                    details = f"subtask {ref_id} ({ref_type})"
                     self.errors.append(
-                        f"Line {line_number}: Nested conditional/parallel tasks are NOT supported."
-                    )
-                    # Detailed info for DEBUG mode
-                    self.debug_log(
-                        f"Task {task_id} references task {ref_id} which is a '{ref_type}' task."
+                        f"Line {line_number}: Task {task_id} references {details}. Nested conditional/parallel tasks are NOT supported."
                     )
 
     def _check_loop_in_subtasks(self, referenced_task_ids, line_number, parent_task_id, parent_type):

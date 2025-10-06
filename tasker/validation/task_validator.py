@@ -294,15 +294,10 @@ class TaskValidator:
 
                     params_str = ", ".join(loop_params)
 
-                    # Self-contained error for INFO mode with subtask ID and parameters
+                    # Self-contained error with subtask ID and parameters
                     details = f"subtask {ref_id} ({params_str})"
                     self.errors.append(
                         f"Line {line_number}: Task {parent_task_id} ({parent_type}) references {details}. Loop control is only available for sequential tasks."
-                    )
-
-                    # Additional context for DEBUG mode
-                    self.debug_log(
-                        f"Line {line_number}: Task {parent_task_id} ({parent_type}): Subtask {ref_id} has loop parameters ({params_str}) which are not supported in {parent_type} execution."
                     )
 
     def parse_file(self):

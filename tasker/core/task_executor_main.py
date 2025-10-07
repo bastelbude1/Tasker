@@ -1417,10 +1417,18 @@ class TaskExecutor:
         return self._result_collector.categorize_task_result(result)
 
     def parse_retry_config(self, parallel_task):
-        """Parse retry configuration from parallel task."""
-        if parallel_task.get('retry_failed', '').lower() != 'true':
-            return None
-            
+        """
+        Parse retry configuration from parallel task.
+
+        SIMPLIFIED LOGIC: If retry_count >= 1 is present, retry is automatically enabled.
+        The retry_failed field is now optional for backward compatibility.
+        """
+        # Check if retry_count is present (new simplified approach)
+        if 'retry_count' not in parallel_task:
+            # For backward compatibility, also check old retry_failed approach
+            if parallel_task.get('retry_failed', '').lower() != 'true':
+                return None
+
         try:
             # Resolve global variables first before int conversion
             retry_count_str, _ = ConditionEvaluator.replace_variables(parallel_task.get('retry_count', '1'), self.global_vars, self.task_results, self.log_debug)

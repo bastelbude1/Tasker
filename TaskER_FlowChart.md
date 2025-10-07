@@ -394,8 +394,7 @@ flowchart TD
 | `type` | String | ✅ Yes | Must be "parallel" |
 | `tasks` | String | ✅ Yes | Comma-separated task IDs to execute |
 | `max_parallel` | Integer | ❌ Optional | Max concurrent tasks (1-50, default: all) |
-| `retry_failed` | Boolean | ✅ Yes | Must be "true" to enable retry |
-| `retry_count` | Integer | ❌ Optional | Number of retry attempts (0-10, default: 1) |
+| `retry_count` | Integer | ❌ Optional | Number of retry attempts (0-10, default: 1, enables retry) |
 | `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
 
 ### Example
@@ -404,7 +403,6 @@ task=8
 type=parallel
 tasks=10,11,12
 max_parallel=2
-retry_failed=true
 retry_count=3
 retry_delay=5
 ```
@@ -463,8 +461,7 @@ flowchart TD
 | `condition` | String | ✅ Yes | Boolean expression to evaluate |
 | `if_true_tasks` | String | ✅ Yes* | Task IDs for TRUE branch |
 | `if_false_tasks` | String | ✅ Yes* | Task IDs for FALSE branch |
-| `retry_failed` | Boolean | ✅ Yes | Must be "true" to enable retry |
-| `retry_count` | Integer | ❌ Optional | Number of retry attempts (0-10, default: 1) |
+| `retry_count` | Integer | ❌ Optional | Number of retry attempts (0-10, default: 1, enables retry) |
 | `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
 
 *At least one of `if_true_tasks` or `if_false_tasks` must be specified.
@@ -476,7 +473,6 @@ type=conditional
 condition=@0_stdout@=OPEN
 if_true_tasks=10,11,12
 if_false_tasks=20,21
-retry_failed=true
 retry_count=2
 retry_delay=3
 ```

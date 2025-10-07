@@ -1308,49 +1308,49 @@ class TaskValidator:
         if not expression:
             self.errors.append(f"Line {line_number}: Task {task_id} has empty {field_name} condition.")
             return
-            
+
         # Clean the expression (remove extra whitespace)
         expression_clean = self.clean_field_value(expression)
-        
+
         # Check for balanced parentheses
         if expression_clean.count('(') != expression_clean.count(')'):
             self.errors.append(f"Line {line_number}: Task {task_id} has unbalanced parentheses in {field_name}: '{expression_clean}'")
             return
-        
+
         # Check for basic syntax issues
         if expression_clean.startswith(('&', '|')) or expression_clean.endswith(('&', '|')):
             self.errors.append(f"Line {line_number}: Task {task_id} has invalid {field_name} syntax: '{expression_clean}'")
             return
-        
+
         # Check for double operators
         for op in ['&&', '||']:
             if op in expression_clean:
                 self.errors.append(f"Line {line_number}: Task {task_id} has double operator in {field_name}: '{expression_clean}'")
                 return
-        
+
         # Validate global variable references in conditions
         global_var_pattern = r'@([a-zA-Z_][a-zA-Z0-9_]*)@'
         global_matches = re.findall(global_var_pattern, expression_clean)
-        
+
         for var_name in global_matches:
             # Skip task result variables
             task_var_pattern = r'\d+_(stdout|stderr|success)$'
             if re.match(task_var_pattern, var_name):
                 continue
-                
+
             # Track usage
             self.referenced_global_vars.add(var_name)
-            
+
             # Check if defined
             if var_name not in self.global_vars:
                 self.errors.append(
                     f"Line {line_number}: Task {task_id} {field_name} condition references "
                     f"undefined global variable '@{var_name}@'"
                 )
-        
+
         # For validation purposes, try to resolve global variables to check syntax
         resolved_expression = self.resolve_global_variables_for_validation(expression_clean)
-        
+
         # Check for valid exit code patterns in the resolved expression
         exit_conditions = re.findall(r'exit_(\d+)', resolved_expression)
         for exit_code in exit_conditions:
@@ -1367,6 +1367,99 @@ class TaskValidator:
         if invalid_exit_equals:
             for code in invalid_exit_equals:
                 self.errors.append(f"Line {line_number}: Task {task_id} has invalid syntax in {field_name}: 'exit={code}'. Use 'exit_{code}' instead.")
+
+        # CRITICAL: Validate individual condition parts after splitting on operators
+        # This catches malformed conditions like "stdout~FAILED,exit_2"
+        self.validate_condition_parts(resolved_expression, field_name, task_id, line_number)
+
+    def validate_condition_parts(self, expression, field_name, task_id, line_number):
+        """
+        Validate individual condition parts after splitting on boolean operators.
+        This ensures each part is a valid simple condition.
+        """
+        # Split on operators while preserving the structure
+        # Handle |, &, AND, OR operators
+        parts = []
+
+        # First split on word operators (AND, OR, NOT) - case insensitive
+        temp_parts = re.split(r'\s+(AND|OR|NOT)\s+', expression, flags=re.IGNORECASE)
+        for part in temp_parts:
+            # Skip the operators themselves (they appear as separate elements after split)
+            if part.upper() in ['AND', 'OR', 'NOT']:
+                continue
+            # Further split on symbol operators
+            sub_parts = re.split(r'([|&])', part)
+            for sub_part in sub_parts:
+                # Skip empty parts and operator symbols
+                if sub_part.strip() and sub_part not in ['|', '&']:
+                    parts.append(sub_part.strip())
+
+        # Validate each part is a valid simple condition
+        for part in parts:
+            if not part:
+                continue
+
+            # Check for comma in the condition part (comma is NOT a valid operator)
+            if ',' in part:
+                self.errors.append(
+                    f"Line {line_number}: Task {task_id} has invalid {field_name} condition: '{part}'. "
+                    f"Comma ',' is not a valid operator. Use '|' for OR or '&' for AND."
+                )
+                continue
+
+            # Validate that the part matches known condition patterns
+            self.validate_simple_condition_syntax(part, field_name, task_id, line_number)
+
+    def validate_simple_condition_syntax(self, condition, field_name, task_id, line_number):
+        """
+        Validate that a simple condition (no boolean operators) follows valid syntax.
+        Valid patterns:
+        - exit_N (exit code check)
+        - exit_not_0
+        - stdout/stderr with operators (~, !~, =, !=, <, <=, >, >=)
+        - stdout/stderr_count with operators
+        - variable comparisons with operators
+        - boolean literals (true, false)
+        - success keyword
+        """
+        condition = condition.strip()
+
+        # Skip empty conditions
+        if not condition:
+            return
+
+        # Valid patterns
+        valid_patterns = [
+            r'^exit_\d+$',                           # exit_0, exit_1, etc.
+            r'^exit_not_0$',                         # exit_not_0
+            r'^stdout(:|~|!~|=|!=|<|<=|>|>=)',      # stdout with operators
+            r'^stderr(:|~|!~|=|!=|<|<=|>|>=)',      # stderr with operators
+            r'^stdout_count[=<>]',                   # stdout_count with operators
+            r'^stderr_count[=<>]',                   # stderr_count with operators
+            r'^(true|false)$',                       # boolean literals
+            r'^success$',                            # success keyword
+            r'^[a-zA-Z_]\w*[=!<>~]',                # variable comparisons
+            r'^exit_code[=!<>]',                     # exit_code comparisons
+            r'^@\d+_\w+@[=!<>~]',                   # task result comparisons
+            r'^contains:',                           # legacy contains
+            r'^not_contains:',                       # legacy not_contains
+        ]
+
+        # Check if condition matches any valid pattern
+        is_valid = any(re.match(pattern, condition) for pattern in valid_patterns)
+
+        if not is_valid:
+            # Provide helpful error message
+            if re.match(r'^\w+,', condition):
+                self.errors.append(
+                    f"Line {line_number}: Task {task_id} has invalid {field_name} condition: '{condition}'. "
+                    f"Did you mean to use '|' (OR) instead of ',' (comma)?"
+                )
+            else:
+                self.errors.append(
+                    f"Line {line_number}: Task {task_id} has unrecognized {field_name} condition: '{condition}'. "
+                    f"Valid patterns: exit_N, stdout/stderr operators (~, =, !=, etc.), variable comparisons."
+                )
 
     def is_valid_custom_delimiter(self, delimiter):
         """Check if a custom delimiter is valid."""

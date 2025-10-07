@@ -45,7 +45,7 @@ task=1
 hostname=localhost
 command=/usr/bin/some_command
 exec=local
-failure=exit_1,exit_2,exit_127  # Fail if exit 1, 2, or 127
+failure=exit_1|exit_2|exit_127  # Fail if exit 1, 2, or 127
 ```
 
 #### Complex Failure Conditions
@@ -94,7 +94,7 @@ Use either 'success' for positive conditions OR 'failure' for inverse conditions
 
 **Example**: A deployment script where only exit code 1 (permission denied) represents failure:
 ```bash
-failure=exit_1  # Much clearer than success=exit_0,exit_2,exit_3,...
+failure=exit_1  # Much clearer than success=exit_0|exit_2|exit_3|...
 ```
 
 ### Use `success=` when:
@@ -104,15 +104,15 @@ failure=exit_1  # Much clearer than success=exit_0,exit_2,exit_3,...
 
 **Example**: A validation script where only exit 0 and 2 are acceptable:
 ```bash
-success=exit_0,exit_2  # Clearer than listing all other codes as failures
+success=exit_0|exit_2  # Clearer than listing all other codes as failures
 ```
 
 ## Comparison with Success Parameter
 
 | Scenario | Using `success=` | Using `failure=` |
 |----------|------------------|------------------|
-| Fail on exit 1 only | `success=exit_0,exit_2,exit_3,...` | `failure=exit_1` ✅ |
-| Success on exit 0 only | `success=exit_0` ✅ | `failure=exit_1,exit_2,exit_3,...` |
+| Fail on exit 1 only | `success=exit_0\|exit_2\|exit_3\|...` | `failure=exit_1` ✅ |
+| Success on exit 0 only | `success=exit_0` ✅ | `failure=exit_1\|exit_2\|exit_3\|...` |
 | Fail if task 0 failed | `success=@0_success@=true` | `failure=@0_success@=false` ✅ |
 | Success if stdout contains "OK" | `success=@stdout@=OK` ✅ | `failure=@stdout@!=OK` |
 

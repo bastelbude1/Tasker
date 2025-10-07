@@ -1,6 +1,6 @@
-# TEST_METADATA: {"description": "Test failure parameter with multiple exit codes (failure=exit_1,exit_2)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3]}
+# TEST_METADATA: {"description": "Test failure parameter with multiple exit codes (failure=exit_1|exit_2)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3]}
 # Test failure parameter with multiple failure codes
-# failure=exit_1,exit_2 means "fail if exit code is 1 OR 2"
+# failure=exit_1|exit_2 means "fail if exit code is 1 OR 2"
 # exit 0 or 3+ = success
 
 task=0
@@ -9,21 +9,21 @@ command=/usr/bin/echo
 arguments=Starting multiple failure codes test
 exec=local
 
-# Task 1: exit 0, failure=exit_1,exit_2 → NOT in failure list → success
+# Task 1: exit 0, failure=exit_1|exit_2 → NOT in failure list → success
 task=1
 hostname=localhost
 command=/usr/bin/echo
 arguments=Task 1 exits with 0
 exec=local
-failure=exit_1,exit_2
+failure=exit_1|exit_2
 
-# Task 2: exit 0, failure=exit_1,exit_2 → NOT in failure list → success
+# Task 2: exit 0, failure=exit_1|exit_2 → NOT in failure list → success
 task=2
 hostname=localhost
 command=/usr/bin/true
 arguments=
 exec=local
-failure=exit_1,exit_2
+failure=exit_1|exit_2
 
 # Task 3: Should execute because all previous tasks succeeded
 task=3

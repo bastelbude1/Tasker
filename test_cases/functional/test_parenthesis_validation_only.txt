@@ -1,0 +1,49 @@
+# TEST_METADATA: {"description": "Validation-only test for parenthesized conditions", "test_type": "validation_only", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true}
+# This test verifies that parenthesized conditions pass validation
+# It runs with --validate-only flag and should exit 0
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test
+exec=local
+
+# Single parenthesized condition
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test
+exec=local
+success=(stdout~OK)
+
+# Parenthesized condition with AND
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test
+exec=local
+success=(exit_0)&(stdout~SUCCESS)
+
+# Nested parentheses
+task=3
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test
+exec=local
+success=((stdout~COMPLETE))
+
+# Complex grouping
+task=4
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test
+exec=local
+success=(stdout=DONE)|(stdout~OK)
+
+# Mixed grouping and operators
+task=5
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test
+exec=local
+success=(exit_0&stdout~OK)|(exit_1&stderr~ERROR)

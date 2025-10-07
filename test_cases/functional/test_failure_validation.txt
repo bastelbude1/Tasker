@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Validation test - success and failure cannot be used together", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "skip_host_validation": true}
+# This test validates that success and failure parameters are mutually exclusive
+# Using both should trigger a validation error
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting test
+exec=local
+
+# INVALID: This task defines both success AND failure
+# Validation should fail before execution
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task with both success and failure
+exec=local
+success=exit_0
+failure=exit_1
+
+# This should never be reached due to validation failure
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=This should not execute
+exec=local

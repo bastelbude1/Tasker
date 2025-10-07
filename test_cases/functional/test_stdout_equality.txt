@@ -1,0 +1,53 @@
+# TEST_METADATA: {"description": "Test stdout equality and inequality operators (=, !=)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4]}
+# Test stdout equality/inequality functionality
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting stdout equality tests
+exec=local
+
+# Task 1: Test stdout= (exact match)
+# Output is exactly "OK"
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=OK
+exec=local
+success=stdout=OK
+on_failure=99
+
+# Task 2: Test stdout!= (not equal)
+# Output is "SUCCESS", not "FAILURE"
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS
+exec=local
+success=stdout!=FAILURE
+on_failure=99
+
+# Task 3: Test combined condition with &
+# Output contains "COMPLETE" AND is exactly "COMPLETE"
+task=3
+hostname=localhost
+command=/usr/bin/echo
+arguments=COMPLETE
+exec=local
+success=stdout~COMPLETE&stdout=COMPLETE
+on_failure=99
+
+# Task 4: Success message
+task=4
+hostname=localhost
+command=/usr/bin/echo
+arguments=All stdout equality tests passed
+exec=local
+
+# Task 99: Failure handler
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test failed - equality condition not met
+exec=local
+return=1

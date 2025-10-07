@@ -1137,6 +1137,78 @@ command=send_failure_alert
 - `success` parameter defines criteria, `on_success/on_failure` route based on that criteria
 - Default behavior (no routing parameters): Continue to next sequential task
 
+### Failure Criteria (Inverse Success)
+
+The `failure=` parameter provides an **inverse alternative** to `success=` for simpler workflow definitions when most exit codes represent success.
+
+**Instead of listing all success codes:**
+```
+# Complex: List all success codes
+success=exit_0,exit_2,exit_3,exit_4,exit_5
+```
+
+**Use the simpler inverse approach:**
+```
+# Simple: List only failure code(s)
+failure=exit_1
+```
+
+**How it works:**
+1. Task is assumed to succeed by default
+2. Failure condition is evaluated
+3. If failure condition is TRUE → task failed
+4. If failure condition is FALSE → task succeeded
+
+**Examples:**
+
+Single failure code:
+```
+task=1
+hostname=deployment-server
+command=deploy_application
+# Fail ONLY on exit code 1 (permission denied)
+# All other exit codes (0, 2, 3, etc.) = success
+failure=exit_1
+```
+
+Multiple failure codes:
+```
+task=1
+hostname=database-server
+command=db_migration
+# Fail on exit codes 1, 2, or 127
+failure=exit_1|exit_2|exit_127
+```
+
+Complex failure conditions:
+```
+task=1
+hostname=app-server
+command=health_check
+# Fail if previous task failed
+failure=@0_success@=false
+```
+
+```
+task=2
+hostname=monitoring
+command=check_status
+# Fail if output contains "ERROR"
+failure=@stdout@~ERROR
+```
+
+**Validation Rules:**
+- ❌ `success` and `failure` **cannot** be used together on the same task
+- ✅ Both support the same condition syntax (exit codes, variables, expressions)
+- ✅ Use `success=` when only a few codes mean success
+- ✅ Use `failure=` when only a few codes mean failure
+
+**When to use `failure=` vs `success=`:**
+- **Use `failure=`** when most exit codes are acceptable (simpler)
+- **Use `success=`** when only specific codes are acceptable (more restrictive)
+
+See `FAILURE_CONDITION.md` for comprehensive documentation and examples.
+
 ### Advanced Condition Operators
 
 TASKER supports comprehensive comparison operators for sophisticated condition evaluation:
@@ -1201,7 +1273,7 @@ condition=@0_exit_code@=0&(@0_stdout@~done|@0_stdout@~finished)
 **Note:** Global variables must be defined at the start of your task file and are read-only during execution. Dynamic variable updates during task execution are not yet supported (see Feature Requests section).
 
 **Note on Output Count Conditions:**
-The `stdout_count` and `stderr_count` parameters are planned features but not yet implemented. They are reserved for future versions that will support counting lines in command output.
+The `stdout_count` and `stderr_count` operators are fully implemented for counting lines in command output. They support `=`, `<`, and `>` operators (e.g., `stdout_count>5`, `stderr_count=0`). See the "Output Line Counting" section in Success Criteria for complete documentation and examples.
 
 ### Retry Parameters for Parallel and Conditional Tasks
 
@@ -1566,8 +1638,7 @@ The following parameters are recognized but **not yet implemented**:
 
 | Parameter | Planned Purpose | Status |
 |-----------|----------------|--------|
-| `stdout_count` | Count lines in stdout for conditions | Reserved for future use |
-| `stderr_count` | Count lines in stderr for conditions | Reserved for future use |
+| *(No reserved parameters at this time)* | | |
 
 ### Parameter Validation Rules
 
@@ -2295,6 +2366,34 @@ command=continue_workflow
 - `stdout!~pattern`: stdout does NOT contain "pattern"
 - `stdout~`: stdout is empty
 - `stdout!~`: stdout is NOT empty
+- Same operators work for `stderr`
+
+**Output Equality/Inequality:**
+- `stdout=value`: stdout equals "value" (exact match)
+- `stdout!=value`: stdout does not equal "value"
+- Same operators work for `stderr`
+
+**Output Line Counting:**
+- `stdout_count=N`: stdout has exactly N lines
+- `stdout_count<N`: stdout has fewer than N lines
+- `stdout_count>N`: stdout has more than N lines
+- Same operators work for `stderr_count`
+
+**Output Numeric Comparisons:**
+- `stdout<N`: stdout is numeric and less than N
+- `stdout<=N`: stdout is numeric and less than or equal to N
+- `stdout>N`: stdout is numeric and greater than N
+- `stdout>=N`: stdout is numeric and greater than or equal to N
+- Returns false if stdout is not numeric (e.g., "hello" vs 100 = false)
+- Same operators work for `stderr`
+
+**Examples:**
+```
+success=stdout_count>5                    # Success if more than 5 lines
+success=stdout=OK                         # Success if output is exactly "OK"
+success=stdout~SUCCESS&stderr~           # Success if stdout contains "SUCCESS" and stderr is empty
+success=stdout>100                        # Success if stdout is numeric and greater than 100
+```
 
 ### Loop Control
 

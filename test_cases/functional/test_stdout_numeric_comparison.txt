@@ -1,0 +1,63 @@
+# TEST_METADATA: {"description": "Test stdout numeric comparison operators (<, <=, >, >=)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4, 5]}
+# Test stdout numeric comparison functionality
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting stdout numeric comparison tests
+exec=local
+
+# Task 1: Test stdout> (greater than)
+# Output is 150, which is > 100
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=150
+exec=local
+success=stdout>100
+on_failure=99
+
+# Task 2: Test stdout< (less than)
+# Output is 25, which is < 50
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=25
+exec=local
+success=stdout<50
+on_failure=99
+
+# Task 3: Test stdout>= (greater than or equal)
+# Output is 100, which is >= 100
+task=3
+hostname=localhost
+command=/usr/bin/echo
+arguments=100
+exec=local
+success=stdout>=100
+on_failure=99
+
+# Task 4: Test stdout<= (less than or equal)
+# Output is 50, which is <= 50
+task=4
+hostname=localhost
+command=/usr/bin/echo
+arguments=50
+exec=local
+success=stdout<=50
+on_failure=99
+
+# Task 5: Success message
+task=5
+hostname=localhost
+command=/usr/bin/echo
+arguments=All stdout numeric comparison tests passed
+exec=local
+
+# Task 99: Failure handler
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test failed - numeric comparison condition not met
+exec=local
+return=1

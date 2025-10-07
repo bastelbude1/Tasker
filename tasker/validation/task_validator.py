@@ -1432,9 +1432,15 @@ class TaskValidator:
         valid_patterns = [
             r'^exit_\d+$',                           # exit_0, exit_1, etc.
             r'^exit_not_0$',                         # exit_not_0
-            r'^stdout(:|~|!~|=|!=|<|<=|>|>=)',      # stdout with operators
-            r'^stderr(:|~|!~|=|!=|<|<=|>|>=)',      # stderr with operators
+            r'^stdout~',                             # stdout pattern matching (contains/empty)
+            r'^stdout!~',                            # stdout pattern not matching
+            r'^stdout(=|!=)',                        # stdout equality/inequality
+            r'^stdout(<|<=|>|>=)',                   # stdout numeric comparison
             r'^stdout_count[=<>]',                   # stdout_count with operators
+            r'^stderr~',                             # stderr pattern matching (contains/empty)
+            r'^stderr!~',                            # stderr pattern not matching
+            r'^stderr(=|!=)',                        # stderr equality/inequality
+            r'^stderr(<|<=|>|>=)',                   # stderr numeric comparison
             r'^stderr_count[=<>]',                   # stderr_count with operators
             r'^(true|false)$',                       # boolean literals
             r'^success$',                            # success keyword

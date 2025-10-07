@@ -1,0 +1,52 @@
+# TEST_METADATA: {"description": "Test stderr operators (~, !=, count)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4]}
+# Test stderr operator functionality
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting stderr operator tests
+exec=local
+
+# Task 1: Test stderr~ (empty check)
+# echo produces no stderr output
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=no error output
+exec=local
+success=stderr~
+on_failure=99
+
+# Task 2: Test stderr_count=0 (no lines in stderr)
+# true command produces no stderr output
+task=2
+hostname=localhost
+command=/usr/bin/true
+exec=local
+success=stderr_count=0
+on_failure=99
+
+# Task 3: Test stderr= (exact match with empty)
+# Ensure stderr is equal to empty string
+task=3
+hostname=localhost
+command=/usr/bin/echo
+arguments=test output
+exec=local
+success=stderr=
+on_failure=99
+
+# Task 4: Success message
+task=4
+hostname=localhost
+command=/usr/bin/echo
+arguments=All stderr operator tests passed
+exec=local
+
+# Task 99: Failure handler
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test failed - stderr condition not met
+exec=local
+return=1

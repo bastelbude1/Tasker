@@ -1208,7 +1208,7 @@ The `stdout_count` and `stderr_count` parameters are planned features but not ye
 Advanced retry logic for robust task execution in parallel and conditional workflows:
 
 **Retry Configuration Parameters:**
-- `retry_count=N` : Number of retry attempts (0-10, default: 1). Setting this automatically enables retry.
+- `retry_count=N` : Number of retry attempts (1-1000, default: 1). Setting this automatically enables retry.
 - `retry_delay=N` : Delay between retries in seconds (0-300, default: 1)
 
 **Parallel Task Retries:**
@@ -1303,7 +1303,7 @@ Parameters for executing multiple tasks concurrently:
 | `tasks` | String | **Yes** | Comma-separated task IDs to execute | "10,11,12" |
 | `max_parallel` | Integer | No | Max concurrent tasks | 1-50 (default: all) |
 | `timeout` | Integer | No | Master timeout for all tasks | 5-3600 seconds |
-| `retry_count` | Integer | No | Number of retry attempts (enables retry) | 0-10 (default: 1) |
+| `retry_count` | Integer | No | Number of retry attempts (enables retry) | 1-1000 (default: 1) |
 | `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |
 | `next` | String | No | Success evaluation condition | See below |
 | `on_success` | Integer | No | Task ID if next condition met | Any valid task ID |
@@ -1331,7 +1331,7 @@ Parameters for branching based on runtime conditions:
 | `next` | String | No | Success evaluation condition | Same as parallel conditions |
 | `on_success` | Integer | No | Task ID if next condition met | Any valid task ID |
 | `on_failure` | Integer | No | Task ID if next condition not met | Any valid task ID |
-| `retry_count` | Integer | No | Number of retry attempts (enables retry) | 0-10 (default: 1) |
+| `retry_count` | Integer | No | Number of retry attempts (enables retry) | 1-1000 (default: 1) |
 | `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |
 
 *At least one of `if_true_tasks` or `if_false_tasks` must be specified.

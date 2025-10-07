@@ -85,9 +85,13 @@ Examples:
                        help='Skip ALL validation checks (same as --skip-task-validation --skip-host-validation --skip-command-validation --skip-security-validation)')
     parser.add_argument('--validate-only', action='store_true',
                        help='Perform complete validation (task + host + command + security) and exit without task execution')
-    
+
+    # Execution behavior
+    parser.add_argument('--fire-and-forget', action='store_true',
+                       help='Continue workflow execution even when tasks fail (no routing parameters). WARNING: Failed tasks will not stop execution - use for non-critical workflows only')
+
     # Execution planning
-    parser.add_argument('--show-plan', action='store_true', 
+    parser.add_argument('--show-plan', action='store_true',
                        help='Show execution plan and require confirmation before running')
 
     # Keep -d/--debug as convenient shorthand for --log-level=DEBUG
@@ -128,6 +132,9 @@ Examples:
     if skip_security_validation:
         print("WARNING: Skipping security validation allows potentially risky patterns!")
 
+    if args.fire_and_forget:
+        print("WARNING: Fire-and-forget mode enabled - failed tasks will NOT stop execution!")
+
     # Execute tasks with context manager for proper cleanup
     with TaskExecutor(
         task_file=args.task_file,
@@ -143,7 +150,8 @@ Examples:
         skip_host_validation=skip_host_validation,
         skip_security_validation=skip_security_validation,
         show_plan=args.show_plan,
-        validate_only=args.validate_only
+        validate_only=args.validate_only,
+        fire_and_forget=args.fire_and_forget
     ) as executor:
         executor.run()
 

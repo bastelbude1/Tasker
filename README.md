@@ -323,6 +323,8 @@ success=exit_0
 
 **Loop Semantics:** `loop=N` executes exactly N times, displayed as Task X.1, X.2, ... X.N
 
+**Loop vs Retry behavior:** Loops execute ALL iterations regardless of success/failure (unless `loop_break` condition is met). This differs from retry logic (parallel/conditional tasks), which ONLY retries tasks that fail.
+
 **Placeholder Resolution:** When referencing loop task results with `@X_stdout@`, `@X_stderr@`, or `@X_exit_code@`, you will get the **last iteration's output** only. Previous iterations are not stored.
 
 **Note:** Loop control is only available for sequential tasks. See [Sequential Execution Parameters](#sequential-execution-parameters-default-mode) table below.
@@ -1246,7 +1248,7 @@ retry_delay=5
 - Final retry: `Task 10-20.4: Final attempt (4/4)`
 
 **Important Notes:**
-- Retries only apply to tasks that fail execution (not validation/skipped tasks)
+- **Retry vs Loop behavior**: Retries ONLY occur for tasks that fail execution. In contrast, loops (`loop=N`) execute all iterations regardless of success/failure unless `loop_break` condition is met.
 - Each retry uses the same parameters as the original task
 - Variables are re-evaluated on each retry attempt
 - Master timeout still applies to all retry attempts combined

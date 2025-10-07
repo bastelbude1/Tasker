@@ -287,6 +287,7 @@ Applied to any Execution Block
 - `loop=3` means task executes exactly 3 times (Task X.1, X.2, X.3)
 - `next=loop` is mandatory to enable loop functionality
 - `loop_break` condition can terminate loop early if met
+- **Loop vs Retry**: Loops execute ALL iterations regardless of success/failure (unless `loop_break` is met). This differs from retry logic (Section 8-9), which ONLY retries tasks that fail.
 - **Only the LAST iteration result is stored** - `@X_stdout@` references get final iteration output
 - Task IDs are displayed with iteration numbers (e.g., Task 5.1, 5.2, 5.3)
 - Useful for retry patterns or periodic checks
@@ -412,7 +413,7 @@ Can be entry point or follow any block
 
 ### Behavior
 - Executes multiple tasks simultaneously with threading
-- Failed tasks are automatically retried up to `retry_count` times
+- **Retry vs Loop**: Failed tasks are automatically retried up to `retry_count` times. This differs from loop logic (Section 6), which executes ALL iterations regardless of success/failure.
 - `retry_delay` seconds between retry attempts
 - Results feed into Multi-Task Success Evaluation Block (see #10)
 - More resilient than basic parallel execution
@@ -484,7 +485,7 @@ Can be entry point or follow any block
 - Evaluates boolean condition expression
 - If TRUE → Execute tasks in `if_true_tasks` list
 - If FALSE → Execute tasks in `if_false_tasks` list
-- Failed tasks in chosen branch are automatically retried
+- **Retry vs Loop**: Failed tasks in chosen branch are automatically retried up to `retry_count` times. This differs from loop logic (Section 6), which executes ALL iterations regardless of success/failure.
 - Tasks execute sequentially with retry logic
 - Results feed into Multi-Task Success Evaluation Block (see #10.1)
 

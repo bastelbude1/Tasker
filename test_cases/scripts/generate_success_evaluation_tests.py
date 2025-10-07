@@ -162,10 +162,15 @@ def create_test_case(
     expected_exit_code = 0 if expected_condition_met else 10
     expected_path = [0, 1, 2] if expected_condition_met else [0, 1]
 
+    # Determine test_type based on expected results
+    # Positive tests expect success (exit 0, expected_success=true)
+    # Negative tests expect failure (exit != 0, expected_success=false)
+    test_type = "positive" if (expected_exit_code == 0 and expected_condition_met) else "negative"
+
     # Build metadata
     metadata = {
         "description": f"{block_type.capitalize()} {description}",
-        "test_type": "positive",
+        "test_type": test_type,
         "expected_exit_code": expected_exit_code,
         "expected_success": expected_condition_met,
         "skip_host_validation": True,

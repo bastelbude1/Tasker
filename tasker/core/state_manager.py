@@ -273,6 +273,7 @@ class StateManager:
             self._loop_iterations.clear()
             self._global_vars.clear()
             self._tasks.clear()
+            self.workflow_failed_due_to_condition = False
 
     # ===== COMPATIBILITY PROPERTIES =====
 

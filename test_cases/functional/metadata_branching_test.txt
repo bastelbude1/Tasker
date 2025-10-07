@@ -5,7 +5,7 @@ task=0
 hostname=localhost
 command=false
 exec=local
-next=exit_0
+success=exit_0
 on_failure=3
 
 task=1

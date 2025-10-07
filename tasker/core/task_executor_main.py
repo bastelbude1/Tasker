@@ -83,7 +83,7 @@ class TaskExecutor:
                  exec_type=None, timeout=30, connection_test=False, project=None,
                  start_from_task=None, skip_task_validation=False,
                  skip_host_validation=False, skip_security_validation=False,
-                 show_plan=False, validate_only=False):
+                 show_plan=False, validate_only=False, fire_and_forget=False):
         """
         Initialize a TaskExecutor instance and prepare environment, logging, state, and modular components for task orchestration.
 
@@ -126,6 +126,7 @@ class TaskExecutor:
         self.project = sanitize_filename(project) if project else None  # Sanitized project name
         self.show_plan = show_plan
         self.validate_only = validate_only
+        self.fire_and_forget = fire_and_forget  # Continue on failure even without routing
 
         # Configurable timeouts for cleanup and summary operations
         self.summary_lock_timeout = 20  # Seconds for summary file locking (longer for shared files)
@@ -1602,21 +1603,45 @@ class TaskExecutor:
             loop_display = f".{self.loop_iterations[task_id]}"
 
         if 'next' not in task:
-            # When on_success/on_failure are present but next is not, use the success result for routing
+            # Flexible routing: on_success and on_failure can be used independently
             if ('on_success' in task or 'on_failure' in task):
-                # Use the provided success status if available (this is the evaluated success condition)
+                # Determine success status
                 if current_task_success is not None:
-                    self.log_info(f"Task {task_id}{loop_display}: No 'next' condition specified, using success evaluation for routing: {current_task_success}")
-                    return current_task_success
+                    success = current_task_success
                 else:
-                    # Fallback to exit code if no explicit success evaluation was provided
-                    success_by_exit = (exit_code == 0)
-                    self.log_info(f"Task {task_id}{loop_display}: No 'next' condition specified, using exit code for routing: {success_by_exit}")
-                    return success_by_exit
+                    success = (exit_code == 0)
+
+                has_on_success = 'on_success' in task
+                has_on_failure = 'on_failure' in task
+
+                # Pattern 2: on_success ONLY → failure should exit with code 10
+                if has_on_success and not has_on_failure and not success:
+                    self.log_info(f"Task {task_id}{loop_display}: Failure with on_success-only pattern - workflow will fail with exit 10")
+                    self._state_manager.workflow_failed_due_to_condition = True
+                    return False  # Stop execution, flag is set for exit 10
+
+                # Pattern 1: on_failure ONLY → success continues, failure routes to handler
+                # Pattern 3: BOTH → explicit routing for all outcomes
+                # For these patterns, just return the success status for normal routing
+                if current_task_success is not None:
+                    self.log_info(f"Task {task_id}{loop_display}: No 'next' condition specified, using success evaluation for routing: {success}")
+                else:
+                    self.log_info(f"Task {task_id}{loop_display}: No 'next' condition specified, using exit code for routing: {success}")
+                return success
             else:
-                # No routing parameters at all - continue to next sequential task
-                self.log_info(f"Task {task_id}{loop_display}: No 'next' condition specified, proceeding to next task")
-                return True  # Default to True if not specified
+                # No routing parameters at all - use task success/failure for flow control
+                # Success → continue to next task, Failure → stop execution (unless fire-and-forget)
+                task_success = current_task_success if current_task_success is not None else (exit_code == 0)
+                if task_success:
+                    self.log_info(f"Task {task_id}{loop_display}: No routing specified, task succeeded - proceeding to next task")
+                    return True  # Continue to next task
+                else:
+                    if self.fire_and_forget:
+                        self.log_warn(f"Task {task_id}{loop_display}: No routing specified, task failed - continuing anyway (fire-and-forget mode)")
+                        return True  # Continue despite failure
+                    else:
+                        self.log_info(f"Task {task_id}{loop_display}: No routing specified, task failed - stopping execution")
+                        return False  # Stop on failure (default safe behavior)
             
         next_condition = task['next']
 
@@ -1899,6 +1924,17 @@ class TaskExecutor:
                     # This is a successful completion with 'next=never'
                     self.log_info("SUCCESS: Task execution completed successfully with 'next=never'.")
                 elif tasks_executed_count > 0:
+                    # Check if the final task actually succeeded
+                    if self.final_success is False or self.final_exit_code != 0:
+                        # Last task failed - workflow should exit with failure
+                        self.log_error(f"FAILED: Workflow stopped - last task (Task {self.current_task}) failed with exit code {self.final_exit_code}.")
+                        # Write summary before exiting
+                        if self.summary_log and self.final_task_id is not None:
+                            try:
+                                self.write_final_summary()
+                            except Exception as e:
+                                self.log_warn(f"Failed to write final summary: {e}")
+                        ExitHandler.exit_with_code(self.final_exit_code if self.final_exit_code != 0 else 1, "Last task failed", False)
                     # This is a successful completion - we reached the end of the task sequence
                     self.log_info(f"SUCCESS: Task execution completed successfully - {tasks_executed_count} task(s) executed.")
                 else:

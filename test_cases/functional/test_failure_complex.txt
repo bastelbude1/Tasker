@@ -1,0 +1,28 @@
+# TEST_METADATA: {"description": "Test failure parameter with complex condition (failure=@0_success@=false)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+# Test failure parameter with complex variable-based condition
+# failure=@0_success@=false means "fail if task 0 failed"
+# Since task 0 succeeds, @0_success@=true, so failure condition is false
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 0 succeeds
+exec=local
+
+# Task 1: failure=@0_success@=false
+# Task 0 succeeded, so @0_success@=true
+# failure condition (@0_success@=false) evaluates to false
+# → failure condition NOT met → task 1 succeeds
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 1 checks task 0 status
+exec=local
+failure=@0_success@=false
+
+# Task 2: Should execute because task 1 succeeded
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 2 executes - task 1 succeeded
+exec=local

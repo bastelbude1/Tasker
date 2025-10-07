@@ -13,7 +13,7 @@ exec=local
 # Conditional block with retry enabled (Section 9 of TaskER_FlowChart.md)
 # Evaluates condition and executes either TRUE or FALSE branch
 # Branch tasks that fail are retried up to 3 times with 1 second delay
-# Success condition: All branch tasks must succeed
+# Flow control: on_success/on_failure handle routing after all retries complete
 task=1
 type=conditional
 condition=@0_stdout@=PRODUCTION
@@ -22,7 +22,6 @@ if_false_tasks=20,21
 retry_failed=true
 retry_count=3
 retry_delay=1
-next=all_success
 on_success=2
 on_failure=99
 

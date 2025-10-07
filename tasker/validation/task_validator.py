@@ -1092,6 +1092,19 @@ class TaskValidator:
                         # Not a special value, validate as condition expression
                         self.validate_condition_expression(next_value, 'next', task_id, line_number)
 
+        # CRITICAL: Validate that 'next' and 'on_success'/'on_failure' are mutually exclusive
+        if 'next' in task:
+            if 'on_success' in task or 'on_failure' in task:
+                conflicting_fields = []
+                if 'on_success' in task:
+                    conflicting_fields.append('on_success')
+                if 'on_failure' in task:
+                    conflicting_fields.append('on_failure')
+                self.errors.append(
+                    f"Line {line_number}: Task {task_id} cannot use 'next' together with {', '.join(conflicting_fields)}. "
+                    "Use either 'next' for conditional flow OR 'on_success'/'on_failure' for explicit routing, not both."
+                )
+
         # Validate 'success' field
         if 'success' in task:
             success_value = task['success']

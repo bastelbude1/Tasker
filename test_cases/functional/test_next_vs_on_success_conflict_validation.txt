@@ -1,0 +1,47 @@
+# TEST_METADATA: {"description": "Validation test - next cannot be used with on_success/on_failure", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "skip_host_validation": true}
+# This test validates that using 'next' together with 'on_success' or 'on_failure' is rejected
+# These fields are mutually exclusive - use either 'next' for conditional flow OR 'on_success'/'on_failure' for explicit routing
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting test
+exec=local
+
+# INVALID: This task uses both 'next' and 'on_success'/'on_failure' which is contradictory
+# The validation should reject this configuration
+task=1
+type=conditional
+condition=@0_stdout@=Starting test
+if_true_tasks=10
+if_false_tasks=20
+next=all_success
+on_success=2
+on_failure=99
+
+# Subtasks
+task=10
+hostname=localhost
+command=/usr/bin/echo
+arguments=True branch
+exec=local
+
+task=20
+hostname=localhost
+command=/usr/bin/echo
+arguments=False branch
+exec=local
+
+# These should never be reached due to validation failure
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=Success path
+exec=local
+
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=Failure path
+exec=local
+return=1

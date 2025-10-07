@@ -1177,7 +1177,7 @@ task=1
 hostname=database-server
 command=db_migration
 # Fail on exit codes 1, 2, or 127
-failure=exit_1,exit_2,exit_127
+failure=exit_1|exit_2|exit_127
 ```
 
 Complex failure conditions:

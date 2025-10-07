@@ -1,0 +1,50 @@
+# TEST_METADATA: {"description": "Parallel retry without retry_failed - simplified syntax", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11"], "expected_retry_attempts": ["1-10.1", "1-11.1", "1-11.2"], "retry_execution_ordered": false}
+# Test simplified retry syntax - retry_count alone enables retry
+# The retry_failed=true parameter is now optional and obsolete
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting Simplified Retry Test
+exec=local
+
+# SIMPLIFIED: Only retry_count is needed, no retry_failed=true required
+task=1
+type=parallel
+tasks=10,11
+max_parallel=2
+retry_count=1
+retry_delay=1
+success=min_success=2
+on_success=2
+on_failure=99
+
+# Subtask 10: Always succeeds (no retry needed)
+task=10
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 10 - Always succeeds
+exec=local
+
+# Subtask 11: Fails once, then succeeds (requires 1 retry)
+task=11
+hostname=localhost
+command=retry_controller.sh
+arguments=1
+exec=local
+
+# Success path
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: Simplified retry test passed
+exec=local
+return=0
+
+# Failure path
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=FAILURE: Retry test failed
+exec=local
+return=1

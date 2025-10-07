@@ -19,7 +19,6 @@ type=conditional
 condition=@0_stdout@=PRODUCTION
 if_true_tasks=10,11
 if_false_tasks=20,21
-retry_failed=true
 retry_count=3
 retry_delay=1
 on_success=2

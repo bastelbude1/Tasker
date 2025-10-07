@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Validation test - on_failure requires on_success", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "skip_host_validation": true}
+# This test validates that on_success and on_failure must be used together
+# Defining only on_failure without on_success creates ambiguous flow control
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting test
+exec=local
+
+# INVALID: This task defines on_failure but not on_success
+# What happens if the task succeeds? Undefined behavior.
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task with only on_failure
+exec=local
+on_failure=99
+
+# This should never be reached due to validation failure
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=Failure path
+exec=local
+return=1

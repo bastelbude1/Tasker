@@ -1875,6 +1875,20 @@ class TaskExecutor:
 
         # Check how we exited the loop
         if next_task_id is None:
+            # Check if workflow stopped due to failed condition (Section 10.1 End Failure Block)
+            if self._state_manager.workflow_failed_due_to_condition:
+                # Condition not met - this is a TASK FAILURE (exit 10)
+                # Rationale: Condition evaluates task execution results (success/failure counts)
+                # Not enough tasks succeeded = task failure scenario
+                self.log_error("FAILED: Workflow stopped - next condition not met (End Failure Block).")
+                # Write summary before exiting
+                if self.summary_log and self.final_task_id is not None:
+                    try:
+                        self.write_final_summary()
+                    except Exception as e:
+                        self.log_warn(f"Failed to write final summary: {e}")
+                ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Next condition not met", False)
+
             # We exited because a task returned None (either 'next=never' or end of task sequence)
             if self.current_task in self.tasks:
                 last_task = self.tasks[self.current_task]

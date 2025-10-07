@@ -1,0 +1,50 @@
+# TEST_METADATA: {"description": "Parallel any_success with no tasks succeeding - condition not met", "test_type": "negative", "expected_exit_code": 10, "expected_success": false, "skip_host_validation": true, "expected_execution_path": [0, 1], "expected_subtasks": ["1-10", "1-11", "1-12"], "expected_success_count": 0, "expected_failed_count": 3, "expected_condition_met": false, "expected_final_task": 1, "success_condition": "any_success"}
+# Test parallel execution with any_success condition
+# any_success with no tasks succeeding - condition not met
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting any_success test - any_success with no tasks succeeding - condition not met
+exec=local
+
+# Parallel block with any_success condition
+# Section 10.1: Multi-Task Success Evaluation Block (next)
+# If condition met → continue to task 2 (sequential)
+# If condition not met → workflow ends
+task=1
+type=parallel
+tasks=10,11,12
+max_parallel=3
+next=any_success
+
+# Subtask 10: FAILED (not in success pattern)
+task=10
+hostname=localhost
+command=success_pattern.sh
+arguments=10 "NONE"
+exec=local
+
+# Subtask 11: FAILED (not in success pattern)
+task=11
+hostname=localhost
+command=success_pattern.sh
+arguments=11 "NONE"
+exec=local
+
+# Subtask 12: FAILED (not in success pattern)
+task=12
+hostname=localhost
+command=success_pattern.sh
+arguments=12 "NONE"
+exec=local
+
+
+# Task 2: Executed only if any_success condition is met
+# If condition not met, workflow ends after task 1
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: any_success condition met - 0/3 tasks succeeded
+exec=local
+return=0

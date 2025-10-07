@@ -685,14 +685,14 @@ class TaskValidator:
                 try:
                     retry_count_resolved = self.resolve_global_variables_for_validation(task['retry_count'])
                     retry_count = int(retry_count_resolved)
-                    if retry_count < 0:
-                        self.errors.append(f"Line {line_number}: Task {task_id} has negative retry_count: {retry_count}")
-                    elif retry_count > 10:
-                        self.warnings.append(f"Line {line_number}: Task {task_id} has high retry_count: {retry_count}. Maximum recommended is 10.")
-                    elif retry_count == 0:
-                        self.warnings.append(f"Line {line_number}: Task {task_id} has retry_count=0. This effectively disables retry.")
+                    if retry_count < 1:
+                        self.errors.append(f"Line {line_number}: Task {task_id} has invalid retry_count: {retry_count}. Must be between 1 and 1000.")
+                    elif retry_count > 1000:
+                        self.errors.append(f"Line {line_number}: Task {task_id} has a retry_count that exceeds the maximum: {retry_count}. Maximum allowed is 1000.")
+                    elif retry_count > 100:
+                        self.warnings.append(f"Line {line_number}: Task {task_id} has high retry_count: {retry_count}. Consider if this is intentional.")
                 except ValueError:
-                    self.errors.append(f"Line {line_number}: Task {task_id} has invalid retry_count: '{task['retry_count']}'. Must be an integer.")
+                    self.errors.append(f"Line {line_number}: Task {task_id} has invalid retry_count: '{task['retry_count']}'. Must be an integer between 1 and 1000.")
             
             # Validate retry_delay field
             if has_retry_delay:

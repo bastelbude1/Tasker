@@ -39,6 +39,9 @@ class StateManager:
         # Additional state tracking
         self._tasks = {}  # Task definitions storage
 
+        # Workflow failure tracking
+        self.workflow_failed_due_to_condition = False  # Track if workflow stopped due to failed next condition
+
     # ===== TASK RESULTS MANAGEMENT =====
 
     def store_task_result(self, task_id: int, result: Dict[str, Any]) -> None:
@@ -270,6 +273,7 @@ class StateManager:
             self._loop_iterations.clear()
             self._global_vars.clear()
             self._tasks.clear()
+            self.workflow_failed_due_to_condition = False
 
     # ===== COMPATIBILITY PROPERTIES =====
 

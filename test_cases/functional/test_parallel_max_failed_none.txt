@@ -1,0 +1,64 @@
+# TEST_METADATA: {"description": "Parallel max_failed=0 with no failures - all succeed", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11", "1-12", "1-13", "1-14"], "expected_success_count": 5, "expected_failed_count": 0, "expected_condition_met": true, "expected_final_task": 2, "success_condition": "max_failed=0"}
+# Test parallel execution with max_failed=0 condition
+# max_failed=0 with no failures - all succeed
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting max_failed=0 test - max_failed=0 with no failures - all succeed
+exec=local
+
+# Parallel block with max_failed=0 condition
+# Section 10.1: Multi-Task Success Evaluation Block (next)
+# If condition met → continue to task 2 (sequential)
+# If condition not met → workflow ends
+task=1
+type=parallel
+tasks=10,11,12,13,14
+max_parallel=5
+next=max_failed=0
+
+# Subtask 10: SUCCESS (in success pattern)
+task=10
+hostname=localhost
+command=success_pattern.sh
+arguments=10 "ALL"
+exec=local
+
+# Subtask 11: SUCCESS (in success pattern)
+task=11
+hostname=localhost
+command=success_pattern.sh
+arguments=11 "ALL"
+exec=local
+
+# Subtask 12: SUCCESS (in success pattern)
+task=12
+hostname=localhost
+command=success_pattern.sh
+arguments=12 "ALL"
+exec=local
+
+# Subtask 13: SUCCESS (in success pattern)
+task=13
+hostname=localhost
+command=success_pattern.sh
+arguments=13 "ALL"
+exec=local
+
+# Subtask 14: SUCCESS (in success pattern)
+task=14
+hostname=localhost
+command=success_pattern.sh
+arguments=14 "ALL"
+exec=local
+
+
+# Task 2: Executed only if max_failed=0 condition is met
+# If condition not met, workflow ends after task 1
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: max_failed=0 condition met - 5/5 tasks succeeded
+exec=local
+return=0

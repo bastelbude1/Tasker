@@ -1,0 +1,65 @@
+# TEST_METADATA: {"description": "Conditional Conditional majority_success with 2/4 (50%) tie - condition not met", "test_type": "negative", "expected_exit_code": 10, "expected_success": false, "skip_host_validation": true, "expected_execution_path": [0, 1], "expected_subtasks": ["1-10", "1-11", "1-12", "1-13"], "expected_success_count": 2, "expected_failed_count": 2, "expected_condition_met": false, "expected_final_task": 1, "success_condition": "majority_success"}
+# Test conditional execution with majority_success condition
+# Conditional majority_success with 2/4 (50%) tie - condition not met
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=PRODUCTION
+exec=local
+
+# Conditional block with majority_success condition
+# Section 10.1: Multi-Task Success Evaluation Block (next)
+# If condition met → continue to task 2 (sequential)
+# If condition not met → workflow ends
+task=1
+type=conditional
+condition=@0_stdout@=PRODUCTION
+if_true_tasks=10,11,12,13
+if_false_tasks=20
+next=majority_success
+
+# Subtask 10: SUCCESS (in success pattern)
+task=10
+hostname=localhost
+command=success_pattern.sh
+arguments=10 "10,11"
+exec=local
+
+# Subtask 11: SUCCESS (in success pattern)
+task=11
+hostname=localhost
+command=success_pattern.sh
+arguments=11 "10,11"
+exec=local
+
+# Subtask 12: FAILED (not in success pattern)
+task=12
+hostname=localhost
+command=success_pattern.sh
+arguments=12 "10,11"
+exec=local
+
+# Subtask 13: FAILED (not in success pattern)
+task=13
+hostname=localhost
+command=success_pattern.sh
+arguments=13 "10,11"
+exec=local
+
+
+# False branch placeholder (not executed in this test)
+task=20
+hostname=localhost
+command=/usr/bin/echo
+arguments=False branch - should not execute
+exec=local
+
+# Task 2: Executed only if majority_success condition is met
+# If condition not met, workflow ends after task 1
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: majority_success condition met - 2/4 tasks succeeded
+exec=local
+return=0

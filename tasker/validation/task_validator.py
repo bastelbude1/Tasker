@@ -63,7 +63,7 @@ class TaskValidator:
         }
         self.optional_fields = [
             'arguments', 'next', 'stdout_split', 'stderr_split',
-            'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure', 'on_success', 'success', 'condition', 'exec', 'timeout',
+            'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure', 'on_success', 'success', 'failure', 'condition', 'exec', 'timeout',
             'type', 'max_parallel', 'tasks',  # Parallel task fields
             'if_true_tasks', 'if_false_tasks'  # NEW: Conditional task fields
         ]

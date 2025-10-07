@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Conditional Block test - false branch execution", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_skipped_tasks": []}
+# TEST_METADATA: {"description": "Conditional Block test - false branch execution", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-20", "1-21"], "expected_skipped_tasks": []}
 
 # Test conditional block taking false branch
 # Task 0 outputs "CLOSED", so if_false branch should execute

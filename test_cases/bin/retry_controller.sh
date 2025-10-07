@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e -o pipefail
 # retry_controller.sh <max_failures> [success_stdout] [success_stderr] [fail_stdout] [fail_stderr]
 #
 # Fails exactly max_failures times, then succeeds
@@ -33,9 +34,9 @@ if ! [[ "$MAX_FAILURES" =~ ^[0-9]+$ ]] || [ "$MAX_FAILURES" -le 0 ] || [ "$MAX_F
     exit 1
 fi
 
-# Use unique counter file based on max_failures to allow multiple instances
-COUNTER_FILE="/tmp/retry_controller_${MAX_FAILURES}_counter"
+# Use unique counter file based on owner and max_failures for proper test isolation
 OWNER=${RETRY_CONTROLLER_OWNER:-$PPID}
+COUNTER_FILE="/tmp/retry_controller_${OWNER}_${MAX_FAILURES}_counter"
 
 # Atomic counter increment with ownership tracking
 (
@@ -44,7 +45,7 @@ OWNER=${RETRY_CONTROLLER_OWNER:-$PPID}
     if [ ! -f "$COUNTER_FILE" ]; then
         COUNTER=1
     else
-        read -r STORED_OWNER STORED_COUNTER < "$COUNTER_FILE" 2>/dev/null || STORED_OWNER=
+        read -r STORED_OWNER STORED_COUNTER < "$COUNTER_FILE" 2>/dev/null || { STORED_OWNER=""; STORED_COUNTER=""; }
         if [ "$STORED_OWNER" = "$OWNER" ] && [[ "$STORED_COUNTER" =~ ^[0-9]+$ ]]; then
             COUNTER=$((STORED_COUNTER + 1))
         else

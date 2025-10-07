@@ -1638,8 +1638,7 @@ The following parameters are recognized but **not yet implemented**:
 
 | Parameter | Planned Purpose | Status |
 |-----------|----------------|--------|
-| `stdout_count` | Count lines in stdout for conditions | Reserved for future use |
-| `stderr_count` | Count lines in stderr for conditions | Reserved for future use |
+| *(No reserved parameters at this time)* | | |
 
 ### Parameter Validation Rules
 

@@ -1,0 +1,68 @@
+# TEST_METADATA: {"description": "Parallel block with retry - tasks fail then succeed", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11", "1-12"], "expected_retry_attempts": ["1-10.1", "1-11.1", "1-11.2", "1-12.1", "1-12.2", "1-12.3"], "retry_execution_ordered": false}
+# Test parallel execution with retry_failed=true
+# Section 8 of TaskER_FlowChart.md: Parallel Block with Retry
+# Tasks will fail initially but succeed after retries
+# Demonstrates that failed tasks are automatically retried up to retry_count times
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting Parallel Block with Retry Test
+exec=local
+
+# Parallel block with retry enabled (Section 8 of TaskER_FlowChart.md)
+# Executes tasks 10, 11, 12 in parallel
+# Failed tasks are retried up to 2 times with 1 second delay
+# Flow control: on_success if at least 2 succeed, on_failure otherwise
+task=1
+type=parallel
+tasks=10,11,12
+max_parallel=3
+retry_failed=true
+retry_count=2
+retry_delay=1
+success=min_success=2
+on_success=2
+on_failure=99
+
+# Subtask 10: Always succeeds (no retry needed)
+# This ensures we have at least one guaranteed success
+task=10
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 10 - Always succeeds on first attempt
+exec=local
+
+# Subtask 11: Fails once, then succeeds (requires 1 retry)
+# Uses retry_controller.sh to simulate a transient failure
+task=11
+hostname=localhost
+command=retry_controller.sh
+arguments=1
+exec=local
+
+# Subtask 12: Fails twice, then succeeds (requires 2 retries)
+# Tests that retry_count=2 allows exactly 2 retries
+task=12
+hostname=localhost
+command=retry_controller.sh
+arguments=2
+exec=local
+
+# Success path (at least 2 of 3 tasks succeeded after retries)
+# Expected result: All 3 tasks should succeed (10 immediately, 11 after 1 retry, 12 after 2 retries)
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: Parallel retry test passed - minimum tasks succeeded after retries
+exec=local
+return=0
+
+# Failure path (should not be reached)
+# This would only execute if fewer than 2 tasks succeeded even after retries
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=FAILURE: Parallel retry test failed - insufficient tasks succeeded
+exec=local
+return=1

@@ -322,6 +322,7 @@ class TaskerTestExecutor:
         executed_tasks = []
         loop_execution_path = []  # Track loop iterations like "0.1", "0.2", "0.3"
         executed_subtasks = []  # Track conditional/parallel subtasks separately
+        retry_execution_path = []  # Track retry attempts like "1-10.1", "1-10.2", "1-11.1"
         skipped_tasks = []
         final_task = None
         variables = {}
@@ -329,6 +330,17 @@ class TaskerTestExecutor:
 
         # Parse task execution lines
         for line in stdout_content.split('\n'):
+            # Look for retry attempt patterns (Task 1-10.1, Task 1-10.2 format) - HIGHEST PRIORITY
+            # Match patterns like "Task 1-10.1: Executing" or "Task 1-10.2: FAILED"
+            # Must check before subtask pattern to avoid false matches
+            retry_match = re.search(r'Task (\d+-\d+\.\d+): (?:Executing|FAILED|SUCCESS)', line)
+            if retry_match:
+                retry_id = retry_match.group(1)
+                # Only add if not already in the list (avoid duplicates)
+                if retry_id not in retry_execution_path:
+                    retry_execution_path.append(retry_id)
+                continue
+
             # Look for loop iteration patterns (Task X.Y format) - only count execution start lines
             # Match patterns like "Task 1.1: [DRY RUN] Would execute" or "Task 1.1: Executing"
             loop_match = re.search(r'Task (\d+)\.(\d+): (?:\[DRY RUN\] Would execute|Executing)', line)
@@ -416,6 +428,7 @@ class TaskerTestExecutor:
             "executed_tasks": executed_tasks,
             "loop_execution_path": loop_execution_path,
             "executed_subtasks": executed_subtasks,
+            "retry_execution_path": retry_execution_path,
             "skipped_tasks": skipped_tasks,
             "final_task": final_task,
             "variables": variables,
@@ -632,6 +645,32 @@ class TestValidator:
                 validation_results["failures"].append(
                     f"Loop execution path mismatch: expected {expected_loop_path}, got {actual_loop_path}"
                 )
+
+        # Validate retry execution path (NEW)
+        if "expected_retry_attempts" in metadata:
+            expected_retry_path = metadata["expected_retry_attempts"]
+            actual_retry_path = execution_path.get("retry_execution_path", [])
+            retry_ordered = metadata.get("retry_execution_ordered", False)
+
+            if retry_ordered:
+                # Ordered validation - exact sequence must match (conditional/sequential retry)
+                if actual_retry_path != expected_retry_path:
+                    validation_results["passed"] = False
+                    validation_results["failures"].append(
+                        f"Retry execution order mismatch: expected {expected_retry_path}, got {actual_retry_path}"
+                    )
+            else:
+                # Unordered validation - only presence matters (parallel retry)
+                if set(actual_retry_path) != set(expected_retry_path):
+                    validation_results["passed"] = False
+                    missing = set(expected_retry_path) - set(actual_retry_path)
+                    extra = set(actual_retry_path) - set(expected_retry_path)
+                    msg = f"Retry attempts mismatch: expected {expected_retry_path}, got {actual_retry_path}"
+                    if missing:
+                        msg += f" (missing: {list(missing)})"
+                    if extra:
+                        msg += f" (extra: {list(extra)})"
+                    validation_results["failures"].append(msg)
 
         if "expected_skipped_tasks" in metadata:
             expected_skipped = metadata["expected_skipped_tasks"]
@@ -1079,6 +1118,13 @@ class IntelligentTestRunner:
 
             if executed_subtasks:
                 print(f"    SUBTASKS: {executed_subtasks}")
+
+            # Show retry attempts if captured (NEW)
+            retry_execution_path = execution_path.get("retry_execution_path", [])
+            if retry_execution_path:
+                retry_ordered = result.get("metadata", {}).get("retry_execution_ordered", False)
+                order_label = "ordered" if retry_ordered else "unordered"
+                print(f"    RETRY ATTEMPTS: {retry_execution_path} ({order_label})")
 
             # Show variables if captured (Phase 3)
             variables = execution_path.get("variables", {})

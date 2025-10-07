@@ -1137,6 +1137,78 @@ command=send_failure_alert
 - `success` parameter defines criteria, `on_success/on_failure` route based on that criteria
 - Default behavior (no routing parameters): Continue to next sequential task
 
+### Failure Criteria (Inverse Success)
+
+The `failure=` parameter provides an **inverse alternative** to `success=` for simpler workflow definitions when most exit codes represent success.
+
+**Instead of listing all success codes:**
+```
+# Complex: List all success codes
+success=exit_0,exit_2,exit_3,exit_4,exit_5
+```
+
+**Use the simpler inverse approach:**
+```
+# Simple: List only failure code(s)
+failure=exit_1
+```
+
+**How it works:**
+1. Task is assumed to succeed by default
+2. Failure condition is evaluated
+3. If failure condition is TRUE → task failed
+4. If failure condition is FALSE → task succeeded
+
+**Examples:**
+
+Single failure code:
+```
+task=1
+hostname=deployment-server
+command=deploy_application
+# Fail ONLY on exit code 1 (permission denied)
+# All other exit codes (0, 2, 3, etc.) = success
+failure=exit_1
+```
+
+Multiple failure codes:
+```
+task=1
+hostname=database-server
+command=db_migration
+# Fail on exit codes 1, 2, or 127
+failure=exit_1,exit_2,exit_127
+```
+
+Complex failure conditions:
+```
+task=1
+hostname=app-server
+command=health_check
+# Fail if previous task failed
+failure=@0_success@=false
+```
+
+```
+task=2
+hostname=monitoring
+command=check_status
+# Fail if output contains "ERROR"
+failure=@stdout@~ERROR
+```
+
+**Validation Rules:**
+- ❌ `success` and `failure` **cannot** be used together on the same task
+- ✅ Both support the same condition syntax (exit codes, variables, expressions)
+- ✅ Use `success=` when only a few codes mean success
+- ✅ Use `failure=` when only a few codes mean failure
+
+**When to use `failure=` vs `success=`:**
+- **Use `failure=`** when most exit codes are acceptable (simpler)
+- **Use `success=`** when only specific codes are acceptable (more restrictive)
+
+See `FAILURE_CONDITION.md` for comprehensive documentation and examples.
+
 ### Advanced Condition Operators
 
 TASKER supports comprehensive comparison operators for sophisticated condition evaluation:

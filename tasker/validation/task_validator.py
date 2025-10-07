@@ -1407,8 +1407,23 @@ class TaskValidator:
                 )
                 continue
 
+            # Strip outer matching parentheses to support grouped conditions like '(stdout~OK)'
+            # This allows validation of the inner condition while preserving grouping semantics
+            stripped_part = part.strip()
+
+            # Strip all leading '(' and trailing ')' characters
+            # This handles both complete groups like '(stdout~OK)' and split fragments like '(exit_0'
+            while stripped_part.startswith('('):
+                stripped_part = stripped_part[1:].strip()
+            while stripped_part.endswith(')'):
+                stripped_part = stripped_part[:-1].strip()
+
+            # Skip empty results after stripping
+            if not stripped_part:
+                continue
+
             # Validate that the part matches known condition patterns
-            self.validate_simple_condition_syntax(part, field_name, task_id, line_number)
+            self.validate_simple_condition_syntax(stripped_part, field_name, task_id, line_number)
 
     def validate_simple_condition_syntax(self, condition, field_name, task_id, line_number):
         """

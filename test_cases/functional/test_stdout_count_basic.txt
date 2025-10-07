@@ -1,0 +1,51 @@
+# TEST_METADATA: {"description": "Test stdout_count operator with =, <, > operators", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4]}
+# Test stdout_count line counting functionality
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting stdout_count tests
+exec=local
+
+# Task 1: Test stdout_count= (exact match)
+# Helper script outputs exactly 3 lines
+task=1
+hostname=localhost
+command=print_three_lines.sh
+exec=local
+success=stdout_count=3
+on_failure=99
+
+# Task 2: Test stdout_count< (less than)
+# echo outputs 1 line, which is less than 5
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=single line
+exec=local
+success=stdout_count<5
+on_failure=99
+
+# Task 3: Test stdout_count> (greater than)
+# Helper script outputs 5 lines, which is greater than 3
+task=3
+hostname=localhost
+command=print_five_lines.sh
+exec=local
+success=stdout_count>3
+on_failure=99
+
+# Task 4: Success message
+task=4
+hostname=localhost
+command=/usr/bin/echo
+arguments=All stdout_count tests passed
+exec=local
+
+# Task 99: Failure handler
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test failed - stdout_count condition not met
+exec=local
+return=1

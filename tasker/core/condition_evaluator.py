@@ -352,8 +352,15 @@ class ConditionEvaluator:
                     count_parts = condition.split('_count')
                     operator = count_parts[1][0] if len(count_parts[1]) > 0 else '='
                     expected_count = int(count_parts[1][1:])
-                    actual_count = len(stdout.strip().split('\n'))
-                    
+
+                    # Fix: Handle empty stdout correctly
+                    # Empty string after strip() should be 0 lines, not 1
+                    stdout_stripped = stdout.strip()
+                    if stdout_stripped == '':
+                        actual_count = 0
+                    else:
+                        actual_count = len(stdout_stripped.split('\n'))
+
                     if operator == '=':
                         return actual_count == expected_count
                     elif operator == '<':
@@ -401,8 +408,15 @@ class ConditionEvaluator:
                     count_parts = condition.split('_count')
                     operator = count_parts[1][0] if len(count_parts[1]) > 0 else '='
                     expected_count = int(count_parts[1][1:])
-                    actual_count = len(stderr.strip().split('\n'))
-                    
+
+                    # Fix: Handle empty stderr correctly
+                    # Empty string after strip() should be 0 lines, not 1
+                    stderr_stripped = stderr.strip()
+                    if stderr_stripped == '':
+                        actual_count = 0
+                    else:
+                        actual_count = len(stderr_stripped.split('\n'))
+
                     if operator == '=':
                         return actual_count == expected_count
                     elif operator == '<':

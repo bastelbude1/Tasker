@@ -1273,7 +1273,7 @@ condition=@0_exit_code@=0&(@0_stdout@~done|@0_stdout@~finished)
 **Note:** Global variables must be defined at the start of your task file and are read-only during execution. Dynamic variable updates during task execution are not yet supported (see Feature Requests section).
 
 **Note on Output Count Conditions:**
-The `stdout_count` and `stderr_count` parameters are planned features but not yet implemented. They are reserved for future versions that will support counting lines in command output.
+The `stdout_count` and `stderr_count` operators are fully implemented for counting lines in command output. They support `=`, `<`, and `>` operators (e.g., `stdout_count>5`, `stderr_count=0`). See the "Output Line Counting" section in Success Criteria for complete documentation and examples.
 
 ### Retry Parameters for Parallel and Conditional Tasks
 
@@ -2367,6 +2367,34 @@ command=continue_workflow
 - `stdout!~pattern`: stdout does NOT contain "pattern"
 - `stdout~`: stdout is empty
 - `stdout!~`: stdout is NOT empty
+- Same operators work for `stderr`
+
+**Output Equality/Inequality:**
+- `stdout=value`: stdout equals "value" (exact match)
+- `stdout!=value`: stdout does not equal "value"
+- Same operators work for `stderr`
+
+**Output Line Counting:**
+- `stdout_count=N`: stdout has exactly N lines
+- `stdout_count<N`: stdout has fewer than N lines
+- `stdout_count>N`: stdout has more than N lines
+- Same operators work for `stderr_count`
+
+**Output Numeric Comparisons:**
+- `stdout<N`: stdout is numeric and less than N
+- `stdout<=N`: stdout is numeric and less than or equal to N
+- `stdout>N`: stdout is numeric and greater than N
+- `stdout>=N`: stdout is numeric and greater than or equal to N
+- Returns false if stdout is not numeric (e.g., "hello" vs 100 = false)
+- Same operators work for `stderr`
+
+**Examples:**
+```
+success=stdout_count>5                    # Success if more than 5 lines
+success=stdout=OK                         # Success if output is exactly "OK"
+success=stdout~SUCCESS&stderr~           # Success if stdout contains "SUCCESS" and stderr is empty
+success=stdout>100                        # Success if stdout is numeric and greater than 100
+```
 
 ### Loop Control
 

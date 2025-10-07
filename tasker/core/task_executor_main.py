@@ -1436,10 +1436,10 @@ class TaskExecutor:
         
             retry_count = int(retry_count_str)
             retry_delay = int(retry_delay_str)
-            
+
             # Validate retry parameters
-            if retry_count < 0 or retry_count > 10:
-                self.log_warn(f"retry_count {retry_count} out of range (0-10), using 1")
+            if retry_count < 1 or retry_count > 1000:
+                self.log_warn(f"retry_count {retry_count} out of range (1-1000), using 1")
                 retry_count = 1
                 
             if retry_delay < 0 or retry_delay > 300:

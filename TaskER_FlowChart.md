@@ -395,7 +395,7 @@ flowchart TD
 | `type` | String | ✅ Yes | Must be "parallel" |
 | `tasks` | String | ✅ Yes | Comma-separated task IDs to execute |
 | `max_parallel` | Integer | ❌ Optional | Max concurrent tasks (1-50, default: all) |
-| `retry_count` | Integer | ❌ Optional | Number of retry attempts (0-10, default: 1, enables retry) |
+| `retry_count` | Integer | ❌ Optional | Number of retry attempts (1-1000, default: 1, enables retry) |
 | `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
 
 ### Example
@@ -462,7 +462,7 @@ flowchart TD
 | `condition` | String | ✅ Yes | Boolean expression to evaluate |
 | `if_true_tasks` | String | ✅ Yes* | Task IDs for TRUE branch |
 | `if_false_tasks` | String | ✅ Yes* | Task IDs for FALSE branch |
-| `retry_count` | Integer | ❌ Optional | Number of retry attempts (0-10, default: 1, enables retry) |
+| `retry_count` | Integer | ❌ Optional | Number of retry attempts (1-1000, default: 1, enables retry) |
 | `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
 
 *At least one of `if_true_tasks` or `if_false_tasks` must be specified.

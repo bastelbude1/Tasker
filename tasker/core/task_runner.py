@@ -315,6 +315,11 @@ class TaskRunner:
         if next_task_id is not None:
             return next_task_id
 
+        # If workflow_controller returned None and set failure flag, stop immediately
+        # This handles on_success-only pattern where failure should exit with code 10
+        if self.state_manager.workflow_failed_due_to_condition:
+            return None
+
         # Check next condition for flow control
         next_result = self.workflow_controller.check_next_condition(
             task, task_result['exit_code'], task_result['stdout'],

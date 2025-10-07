@@ -1105,6 +1105,20 @@ class TaskValidator:
                     "Use either 'next' for conditional flow OR 'on_success'/'on_failure' for explicit routing, not both."
                 )
 
+        # CRITICAL: Validate that 'on_success' and 'on_failure' must be used together
+        has_on_success = 'on_success' in task
+        has_on_failure = 'on_failure' in task
+        if has_on_success and not has_on_failure:
+            self.errors.append(
+                f"Line {line_number}: Task {task_id} defines 'on_success' but missing 'on_failure'. "
+                "Both 'on_success' and 'on_failure' must be defined together to handle all execution outcomes."
+            )
+        elif has_on_failure and not has_on_success:
+            self.errors.append(
+                f"Line {line_number}: Task {task_id} defines 'on_failure' but missing 'on_success'. "
+                "Both 'on_success' and 'on_failure' must be defined together to handle all execution outcomes."
+            )
+
         # Validate 'success' field
         if 'success' in task:
             success_value = task['success']

@@ -536,7 +536,7 @@ class TaskValidator:
                 if field not in all_known_fields:
                     self.warnings.append(f"Line {line_number}: Task {task_id} has unknown field '{field}'.")
 
-            # NEW: Check for retry fields in non-parallel/non-conditional tasks
+            # Check for retry fields in non-parallel/non-conditional tasks
             self.validate_retry_field_usage(task, task_id, task_type, line_number)
 
             # Validate specific field values
@@ -545,13 +545,13 @@ class TaskValidator:
             # Validate parallel task specific fields
             if task_type == 'parallel':
                 self.validate_parallel_task(task, task_id, line_number, parallel_tasks)
-                # NEW: Validate retry configuration for parallel tasks
+                # Validate retry configuration for parallel tasks
                 self.validate_retry_configuration(task, task_id, line_number)
 
-            # NEW: Validate conditional task specific fields
+            # Validate conditional task specific fields
             if task_type == 'conditional':
                 self.validate_conditional_task(task, task_id, line_number, conditional_tasks)
-                # NEW: Validate retry configuration for conditional tasks
+                # Validate retry configuration for conditional tasks
                 self.validate_retry_configuration(task, task_id, line_number)
 
             # Validate global variable references
@@ -677,21 +677,9 @@ class TaskValidator:
         has_retry_delay = 'retry_delay' in task
         
         # If any retry field is present, validate the configuration
-        if has_retry_failed or has_retry_count or has_retry_delay:
-            
-            # Validate retry_failed field
-            if has_retry_failed:
-                retry_failed_value = task['retry_failed'].lower().strip()
-                if retry_failed_value not in ['true', 'false']:
-                    self.errors.append(f"Line {line_number}: Task {task_id} has invalid retry_failed value '{task['retry_failed']}'. Must be 'true' or 'false'.")
-                
-                # If retry is enabled, check for consistency
-                if retry_failed_value == 'true':
-                    if not has_retry_count:
-                        self.warnings.append(f"Line {line_number}: Task {task_id} has retry_failed=true but no retry_count specified. Will use default (1).")
-                    if not has_retry_delay:
-                        self.warnings.append(f"Line {line_number}: Task {task_id} has retry_failed=true but no retry_delay specified. Will use default (1).")
-            
+        # SIMPLIFIED: retry_failed is now optional - retry_count >= 1 automatically enables retry
+        if has_retry_count or has_retry_delay:
+
             # Validate retry_count field
             if has_retry_count:
                 try:
@@ -717,13 +705,6 @@ class TaskValidator:
                         self.warnings.append(f"Line {line_number}: Task {task_id} has high retry_delay: {retry_delay}s. Maximum recommended is 300.")
                 except ValueError:
                     self.errors.append(f"Line {line_number}: Task {task_id} has invalid retry_delay: '{task['retry_delay']}'. Must be an integer.")
-            
-            # Warn about incomplete retry configuration
-            if (has_retry_count or has_retry_delay) and not has_retry_failed:
-                self.warnings.append(
-                    f"Line {line_number}: Task {task_id} has retry_count/retry_delay but no retry_failed field. "
-                    f"These fields are ignored unless retry_failed=true."
-                )
 
     def validate_parallel_task(self, task, task_id, line_number, parallel_tasks):
         """Validate parallel task specific fields."""

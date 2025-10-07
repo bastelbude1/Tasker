@@ -257,8 +257,6 @@ type=parallel
 tasks=100,101,102,103,104
 # Limit concurrent execution (default: 8 if not specified)
 max_parallel=5
-# Enable retry
-retry_failed=true
 # Retry failed tasks up to 3 times
 retry_count=3
 # At least 3 must succeed
@@ -286,8 +284,6 @@ condition=@4_stdout@~production
 if_true_tasks=200,201,202
 # Execute if FALSE (custom order)
 if_false_tasks=300,301
-# Enable retry for branch tasks
-retry_failed=true
 # Retry failed tasks
 retry_count=2
 # All branch tasks must succeed
@@ -1210,8 +1206,7 @@ The `stdout_count` and `stderr_count` parameters are planned features but not ye
 Advanced retry logic for robust task execution in parallel and conditional workflows:
 
 **Retry Configuration Parameters:**
-- `retry_failed=true/false` : Enable retry for failed tasks
-- `retry_count=N` : Number of retry attempts (0-10, default: 1)
+- `retry_count=N` : Number of retry attempts (0-10, default: 1). Setting this automatically enables retry.
 - `retry_delay=N` : Delay between retries in seconds (0-300, default: 1)
 
 **Parallel Task Retries:**
@@ -1221,7 +1216,6 @@ task=10
 type=parallel
 max_parallel=3
 tasks=20,21,22
-retry_failed=true
 # Retry each failed task up to 3 times
 retry_count=3
 # Wait 10 seconds between retries
@@ -1239,7 +1233,6 @@ type=conditional
 condition=@29_stdout@~production
 if_true_tasks=40,41,42
 if_false_tasks=50,51
-retry_failed=true
 # Retry failed branch tasks
 retry_count=2
 # 5 second retry delay
@@ -1308,8 +1301,7 @@ Parameters for executing multiple tasks concurrently:
 | `tasks` | String | **Yes** | Comma-separated task IDs to execute | "10,11,12" |
 | `max_parallel` | Integer | No | Max concurrent tasks | 1-50 (default: all) |
 | `timeout` | Integer | No | Master timeout for all tasks | 5-3600 seconds |
-| `retry_failed` | Boolean | No | Enable retry for failed tasks | `true`, `false` |
-| `retry_count` | Integer | No | Number of retry attempts | 0-10 (default: 1) |
+| `retry_count` | Integer | No | Number of retry attempts (enables retry) | 0-10 (default: 1) |
 | `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |
 | `next` | String | No | Success evaluation condition | See below |
 | `on_success` | Integer | No | Task ID if next condition met | Any valid task ID |
@@ -1337,8 +1329,7 @@ Parameters for branching based on runtime conditions:
 | `next` | String | No | Success evaluation condition | Same as parallel conditions |
 | `on_success` | Integer | No | Task ID if next condition met | Any valid task ID |
 | `on_failure` | Integer | No | Task ID if next condition not met | Any valid task ID |
-| `retry_failed` | Boolean | No | Enable retry for failed tasks | `true`, `false` |
-| `retry_count` | Integer | No | Number of retry attempts | 0-10 (default: 1) |
+| `retry_count` | Integer | No | Number of retry attempts (enables retry) | 0-10 (default: 1) |
 | `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |
 
 *At least one of `if_true_tasks` or `if_false_tasks` must be specified.
@@ -1702,7 +1693,6 @@ task=2
 type=parallel
 max_parallel=5
 tasks=10,11,12,13,14
-retry_failed=true
 retry_count=2
 retry_delay=5
 next=min_success=3
@@ -1877,7 +1867,6 @@ type=parallel
 max_parallel=3
 tasks=10,11,12
 timeout=300
-retry_failed=true
 retry_count=2
 next=all_success
 on_success=1
@@ -3208,38 +3197,6 @@ tasker --start-from=15 --validate-only workflow.txt
 
 This section documents potential enhancements that could improve TASKER's functionality in future versions.
 
-### Simplify Retry Configuration
-
-**Current Limitation**: Retry logic requires both `retry_failed=true` AND `retry_count=N` to be set, which is redundant.
-
-**Proposed Enhancement**: Automatically enable retry when `retry_count` is specified:
-```bash
-# Current (redundant):
-task=1
-type=parallel
-tasks=10,11,12
-# Why needed if retry_count is set?
-retry_failed=true
-retry_count=3
-
-# Proposed (simplified):
-task=1
-type=parallel
-tasks=10,11,12
-# Setting this automatically enables retry
-retry_count=3
-```
-
-**Benefits**:
-- Less verbose configuration
-- More intuitive - setting retry_count clearly indicates retry is desired
-- Reduces configuration errors from forgetting `retry_failed=true`
-
-**Backward Compatibility**: Keep `retry_failed` as optional override:
-- `retry_failed=false` with `retry_count=3` - explicitly disable despite count
-- No `retry_failed` with `retry_count=3` - automatically enable retry
-
-
 ### Global Variable Updates During Execution
 
 **Current Limitation**: Global variables are read-only during workflow execution and cannot be modified by tasks.
@@ -3310,7 +3267,6 @@ on_failure=99
 
 **Proposed Enhancement**: Add logical validation that detects and warns about conflicting parameter combinations:
 - `loop=N` with `on_success` when success condition is achievable on first attempt
-- `retry_failed=true` with `success=exit_1` (will never retry since exit_1 is defined as success)
 - `if_true_tasks` and `if_false_tasks` both empty in conditional tasks
 - `timeout=0` or negative timeout values
 - `max_parallel=0` or exceeding reasonable limits

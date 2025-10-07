@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Validation test - comma is not a valid operator in failure condition", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "skip_host_validation": true}
+# This test validates that comma is not accepted as an operator
+# Using comma should trigger a validation error
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting test
+exec=local
+
+# INVALID: This task uses comma instead of pipe for OR
+# Validation should fail before execution
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task with comma in failure condition
+exec=local
+failure=exit_1,exit_2
+
+# This should never be reached due to validation failure
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=This should not execute
+exec=local

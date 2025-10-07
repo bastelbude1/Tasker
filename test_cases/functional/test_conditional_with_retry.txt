@@ -29,7 +29,7 @@ on_failure=99
 # This task will execute because condition evaluates to TRUE (PRODUCTION=PRODUCTION)
 task=10
 hostname=localhost
-command=/home/baste/tasker/test_cases/bin/retry_controller.sh
+command=retry_controller.sh
 arguments=1 "Task 10 TRUE branch succeeded" "NONE"
 exec=local
 
@@ -37,7 +37,7 @@ exec=local
 # Tests that retry_count=3 provides sufficient retries
 task=11
 hostname=localhost
-command=/home/baste/tasker/test_cases/bin/retry_controller.sh
+command=retry_controller.sh
 arguments=2 "Task 11 TRUE branch succeeded" "NONE"
 exec=local
 
@@ -45,7 +45,7 @@ exec=local
 # This demonstrates that only the selected branch is executed and retried
 task=20
 hostname=localhost
-command=/home/baste/tasker/test_cases/bin/retry_controller.sh
+command=retry_controller.sh
 arguments=1 "Task 20 FALSE branch succeeded" "NONE"
 exec=local
 

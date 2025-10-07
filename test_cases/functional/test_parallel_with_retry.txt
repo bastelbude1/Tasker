@@ -37,7 +37,7 @@ exec=local
 # Uses retry_controller.sh to simulate a transient failure
 task=11
 hostname=localhost
-command=/home/baste/tasker/test_cases/bin/retry_controller.sh
+command=retry_controller.sh
 arguments=1
 exec=local
 
@@ -45,7 +45,7 @@ exec=local
 # Tests that retry_count=2 allows exactly 2 retries
 task=12
 hostname=localhost
-command=/home/baste/tasker/test_cases/bin/retry_controller.sh
+command=retry_controller.sh
 arguments=2
 exec=local
 

@@ -13,7 +13,7 @@ exec=local
 # Parallel block with retry enabled (Section 8 of TaskER_FlowChart.md)
 # Executes tasks 10, 11, 12 in parallel
 # Failed tasks are retried up to 2 times with 1 second delay
-# Success condition: At least 2 of 3 tasks must succeed
+# Flow control: on_success if at least 2 succeed, on_failure otherwise
 task=1
 type=parallel
 tasks=10,11,12
@@ -21,7 +21,7 @@ max_parallel=3
 retry_failed=true
 retry_count=2
 retry_delay=1
-next=min_success=2
+success=min_success=2
 on_success=2
 on_failure=99
 

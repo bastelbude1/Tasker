@@ -1881,6 +1881,9 @@ class TaskExecutor:
                 # Rationale: Condition evaluates task execution results (success/failure counts)
                 # Not enough tasks succeeded = task failure scenario
                 self.log_error("FAILED: Workflow stopped - next condition not met (End Failure Block).")
+                # Set final result fields before writing summary
+                self.final_exit_code = ExitCodes.TASK_FAILED
+                self.final_success = False
                 # Write summary before exiting
                 if self.summary_log and self.final_task_id is not None:
                     try:

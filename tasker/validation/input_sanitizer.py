@@ -34,7 +34,7 @@ class InputSanitizer:
     MIN_TIMEOUT = 1                # Minimum timeout seconds
     MAX_TIMEOUT = 86400            # Maximum timeout (24 hours)
     MAX_LOOP_COUNT = 10000         # Maximum loop iterations
-    MAX_RETRY_COUNT = 100          # Maximum retry attempts
+    MAX_RETRY_COUNT = 1000         # Maximum retry attempts
     MAX_PARALLEL_TASKS = 1000      # Maximum parallel tasks
 
     # Shell metacharacters that indicate potential injection

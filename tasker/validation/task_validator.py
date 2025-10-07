@@ -1124,6 +1124,18 @@ class TaskValidator:
             success_value = task['success']
             self.validate_condition_expression(success_value, 'success', task_id, line_number)
 
+        # Validate 'failure' field
+        if 'failure' in task:
+            failure_value = task['failure']
+            self.validate_condition_expression(failure_value, 'failure', task_id, line_number)
+
+        # Validate mutual exclusion: success and failure cannot coexist
+        if 'success' in task and 'failure' in task:
+            self.errors.append(
+                f"Line {line_number}: Task {task_id} cannot use 'success' and 'failure' together. "
+                "Use either 'success' for positive conditions OR 'failure' for inverse conditions, not both."
+            )
+
         # Validate 'condition' field
         if 'condition' in task:
             condition_value = task['condition']

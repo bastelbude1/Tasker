@@ -1,0 +1,32 @@
+# TEST_METADATA: {"description": "Test on_success-only pattern with failure (exit 10)", "test_type": "negative", "expected_exit_code": 10, "expected_success": false, "skip_host_validation": true, "expected_execution_path": [0, 1], "expected_final_task": 1}
+# Pattern 2: on_success ONLY
+# Success case: would jump to target task (task 5)
+# Failure case: workflow exits with code 10 (TASK_FAILED)
+
+# Main workflow
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting workflow
+exec=local
+
+# Task with on_success ONLY - will FAIL and exit with code 10
+task=1
+hostname=localhost
+command=/usr/bin/false
+arguments=
+exec=local
+on_success=5
+
+# These should NOT execute (workflow stops after task 1 failure)
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=This should not execute
+exec=local
+
+task=5
+hostname=localhost
+command=/usr/bin/echo
+arguments=This should not execute either
+exec=local

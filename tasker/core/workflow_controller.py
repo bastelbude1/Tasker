@@ -354,6 +354,11 @@ class WorkflowController:
         """
         Determine the next task ID based on success/failure routing.
 
+        Flexible routing patterns:
+        1. on_failure ONLY: success → next task, failure → jump to handler
+        2. on_success ONLY: success → jump to target, failure → exit 10 (workflow failure)
+        3. BOTH: explicit routing for all outcomes
+
         Args:
             task: Current task definition
             success: Whether current task succeeded
@@ -362,7 +367,11 @@ class WorkflowController:
         Returns:
             Next task ID or None to stop execution
         """
-        if success and 'on_success' in task:
+        has_on_success = 'on_success' in task
+        has_on_failure = 'on_failure' in task
+
+        # Handle success routing
+        if success and has_on_success:
             try:
                 next_id = int(task['on_success'])
                 self.log_info(f"Task {current_task_id}: Success - jumping to Task {next_id}")
@@ -371,7 +380,8 @@ class WorkflowController:
                 self.log_info(f"Task {current_task_id}: Invalid 'on_success' task ID '{task['on_success']}'")
                 return current_task_id + 1
 
-        if not success and 'on_failure' in task:
+        # Handle failure routing
+        if not success and has_on_failure:
             try:
                 next_id = int(task['on_failure'])
                 self.log_info(f"Task {current_task_id}: Failure - jumping to Task {next_id}")
@@ -380,11 +390,20 @@ class WorkflowController:
                 self.log_info(f"Task {current_task_id}: Invalid 'on_failure' task ID '{task['on_failure']}'")
                 return None
 
-        # Default sequential progression
+        # Default behavior when routing parameter is missing
         if success:
+            # Success without on_success → continue to next task
             return current_task_id + 1
         else:
-            return None  # Stop on failure if no on_failure specified
+            # Failure without on_failure → check if this is on_success-only pattern
+            if has_on_success and not has_on_failure:
+                # Pattern 2: on_success ONLY → failure should exit with code 10
+                self.log_info(f"Task {current_task_id}: Failure with on_success-only pattern - workflow will fail with exit 10")
+                self.state_manager.workflow_failed_due_to_condition = True
+                return None
+            else:
+                # No routing defined → stop on failure (default behavior)
+                return None
 
     # ===== CONDITION UTILITIES =====
 

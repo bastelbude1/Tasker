@@ -323,7 +323,13 @@ class TaskRunner:
 
         if next_result == "LOOP":
             return current_task_id  # Loop back to same task
-        elif next_result == "NEVER" or not next_result:
+        elif next_result == "NEVER":
+            # Explicit successful stop with next=never
+            return None
+        elif not next_result:
+            # Condition not met - this is a workflow FAILURE
+            # Set flag to indicate workflow stopped due to failed condition
+            self.state_manager.workflow_failed_due_to_condition = True
             return None  # Stop execution
         else:
             return current_task_id + 1  # Continue to next sequential task

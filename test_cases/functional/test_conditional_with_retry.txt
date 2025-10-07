@@ -1,0 +1,77 @@
+# TEST_METADATA: {"description": "Conditional block with retry - branch tasks fail then succeed", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_subtasks": ["1-10", "1-11"]}
+# Test conditional execution with retry_failed=true
+# Section 9 of TaskER_FlowChart.md: Conditional Block with Retry
+# Branch tasks will fail initially but succeed after retries
+# Demonstrates retry functionality within conditional branches
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=PRODUCTION
+exec=local
+
+# Conditional block with retry enabled (Section 9 of TaskER_FlowChart.md)
+# Evaluates condition and executes either TRUE or FALSE branch
+# Branch tasks that fail are retried up to 3 times with 1 second delay
+# Success condition: All branch tasks must succeed
+task=1
+type=conditional
+condition=@0_stdout@=PRODUCTION
+if_true_tasks=10,11
+if_false_tasks=20,21
+retry_failed=true
+retry_count=3
+retry_delay=1
+next=all_success
+on_success=2
+on_failure=99
+
+# TRUE branch - Task 10: Fails once, then succeeds (requires 1 retry)
+# This task will execute because condition evaluates to TRUE (PRODUCTION=PRODUCTION)
+task=10
+hostname=localhost
+command=/home/baste/tasker/test_cases/bin/retry_controller.sh
+arguments=1 "Task 10 TRUE branch succeeded" "NONE"
+exec=local
+
+# TRUE branch - Task 11: Fails twice, then succeeds (requires 2 retries)
+# Tests that retry_count=3 provides sufficient retries
+task=11
+hostname=localhost
+command=/home/baste/tasker/test_cases/bin/retry_controller.sh
+arguments=2 "Task 11 TRUE branch succeeded" "NONE"
+exec=local
+
+# FALSE branch - Task 20: Would fail once if executed (not executed)
+# This demonstrates that only the selected branch is executed and retried
+task=20
+hostname=localhost
+command=/home/baste/tasker/test_cases/bin/retry_controller.sh
+arguments=1 "Task 20 FALSE branch succeeded" "NONE"
+exec=local
+
+# FALSE branch - Task 21: Would always succeed if executed (not executed)
+# Included to show FALSE branch structure
+task=21
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 21 FALSE branch - always succeeds
+exec=local
+
+# Success path (all TRUE branch tasks succeeded after retries)
+# Expected result: Tasks 10 and 11 both succeed after retries
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: Conditional retry test passed - all branch tasks succeeded after retries
+exec=local
+return=0
+
+# Failure path (should not be reached)
+# This would only execute if any branch task failed even after all retries
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=FAILURE: Conditional retry test failed - branch tasks did not succeed
+exec=local
+return=1

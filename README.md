@@ -323,6 +323,8 @@ success=exit_0
 
 **Loop Semantics:** `loop=N` executes exactly N times, displayed as Task X.1, X.2, ... X.N
 
+**Loop vs Retry behavior:** Loops execute ALL iterations regardless of success/failure (unless `loop_break` condition is met). This differs from retry logic (parallel/conditional tasks), which ONLY retries tasks that fail.
+
 **Placeholder Resolution:** When referencing loop task results with `@X_stdout@`, `@X_stderr@`, or `@X_exit_code@`, you will get the **last iteration's output** only. Previous iterations are not stored.
 
 **Note:** Loop control is only available for sequential tasks. See [Sequential Execution Parameters](#sequential-execution-parameters-default-mode) table below.
@@ -1206,7 +1208,7 @@ The `stdout_count` and `stderr_count` parameters are planned features but not ye
 Advanced retry logic for robust task execution in parallel and conditional workflows:
 
 **Retry Configuration Parameters:**
-- `retry_count=N` : Number of retry attempts (0-10, default: 1). Setting this automatically enables retry.
+- `retry_count=N` : Number of retry attempts (1-1000, default: 1). Setting this automatically enables retry.
 - `retry_delay=N` : Delay between retries in seconds (0-300, default: 1)
 
 **Parallel Task Retries:**
@@ -1246,7 +1248,7 @@ retry_delay=5
 - Final retry: `Task 10-20.4: Final attempt (4/4)`
 
 **Important Notes:**
-- Retries only apply to tasks that fail execution (not validation/skipped tasks)
+- **Retry vs Loop behavior**: Retries ONLY occur for tasks that fail execution. In contrast, loops (`loop=N`) execute all iterations regardless of success/failure unless `loop_break` condition is met.
 - Each retry uses the same parameters as the original task
 - Variables are re-evaluated on each retry attempt
 - Master timeout still applies to all retry attempts combined
@@ -1301,7 +1303,7 @@ Parameters for executing multiple tasks concurrently:
 | `tasks` | String | **Yes** | Comma-separated task IDs to execute | "10,11,12" |
 | `max_parallel` | Integer | No | Max concurrent tasks | 1-50 (default: all) |
 | `timeout` | Integer | No | Master timeout for all tasks | 5-3600 seconds |
-| `retry_count` | Integer | No | Number of retry attempts (enables retry) | 0-10 (default: 1) |
+| `retry_count` | Integer | No | Number of retry attempts (enables retry) | 1-1000 (default: 1) |
 | `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |
 | `next` | String | No | Success evaluation condition | See below |
 | `on_success` | Integer | No | Task ID if next condition met | Any valid task ID |
@@ -1329,7 +1331,7 @@ Parameters for branching based on runtime conditions:
 | `next` | String | No | Success evaluation condition | Same as parallel conditions |
 | `on_success` | Integer | No | Task ID if next condition met | Any valid task ID |
 | `on_failure` | Integer | No | Task ID if next condition not met | Any valid task ID |
-| `retry_count` | Integer | No | Number of retry attempts (enables retry) | 0-10 (default: 1) |
+| `retry_count` | Integer | No | Number of retry attempts (enables retry) | 1-1000 (default: 1) |
 | `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |
 
 *At least one of `if_true_tasks` or `if_false_tasks` must be specified.

@@ -599,7 +599,12 @@ class ParallelExecutor(BaseExecutor):
                 executor_instance.log(f"Task {task_id}: Invalid 'on_failure' task. Stopping.")
                 return None
 
-        return task_id + 1 if should_continue else None
+        # If condition not met and no on_failure routing, this is a workflow failure
+        if not should_continue:
+            executor_instance._state_manager.workflow_failed_due_to_condition = True
+            return None
+
+        return task_id + 1
 
     def execute(self, task, **kwargs):
         """Execute a task using parallel execution."""

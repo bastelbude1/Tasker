@@ -4,6 +4,24 @@
 
 TASKER now supports flexible routing patterns where `on_success` and `on_failure` can be used independently, providing more powerful and concise workflow control.
 
+## Default Behavior: Safe by Default
+
+**When a task has NO routing parameters** (no `next`, no `on_success`, no `on_failure`):
+- ✅ **Task succeeds** → Continue to next task
+- ❌ **Task fails** → **Stop execution** (exit with failure code)
+
+This is the safe default - failures stop the workflow to prevent cascading issues.
+
+### Fire-and-Forget Mode
+
+To override the safe default and continue even when tasks fail:
+
+```bash
+tasker --fire-and-forget workflow.txt -r
+```
+
+**WARNING**: Use only for non-critical workflows where failures can be ignored!
+
 ## Three Routing Patterns
 
 ### Pattern 1: on_failure ONLY (Error Handler Pattern)

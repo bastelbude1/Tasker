@@ -1,0 +1,23 @@
+# TEST_METADATA: {"description": "Test task with no routing parameters - failure should stop", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "skip_host_validation": true, "expected_execution_path": [0, 1], "expected_final_task": 1}
+# Test default behavior when task has NO routing parameters
+# Task fails → workflow should STOP (not continue)
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting workflow
+exec=local
+
+# Task with NO routing parameters - will FAIL and should STOP execution
+task=1
+hostname=localhost
+command=/usr/bin/false
+arguments=
+exec=local
+
+# This should NOT execute (task 1 failed with no routing)
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=This should not execute - task 1 failed
+exec=local

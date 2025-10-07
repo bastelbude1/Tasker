@@ -1,0 +1,34 @@
+# TEST_METADATA: {"description": "Test on_failure-only pattern (firewall handler)", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "skip_host_validation": true, "expected_execution_path": [0, 1, 99], "expected_final_task": 99}
+# Pattern 1: on_failure ONLY
+# Success case: continue to next task
+# Failure case: jump to error handler (task 99)
+
+# Main workflow
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting workflow
+exec=local
+
+# Task with on_failure ONLY - will fail and jump to handler
+task=1
+hostname=localhost
+command=/usr/bin/false
+arguments=
+exec=local
+on_failure=99
+
+# This should NOT execute (skipped due to task 1 failure)
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=This should not execute
+exec=local
+
+# Firewall/cleanup handler - common pattern in special range 90-99
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=ERROR HANDLER: Cleaning up after failure
+exec=local
+return=1

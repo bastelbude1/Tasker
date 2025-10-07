@@ -1,0 +1,39 @@
+# TEST_METADATA: {"description": "Test on_success-only pattern with success path", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 5], "expected_final_task": 5}
+# Pattern 2: on_success ONLY
+# Success case: jump to target task (task 5)
+# Failure case: workflow exits with code 10
+
+# Main workflow
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting workflow
+exec=local
+
+# Task with on_success ONLY - will succeed and jump to task 5
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 1 succeeds
+exec=local
+on_success=5
+
+# These should NOT execute (skipped due to jump to task 5)
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=This should not execute
+exec=local
+
+task=3
+hostname=localhost
+command=/usr/bin/echo
+arguments=This should not execute either
+exec=local
+
+# Success target
+task=5
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: Jumped to task 5
+exec=local

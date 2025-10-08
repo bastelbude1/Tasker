@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Test default routing behavior when task fails", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "skip_host_validation": true}
+# Test that tasks without routing parameters stop on failure (implicit next=success)
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 0 succeeded
+exec=local
+success=exit_0
+# No routing specified - should continue to task 1 on success
+
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 1 output
+exec=local
+success=stdout~EXPECTED_TEXT
+# No routing specified - will FAIL (stdout doesn't match)
+# Workflow should STOP here (task 2 never executes)
+
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 2 should never execute
+exec=local
+success=exit_0

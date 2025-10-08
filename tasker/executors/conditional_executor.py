@@ -199,9 +199,22 @@ class ConditionalExecutor(BaseExecutor):
         executor_instance.final_command = f"conditional {branch} branch execution of tasks {referenced_task_ids}"
         executor_instance.final_exit_code = aggregated_exit_code
         
-        # Use conditional next condition evaluation (reuses parallel logic)
-        should_continue = ConditionalExecutor.check_conditional_next_condition(conditional_task, results, executor_instance)
-        
+        # Check if we have a success parameter for flexible routing
+        if 'success' in conditional_task:
+            # Evaluate success condition using the same logic as next conditions
+            from .parallel_executor import ParallelExecutor
+            success_condition = conditional_task['success']
+            executor_instance.log_debug(f"Task {task_id}: Evaluating 'success' condition: {success_condition}")
+
+            # Use the same evaluation function that handles min_success, max_failed, etc.
+            should_continue = ParallelExecutor.evaluate_parallel_next_condition(
+                success_condition, results, executor_instance.log_debug, executor_instance.log_info)
+
+            executor_instance.log_info(f"Task {task_id}: Success condition '{success_condition}' evaluated to: {should_continue}")
+        else:
+            # Use conditional next condition evaluation (reuses parallel logic)
+            should_continue = ConditionalExecutor.check_conditional_next_condition(conditional_task, results, executor_instance)
+
         # Determine final success based on should_continue result
         if should_continue == "NEVER":
             executor_instance.final_success = True

@@ -715,13 +715,8 @@ class TaskValidator:
             if task_type not in self.valid_task_types:
                 self.errors.append(f"Line {line_number}: Task {task_id} has invalid type '{task_type}'. Valid types: {', '.join(self.valid_task_types)}")
 
-        # CRITICAL: Parallel blocks cannot use success/failure parameters
-        # They use aggregate conditions (min_success, max_failed, etc.) that count subtask outcomes
-        if 'success' in task:
-            self.errors.append(
-                f"Line {line_number}: Task {task_id} (parallel) cannot use 'success' parameter. "
-                f"Use aggregate conditions like 'min_success', 'all_success', etc. in 'next' parameter instead."
-            )
+        # CRITICAL: Parallel blocks cannot use failure parameter (only for sequential tasks)
+        # But they CAN use success parameter with aggregate conditions for flexible routing
         if 'failure' in task:
             self.errors.append(
                 f"Line {line_number}: Task {task_id} (parallel) cannot use 'failure' parameter. "
@@ -786,13 +781,8 @@ class TaskValidator:
             if task_type not in self.valid_task_types:
                 self.errors.append(f"Line {line_number}: Task {task_id} has invalid type '{task_type}'. Valid types: {', '.join(self.valid_task_types)}")
 
-        # CRITICAL: Conditional blocks cannot use success/failure parameters
-        # They use aggregate conditions (min_success, max_failed, etc.) that count subtask outcomes
-        if 'success' in task:
-            self.errors.append(
-                f"Line {line_number}: Task {task_id} (conditional) cannot use 'success' parameter. "
-                f"Use aggregate conditions like 'min_success', 'all_success', etc. in 'next' parameter instead."
-            )
+        # CRITICAL: Conditional blocks cannot use failure parameter (only for sequential tasks)
+        # But they CAN use success parameter with aggregate conditions for flexible routing
         if 'failure' in task:
             self.errors.append(
                 f"Line {line_number}: Task {task_id} (conditional) cannot use 'failure' parameter. "
@@ -1148,7 +1138,13 @@ class TaskValidator:
         # Validate 'success' field
         if 'success' in task:
             success_value = task['success']
-            self.validate_condition_expression(success_value, 'success', task_id, line_number)
+            # For parallel/conditional blocks, validate as multi-task condition
+            if task.get('type') in ['parallel', 'conditional']:
+                # Check if it's a valid multi-task evaluation condition
+                self.validate_direct_modifier_condition(success_value, task_id, line_number, field_name='success')
+            else:
+                # For regular tasks, validate as condition expression
+                self.validate_condition_expression(success_value, 'success', task_id, line_number)
 
         # Validate 'failure' field
         if 'failure' in task:
@@ -1306,14 +1302,20 @@ class TaskValidator:
                     except ValueError:
                         self.errors.append(f"Line {line_number}: Task {task_id} has invalid index: '{index}' in {split_field}.")
 
-    def validate_direct_modifier_condition(self, condition, task_id, line_number):
-        """Validate direct modifier condition (min_success=N, max_failed=N, etc.)."""
-        # Example: min_success=2, max_failed=1
-        
+    def validate_direct_modifier_condition(self, condition, task_id, line_number, field_name='next'):
+        """Validate direct modifier condition (min_success=N, max_failed=N, etc.) or simple multi-task conditions."""
+        # Examples: min_success=2, max_failed=1, all_success, any_success
+
+        # Check for simple multi-task conditions (no '=' sign)
+        simple_conditions = ['all_success', 'any_success', 'majority_success']
+        if condition in simple_conditions:
+            return  # These are valid
+
         if '=' not in condition:
-            self.errors.append(f"Line {line_number}: Task {task_id} has invalid modifier condition: '{condition}'. Format: 'modifier=value'")
+            self.errors.append(f"Line {line_number}: Task {task_id} has invalid {field_name} condition: '{condition}'. "
+                             f"Valid formats: 'modifier=value' or one of {simple_conditions}")
             return
-            
+
         key, value = condition.split('=', 1)
         
         if key not in self.valid_direct_modifiers:

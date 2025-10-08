@@ -1,0 +1,27 @@
+# TEST_METADATA: {"description": "End Failure Block - next=never with return=1 (Section 12, Pattern 3)", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "skip_host_validation": true, "expected_execution_path": [0, 1, 96], "expected_final_task": 96}
+# Test End Failure Block as defined in TaskER_FlowChart.md Section 12
+# Pattern: Explicit failure with next=never (return=1)
+# As shown in TaskER_FlowChart.md Section 12 example
+# Combines next=never with return=1 for explicit termination
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting workflow
+exec=local
+
+task=1
+hostname=localhost
+command=/usr/bin/false
+exec=local
+on_failure=96
+
+# End Failure Block - explicit failure with never
+# Both next=never and return=1 (as in flowchart example task=96)
+task=96
+hostname=localhost
+command=/usr/bin/echo
+arguments=Workflow failed - explicit termination
+exec=local
+next=never
+return=1

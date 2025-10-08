@@ -1,0 +1,48 @@
+# TEST_METADATA: {"description": "Comprehensive @N_stdout@ placeholder testing across all parameters", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4, 5], "expected_variables": {"0_stdout": "SUCCESS_PATTERN_FOUND", "0_exit": "0", "0_success": "True", "1_stdout": "Task 1 verified SUCCESS_PATTERN_FOUND", "2_stdout": "Received from task 0: SUCCESS_PATTERN_FOUND"}}
+
+# Test @N_stdout@ placeholder in condition, arguments, next, and success parameters
+# Task 0: Generate known stdout output
+task=0
+hostname=localhost
+command=echo
+arguments=SUCCESS_PATTERN_FOUND
+exec=local
+
+# Task 1: Use @0_stdout@ in condition parameter (pattern matching)
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1 verified @0_stdout@
+exec=local
+condition=@0_stdout@~SUCCESS
+
+# Task 2: Use @0_stdout@ in arguments parameter
+task=2
+hostname=localhost
+command=echo
+arguments=Received from task 0: @0_stdout@
+exec=local
+
+# Task 3: Use @0_stdout@ in next condition
+task=3
+hostname=localhost
+command=echo
+arguments=Task 3 checking next condition
+exec=local
+next=@0_stdout@~SUCCESS
+
+# Task 4: Use @0_stdout@ in condition of a regular task
+task=4
+hostname=localhost
+command=echo
+arguments=Task 4 checking @0_stdout@ in success condition
+exec=local
+success=@0_stdout@~SUCCESS
+
+# Task 5: Final success task
+task=5
+hostname=localhost
+command=echo
+arguments=All @0_stdout@ tests passed
+exec=local
+next=never

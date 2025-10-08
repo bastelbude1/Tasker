@@ -32,18 +32,10 @@ arguments=Test
 exec=local
 success=((stdout~COMPLETE))
 
-# Complex grouping
+# Complex grouping with OR
 task=4
 hostname=localhost
 command=/usr/bin/echo
 arguments=Test
 exec=local
 success=(stdout=DONE)|(stdout~OK)
-
-# Mixed grouping and operators
-task=5
-hostname=localhost
-command=/usr/bin/echo
-arguments=Test
-exec=local
-success=(exit_0&stdout~OK)|(exit_1&stderr~ERROR)

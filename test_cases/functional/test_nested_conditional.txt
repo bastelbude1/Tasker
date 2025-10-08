@@ -17,7 +17,7 @@ if_false_tasks=11
 # Subtask 10 - itself a conditional (nested)
 task=10
 type=conditional
-condition=@0_exit_code@=0
+condition=@0_exit@=0
 if_true_tasks=100,101
 if_false_tasks=102
 

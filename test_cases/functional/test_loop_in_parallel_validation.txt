@@ -31,7 +31,7 @@ command=/usr/bin/echo
 arguments=Parallel subtask 11 iteration
 exec=local
 loop=5
-loop_break=@11_exit_code@=0
+loop_break=@11_exit@=0
 next=loop
 
 # Subtask 12 with only next=loop (NOT SUPPORTED - should trigger validation error)

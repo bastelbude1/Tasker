@@ -325,7 +325,7 @@ success=exit_0
 
 **Loop vs Retry behavior:** Loops execute ALL iterations regardless of success/failure (unless `loop_break` condition is met). This differs from retry logic (parallel/conditional tasks), which ONLY retries tasks that fail.
 
-**Placeholder Resolution:** When referencing loop task results with `@X_stdout@`, `@X_stderr@`, or `@X_exit_code@`, you will get the **last iteration's output** only. Previous iterations are not stored.
+**Placeholder Resolution:** When referencing loop task results with `@X_stdout@`, `@X_stderr@`, or `@X_exit@`, you will get the **last iteration's output** only. Previous iterations are not stored.
 
 **Note:** Loop control is only available for sequential tasks. See [Sequential Execution Parameters](#sequential-execution-parameters-default-mode) table below.
 
@@ -927,13 +927,13 @@ exec=local
 task=1
 hostname=web-server
 # Skip this task if service check failed
-condition=@0_exit_code@=0
+condition=@0_exit@=0
 command=restart_service
 
 task=2
 hostname=web-server
 # Skip this task if service check succeeded
-condition=@0_exit_code@!=0
+condition=@0_exit@!=0
 command=send_alert
 arguments=Service check failed
 ```
@@ -984,13 +984,13 @@ exec=local
 
 task=1
 # Skip this task if health check failed
-condition=@0_exit_code@=0
+condition=@0_exit@=0
 hostname=deployment
 command=deploy_new_version
 
 task=2
 # Skip this task if health check succeeded
-condition=@0_exit_code@!=0
+condition=@0_exit@!=0
 hostname=notification
 command=send_failure_alert
 ```
@@ -1286,21 +1286,21 @@ TASKER supports comprehensive comparison operators for sophisticated condition e
 ```
 # Numeric comparisons with task results
 # Exit code equals 0
-condition=@0_exit_code@=0
+condition=@0_exit@=0
 # Exit code not 0
-condition=@0_exit_code@!=0
+condition=@0_exit@!=0
 # Previous task exit code less than 5
-condition=@1_exit_code@<5
+condition=@1_exit@<5
 # Task 2's exit code >= 2
-condition=@2_exit_code@>=2
+condition=@2_exit@>=2
 
 # Numeric comparisons with task results
 # Previous task exit code less than 5
-condition=@0_exit_code@<5
+condition=@0_exit@<5
 # Task 1's exit code >= 2
-condition=@1_exit_code@>=2
+condition=@1_exit@>=2
 # Task 2 failed (non-zero exit)
-condition=@2_exit_code@!=0
+condition=@2_exit@!=0
 
 # String operations with task output
 # Output contains "success"
@@ -1318,15 +1318,15 @@ condition=@0_success@=true
 # Compare outputs of two tasks
 condition=@1_stdout@!=@2_stdout@
 # Either task succeeded
-condition=@3_exit_code@=0|@4_exit_code@=0
+condition=@3_exit@=0|@4_exit@=0
 
 # Complex conditions with boolean operators
 # AND condition
-condition=@0_exit_code@=0&@0_stdout@~complete
+condition=@0_exit@=0&@0_stdout@~complete
 # OR condition
 condition=@0_success@=true|@1_success@=true
 # Parenthesized conditions (operators OUTSIDE parentheses)
-condition=(@0_exit_code@=0)&(@0_stdout@~done)
+condition=(@0_exit@=0)&(@0_stdout@~done)
 # Multiple OR with parentheses
 condition=(@0_stdout@~done)|(@0_stdout@~finished)
 ```
@@ -1735,7 +1735,7 @@ These `next` conditions are shared by both **Parallel Execution** and **Conditio
 task=0
 type=parallel
 tasks=10,11,12,13
-success=@exit_code@=0
+success=@exit@=0
 next=min_success=3
 on_success=20
 on_failure=99
@@ -1747,7 +1747,7 @@ task=1
 type=conditional
 condition=@DEPLOY_ENV@=production
 if_true_tasks=30,31,32
-success=@exit_code@=0&@stdout@~completed
+success=@exit@=0&@stdout@~completed
 next=majority_success
 on_success=40
 on_failure=99
@@ -2010,14 +2010,14 @@ command=check_deployment_approval
 exec=local
 
 task=1
-condition=@0_exit_code@=0
+condition=@0_exit@=0
 hostname=@ENVIRONMENT@-app
 command=deploy_application
 arguments=--version=latest
 exec=pbrun
 
 task=2
-condition=@1_exit_code@=0
+condition=@1_exit@=0
 hostname=monitor
 command=verify_deployment
 exec=local
@@ -2032,13 +2032,13 @@ command=deploy_application
 exec=pbrun
 
 task=1
-condition=@0_exit_code@=0
+condition=@0_exit@=0
 hostname=notification
 command=send_success_notification
 exec=local
 
 task=99
-condition=@0_exit_code@!=0
+condition=@0_exit@!=0
 hostname=notification
 command=send_failure_alert
 arguments=Deployment failed: @0_stderr@
@@ -2523,11 +2523,11 @@ Combine multiple conditions using boolean operators:
 ```
 # Symbolic operators (compact)
 success=exit_0&stdout~OK
-condition=@0_exit_code@=0|@1_exit_code@=0
+condition=@0_exit@=0|@1_exit@=0
 
 # Textual operators (more readable)
 success=exit_0 AND stdout~OK
-condition=@0_exit_code@=0 OR @1_exit_code@=0
+condition=@0_exit@=0 OR @1_exit@=0
 
 # Both forms are equivalent and can be used interchangeably
 ```
@@ -2535,7 +2535,7 @@ condition=@0_exit_code@=0 OR @1_exit_code@=0
 ```
 # Complex condition example
 task=1
-condition=@0_exit_code@=0&(@0_stdout@~success|@0_stdout@~complete)
+condition=@0_exit@=0&(@0_stdout@~success|@0_stdout@~complete)
 hostname=next-server
 command=continue_workflow
 ```
@@ -2637,7 +2637,7 @@ For every executed task, TASKER captures:
 |-----------|----------------|-------------|---------------|
 | **Standard Output** | `@TASK-ID_stdout@` | Complete stdout from command (or split result) | 4,096 characters |
 | **Standard Error** | `@TASK-ID_stderr@` | Complete stderr from command (or split result) | 4,096 characters |
-| **Exit Code** | `@TASK-ID_exit_code@` | Command exit code (0-255) | No limit |
+| **Exit Code** | `@TASK-ID_exit@` | Command exit code (0-255) | No limit |
 | **Hostname** | `@TASK-ID_hostname@` | Actual hostname used (resolved from @HOSTNAME@) | 256 characters |
 | **Success Status** | `@TASK-ID_success@` | Boolean success status (True/False) | No limit |
 | **Timing Data** | `@TASK-ID_duration@` | Execution time in seconds (decimal) | No limit |
@@ -2653,7 +2653,7 @@ For every executed task, TASKER captures:
 #### Task Result Variables
 - **`@TASK-ID_stdout@`**: Standard output from task TASK-ID (affected by stdout_split)
 - **`@TASK-ID_stderr@`**: Standard error from task TASK-ID (affected by stderr_split)
-- **`@TASK-ID_exit_code@`**: Exit code from task TASK-ID (0-255)
+- **`@TASK-ID_exit@`**: Exit code from task TASK-ID (0-255)
 - **`@TASK-ID_hostname@`**: Actual hostname used by task TASK-ID
 - **`@TASK-ID_success@`**: Success status of task TASK-ID (True/False string)
 - **`@TASK-ID_duration@`**: Execution time of task TASK-ID in seconds (e.g., "5.234")
@@ -2684,7 +2684,7 @@ task=1
 hostname=@0_stdout@
 command=connect_database
 # Only if config retrieval succeeded
-condition=@0_exit_code@=0
+condition=@0_exit@=0
 ```
 
 **Error Handling with Task Data:**
@@ -3400,7 +3400,7 @@ return=20
 # Check for specific exit codes in conditions
 task=10
 # Previous task timed out
-condition=@0_exit_code@=124
+condition=@0_exit@=124
 hostname=notification
 command=send_timeout_alert
 

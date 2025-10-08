@@ -1493,9 +1493,9 @@ class TaskValidator:
             r'^(true|false)$',                       # boolean literals
             r'^success$',                            # success keyword
             r'^[a-zA-Z_]\w*[=!<>~]',                # variable comparisons
-            r'^exit_code[=!<>]',                     # exit_code comparisons
+            r'^exit[=!<>]',                          # exit comparisons (current task)
             r'^@\d+_\w+@$',                          # standalone task result placeholders (e.g., @0_success@)
-            r'^@\d+_\w+@[=!<>~]',                   # task result comparisons (e.g., @0_exit_code@=0)
+            r'^@\d+_\w+@[=!<>~]',                   # task result comparisons (e.g., @0_exit@=0)
             r'^contains:',                           # legacy contains
             r'^not_contains:',                       # legacy not_contains
         ]

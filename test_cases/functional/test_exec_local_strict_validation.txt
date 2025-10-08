@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test that validation warns about shell syntax in exec=local", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false}
+# TEST_METADATA: {"description": "Test that validation warns about shell syntax in exec=local", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false, "security_category": "command_injection", "risk_level": "medium"}
 
 # Test: Validation should warn users about shell syntax in exec=local
 # This prevents user mistakes (shell syntax won't execute with exec=local anyway)

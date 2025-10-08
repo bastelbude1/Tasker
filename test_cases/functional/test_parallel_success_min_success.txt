@@ -1,0 +1,51 @@
+# TEST_METADATA: {"description": "Test parallel block with success=min_success=2", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11", "1-12"]}
+# Test that parallel blocks can use success=min_success for flexible routing
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting parallel test with success=min_success=2
+exec=local
+
+# Parallel block with success parameter for flexible routing
+# This evaluates success based on min_success=2
+# Routes via on_success/on_failure based on evaluation
+task=1
+type=parallel
+tasks=10,11,12
+max_parallel=3
+success=min_success=2
+on_success=2
+on_failure=99
+
+# Success path - executed when at least 2 tasks succeed
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: At least 2 parallel tasks succeeded
+exec=local
+return=0
+
+# Parallel subtasks - 2 will succeed, 1 will fail
+task=10
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+task=11
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+task=12
+hostname=localhost
+command=/usr/bin/false
+exec=local
+
+# Failure path - should not execute
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=FAILURE: Less than 2 parallel tasks succeeded
+exec=local
+return=1

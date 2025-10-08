@@ -1,0 +1,58 @@
+# TEST_METADATA: {"description": "Test parallel block with success parameter", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11", "1-12"]}
+# Test that parallel blocks can use success parameter with multi-task evaluation conditions
+
+# Task 0: Start message
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting parallel block test with success parameter
+exec=local
+
+# Task 1: Parallel block with success=min_success=2
+# This should evaluate success based on min_success=2 condition
+# and use on_success/on_failure for routing
+task=1
+type=parallel
+tasks=10,11,12
+max_parallel=3
+retry_count=2
+retry_delay=1
+success=min_success=2
+on_success=2
+on_failure=99
+
+# Task 2: Success path - should only execute if at least 2 subtasks succeeded
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: At least 2 parallel tasks succeeded
+exec=local
+return=0
+
+# Subtask 10: This will succeed
+task=10
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 10 executing
+exec=local
+
+# Subtask 11: This will also succeed
+task=11
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 11 executing
+exec=local
+
+# Subtask 12: This will fail (exit 1)
+task=12
+hostname=localhost
+command=/usr/bin/false
+exec=local
+
+# Task 99: Failure path - should not execute since 2/3 tasks succeed
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=FAILED: Less than 2 parallel tasks succeeded
+exec=local
+return=1

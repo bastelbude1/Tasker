@@ -993,14 +993,12 @@ class TestValidator:
                         )
 
         # Validate warning count and detect unexpected warnings
-        # Count unique warning lines (lines containing WARN: or WARNING:)
-        # Exclude CLI warnings that start with "WARNING:" (no timestamp prefix)
-        # Only count workflow warnings with timestamps: [timestamp] WARN: or WARNING:
-        # Also exclude lines starting with ^WARN which are literal output patterns
+        # Only count actual TASKER warnings with timestamp format: [DDMmmYY HH:MM:SS] WARN:
+        # This excludes task output that happens to contain "WARNING:" text
+        # Pattern: [08Oct25 23:46:06] WARN: or [08Oct25 23:46:06] WARNING:
+        warning_pattern = re.compile(r'^\[\d{2}\w{3}\d{2} \d{2}:\d{2}:\d{2}\] (WARN:|WARNING:)')
         warning_lines = [line for line in actual_results["stdout"].split('\n')
-                       if ('WARN:' in line or 'WARNING:' in line)
-                       and not line.startswith('WARNING:')
-                       and not line.startswith('^WARN')]
+                       if warning_pattern.match(line)]
         actual_warning_count = len(warning_lines)
 
         if "expected_warnings" in metadata:

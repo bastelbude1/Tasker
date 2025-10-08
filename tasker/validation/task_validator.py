@@ -1494,7 +1494,8 @@ class TaskValidator:
             r'^success$',                            # success keyword
             r'^[a-zA-Z_]\w*[=!<>~]',                # variable comparisons
             r'^exit_code[=!<>]',                     # exit_code comparisons
-            r'^@\d+_\w+@[=!<>~]',                   # task result comparisons
+            r'^@\d+_\w+@$',                          # standalone task result placeholders (e.g., @0_success@)
+            r'^@\d+_\w+@[=!<>~]',                   # task result comparisons (e.g., @0_exit_code@=0)
             r'^contains:',                           # legacy contains
             r'^not_contains:',                       # legacy not_contains
         ]
@@ -1511,8 +1512,8 @@ class TaskValidator:
                 )
             else:
                 self.errors.append(
-                    f"Line {line_number}: Task {task_id} has unrecognized {field_name} condition: '{condition}'. "
-                    f"Valid patterns: exit_N, stdout/stderr operators (~, =, !=, etc.), variable comparisons."
+                    f"Line {line_number}: Task {task_id} has unrecognized {field_name}: '{condition}'. "
+                    f"Valid patterns: exit_N, stdout/stderr operators (~, =, !=, <, >, etc.), task result placeholders (@N_field@), variable comparisons, boolean literals (true/false)."
                 )
 
     def _check_operators_inside_parentheses(self, condition, field_name, task_id, line_number):

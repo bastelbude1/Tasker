@@ -38,6 +38,42 @@ exec=local
 success=(exit_0&stdout~OK&stderr=)
 on_failure=99
 
+# Test 5: Textual AND operator inside parentheses - should be REJECTED
+task=5
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test 5
+exec=local
+success=(exit_0 AND stdout~OK)
+on_failure=99
+
+# Test 6: Textual OR operator inside parentheses - should be REJECTED
+task=6
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test 6
+exec=local
+success=(exit_0 OR exit_1)
+on_failure=99
+
+# Test 7: Mixed case textual operators inside parentheses - should be REJECTED
+task=7
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test 7
+exec=local
+success=(exit_0 and stdout~OK)
+on_failure=99
+
+# Test 8: Complex textual operator expression - should be REJECTED
+task=8
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test 8
+exec=local
+success=(exit_0 AND stdout~OK) OR (exit_1 AND stderr~ERROR)
+on_failure=99
+
 task=99
 hostname=localhost
 command=/usr/bin/echo

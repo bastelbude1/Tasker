@@ -111,7 +111,15 @@ class ParallelExecutor(BaseExecutor):
 
     @staticmethod
     def evaluate_parallel_next_condition(next_condition, results, debug_callback=None, log_callback=None):
-        """Evaluate next condition specifically for parallel tasks."""
+        """Evaluate next condition specifically for parallel tasks.
+
+        Used in success-context (success parameter evaluation).
+        Returns: bool (True/False only, never sentinel strings like "NEVER" or "LOOP")
+
+        Note: check_parallel_next_condition() in TaskExecutor can return sentinel strings
+        like "NEVER" or "LOOP" because it's used in next-context where special control
+        flow is supported. This function only returns boolean for simpler success evaluation.
+        """
         if not results:
             if log_callback:
                 log_callback(f"No results to evaluate for parallel next condition: '{next_condition}'")
@@ -135,7 +143,15 @@ class ParallelExecutor(BaseExecutor):
             if log_callback:
                 log_callback(f"'next=always' found, proceeding to next task")
             return True
-            
+
+        if next_condition == 'never':
+            if log_callback:
+                log_callback("'next=never' found, not proceeding to next task")
+            # Return False (not "NEVER" string) because this function is used in success-context
+            # where boolean True/False is expected. check_parallel_next_condition returns "NEVER"
+            # string for next-context where special sentinel values are supported.
+            return False
+
         if next_condition == 'all_success':
             result = success_count == total_tasks
             if debug_callback:
@@ -566,17 +582,31 @@ class ParallelExecutor(BaseExecutor):
         executor_instance.final_command = f"parallel execution of tasks {referenced_task_ids}"
         executor_instance.final_exit_code = aggregated_exit_code
         
-        # Use enhanced parallel next condition evaluation
-        should_continue = executor_instance.check_parallel_next_condition(parallel_task, results)
-        
-        # Determine final success based on should_continue result
-        if should_continue == "NEVER":
-            executor_instance.final_success = True
-            return None
+        # Check if we have a success parameter for flexible routing
+        if 'success' in parallel_task:
+            # Evaluate success condition using the same logic as next conditions
+            success_condition = parallel_task['success']
+            executor_instance.log_debug(f"Task {task_id}: Evaluating 'success' condition: {success_condition}")
 
-        if should_continue == "LOOP":
-            return "LOOP" 
-        
+            # Use the same evaluation function that handles min_success, max_failed, etc.
+            # Note: This only returns True or False (never "NEVER" or "LOOP")
+            should_continue = ParallelExecutor.evaluate_parallel_next_condition(
+                success_condition, results, executor_instance.log_debug, executor_instance.log_info)
+
+            executor_instance.log_info(f"Task {task_id}: Success condition '{success_condition}' evaluated to: {should_continue}")
+        else:
+            # Use enhanced parallel next condition evaluation (existing behavior)
+            # Note: This can return True, False, "NEVER", or "LOOP"
+            should_continue = executor_instance.check_parallel_next_condition(parallel_task, results)
+
+            # Handle special return values from check_parallel_next_condition (only for 'next' parameter)
+            if should_continue == "NEVER":
+                executor_instance.final_success = True
+                return None
+
+            if should_continue == "LOOP":
+                return "LOOP"
+
         # Handle on_success/on_failure jumps
         has_on_failure = 'on_failure' in parallel_task
         executor_instance.final_success = should_continue is True or (should_continue is False and has_on_failure)

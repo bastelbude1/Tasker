@@ -1,0 +1,55 @@
+# TEST_METADATA: {"description": "Test conditional block with success=any_success", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11", "1-12"]}
+# Test that conditional blocks can use success=any_success for flexible routing
+
+# Set up a variable for the condition
+TEST_MODE=true
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting conditional test with success=any_success
+exec=local
+
+# Conditional block with success parameter for flexible routing
+# This evaluates success based on any_success
+# Routes via on_success/on_failure based on evaluation
+task=1
+type=conditional
+condition=@TEST_MODE@=true
+if_true_tasks=10,11,12
+if_false_tasks=99
+success=any_success
+on_success=2
+on_failure=99
+
+# Success path - executed when at least 1 task succeeds
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: At least one conditional task succeeded
+exec=local
+return=0
+
+# Conditional subtasks - 1 will succeed, 2 will fail
+task=10
+hostname=localhost
+command=/usr/bin/false
+exec=local
+
+task=11
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+task=12
+hostname=localhost
+command=/usr/bin/false
+exec=local
+
+# Failure path - should not execute
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=FAILURE: No conditional tasks succeeded
+exec=local
+return=1

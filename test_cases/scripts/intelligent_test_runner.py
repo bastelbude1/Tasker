@@ -458,8 +458,9 @@ class TaskerTestExecutor:
                     output_patterns["stderr"].append(stderr_value)
 
             # Capture task exit codes (Phase 3 enhancement)
-            elif re.search(r'Task (\d+): Exit code: (\d+)', line):
-                match = re.search(r'Task (\d+): Exit code: (\d+)', line)
+            # Matches both regular tasks (Task 0:) and subtasks (Task 0-1:)
+            elif re.search(r'Task (\d+|\d+-\d+): Exit code: (\d+)', line):
+                match = re.search(r'Task (\d+|\d+-\d+): Exit code: (\d+)', line)
                 if match:
                     task_id = match.group(1)
                     exit_code = match.group(2)

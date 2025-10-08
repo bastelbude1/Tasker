@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Test high parallelism with max_parallel=50 (11 tasks)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
 # NESTED PARALLELISM TEST
 # This simulates what happens when TASKER itself is run in parallel
 # WARNING: This could be dangerous if not properly controlled!

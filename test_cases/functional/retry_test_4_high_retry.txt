@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "High retry count test - retry_count=5 for resilient tasks", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
 # TEST 4: High Retry Count Scenario
 # Tests retry logic with high retry counts
 

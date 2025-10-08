@@ -111,7 +111,15 @@ class ParallelExecutor(BaseExecutor):
 
     @staticmethod
     def evaluate_parallel_next_condition(next_condition, results, debug_callback=None, log_callback=None):
-        """Evaluate next condition specifically for parallel tasks."""
+        """Evaluate next condition specifically for parallel tasks.
+
+        Used in success-context (success parameter evaluation).
+        Returns: bool (True/False only, never sentinel strings like "NEVER" or "LOOP")
+
+        Note: check_parallel_next_condition() in TaskExecutor can return sentinel strings
+        like "NEVER" or "LOOP" because it's used in next-context where special control
+        flow is supported. This function only returns boolean for simpler success evaluation.
+        """
         if not results:
             if log_callback:
                 log_callback(f"No results to evaluate for parallel next condition: '{next_condition}'")
@@ -138,7 +146,10 @@ class ParallelExecutor(BaseExecutor):
 
         if next_condition == 'never':
             if log_callback:
-                log_callback(f"'next=never' found, not proceeding to next task")
+                log_callback("'next=never' found, not proceeding to next task")
+            # Return False (not "NEVER" string) because this function is used in success-context
+            # where boolean True/False is expected. check_parallel_next_condition returns "NEVER"
+            # string for next-context where special sentinel values are supported.
             return False
 
         if next_condition == 'all_success':

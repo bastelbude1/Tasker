@@ -22,6 +22,7 @@ hostname=localhost
 command=echo
 arguments=SUCCESS: Statistics test passed - min_success=1 condition met
 exec=local
+next=never
 
 # === TEST 2: Overall success should be FALSE when not all succeed ===
 task=10

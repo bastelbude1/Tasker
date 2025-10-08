@@ -16,7 +16,7 @@ timeout=8
 retry_failed=true
 retry_count=2
 retry_delay=1
-next=all_success
+success=all_success
 on_success=2
 on_failure=50
 
@@ -60,5 +60,5 @@ task=302
 hostname=localhost
 command=sh
 arguments=-c "attempts=$(cat /tmp/task302_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task302_counter; if [ $attempts -le 1 ]; then echo \"DEGRADED (attempt $attempts)\"; exit 0; else echo \"HEALTHY (attempt $attempts)\"; exit 0; fi"
-exec=local
+exec=shell
 success=exit_0&stdout~HEALTHY

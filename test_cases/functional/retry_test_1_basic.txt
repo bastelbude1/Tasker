@@ -16,7 +16,7 @@ timeout=10
 retry_failed=true
 retry_count=2
 retry_delay=2
-next=min_success=3
+success=min_success=3
 on_success=2
 on_failure=50
 
@@ -58,7 +58,7 @@ task=102
 hostname=localhost
 command=sh
 arguments=-c "attempts=$(cat /tmp/task102_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task102_counter; if [ $attempts -le 2 ]; then echo \"Task 102 - Attempt $attempts fails\"; exit 1; else echo \"Task 102 - Attempt $attempts succeeds\"; exit 0; fi"
-exec=local
+exec=shell
 
 # Task 103: Always succeeds (no retry needed)
 task=103

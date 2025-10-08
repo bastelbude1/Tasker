@@ -1,0 +1,57 @@
+# TEST_METADATA: {"description": "Conditional min_success=2 with 2 successes - takes on_success path", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test Section 10.2: Multi-Task Success Evaluation with on_success/on_failure routing
+# min_success=2 with 2 successes - condition MET - takes on_success path
+
+TEST_MODE=true
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Testing min_success=2 with 2 successes out of 3 tasks
+exec=local
+
+# Conditional block with min_success=2 condition
+# 2 tasks succeed, 1 task fails - min_success met
+task=1
+type=conditional
+condition=@TEST_MODE@=true
+if_true_tasks=10,11,12
+if_false_tasks=99
+success=min_success=2
+on_success=2
+on_failure=99
+
+# Task 2: on_success handler (SHOULD execute)
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: on_success handler - min_success=2 met (2/3 succeeded)
+exec=local
+next=never
+
+# Subtask 10: SUCCESS
+task=10
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+# Subtask 11: SUCCESS
+task=11
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+# Subtask 12: FAILED
+task=12
+hostname=localhost
+command=/usr/bin/false
+exec=local
+
+# Task 99: on_failure handler (should NOT execute)
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=ERROR: Should not reach on_failure handler
+exec=local
+return=1

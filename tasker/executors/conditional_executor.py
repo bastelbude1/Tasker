@@ -207,20 +207,18 @@ class ConditionalExecutor(BaseExecutor):
             executor_instance.log_debug(f"Task {task_id}: Evaluating 'success' condition: {success_condition}")
 
             # Use the same evaluation function that handles min_success, max_failed, etc.
+            # Note: This only returns True or False (never "NEVER" or "LOOP")
             should_continue = ParallelExecutor.evaluate_parallel_next_condition(
                 success_condition, results, executor_instance.log_debug, executor_instance.log_info)
 
             executor_instance.log_info(f"Task {task_id}: Success condition '{success_condition}' evaluated to: {should_continue}")
         else:
             # Use conditional next condition evaluation (reuses parallel logic)
+            # Note: This only returns True or False (check_conditional_next_condition doesn't return "NEVER"/"LOOP")
             should_continue = ConditionalExecutor.check_conditional_next_condition(conditional_task, results, executor_instance)
 
-        # Determine final success based on should_continue result
-        if should_continue == "NEVER":
-            executor_instance.final_success = True
-            return None
-
         # Handle on_success/on_failure jumps (same as parallel)
+        # Note: should_continue is always True or False (never "NEVER" or "LOOP" in conditional blocks)
         has_on_failure = 'on_failure' in conditional_task
         executor_instance.final_success = should_continue is True or (should_continue is False and has_on_failure)
         

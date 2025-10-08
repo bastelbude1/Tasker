@@ -992,21 +992,34 @@ class TestValidator:
                             f"Total execution time exceeded limit: {actual_total:.2f}s > {max_total}s"
                         )
 
-        # Validate warning count
+        # Validate warning count and detect unexpected warnings
+        # Count unique warning lines (lines containing WARN: or WARNING:)
+        # Exclude CLI warnings that start with "WARNING:" (no timestamp prefix)
+        # Only count workflow warnings with timestamps: [timestamp] WARN: or WARNING:
+        # Also exclude lines starting with ^WARN which are literal output patterns
+        warning_lines = [line for line in actual_results["stdout"].split('\n')
+                       if ('WARN:' in line or 'WARNING:' in line)
+                       and not line.startswith('WARNING:')
+                       and not line.startswith('^WARN')]
+        actual_warning_count = len(warning_lines)
+
         if "expected_warnings" in metadata:
             expected_warning_count = metadata["expected_warnings"]
-            # Count unique warning lines (lines containing WARN: or WARNING:)
-            # Exclude CLI warnings that start with "WARNING:" (no timestamp prefix)
-            # Only count workflow warnings with timestamps: [timestamp] WARN: or WARNING:
-            warning_lines = [line for line in actual_results["stdout"].split('\n')
-                           if ('WARN:' in line or 'WARNING:' in line) and not line.startswith('WARNING:')]
-            actual_warning_count = len(warning_lines)
-
             if actual_warning_count != expected_warning_count:
                 validation_results["passed"] = False
                 validation_results["failures"].append(
                     f"Warning count mismatch: expected {expected_warning_count}, got {actual_warning_count}"
                 )
+        else:
+            # If expected_warnings not specified, default to 0 - fail on any warnings
+            if actual_warning_count > 0:
+                validation_results["passed"] = False
+                validation_results["failures"].append(
+                    f"Unexpected warnings detected ({actual_warning_count} warnings found). Add 'expected_warnings': {actual_warning_count} to metadata if warnings are expected."
+                )
+                # Show the actual warning messages for debugging
+                for warning_line in warning_lines[:5]:  # Show first 5 warnings
+                    validation_results["failures"].append(f"  {warning_line.strip()}")
 
         # Validate stdout patterns per task
         if "expected_stdout" in metadata:

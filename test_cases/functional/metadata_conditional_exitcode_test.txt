@@ -12,7 +12,7 @@ exec=local
 # Conditional based on exit code (should take false branch)
 task=1
 type=conditional
-condition=@0_exit_code@=1
+condition=@0_exit@=1
 if_true_tasks=10,11
 if_false_tasks=20,21
 

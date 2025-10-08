@@ -1411,6 +1411,102 @@ Parameters specific to sequential task execution:
 - **CRITICAL**: For sequential tasks, `next` and `on_success/on_failure` are MUTUALLY EXCLUSIVE - use one OR the other, never both
 - For parallel/conditional tasks, `next` defines the success evaluation condition and CAN be used with `on_success/on_failure`
 
+#### Default Routing Behavior (No Explicit Routing)
+
+When a task has **no routing parameters** (`next`, `on_success`, `on_failure`), TASKER uses **implicit `next=success` behavior**:
+
+**✅ Task Succeeds** (success condition evaluates to TRUE):
+- Workflow continues to the next sequential task
+- Equivalent to having `next=success`
+
+**❌ Task Fails** (success condition evaluates to FALSE):
+- Workflow **stops execution** (safe default behavior)
+- Prevents cascading failures in production
+- Use `--fire-and-forget` flag to override this behavior
+
+**Example - Default routing (no parameters):**
+```bash
+task=0
+hostname=localhost
+command=/usr/bin/check_health
+exec=local
+# No routing specified - uses implicit next=success
+# If check succeeds → continues to task 1
+# If check fails → stops execution
+
+task=1
+hostname=localhost
+command=/usr/bin/deploy
+exec=local
+# This task only runs if task 0 succeeded
+```
+
+**Example - Explicit routing (recommended for clarity):**
+```bash
+task=0
+hostname=localhost
+command=/usr/bin/check_health
+exec=local
+next=success
+on_success=1
+on_failure=99
+# Explicit routing - clearer intent
+
+task=1
+hostname=localhost
+command=/usr/bin/deploy
+exec=local
+
+task=99
+hostname=localhost
+command=/usr/bin/rollback
+exec=local
+```
+
+#### Fire-and-Forget Mode
+
+Use `--fire-and-forget` flag to continue execution even when tasks fail:
+
+**Command Line:**
+```bash
+./tasker.py workflow.txt --fire-and-forget
+```
+
+**Behavior:**
+- Tasks without explicit routing **continue on failure** instead of stopping
+- Useful for best-effort workflows (monitoring, cleanup, bulk operations)
+- **Warning**: Failed tasks may cause downstream task failures
+
+**Example - Best-effort cleanup workflow:**
+```bash
+# Run with: ./tasker.py cleanup.txt --fire-and-forget
+
+task=0
+hostname=server1
+command=/usr/bin/cleanup_temp
+exec=local
+# May fail - continues anyway
+
+task=1
+hostname=server2
+command=/usr/bin/cleanup_logs
+exec=local
+# May fail - continues anyway
+
+task=2
+hostname=server3
+command=/usr/bin/cleanup_cache
+exec=local
+# Completes cleanup on all servers regardless of individual failures
+```
+
+**When to use fire-and-forget:**
+- ✅ Monitoring/health checks across multiple servers
+- ✅ Cleanup operations where partial completion is acceptable
+- ✅ Data collection tasks that shouldn't block workflow
+- ❌ **DO NOT use** for critical workflows (deployments, database migrations)
+- ❌ **DO NOT use** when task dependencies exist
+
 ### Parallel Execution Parameters
 
 Parameters for executing multiple tasks concurrently:

@@ -708,13 +708,26 @@ class TaskValidator:
 
     def validate_parallel_task(self, task, task_id, line_number, parallel_tasks):
         """Validate parallel task specific fields."""
-        
+
         # Validate 'type' field
         if 'type' in task:
             task_type = task['type']
             if task_type not in self.valid_task_types:
                 self.errors.append(f"Line {line_number}: Task {task_id} has invalid type '{task_type}'. Valid types: {', '.join(self.valid_task_types)}")
-        
+
+        # CRITICAL: Parallel blocks cannot use success/failure parameters
+        # They use aggregate conditions (min_success, max_failed, etc.) that count subtask outcomes
+        if 'success' in task:
+            self.errors.append(
+                f"Line {line_number}: Task {task_id} (parallel) cannot use 'success' parameter. "
+                f"Use aggregate conditions like 'min_success', 'all_success', etc. in 'next' parameter instead."
+            )
+        if 'failure' in task:
+            self.errors.append(
+                f"Line {line_number}: Task {task_id} (parallel) cannot use 'failure' parameter. "
+                f"Use aggregate conditions like 'max_failed' in 'next' parameter instead."
+            )
+
         # Validate 'max_parallel' field
         if 'max_parallel' in task:
             try:
@@ -766,13 +779,26 @@ class TaskValidator:
 
     def validate_conditional_task(self, task, task_id, line_number, conditional_tasks):
         """NEW: Validate conditional task specific fields."""
-        
+
         # Validate 'type' field
         if 'type' in task:
             task_type = task['type']
             if task_type not in self.valid_task_types:
                 self.errors.append(f"Line {line_number}: Task {task_id} has invalid type '{task_type}'. Valid types: {', '.join(self.valid_task_types)}")
-        
+
+        # CRITICAL: Conditional blocks cannot use success/failure parameters
+        # They use aggregate conditions (min_success, max_failed, etc.) that count subtask outcomes
+        if 'success' in task:
+            self.errors.append(
+                f"Line {line_number}: Task {task_id} (conditional) cannot use 'success' parameter. "
+                f"Use aggregate conditions like 'min_success', 'all_success', etc. in 'next' parameter instead."
+            )
+        if 'failure' in task:
+            self.errors.append(
+                f"Line {line_number}: Task {task_id} (conditional) cannot use 'failure' parameter. "
+                f"Use aggregate conditions like 'max_failed' in 'next' parameter instead."
+            )
+
         # Validate 'condition' field (required for conditional tasks)
         if 'condition' not in task:
             self.errors.append(f"Line {line_number}: Task {task_id} is missing required 'condition' field for conditional task.")

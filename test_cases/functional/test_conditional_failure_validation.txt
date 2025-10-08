@@ -1,0 +1,27 @@
+# TEST_METADATA: {"description": "Validation test - conditional blocks cannot use failure parameter", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "skip_host_validation": true}
+# Test that conditional blocks reject failure parameter
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test
+exec=local
+
+# INVALID: Conditional block with failure parameter
+# Should fail validation with error about using aggregate conditions instead
+task=1
+type=conditional
+condition=@0_success@=true
+if_true_tasks=10
+if_false_tasks=11
+failure=exit_1
+
+task=10
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+task=11
+hostname=localhost
+command=/usr/bin/true
+exec=local

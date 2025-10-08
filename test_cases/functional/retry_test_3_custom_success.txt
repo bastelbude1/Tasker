@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Retry with custom success conditions (stdout pattern matching)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
 # TEST 3: Custom Success Conditions with Retry
 # Tests retry logic with custom success conditions
 

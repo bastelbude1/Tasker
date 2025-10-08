@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Statistics verification test - parallel task success/failure counting", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
 # STATISTICS VERIFICATION TEST
 # Tests the fixed statistics and success logic
 
@@ -13,7 +14,6 @@ type=parallel
 max_parallel=3
 tasks=100,101,102
 timeout=3
-next=min_success=1
 on_success=2
 on_failure=50
 
@@ -35,7 +35,6 @@ type=parallel
 max_parallel=3
 tasks=200,201,202
 timeout=2
-next=any_success
 on_success=12
 on_failure=55
 

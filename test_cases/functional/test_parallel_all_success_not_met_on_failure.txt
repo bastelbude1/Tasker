@@ -1,0 +1,54 @@
+# TEST_METADATA: {"description": "Parallel all_success with 1 failure - takes on_failure path", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 99]}
+
+# Test Section 10.2: Multi-Task Success Evaluation with on_success/on_failure routing
+# all_success with 1 failure - condition NOT met - takes on_failure path
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Testing all_success with 1 failure out of 3 tasks
+exec=local
+
+# Parallel block with all_success condition
+# 2 tasks succeed, 1 task fails - all_success NOT met
+task=1
+type=parallel
+tasks=10,11,12
+max_parallel=3
+success=all_success
+on_success=2
+on_failure=99
+
+# Task 2: on_success handler (should NOT execute)
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=ERROR: Should not reach on_success handler
+exec=local
+return=1
+
+# Subtask 10: SUCCESS
+task=10
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+# Subtask 11: SUCCESS
+task=11
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+# Subtask 12: FAILED
+task=12
+hostname=localhost
+command=/usr/bin/false
+exec=local
+
+# Task 99: on_failure handler (SHOULD execute - not all tasks succeeded)
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: on_failure handler - all_success not met (1/3 failed)
+exec=local
+next=never

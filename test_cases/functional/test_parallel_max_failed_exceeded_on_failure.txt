@@ -1,0 +1,66 @@
+# TEST_METADATA: {"description": "Parallel max_failed=2 with 3 failures - takes on_failure path", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 99]}
+
+# Test Section 10.2: Multi-Task Success Evaluation with on_success/on_failure routing
+# max_failed=2 with 3 failures - condition NOT met - takes on_failure path
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Testing max_failed=2 with 3 failures out of 5 tasks
+exec=local
+
+# Parallel block with max_failed=2 condition
+# 2 tasks succeed, 3 tasks fail - max_failed exceeded (3 > 2)
+task=1
+type=parallel
+tasks=10,11,12,13,14
+max_parallel=5
+success=max_failed=2
+on_success=2
+on_failure=99
+
+# Task 2: on_success handler (should NOT execute)
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=ERROR: Should not reach on_success handler
+exec=local
+return=1
+
+# Subtask 10: SUCCESS
+task=10
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+# Subtask 11: SUCCESS
+task=11
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+# Subtask 12: FAILED
+task=12
+hostname=localhost
+command=/usr/bin/false
+exec=local
+
+# Subtask 13: FAILED
+task=13
+hostname=localhost
+command=/usr/bin/false
+exec=local
+
+# Subtask 14: FAILED
+task=14
+hostname=localhost
+command=/usr/bin/false
+exec=local
+
+# Task 99: on_failure handler (SHOULD execute - 3 failures exceeds max_failed=2)
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: on_failure handler - max_failed=2 exceeded (3/5 failed)
+exec=local
+next=never

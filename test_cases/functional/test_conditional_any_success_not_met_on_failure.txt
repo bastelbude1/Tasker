@@ -1,0 +1,57 @@
+# TEST_METADATA: {"description": "Conditional any_success with all failures - takes on_failure path", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 99]}
+
+# Test Section 10.2: Multi-Task Success Evaluation with on_success/on_failure routing
+# any_success with all failures - condition NOT met - takes on_failure path
+
+TEST_MODE=true
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Testing any_success with all 3 tasks failing
+exec=local
+
+# Conditional block with any_success condition
+# All tasks fail - any_success NOT met
+task=1
+type=conditional
+condition=@TEST_MODE@=true
+if_true_tasks=10,11,12
+if_false_tasks=99
+success=any_success
+on_success=2
+on_failure=99
+
+# Task 2: on_success handler (should NOT execute)
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=ERROR: Should not reach on_success handler
+exec=local
+return=1
+
+# Subtask 10: FAILED
+task=10
+hostname=localhost
+command=/usr/bin/false
+exec=local
+
+# Subtask 11: FAILED
+task=11
+hostname=localhost
+command=/usr/bin/false
+exec=local
+
+# Subtask 12: FAILED
+task=12
+hostname=localhost
+command=/usr/bin/false
+exec=local
+
+# Task 99: on_failure handler (SHOULD execute - no tasks succeeded)
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: on_failure handler - any_success not met (0/3 succeeded)
+exec=local
+next=never

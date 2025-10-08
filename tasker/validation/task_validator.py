@@ -1513,7 +1513,7 @@ class TaskValidator:
             else:
                 self.errors.append(
                     f"Line {line_number}: Task {task_id} has unrecognized {field_name}: '{condition}'. "
-                    f"Valid patterns: exit_N, stdout/stderr operators (~, =, !=, <, >, etc.), task result placeholders (@N_field@), variable comparisons, boolean literals (true/false)."
+                    f"Valid patterns: exit_N, stdout/stderr operators (~, =, !=, <, >, etc.), task result placeholders (@N_stdout@, @N_stderr@, @N_success@, @N_exit@), variable comparisons, boolean literals (true/false)."
                 )
 
     def _check_operators_inside_parentheses(self, condition, field_name, task_id, line_number):

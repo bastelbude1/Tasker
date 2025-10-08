@@ -1494,8 +1494,8 @@ class TaskValidator:
             r'^success$',                            # success keyword
             r'^[a-zA-Z_]\w*[=!<>~]',                # variable comparisons
             r'^exit[=!<>]',                          # exit comparisons (current task)
-            r'^@\d+_\w+@$',                          # standalone task result placeholders (e.g., @0_success@)
-            r'^@\d+_\w+@[=!<>~]',                   # task result comparisons (e.g., @0_exit@=0)
+            r'^@\d+_(stdout|stderr|success|exit)@$',  # standalone task result placeholders (e.g., @0_success@, @0_exit@)
+            r'^@\d+_(stdout|stderr|success|exit)@[=!<>~]',  # task result comparisons (e.g., @0_exit@=0)
             r'^contains:',                           # legacy contains
             r'^not_contains:',                       # legacy not_contains
         ]
@@ -1587,12 +1587,12 @@ class TaskValidator:
 
     def collect_referenced_tasks(self, task, referenced_tasks):
         """Collect task IDs that are referenced in variables and on_failure/on_success fields."""
-        # Check for @X_stdout@, @X_stderr@, or @X_success@ references
+        # Check for @X_stdout@, @X_stderr@, @X_success@, or @X_exit@ references
         for key, value in task.items():
             if isinstance(value, str):
-                for match in re.finditer(r'@(\d+)_(stdout|stderr|success)@', value):
+                for match in re.finditer(r'@(\d+)_(stdout|stderr|success|exit)@', value):
                     try:
-                        ref_task = int(match.group(1))  
+                        ref_task = int(match.group(1))
                         referenced_tasks.add(ref_task)
                     except ValueError:
                         pass

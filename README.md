@@ -604,8 +604,6 @@ arguments=@BACKUP_OPTIONS@ --dest=@BACKUP_PATH@/config
 
 **Read-Only During Execution**: Global variables cannot be modified by tasks during runtime.
 
-**Environment Variables Not Expanded**: TASKER does not automatically expand shell environment variables like `$HOME`, `$USER`, etc. Use shell commands (`sh -c "command $VAR"`) or absolute paths as workarounds.
-
 **Alternative for Dynamic Data**: Use task output variables (`@TASK_ID_stdout@`) for values that change during execution:
 
 ```

@@ -1,0 +1,30 @@
+# TEST_METADATA: {"description": "Test automatic environment variable expansion in arguments", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true}
+# Test that environment variables like $HOME, $USER, $PWD are automatically expanded in arguments
+
+task=0
+hostname=localhost
+command=/usr/bin/printenv
+arguments=HOME
+exec=local
+success=exit_0
+
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=Home directory is $HOME
+exec=local
+success=stdout~Home directory is /
+
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=Current user is $USER
+exec=local
+success=stdout~Current user is
+
+task=3
+hostname=localhost
+command=/usr/bin/echo
+arguments=Working directory is $PWD
+exec=local
+success=stdout~Working directory is /

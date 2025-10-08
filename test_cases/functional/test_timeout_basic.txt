@@ -15,6 +15,7 @@ command=sleep
 arguments=10
 exec=local
 timeout=5
+on_success=99
 on_failure=2
 
 # Task 2: Timeout handler
@@ -24,3 +25,11 @@ command=echo
 arguments=Task timed out as expected
 exec=local
 next=never
+
+# Task 99: Should not execute (task should timeout, not succeed)
+task=99
+hostname=localhost
+command=echo
+arguments=ERROR: Task should have timed out but completed successfully
+exec=local
+return=1

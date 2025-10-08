@@ -1515,25 +1515,51 @@ class TaskValidator:
 
     def _check_operators_inside_parentheses(self, condition, field_name, task_id, line_number):
         """
-        Check if operators (&, |) exist inside parentheses and reject them.
+        Check if operators (&, |, AND, OR) exist inside parentheses and reject them.
         Parentheses should only wrap simple conditions, not complex expressions.
 
-        Supported:   (exit_0), (stdout~OK), (exit_0)&(stdout~OK)
-        Unsupported: (exit_0&stdout~OK), (exit_0|exit_1)
+        Supported:   (exit_0), (stdout~OK), (exit_0)&(stdout~OK), (exit_0) AND (stdout~OK)
+        Unsupported: (exit_0&stdout~OK), (exit_0|exit_1), (exit_0 AND stdout~OK), (exit_0 OR exit_1)
 
         Returns True if error found, False otherwise.
         """
+        import re
+
         depth = 0
         inside_parens = False
+        paren_start = -1
 
         for i, char in enumerate(condition):
             if char == '(':
+                if depth == 0:
+                    paren_start = i
                 depth += 1
                 inside_parens = True
             elif char == ')':
                 depth -= 1
                 if depth == 0:
                     inside_parens = False
+                    # Check for textual operators in the substring that just closed
+                    if paren_start >= 0:
+                        paren_content = condition[paren_start+1:i]
+                        # Check for whole-word AND/OR operators (case-insensitive)
+                        textual_match = re.search(r'\b(AND|OR)\b', paren_content, re.IGNORECASE)
+                        if textual_match:
+                            # Extract context around the error
+                            start = max(0, paren_start - 10)
+                            end = min(len(condition), i + 10)
+                            context = condition[start:end]
+                            operator = textual_match.group(1)
+
+                            self.errors.append(
+                                f"Line {line_number}: Task {task_id} has operators inside parentheses in '{field_name}' condition. "
+                                f"Context: '...{context}...' "
+                                f"Parentheses can only wrap simple conditions, not complex expressions. "
+                                f"Use operators OUTSIDE parentheses: '(exit_0) {operator.upper()} (stdout~OK)' instead of '(exit_0 {operator.upper()} stdout~OK)'. "
+                                f"For complex grouping, wait for JSON/YAML support (see Future Features)."
+                            )
+                            return True  # Found error
+                    paren_start = -1
             elif inside_parens and char in ['&', '|']:
                 # Extract context around the error for better error message
                 start = max(0, i - 20)

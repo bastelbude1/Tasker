@@ -1319,11 +1319,11 @@ condition=(@0_stdout@~done)|(@0_stdout@~finished)
 ```
 
 **Note on Parentheses Support:**
-Parentheses can only wrap simple conditions without operators inside them. Operators (`&`, `|`) must be placed OUTSIDE parentheses:
-- ✅ **Supported:** `(exit_0)`, `(stdout~OK)`, `(exit_0)&(stdout~OK)`, `(exit_0)|(exit_1)`
-- ❌ **Not Supported:** `(exit_0&stdout~OK)`, `(exit_0|exit_1)`, `(@0_exit_code@=0&@0_stdout@~done)`
+Parentheses can only wrap simple conditions without operators inside them. Operators (`&`, `|`, `AND`, `OR`) must be placed OUTSIDE parentheses:
+- ✅ **Supported:** `(exit_0)`, `(stdout~OK)`, `(exit_0)&(stdout~OK)`, `(exit_0) AND (stdout~OK)`
+- ❌ **Not Supported:** `(exit_0&stdout~OK)`, `(exit_0 AND stdout~OK)`, `(exit_0|exit_1)`, `(exit_0 OR exit_1)`
 
-For complex grouping with operators inside parentheses, wait for JSON/YAML task file support (see Future Features section). Validation will reject operators inside parentheses with clear error messages.
+For complex grouping with operators inside parentheses, wait for JSON/YAML task file support (see Future Features section). Validation will reject both symbolic and textual operators inside parentheses with clear error messages.
 
 **Note:** Global variables must be defined at the start of your task file and are read-only during execution. Dynamic variable updates during task execution are not yet supported (see Feature Requests section).
 
@@ -2493,9 +2493,24 @@ This creates clear separation and prevents accidental cross-execution between di
 Combine multiple conditions using boolean operators:
 
 **Supported Operators:**
-- `&`: AND operator
-- `|`: OR operator
-- `()`: Grouping
+- `&`: AND operator (symbolic)
+- `|`: OR operator (symbolic)
+- `AND`: AND operator (textual, case-insensitive)
+- `OR`: OR operator (textual, case-insensitive)
+- `()`: Grouping (simple conditions only)
+
+**Operator Forms:**
+```
+# Symbolic operators (compact)
+success=exit_0&stdout~OK
+condition=@0_exit_code@=0|@1_exit_code@=0
+
+# Textual operators (more readable)
+success=exit_0 AND stdout~OK
+condition=@0_exit_code@=0 OR @1_exit_code@=0
+
+# Both forms are equivalent and can be used interchangeably
+```
 
 ```
 # Complex condition example

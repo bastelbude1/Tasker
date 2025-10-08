@@ -12,9 +12,9 @@ exec=local
 task=1
 hostname=localhost
 command=sleep
-arguments=8
+arguments=10
 exec=local
-timeout=3
+timeout=5
 on_success=2
 on_failure=50
 

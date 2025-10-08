@@ -14,7 +14,7 @@ hostname=localhost
 command=sleep
 arguments=10
 exec=local
-timeout=2
+timeout=5
 on_failure=2
 
 # Task 2: Timeout handler

@@ -164,8 +164,8 @@ class TaskValidator:
         
         def replace_var(match):
             var_name = match.group(1)
-            # Skip task result variables (e.g., @0_stdout@)
-            task_var_pattern = r'\d+_(stdout|stderr|success)$'
+            # Skip task result variables (e.g., @0_stdout@, @0_exit@)
+            task_var_pattern = r'\d+_(stdout|stderr|success|exit)$'
             if re.match(task_var_pattern, var_name):
                 return match.group(0)  # Return unchanged
             # Replace with global variable value if defined
@@ -858,18 +858,18 @@ class TaskValidator:
         
         # Pattern to match @VARIABLE@ but exclude @X_stdout@, @X_stderr@, @X_success@
         global_var_pattern = r'@([a-zA-Z_][a-zA-Z0-9_]*)@'
-        task_result_pattern = r'@(\d+)_(stdout|stderr|success)@'
-        
+        task_result_pattern = r'@(\d+)_(stdout|stderr|success|exit)@'
+
         # Check all string fields in the task
         for field_name, field_value in task.items():
             if isinstance(field_value, str) and '@' in field_value:
-                
+
                 # Find all potential global variable references
                 global_matches = re.findall(global_var_pattern, field_value)
-                
+
                 for var_name in global_matches:
                     # Skip if this is actually a task result variable pattern
-                    task_var_pattern = r'\d+_(stdout|stderr|success)$'
+                    task_var_pattern = r'\d+_(stdout|stderr|success|exit)$'
                     if re.match(task_var_pattern, var_name):
                         continue
                     

@@ -604,8 +604,6 @@ arguments=@BACKUP_OPTIONS@ --dest=@BACKUP_PATH@/config
 
 **Read-Only During Execution**: Global variables cannot be modified by tasks during runtime.
 
-**Environment Variables Not Expanded**: TASKER does not automatically expand shell environment variables like `$HOME`, `$USER`, etc. Use shell commands (`sh -c "command $VAR"`) or absolute paths as workarounds.
-
 **Alternative for Dynamic Data**: Use task output variables (`@TASK_ID_stdout@`) for values that change during execution:
 
 ```
@@ -1162,7 +1160,7 @@ failure=exit_1
 **Examples:**
 
 Single failure code:
-```
+```bash
 task=1
 hostname=deployment-server
 command=deploy_application
@@ -1172,7 +1170,7 @@ failure=exit_1
 ```
 
 Multiple failure codes:
-```
+```bash
 task=1
 hostname=database-server
 command=db_migration
@@ -1181,7 +1179,7 @@ failure=exit_1|exit_2|exit_127
 ```
 
 Complex failure conditions:
-```
+```bash
 task=1
 hostname=app-server
 command=health_check
@@ -1189,7 +1187,7 @@ command=health_check
 failure=@0_success@=false
 ```
 
-```
+```bash
 task=2
 hostname=monitoring
 command=check_status
@@ -1198,16 +1196,64 @@ failure=@stdout@~ERROR
 ```
 
 **Validation Rules:**
+
+**1. Mutual Exclusion:**
 - ❌ `success` and `failure` **cannot** be used together on the same task
 - ✅ Both support the same condition syntax (exit codes, variables, expressions)
-- ✅ Use `success=` when only a few codes mean success
-- ✅ Use `failure=` when only a few codes mean failure
+
+**2. Task Type Restrictions:**
+
+The `success` and `failure` parameters are **only supported for sequential tasks** (regular tasks).
+
+❌ **INVALID - Parallel blocks cannot use success/failure:**
+```bash
+task=1
+type=parallel
+tasks=10,11
+max_parallel=2
+success=exit_0     # ERROR: Not allowed in parallel blocks
+```
+
+❌ **INVALID - Conditional blocks cannot use success/failure:**
+```bash
+task=1
+type=conditional
+condition=@0_success@=true
+if_true_tasks=10
+if_false_tasks=11
+failure=exit_1     # ERROR: Not allowed in conditional blocks
+```
+
+**Why?** Parallel and conditional blocks execute multiple subtasks. They use **aggregate conditions** in the `next` parameter to evaluate overall success based on subtask outcomes:
+
+- `min_success=N` - Minimum number of successful subtasks
+- `max_failed=N` - Maximum number of failed subtasks
+- `all_success` - All subtasks must succeed
+- `any_success` - At least one subtask must succeed
+- `majority_success` - Majority of subtasks must succeed
+
+✅ **VALID - Use aggregate conditions for blocks:**
+```bash
+task=1
+type=parallel
+tasks=10,11
+max_parallel=2
+next=min_success=2
+on_success=2
+on_failure=99
+```
 
 **When to use `failure=` vs `success=`:**
-- **Use `failure=`** when most exit codes are acceptable (simpler)
-- **Use `success=`** when only specific codes are acceptable (more restrictive)
 
-See `FAILURE_CONDITION.md` for comprehensive documentation and examples.
+| Scenario | Using `success=` | Using `failure=` |
+|----------|------------------|------------------|
+| Fail on exit 1 only | `success=exit_0\|exit_2\|exit_3\|...` | `failure=exit_1` ✅ |
+| Success on exit 0 only | `success=exit_0` ✅ | `failure=exit_1\|exit_2\|exit_3\|...` |
+| Fail if task 0 failed | `success=@0_success@=true` | `failure=@0_success@=false` ✅ |
+| Success if stdout contains "OK" | `success=stdout~OK` ✅ | `failure=stdout!~OK` |
+
+- **Use `failure=`** when most exit codes are acceptable (simpler - fewer codes to list)
+- **Use `success=`** when only specific codes are acceptable (more restrictive)
 
 ### Advanced Condition Operators
 
@@ -1399,7 +1445,6 @@ Parameters for branching based on runtime conditions:
 | `condition` | String | **Yes** | Boolean expression to evaluate | `@ENV@=prod&@0_success@=true` |
 | `if_true_tasks` | String | No* | Task IDs for TRUE branch | "100,300,150" (custom order) |
 | `if_false_tasks` | String | No* | Task IDs for FALSE branch | "200,205,210" (skip tasks) |
-| `success` | String | No | Custom success criteria for branch tasks | Same as standard tasks |
 | `next` | String | No | Success evaluation condition | Same as parallel conditions |
 | `on_success` | Integer | No | Task ID if next condition met | Any valid task ID |
 | `on_failure` | Integer | No | Task ID if next condition not met | Any valid task ID |

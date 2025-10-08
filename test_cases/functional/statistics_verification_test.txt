@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Statistics verification test - parallel task success/failure counting", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
 # STATISTICS VERIFICATION TEST
 # Tests the fixed statistics and success logic
 

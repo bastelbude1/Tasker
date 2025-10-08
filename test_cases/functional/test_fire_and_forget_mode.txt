@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Test fire-and-forget mode continues on failure", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "fire_and_forget": true}
+# Test that tasks without routing continue on failure when using --fire-and-forget flag
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 0 succeeded
+exec=local
+success=exit_0
+# No routing - continues to task 1
+
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 1 output
+exec=local
+success=stdout~EXPECTED_TEXT
+# No routing - FAILS but continues anyway (fire-and-forget mode)
+
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=Task 2 executes despite task 1 failure
+exec=local
+success=exit_0
+# This task SHOULD execute (fire-and-forget allows continuation)

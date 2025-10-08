@@ -1,0 +1,66 @@
+# TEST_METADATA: {"description": "Comprehensive @N_stderr@ placeholder testing across all parameters", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4, 5]}
+
+# Test @N_stderr@ placeholder in condition, failure, arguments, and routing parameters
+# Task 0: Generate stderr output
+task=0
+hostname=localhost
+command=sh
+arguments=-c "echo 'WARNING: test error message' >&2; exit 0"
+exec=shell
+
+# Task 1: Use @0_stderr@ in condition parameter (error detection)
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1 detected stderr: @0_stderr@
+exec=local
+condition=@0_stderr@~WARNING
+
+# Task 2: Use @0_stderr@ in failure parameter
+task=2
+hostname=localhost
+command=sh
+arguments=-c "echo 'INFO: normal operation' >&2; exit 0"
+exec=shell
+failure=@0_stderr@~ERROR
+
+# Task 3: Use @0_stderr@ in arguments (error logging)
+task=3
+hostname=localhost
+command=echo
+arguments=Previous stderr was: @0_stderr@
+exec=local
+
+# Task 4: Use @0_stderr@ in conditional routing
+task=4
+type=conditional
+condition=@0_stderr@~WARNING
+if_true_tasks=40
+if_false_tasks=41
+on_success=5
+on_failure=99
+
+# Task 5: Final success
+task=5
+hostname=localhost
+command=echo
+arguments=All @0_stderr@ tests passed
+exec=local
+next=never
+
+# Conditional subtasks
+task=40
+hostname=localhost
+command=echo
+arguments=Conditional TRUE - stderr had WARNING
+exec=local
+
+task=41
+hostname=localhost
+command=echo
+arguments=Conditional FALSE - stderr had no WARNING
+exec=local
+
+# Error handler
+task=99
+return=1

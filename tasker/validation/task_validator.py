@@ -164,8 +164,8 @@ class TaskValidator:
         
         def replace_var(match):
             var_name = match.group(1)
-            # Skip task result variables (e.g., @0_stdout@)
-            task_var_pattern = r'\d+_(stdout|stderr|success)$'
+            # Skip task result variables (e.g., @0_stdout@, @0_exit@)
+            task_var_pattern = r'\d+_(stdout|stderr|success|exit)$'
             if re.match(task_var_pattern, var_name):
                 return match.group(0)  # Return unchanged
             # Replace with global variable value if defined
@@ -858,18 +858,18 @@ class TaskValidator:
         
         # Pattern to match @VARIABLE@ but exclude @X_stdout@, @X_stderr@, @X_success@
         global_var_pattern = r'@([a-zA-Z_][a-zA-Z0-9_]*)@'
-        task_result_pattern = r'@(\d+)_(stdout|stderr|success)@'
-        
+        task_result_pattern = r'@(\d+)_(stdout|stderr|success|exit)@'
+
         # Check all string fields in the task
         for field_name, field_value in task.items():
             if isinstance(field_value, str) and '@' in field_value:
-                
+
                 # Find all potential global variable references
                 global_matches = re.findall(global_var_pattern, field_value)
-                
+
                 for var_name in global_matches:
                     # Skip if this is actually a task result variable pattern
-                    task_var_pattern = r'\d+_(stdout|stderr|success)$'
+                    task_var_pattern = r'\d+_(stdout|stderr|success|exit)$'
                     if re.match(task_var_pattern, var_name):
                         continue
                     
@@ -1362,7 +1362,7 @@ class TaskValidator:
 
         for var_name in global_matches:
             # Skip task result variables
-            task_var_pattern = r'\d+_(stdout|stderr|success)$'
+            task_var_pattern = r'\d+_(stdout|stderr|success|exit)$'
             if re.match(task_var_pattern, var_name):
                 continue
 
@@ -1493,9 +1493,9 @@ class TaskValidator:
             r'^(true|false)$',                       # boolean literals
             r'^success$',                            # success keyword
             r'^[a-zA-Z_]\w*[=!<>~]',                # variable comparisons
-            r'^exit_code[=!<>]',                     # exit_code comparisons
-            r'^@\d+_\w+@$',                          # standalone task result placeholders (e.g., @0_success@)
-            r'^@\d+_\w+@[=!<>~]',                   # task result comparisons (e.g., @0_exit_code@=0)
+            r'^exit[=!<>]',                          # exit comparisons (current task)
+            r'^@\d+_(stdout|stderr|success|exit)@$',  # standalone task result placeholders (e.g., @0_success@, @0_exit@)
+            r'^@\d+_(stdout|stderr|success|exit)@[=!<>~]',  # task result comparisons (e.g., @0_exit@=0)
             r'^contains:',                           # legacy contains
             r'^not_contains:',                       # legacy not_contains
         ]
@@ -1513,7 +1513,7 @@ class TaskValidator:
             else:
                 self.errors.append(
                     f"Line {line_number}: Task {task_id} has unrecognized {field_name}: '{condition}'. "
-                    f"Valid patterns: exit_N, stdout/stderr operators (~, =, !=, <, >, etc.), task result placeholders (@N_field@), variable comparisons, boolean literals (true/false)."
+                    f"Valid patterns: exit_N, stdout/stderr operators (~, =, !=, <, >, etc.), task result placeholders (@N_stdout@, @N_stderr@, @N_success@, @N_exit@), variable comparisons, boolean literals (true/false)."
                 )
 
     def _check_operators_inside_parentheses(self, condition, field_name, task_id, line_number):
@@ -1587,12 +1587,12 @@ class TaskValidator:
 
     def collect_referenced_tasks(self, task, referenced_tasks):
         """Collect task IDs that are referenced in variables and on_failure/on_success fields."""
-        # Check for @X_stdout@, @X_stderr@, or @X_success@ references
-        for key, value in task.items():
+        # Check for @X_stdout@, @X_stderr@, @X_success@, or @X_exit@ references
+        for _, value in task.items():
             if isinstance(value, str):
-                for match in re.finditer(r'@(\d+)_(stdout|stderr|success)@', value):
+                for match in re.finditer(r'@(\d+)_(stdout|stderr|success|exit)@', value):
                     try:
-                        ref_task = int(match.group(1))  
+                        ref_task = int(match.group(1))
                         referenced_tasks.add(ref_task)
                     except ValueError:
                         pass

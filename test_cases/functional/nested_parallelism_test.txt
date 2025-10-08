@@ -19,7 +19,6 @@ tasks=10,11,12,13,14,15,16,17,18,19,20
 timeout=5
 on_success=2
 on_failure=999
-condition=all_success
 
 # Worker tasks
 task=10

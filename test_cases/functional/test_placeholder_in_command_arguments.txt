@@ -1,0 +1,32 @@
+# TEST_METADATA: {"description": "Test @N_stdout@ in command and arguments for dynamic command construction", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3]}
+
+# Test dynamic command and argument construction using placeholders
+# Task 0: Generate command name
+task=0
+hostname=localhost
+command=echo
+arguments=echo
+exec=local
+
+# Task 1: Generate arguments
+task=1
+hostname=localhost
+command=echo
+arguments=Dynamic arguments test
+exec=local
+
+# Task 2: Use command=@0_stdout@ and arguments=@1_stdout@
+task=2
+hostname=localhost
+command=@0_stdout@
+arguments=@1_stdout@
+exec=local
+
+# Task 3: Conditional arguments based on @0_success@
+task=3
+hostname=localhost
+command=echo
+arguments=Task 0 success status: @0_success@
+exec=local
+condition=@0_success@=true
+next=never

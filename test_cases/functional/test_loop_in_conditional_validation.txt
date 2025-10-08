@@ -32,7 +32,7 @@ command=/usr/bin/echo
 arguments=Another conditional subtask TRUE
 exec=local
 loop=2
-loop_break=@11_exit_code@=0
+loop_break=@11_exit@=0
 next=loop
 
 # False branch - subtask 20 with loop (NOT SUPPORTED - should trigger validation error)

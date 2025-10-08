@@ -457,6 +457,27 @@ class TaskerTestExecutor:
                     # Add to output patterns for pattern matching
                     output_patterns["stderr"].append(stderr_value)
 
+            # Capture task exit codes (Phase 3 enhancement)
+            # Matches both regular tasks (Task 0:) and subtasks (Task 0-1:)
+            elif re.search(r'Task (\d+|\d+-\d+): Exit code: (\d+)', line):
+                match = re.search(r'Task (\d+|\d+-\d+): Exit code: (\d+)', line)
+                if match:
+                    task_id = match.group(1)
+                    exit_code = match.group(2)
+                    variables[f"{task_id}_exit"] = exit_code
+                    # Infer success status from exit code (0 = True, non-zero = False)
+                    # Note: This is a simplification - actual success may depend on success/failure conditions
+                    variables[f"{task_id}_success"] = "True" if exit_code == "0" else "False"
+
+            # Capture explicit task success status (Phase 3 enhancement)
+            # This overrides the inferred success from exit code if explicitly logged
+            elif re.search(r'Task (\d+|\d+-\d+): Completed - Success: (True|False)', line):
+                match = re.search(r'Task (\d+|\d+-\d+): Completed - Success: (True|False)', line)
+                if match:
+                    task_id = match.group(1)
+                    success_status = match.group(2)
+                    variables[f"{task_id}_success"] = success_status
+
         return {
             "executed_tasks": executed_tasks,
             "loop_execution_path": loop_execution_path,

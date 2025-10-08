@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Timeout minimum value enforcement test", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+# TEST_METADATA: {"description": "Timeout minimum value enforcement test", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_warnings": 1}
 
 # Test that timeout values below minimum (5s) are enforced to minimum
 # Task 0: Introduction

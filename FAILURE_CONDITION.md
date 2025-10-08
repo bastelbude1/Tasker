@@ -67,7 +67,9 @@ failure=@1_stdout@=ERROR  # Fail if task 1's stdout contains "ERROR"
 
 ## Validation Rules
 
-**Mutual Exclusion**: `success` and `failure` **cannot** be used together on the same task.
+### Mutual Exclusion
+
+`success` and `failure` **cannot** be used together on the same task.
 
 ```bash
 # ❌ INVALID - Will fail validation
@@ -83,6 +85,55 @@ failure=exit_1
 ```
 ERROR: Task 1 cannot use 'success' and 'failure' together.
 Use either 'success' for positive conditions OR 'failure' for inverse conditions, not both.
+```
+
+### Task Type Restrictions
+
+`success` and `failure` parameters are **only supported for sequential tasks** (regular tasks).
+
+**❌ INVALID - Parallel blocks cannot use success/failure:**
+```bash
+task=1
+type=parallel
+tasks=10,11
+max_parallel=2
+success=exit_0     # ERROR: Not allowed in parallel blocks
+```
+
+**❌ INVALID - Conditional blocks cannot use success/failure:**
+```bash
+task=1
+type=conditional
+condition=@0_success@=true
+if_true_tasks=10
+if_false_tasks=11
+failure=exit_1     # ERROR: Not allowed in conditional blocks
+```
+
+**Why?** Parallel and conditional blocks execute multiple subtasks. They use **aggregate conditions** in the `next` parameter to evaluate overall success based on subtask outcomes:
+
+- `min_success=N` - Minimum number of successful subtasks
+- `max_failed=N` - Maximum number of failed subtasks
+- `all_success` - All subtasks must succeed
+- `any_success` - At least one subtask must succeed
+- `majority_success` - Majority of subtasks must succeed
+
+**✅ VALID - Use aggregate conditions for blocks:**
+```bash
+task=1
+type=parallel
+tasks=10,11
+max_parallel=2
+next=2 if min_success=2, 99 if any_success, 100
+```
+
+**Error messages:**
+```
+ERROR: Task 1 (parallel) cannot use 'success' parameter.
+Use aggregate conditions like 'min_success', 'all_success', etc. in 'next' parameter instead.
+
+ERROR: Task 1 (conditional) cannot use 'failure' parameter.
+Use aggregate conditions like 'max_failed' in 'next' parameter instead.
 ```
 
 ## When to Use

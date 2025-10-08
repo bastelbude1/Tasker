@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Validation test - parallel blocks cannot use failure parameter", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "skip_host_validation": true}
+# Test that parallel blocks reject failure parameter
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test
+exec=local
+
+# INVALID: Parallel block with failure parameter
+# Should fail validation with error about using aggregate conditions instead
+task=1
+type=parallel
+tasks=10,11
+max_parallel=2
+failure=exit_1
+
+task=10
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+task=11
+hostname=localhost
+command=/usr/bin/true
+exec=local

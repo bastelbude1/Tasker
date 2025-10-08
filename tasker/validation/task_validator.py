@@ -1394,6 +1394,11 @@ class TaskValidator:
             for code in invalid_exit_equals:
                 self.errors.append(f"Line {line_number}: Task {task_id} has invalid syntax in {field_name}: 'exit={code}'. Use 'exit_{code}' instead.")
 
+        # CRITICAL: Check for operators inside parentheses (not supported)
+        # Parentheses can only wrap simple conditions, not complex expressions
+        if self._check_operators_inside_parentheses(resolved_expression, field_name, task_id, line_number):
+            return  # Don't continue validation if this error exists
+
         # CRITICAL: Validate individual condition parts after splitting on operators
         # This catches malformed conditions like "stdout~FAILED,exit_2"
         self.validate_condition_parts(resolved_expression, field_name, task_id, line_number)
@@ -1507,6 +1512,44 @@ class TaskValidator:
                     f"Line {line_number}: Task {task_id} has unrecognized {field_name} condition: '{condition}'. "
                     f"Valid patterns: exit_N, stdout/stderr operators (~, =, !=, etc.), variable comparisons."
                 )
+
+    def _check_operators_inside_parentheses(self, condition, field_name, task_id, line_number):
+        """
+        Check if operators (&, |) exist inside parentheses and reject them.
+        Parentheses should only wrap simple conditions, not complex expressions.
+
+        Supported:   (exit_0), (stdout~OK), (exit_0)&(stdout~OK)
+        Unsupported: (exit_0&stdout~OK), (exit_0|exit_1)
+
+        Returns True if error found, False otherwise.
+        """
+        depth = 0
+        inside_parens = False
+
+        for i, char in enumerate(condition):
+            if char == '(':
+                depth += 1
+                inside_parens = True
+            elif char == ')':
+                depth -= 1
+                if depth == 0:
+                    inside_parens = False
+            elif inside_parens and char in ['&', '|']:
+                # Extract context around the error for better error message
+                start = max(0, i - 20)
+                end = min(len(condition), i + 20)
+                context = condition[start:end]
+
+                self.errors.append(
+                    f"Line {line_number}: Task {task_id} has operators inside parentheses in '{field_name}' condition. "
+                    f"Context: '...{context}...' "
+                    f"Parentheses can only wrap simple conditions, not complex expressions. "
+                    f"Use operators OUTSIDE parentheses: '(exit_0)&(stdout~OK)' instead of '(exit_0&stdout~OK)'. "
+                    f"For complex grouping, wait for JSON/YAML support (see Future Features)."
+                )
+                return True  # Found error
+
+        return False  # No error
 
     def is_valid_custom_delimiter(self, delimiter):
         """Check if a custom delimiter is valid."""

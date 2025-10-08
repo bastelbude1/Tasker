@@ -1,0 +1,45 @@
+# TEST_METADATA: {"description": "Validation rejects operators inside parentheses", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "skip_host_validation": true, "validation_only": true}
+# Test that validation rejects operators inside parentheses (not supported)
+# Parentheses can only wrap simple conditions, not complex expressions
+
+# Test 1: AND operator inside parentheses - should be REJECTED
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test 1
+exec=local
+success=(exit_0&stdout~OK)
+on_failure=99
+
+# Test 2: OR operator inside parentheses - should be REJECTED
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test 2
+exec=local
+success=(exit_0|exit_1)
+on_failure=99
+
+# Test 3: Complex nested expression - should be REJECTED
+task=3
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test 3
+exec=local
+success=(exit_0&stdout~OK)|(exit_1&stderr~ERROR)
+on_failure=99
+
+# Test 4: Multiple operators inside parentheses - should be REJECTED
+task=4
+hostname=localhost
+command=/usr/bin/echo
+arguments=Test 4
+exec=local
+success=(exit_0&stdout~OK&stderr=)
+on_failure=99
+
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=Should never execute due to validation failure
+exec=local

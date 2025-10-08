@@ -1,0 +1,35 @@
+# TEST_METADATA: {"description": "Timeout test - task completes before timeout", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test task completing successfully before timeout
+# Task 0: Introduction
+task=0
+hostname=localhost
+command=echo
+arguments=Testing task that completes before timeout
+exec=local
+
+# Task 1: Task that completes before timeout (sleeps shorter than timeout)
+task=1
+hostname=localhost
+command=sleep
+arguments=2
+exec=local
+timeout=5
+on_success=2
+on_failure=99
+
+# Task 2: Success handler
+task=2
+hostname=localhost
+command=echo
+arguments=Task completed successfully before timeout
+exec=local
+next=never
+
+# Task 99: Should not execute
+task=99
+hostname=localhost
+command=echo
+arguments=ERROR: Task should not have timed out
+exec=local
+return=1

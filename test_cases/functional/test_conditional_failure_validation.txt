@@ -12,7 +12,8 @@ exec=local
 task=1
 type=conditional
 condition=@0_success@=true
-tasks=10,11
+if_true_tasks=10
+if_false_tasks=11
 failure=exit_1
 
 task=10

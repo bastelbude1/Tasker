@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "End Success Block - next=never with explicit return=0 (Section 11, Combined)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_final_task": 2}
+# Test End Success Block as defined in TaskER_FlowChart.md Section 11
+# Pattern: Combined next=never with return=0
+# Explicitly terminates workflow with success code
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting workflow
+exec=local
+
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=Processing step 1
+exec=local
+
+# End Success Block - combined pattern
+# Both next=never and return=0 specified
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=Workflow completed - combined termination
+exec=local
+next=never
+return=0

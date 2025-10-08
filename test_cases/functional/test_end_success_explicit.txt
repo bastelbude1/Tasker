@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "End Success Block - explicit return=0 (Section 11, Pattern 2)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_final_task": 2}
+# Test End Success Block as defined in TaskER_FlowChart.md Section 11
+# Pattern: Explicit success with return=0
+# Workflow terminates with explicit exit code 0
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting workflow
+exec=local
+
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=Processing step 1
+exec=local
+
+# End Success Block - explicit return=0
+# Explicitly specifies exit code 0 for success
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=Workflow completed with explicit success code
+exec=local
+return=0

@@ -1,0 +1,43 @@
+# TEST_METADATA: {"description": "End Blocks Comprehensive - Tests both Section 11 (Success) and Section 12 (Failure) in single workflow", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 20, 21], "expected_final_task": 21}
+# Comprehensive test for End Success Block (Section 11) and End Failure Block (Section 12)
+# Tests both success and failure termination patterns in a single workflow
+# Uses on_success/on_failure routing to reach appropriate end blocks
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting comprehensive end blocks test
+exec=local
+
+# Task with routing - will succeed and jump to success path
+task=1
+hostname=localhost
+command=/usr/bin/true
+exec=local
+on_success=20
+on_failure=99
+
+# SUCCESS PATH - End Success Block (Section 11)
+task=20
+hostname=localhost
+command=/usr/bin/echo
+arguments=Success path - continuing to final success block
+exec=local
+
+# End Success Block - next=never with return=0
+task=21
+hostname=localhost
+command=/usr/bin/echo
+arguments=Workflow completed successfully - End Success Block
+exec=local
+next=never
+return=0
+
+# FAILURE PATH - End Failure Block (Section 12) - NOT REACHED in this test
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=Failure path - End Failure Block
+exec=local
+next=never
+return=1

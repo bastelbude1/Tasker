@@ -1,0 +1,69 @@
+# TEST_METADATA: {"description": "Conditional majority_success with 3/5 successes (60%) - takes on_success path", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test Section 10.2: Multi-Task Success Evaluation with on_success/on_failure routing
+# majority_success with 3/5 successes (60%) - condition MET - takes on_success path
+
+TEST_MODE=true
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Testing majority_success with 3/5 tasks succeeding (60%)
+exec=local
+
+# Conditional block with majority_success condition
+# 3 tasks succeed, 2 tasks fail - majority met (60% > 50%)
+task=1
+type=conditional
+condition=@TEST_MODE@=true
+if_true_tasks=10,11,12,13,14
+if_false_tasks=99
+success=majority_success
+on_success=2
+on_failure=99
+
+# Task 2: on_success handler (SHOULD execute)
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: on_success handler - majority_success met (3/5 = 60% succeeded)
+exec=local
+next=never
+
+# Subtask 10: SUCCESS
+task=10
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+# Subtask 11: SUCCESS
+task=11
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+# Subtask 12: SUCCESS
+task=12
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+# Subtask 13: FAILED
+task=13
+hostname=localhost
+command=/usr/bin/false
+exec=local
+
+# Subtask 14: FAILED
+task=14
+hostname=localhost
+command=/usr/bin/false
+exec=local
+
+# Task 99: on_failure handler (should NOT execute)
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=ERROR: Should not reach on_failure handler
+exec=local
+return=1

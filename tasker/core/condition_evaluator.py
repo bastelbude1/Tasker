@@ -285,7 +285,34 @@ class ConditionEvaluator:
     def evaluate_simple_condition(condition, exit_code, stdout, stderr, debug_callback=None, current_task_success=None):
         """Evaluate a simple condition without boolean operators."""
         condition = condition.strip()
-        
+
+        # Strip outer matching parentheses from simple conditions
+        # This supports patterns like (exit_0), (stdout~OK), ((exit_0))
+        # Note: Operators INSIDE parentheses like (exit_0&stdout~OK) are NOT supported
+        # and will be caught by validation
+        while condition.startswith('(') and condition.endswith(')'):
+            # Check if the outer parentheses are matching
+            depth = 0
+            matching = True
+            for i, char in enumerate(condition):
+                if char == '(':
+                    depth += 1
+                elif char == ')':
+                    depth -= 1
+                # If depth hits 0 before the end, outer parens don't match the whole expression
+                if depth == 0 and i < len(condition) - 1:
+                    matching = False
+                    break
+
+            if matching:
+                # Strip outer parentheses and continue checking for more
+                condition = condition[1:-1].strip()
+                if debug_callback:
+                    debug_callback(f"Stripped outer parentheses, condition is now: '{condition}'")
+            else:
+                # Outer parentheses don't match the whole expression, stop stripping
+                break
+
         # Built-in exit code conditions
         if condition == 'exit_0':
             result = exit_code == 0

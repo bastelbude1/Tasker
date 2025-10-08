@@ -1203,28 +1203,41 @@ failure=@stdout@~ERROR
 
 **2. Task Type Restrictions:**
 
-The `success` and `failure` parameters are **only supported for sequential tasks** (regular tasks).
+The `failure` parameter is **only supported for sequential tasks** (regular tasks).
+The `success` parameter is supported for **all task types** (sequential, parallel, and conditional).
 
-❌ **INVALID - Parallel blocks cannot use success/failure:**
+✅ **VALID - Parallel blocks can use success for flexible routing:**
+```bash
+task=1
+type=parallel
+tasks=10,11,12
+max_parallel=3
+success=min_success=2   # At least 2 must succeed
+on_success=100         # Jump to success handler
+on_failure=200         # Jump to failure handler
+```
+
+✅ **VALID - Conditional blocks can use success for flexible routing:**
+```bash
+task=1
+type=conditional
+condition=@ENV@=production
+if_true_tasks=10,11,12
+if_false_tasks=20
+success=any_success    # At least one must succeed
+on_success=100        # Jump to success handler
+on_failure=200        # Jump to failure handler
+```
+
+❌ **INVALID - Parallel/conditional blocks cannot use failure:**
 ```bash
 task=1
 type=parallel
 tasks=10,11
-max_parallel=2
-success=exit_0     # ERROR: Not allowed in parallel blocks
+failure=exit_1     # ERROR: failure parameter not allowed
 ```
 
-❌ **INVALID - Conditional blocks cannot use success/failure:**
-```bash
-task=1
-type=conditional
-condition=@0_success@=true
-if_true_tasks=10
-if_false_tasks=11
-failure=exit_1     # ERROR: Not allowed in conditional blocks
-```
-
-**Why?** Parallel and conditional blocks execute multiple subtasks. They use **aggregate conditions** in the `next` parameter to evaluate overall success based on subtask outcomes:
+**Why?** Parallel and conditional blocks execute multiple subtasks. They use **aggregate conditions** that evaluate overall success based on subtask outcomes:
 
 - `min_success=N` - Minimum number of successful subtasks
 - `max_failed=N` - Maximum number of failed subtasks
@@ -1529,16 +1542,22 @@ Parameters for executing multiple tasks concurrently:
 | `retry_count` | Integer | No | Number of retry attempts (enables retry) | 1-1000 (default: 1) |
 | `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |
 | `next` | String | No | Success evaluation condition | See below |
-| `on_success` | Integer | No | Task ID if next condition met | Any valid task ID |
-| `on_failure` | Integer | No | Task ID if next condition not met | Any valid task ID |
+| `success` | String | No | Success condition for flexible routing | Same as `next` conditions |
+| `on_success` | Integer | No | Task ID if success/next condition met | Any valid task ID |
+| `on_failure` | Integer | No | Task ID if success/next condition not met | Any valid task ID |
 
-**Parallel `next` Conditions:** See [Multi-Task Success Evaluation Conditions](#multi-task-success-evaluation-conditions) below.
+**Parallel `next` and `success` Conditions:** See [Multi-Task Success Evaluation Conditions](#multi-task-success-evaluation-conditions) below.
 
-**Default Parallel Behavior (no `next` condition specified):**
+**Difference between `next` and `success` parameters:**
+- `next`: Evaluates condition → if true, continues to next sequential task; if false, stops execution
+- `success`: Evaluates condition → if true, jumps to `on_success`; if false, jumps to `on_failure`
+- Both use the same evaluation logic (min_success, all_success, etc.) but differ in routing behavior
+
+**Default Parallel Behavior (no `next` or `success` condition specified):**
 - Uses `all_success` logic (strictest possible)
 - `on_success` → Triggered only when ALL tasks succeed (100% success rate)
 - `on_failure` → Triggered when at least one task fails (less than 100% success)
-- To get different behavior, explicitly specify `next` condition (e.g., `next=min_success=2`)
+- To get different behavior, explicitly specify `next` or `success` condition (e.g., `success=min_success=2`)
 
 ### Conditional Execution Parameters
 
@@ -1551,8 +1570,9 @@ Parameters for branching based on runtime conditions:
 | `if_true_tasks` | String | No* | Task IDs for TRUE branch | "100,300,150" (custom order) |
 | `if_false_tasks` | String | No* | Task IDs for FALSE branch | "200,205,210" (skip tasks) |
 | `next` | String | No | Success evaluation condition | Same as parallel conditions |
-| `on_success` | Integer | No | Task ID if next condition met | Any valid task ID |
-| `on_failure` | Integer | No | Task ID if next condition not met | Any valid task ID |
+| `success` | String | No | Success condition for flexible routing | Same as `next` conditions |
+| `on_success` | Integer | No | Task ID if success/next condition met | Any valid task ID |
+| `on_failure` | Integer | No | Task ID if success/next condition not met | Any valid task ID |
 | `retry_count` | Integer | No | Number of retry attempts (enables retry) | 1-1000 (default: 1) |
 | `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |
 

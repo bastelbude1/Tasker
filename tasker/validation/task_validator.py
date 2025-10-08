@@ -1588,7 +1588,7 @@ class TaskValidator:
     def collect_referenced_tasks(self, task, referenced_tasks):
         """Collect task IDs that are referenced in variables and on_failure/on_success fields."""
         # Check for @X_stdout@, @X_stderr@, @X_success@, or @X_exit@ references
-        for key, value in task.items():
+        for _, value in task.items():
             if isinstance(value, str):
                 for match in re.finditer(r'@(\d+)_(stdout|stderr|success|exit)@', value):
                     try:

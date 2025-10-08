@@ -1,0 +1,35 @@
+# TEST_METADATA: {"description": "Timeout with on_failure routing test", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 50]}
+
+# Test timeout triggering on_failure routing
+# Task 0: Introduction
+task=0
+hostname=localhost
+command=echo
+arguments=Testing timeout with on_failure routing
+exec=local
+
+# Task 1: Task times out and triggers on_failure
+task=1
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+timeout=5
+on_success=2
+on_failure=50
+
+# Task 2: Should be skipped (not reached via on_failure)
+task=2
+hostname=localhost
+command=echo
+arguments=ERROR: Should not execute - task 1 should have timed out
+exec=local
+return=1
+
+# Task 50: Timeout handler
+task=50
+hostname=localhost
+command=echo
+arguments=Timeout handled via on_failure routing
+exec=local
+next=never

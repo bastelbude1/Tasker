@@ -1362,7 +1362,7 @@ class TaskValidator:
 
         for var_name in global_matches:
             # Skip task result variables
-            task_var_pattern = r'\d+_(stdout|stderr|success)$'
+            task_var_pattern = r'\d+_(stdout|stderr|success|exit)$'
             if re.match(task_var_pattern, var_name):
                 continue
 

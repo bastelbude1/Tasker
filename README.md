@@ -1312,9 +1312,18 @@ condition=@3_exit_code@=0|@4_exit_code@=0
 condition=@0_exit_code@=0&@0_stdout@~complete
 # OR condition
 condition=@0_success@=true|@1_success@=true
-# Nested conditions
-condition=@0_exit_code@=0&(@0_stdout@~done|@0_stdout@~finished)
+# Parenthesized conditions (operators OUTSIDE parentheses)
+condition=(@0_exit_code@=0)&(@0_stdout@~done)
+# Multiple OR with parentheses
+condition=(@0_stdout@~done)|(@0_stdout@~finished)
 ```
+
+**Note on Parentheses Support:**
+Parentheses can only wrap simple conditions without operators inside them. Operators (`&`, `|`) must be placed OUTSIDE parentheses:
+- ✅ **Supported:** `(exit_0)`, `(stdout~OK)`, `(exit_0)&(stdout~OK)`, `(exit_0)|(exit_1)`
+- ❌ **Not Supported:** `(exit_0&stdout~OK)`, `(exit_0|exit_1)`, `(@0_exit_code@=0&@0_stdout@~done)`
+
+For complex grouping with operators inside parentheses, wait for JSON/YAML task file support (see Future Features section). Validation will reject operators inside parentheses with clear error messages.
 
 **Note:** Global variables must be defined at the start of your task file and are read-only during execution. Dynamic variable updates during task execution are not yet supported (see Feature Requests section).
 

@@ -1,0 +1,68 @@
+# TEST_METADATA: {"description": "Test parenthesized conditions execute correctly at runtime", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true}
+# Test that parenthesized conditions work correctly during execution
+
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting parenthesis execution test
+exec=local
+
+# Test 1: Simple parenthesized condition - should succeed
+task=1
+hostname=localhost
+command=/usr/bin/echo
+arguments=OK
+exec=local
+success=(stdout~OK)
+on_failure=99
+
+# Test 2: Parenthesized AND condition - both must match
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS
+exec=local
+success=(exit_0)&(stdout~SUCCESS)
+on_failure=99
+
+# Test 3: Nested parentheses - should succeed
+task=3
+hostname=localhost
+command=/usr/bin/echo
+arguments=COMPLETE
+exec=local
+success=((stdout~COMPLETE))
+on_failure=99
+
+# Test 4: Parenthesized OR condition - first branch matches
+task=4
+hostname=localhost
+command=/usr/bin/echo
+arguments=DONE
+exec=local
+success=(stdout=DONE)|(stdout~OK)
+on_failure=99
+
+# Test 5: Complex grouping with OR - second branch should match
+task=5
+hostname=localhost
+command=/usr/bin/echo
+arguments=ALTERNATE
+exec=local
+success=(stdout=DONE)|(stdout~ALTERNATE)
+on_failure=99
+
+# Test 6: All tests passed
+task=6
+hostname=localhost
+command=/usr/bin/echo
+arguments=All parenthesized condition tests passed
+exec=local
+
+# Task 99: Failure handler - should never execute
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=FAILED - A parenthesized condition did not evaluate correctly
+exec=local
+return=1

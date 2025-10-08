@@ -135,7 +135,12 @@ class ParallelExecutor(BaseExecutor):
             if log_callback:
                 log_callback(f"'next=always' found, proceeding to next task")
             return True
-            
+
+        if next_condition == 'never':
+            if log_callback:
+                log_callback(f"'next=never' found, not proceeding to next task")
+            return False
+
         if next_condition == 'all_success':
             result = success_count == total_tasks
             if debug_callback:

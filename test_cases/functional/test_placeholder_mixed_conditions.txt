@@ -1,0 +1,50 @@
+# TEST_METADATA: {"description": "Test all placeholder types (@N_stdout@, @N_stderr@, @N_exit@, @N_success@) in mixed conditions", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4, 5]}
+
+# Test all four placeholder types in various condition combinations
+# Task 0: Generate all types of output
+task=0
+hostname=localhost
+command=sh
+arguments=-c "echo 'success_output'; echo 'warning_message' >&2; exit 0"
+exec=shell
+
+# Task 1: Test @0_stdout@ pattern matching
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1: stdout contains success
+exec=local
+condition=@0_stdout@~success
+
+# Task 2: Test @0_exit@ comparison
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2: exit code is 0
+exec=local
+condition=@0_exit@=0
+
+# Task 3: Test @0_success@ boolean
+task=3
+hostname=localhost
+command=echo
+arguments=Task 3: task was successful
+exec=local
+condition=@0_success@=true
+
+# Task 4: Test @0_stderr@ pattern matching
+task=4
+hostname=localhost
+command=echo
+arguments=Task 4: stderr contains warning
+exec=local
+condition=@0_stderr@~warning
+
+# Task 5: Combined condition - all placeholder types
+task=5
+hostname=localhost
+command=echo
+arguments=Task 5: All conditions met
+exec=local
+condition=@0_stdout@~success&@0_exit@=0&@0_success@=true&@0_stderr@~warning
+next=never

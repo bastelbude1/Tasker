@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Test @N_stdout@ placeholder in hostname parameter for dynamic host resolution", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test dynamic hostname resolution using task result placeholders
+# Task 0: Generate server name
+task=0
+hostname=localhost
+command=echo
+arguments=localhost
+exec=local
+
+# Task 1: Use hostname=@0_stdout@ (dynamic hostname resolution)
+task=1
+hostname=@0_stdout@
+command=echo
+arguments=Connected to dynamic host
+exec=local
+
+# Task 2: Generate conditional hostname based on @0_exit@
+task=2
+hostname=localhost
+command=echo
+arguments=Using localhost because task 0 exit code was @0_exit@
+exec=local
+condition=@0_exit@=0
+next=never

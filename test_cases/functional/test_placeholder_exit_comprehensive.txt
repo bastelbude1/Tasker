@@ -1,0 +1,50 @@
+# TEST_METADATA: {"description": "Comprehensive @N_exit@ placeholder testing across all parameters", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4, 5]}
+
+# Test @N_exit@ placeholder in condition, next, success, and failure parameters
+# Task 0: Exit with specific code 5 - treat as success to continue
+task=0
+hostname=localhost
+command=sh
+arguments=-c "exit 5"
+exec=shell
+success=exit_5
+
+# Task 1: Use @0_exit@=5 in condition
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1 verified exit code 5
+exec=local
+condition=@0_exit@=5
+
+# Task 2: Use @0_exit@<10 in next parameter
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2 checking @0_exit@ is less than 10
+exec=local
+next=@0_exit@<10
+
+# Task 3: Generate exit code 0 for success test
+task=3
+hostname=localhost
+command=echo
+arguments=Task 3 exits cleanly
+exec=local
+
+# Task 4: Use @3_exit@=0 in success parameter (regular task)
+task=4
+hostname=localhost
+command=echo
+arguments=Task 4 checking @3_exit@ in success condition
+exec=local
+success=@3_exit@=0
+
+# Task 5: Test @0_exit@ in failure detection
+task=5
+hostname=localhost
+command=echo
+arguments=Task 5 verifies non-zero exit was handled
+exec=local
+failure=@0_exit@=0
+next=never

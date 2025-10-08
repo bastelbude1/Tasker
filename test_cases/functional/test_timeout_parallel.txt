@@ -1,0 +1,56 @@
+# TEST_METADATA: {"description": "Parallel tasks with timeout - mixed results", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test parallel execution with mixed timeout/success results
+# Task 0: Introduction
+task=0
+hostname=localhost
+command=echo
+arguments=Testing parallel tasks with timeout - 1 success, 2 timeouts
+exec=local
+
+# Task 1: Parallel execution with master timeout
+task=1
+type=parallel
+max_parallel=3
+tasks=10,11,12
+timeout=3
+success=min_success=1
+on_success=2
+on_failure=99
+
+# Task 2: Success handler (min_success=1 met by task 10)
+task=2
+hostname=localhost
+command=echo
+arguments=Parallel completed - min_success=1 condition met
+exec=local
+next=never
+
+# Task 10: Completes before timeout
+task=10
+hostname=localhost
+command=sleep
+arguments=1
+exec=local
+
+# Task 11: Times out
+task=11
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+
+# Task 12: Times out
+task=12
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+
+# Task 99: Error handler (should not execute)
+task=99
+hostname=localhost
+command=echo
+arguments=ERROR: min_success=1 should have been met
+exec=local
+return=1

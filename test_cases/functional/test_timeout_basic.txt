@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Basic timeout test - task times out", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test basic timeout behavior
+# Task 0: Introduction
+task=0
+hostname=localhost
+command=echo
+arguments=Testing basic timeout - task will timeout
+exec=local
+
+# Task 1: Task that times out (sleeps longer than timeout)
+task=1
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+timeout=2
+on_failure=2
+
+# Task 2: Timeout handler
+task=2
+hostname=localhost
+command=echo
+arguments=Task timed out as expected
+exec=local
+next=never

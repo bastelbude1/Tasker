@@ -1,0 +1,35 @@
+# TEST_METADATA: {"description": "Timeout minimum value enforcement test", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test that timeout values below minimum (5s) are enforced to minimum
+# Task 0: Introduction
+task=0
+hostname=localhost
+command=echo
+arguments=Testing timeout minimum enforcement (5 seconds)
+exec=local
+
+# Task 1: Request 2s timeout but minimum 5s will be enforced
+task=1
+hostname=localhost
+command=sleep
+arguments=3
+exec=local
+timeout=2
+on_success=2
+on_failure=99
+
+# Task 2: Success handler (task completes in 3s, within enforced 5s minimum)
+task=2
+hostname=localhost
+command=echo
+arguments=Task completed within enforced minimum timeout
+exec=local
+next=never
+
+# Task 99: Should not execute (timeout enforced to 5s, task only needs 3s)
+task=99
+hostname=localhost
+command=echo
+arguments=ERROR: Task should not have timed out
+exec=local
+return=1

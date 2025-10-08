@@ -1238,7 +1238,9 @@ task=1
 type=parallel
 tasks=10,11
 max_parallel=2
-next=2 if min_success=2, 99 if any_success, 100
+next=min_success=2
+on_success=2
+on_failure=99
 ```
 
 **When to use `failure=` vs `success=`:**

@@ -1,6 +1,6 @@
 # TEST_METADATA: {"description": "Complex success condition test with variable references", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_skipped_tasks": [], "expected_final_task": 2, "expected_variables": {"0_stdout": "initialization", "1_stdout": "running", "2_stdout": "completed successfully"}}
 
-# Test case for complex success condition: success=@1_exit_code@=0&@1_stdout@~running
+# Test case for complex success condition: success=@1_exit@=0&@1_stdout@~running
 # Task 1 outputs "running" and exits 0, which should satisfy the condition
 
 HOSTNAME=localhost

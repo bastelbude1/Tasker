@@ -1,0 +1,42 @@
+# TEST_METADATA: {"description": "Comprehensive @N_success@ placeholder testing in conditions and routing", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4]}
+
+# Test @N_success@ placeholder in condition and routing logic
+# Task 0: Successful task (exit 0)
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0 succeeds
+exec=local
+
+# Task 1: Failed task (exit 1) - use on_failure to continue despite failure
+task=1
+hostname=localhost
+command=sh
+arguments=-c "exit 1"
+exec=shell
+on_failure=2
+
+# Task 2: Use @0_success@=true in condition
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2 verified task 0 succeeded
+exec=local
+condition=@0_success@=true
+
+# Task 3: Use @1_success@=false in routing
+task=3
+hostname=localhost
+command=echo
+arguments=Task 3 verified task 1 failed
+exec=local
+next=@1_success@=false
+
+# Task 4: Combine @0_success@ AND @1_success@ in complex condition
+task=4
+hostname=localhost
+command=echo
+arguments=Task 4 verified both conditions
+exec=local
+condition=@0_success@=true&@1_success@=false
+next=never

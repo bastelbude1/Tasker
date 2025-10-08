@@ -1,51 +1,34 @@
 # TEST_METADATA: {"description": "Statistics verification test - parallel task success/failure counting", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
 # STATISTICS VERIFICATION TEST
-# Tests the fixed statistics and success logic
+# Tests the fixed statistics and min_success logic
 
-# === TEST 1: Statistics should add up correctly ===
+# Task 0: Introduction
 task=0
 hostname=localhost
 command=echo
 arguments=Statistics Verification Test - 1 success, 1 timeout, 1 failure
 exec=local
 
+# Task 1: Parallel execution with min_success=1
+# Should succeed if at least 1 of the 3 subtasks succeeds
 task=1
 type=parallel
 max_parallel=3
 tasks=100,101,102
 timeout=3
+success=min_success=1
 on_success=2
 on_failure=50
 
+# Task 2: Success handler
 task=2
 hostname=localhost
 command=echo
 arguments=SUCCESS: Statistics test passed - min_success=1 condition met
 exec=local
-
-# === TEST 2: Overall success should be FALSE when not all succeed ===
-task=10
-hostname=localhost
-command=echo
-arguments=Overall Success Test - Should show FAILURE despite next=any_success
-exec=local
-
-task=11
-type=parallel
-max_parallel=3
-tasks=200,201,202
-timeout=2
-on_success=12
-on_failure=55
-
-task=12
-hostname=localhost
-command=echo
-arguments=SUCCESS: any_success condition met, but overall result should show FAILURE
-exec=local
 next=never
 
-# === ERROR HANDLERS ===
+# Task 50: Error handler
 task=50
 hostname=localhost
 command=echo
@@ -53,22 +36,11 @@ arguments=ERROR: Statistics test failed
 exec=local
 next=never
 
-task=55
-hostname=localhost
-command=echo
-arguments=ERROR: Overall success test failed
-exec=local
-next=never
-
-# === FIREWALL ===
-task=99
-return=0
-
 # ===============================================
-# PARALLEL TASKS FOR VERIFICATION
+# PARALLEL SUBTASKS
 # ===============================================
 
-# TEST 1: 1 success, 1 timeout, 1 failure
+# Task 100: Succeeds after 1s
 task=100
 hostname=localhost
 command=echo
@@ -76,6 +48,7 @@ arguments=Task 100 - SUCCESS (1s)
 exec=local
 sleep=1
 
+# Task 101: Times out (sleeps 5s, master timeout 3s upgraded to 5s minimum)
 task=101
 hostname=localhost
 command=echo
@@ -83,30 +56,9 @@ arguments=Task 101 - TIMEOUT (5s, master=3s)
 exec=local
 sleep=5
 
+# Task 102: Fails immediately
 task=102
 hostname=localhost
 command=sh
 arguments=-c "echo 'Task 102 - FAILURE'; exit 1"
 exec=local
-
-# TEST 2: 1 success, 2 timeout
-task=200
-hostname=localhost
-command=echo
-arguments=Task 200 - SUCCESS (1s)
-exec=local
-sleep=1
-
-task=201
-hostname=localhost
-command=echo
-arguments=Task 201 - TIMEOUT (4s, master=2s)
-exec=local
-sleep=4
-
-task=202
-hostname=localhost
-command=echo
-arguments=Task 202 - TIMEOUT (6s, master=2s)
-exec=local
-sleep=6

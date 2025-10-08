@@ -30,23 +30,23 @@ class ConditionEvaluator:
     @staticmethod
     def replace_variables(text, global_vars, task_results, debug_callback=None):
         """
-        Replace variables like @task_number_stdout@, @task_number_stderr@, @task_number_success@, 
-        or @GLOBAL_VAR@ with actual values. Supports variable chaining like @PATH@/@SUBDIR@.
-        
+        Replace variables like @task_number_stdout@, @task_number_stderr@, @task_number_success@,
+        @task_number_exit@, or @GLOBAL_VAR@ with actual values. Supports variable chaining like @PATH@/@SUBDIR@.
+
         Args:
             text: Text containing variables to replace
             global_vars: Dictionary of global variables
             task_results: Dictionary of task results
             debug_callback: Optional function for debug logging
-            
+
         Returns:
             Tuple of (replaced_text, resolution_success)
         """
         if not text:
             return text, True  # Return text and resolution status
-            
+
         # Enhanced pattern to match both task result variables and global variables
-        task_result_pattern = r'@(\d+)_(stdout|stderr|success)@'
+        task_result_pattern = r'@(\d+)_(stdout|stderr|success|exit)@'
         global_var_pattern = r'@([a-zA-Z_][a-zA-Z0-9_]*)@'
         
         replaced_text = text
@@ -67,6 +67,8 @@ class ConditionEvaluator:
                     value = task_result.get('stderr', '').rstrip('\n')
                 elif output_type == 'success':
                     value = str(task_result.get('success', False))
+                elif output_type == 'exit':
+                    value = str(task_result.get('exit_code', ''))
                 else:
                     value = ''
                 pattern_replace = f"@{task_num}_{output_type}@"
@@ -80,7 +82,7 @@ class ConditionEvaluator:
         global_matches = re.findall(global_var_pattern, replaced_text)
         for var_name in global_matches:
             # Skip if this is a task result variable (already handled above)
-            if re.match(r'\d+_(stdout|stderr|success)$', var_name):
+            if re.match(r'\d+_(stdout|stderr|success|exit)$', var_name):
                 continue
                 
             # Check if it's a defined global variable
@@ -108,7 +110,7 @@ class ConditionEvaluator:
             
             for var_name in nested_matches:
                 # Skip task result variables
-                if re.match(r'\d+_(stdout|stderr|success)$', var_name):
+                if re.match(r'\d+_(stdout|stderr|success|exit)$', var_name):
                     continue
                     
                 if var_name in global_vars:
@@ -129,7 +131,7 @@ class ConditionEvaluator:
         # Final check for any remaining unresolved variables
         final_matches = re.findall(global_var_pattern, replaced_text)
         for var_name in final_matches:
-            if not re.match(r'\d+_(stdout|stderr|success)$', var_name):
+            if not re.match(r'\d+_(stdout|stderr|success|exit)$', var_name):
                 if var_name not in global_vars:
                     unresolved_variables.append(f"@{var_name}@")
                 
@@ -527,7 +529,7 @@ class ConditionEvaluator:
                 left_val = ConditionEvaluator.split_output(base_output, split_parts[1])
             else:
                 left_val = convert_value(left)
-        elif left == 'exit_code':
+        elif left == 'exit':
             left_val = exit_code
         elif left == 'stdout':
             left_val = stdout.rstrip('\n')

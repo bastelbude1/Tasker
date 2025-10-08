@@ -16,7 +16,7 @@ timeout=6
 retry_failed=true
 retry_count=2
 retry_delay=1
-next=min_success=3
+success=min_success=3
 on_success=2
 on_failure=50
 
@@ -51,7 +51,7 @@ task=501
 hostname=localhost
 command=sh
 arguments=-c "if [ ! -f /tmp/task501_attempt ]; then touch /tmp/task501_attempt; echo 'Task 501 - First attempt fails'; exit 1; else echo 'Task 501 - Retry succeeds'; exit 0; fi"
-exec=local
+exec=shell
 
 # Task 502: Times out (master timeout=6s, this takes 8s) - should NOT be retried
 task=502
@@ -65,11 +65,11 @@ task=503
 hostname=localhost
 command=sh
 arguments=-c "attempts=$(cat /tmp/task503_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task503_counter; if [ $attempts -le 1 ]; then echo \"Task 503 - Attempt $attempts fails\"; exit 1; else echo \"Task 503 - Succeeds on attempt $attempts\"; exit 0; fi"
-exec=local
+exec=shell
 
 # Task 504: Always fails (even after retries)
 task=504
 hostname=localhost
 command=sh
 arguments=-c "echo 'Task 504 - Always fails'; exit 1"
-exec=local
+exec=shell

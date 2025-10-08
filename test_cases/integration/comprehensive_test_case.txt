@@ -203,7 +203,7 @@ next=always
 task=26
 hostname=localhost
 command=echo
-arguments=Toggle script details - Exit: @8_exit_code@, Stderr: @8_stderr@
+arguments=Toggle script details - Exit: @8_exit@, Stderr: @8_stderr@
 exec=local
 on_success=35
 

@@ -1,0 +1,47 @@
+# TEST_METADATA: {"description": "Test passing split output through a chain of tasks", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4]}
+
+# Test chaining split output through multiple tasks
+
+# Generate initial data
+task=0
+hostname=localhost
+command=echo
+arguments=db01.prod.example.com:mysql:3306:active
+exec=local
+stdout_split=colon,0
+# Extract hostname: db01.prod.example.com
+
+# Use hostname to get server details
+task=1
+hostname=localhost
+command=echo
+arguments=@0_stdout@|datacenter:us-west-2|rack:A5|slot:23
+exec=local
+stdout_split=pipe,1
+# Extract datacenter info: datacenter:us-west-2
+
+# Extract just the datacenter value
+task=2
+hostname=localhost
+command=echo
+arguments=@1_stdout@
+exec=local
+stdout_split=colon,1
+# Extract: us-west-2
+
+# Use datacenter info in another task
+task=3
+hostname=localhost
+command=echo
+arguments=Server @0_stdout@ is located in @2_stdout@
+exec=local
+success=stdout=Server db01.prod.example.com is located in us-west-2
+
+# Final verification combining multiple split outputs
+task=4
+hostname=localhost
+command=echo
+arguments=SUCCESS: Chained split processing verified for @0_stdout@ in @2_stdout@
+exec=local
+success=stdout~SUCCESS.*db01.*us-west-2
+next=never

@@ -176,7 +176,7 @@ class ConditionEvaluator:
             'semicolon': ';',        # NEW - Better naming than 'semi'
             'semi': ';',             # Keep for backward compatibility
             'comma': ',',
-            'pipe': '|'
+            'pipe': r'\|'            # FIXED: Pipe needs escaping in regex
         }
         
         delimiter_pattern = delimiter_map.get(delimiter, delimiter)

@@ -1,0 +1,35 @@
+# TEST_METADATA: {"description": "Test stdout_split with real CSV data extraction", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3]}
+
+# Test extracting specific CSV fields
+
+# First, get the second row (skip header)
+task=0
+hostname=localhost
+command=csv_generator.sh
+arguments=extract_row
+exec=local
+stdout_split=newline,1
+# Output has header + data row, extract row 1 (data)
+
+# Now extract the price field from that row
+task=1
+hostname=localhost
+command=echo
+arguments=@0_stdout@
+exec=local
+stdout_split=comma,2
+# "1001,Laptop,999.99,15" → Extract price (index 2)
+
+task=2
+hostname=localhost
+command=echo
+arguments=Product price: $@1_stdout@
+exec=local
+success=stdout=Product price: $999.99
+
+task=3
+hostname=localhost
+command=echo
+arguments=SUCCESS: CSV data extraction works correctly
+exec=local
+next=never

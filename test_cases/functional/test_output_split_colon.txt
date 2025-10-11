@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Test stdout_split with colon delimiter (undocumented but supported)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test splitting output by colon delimiter
+# Expected: Extract specific fields from colon-separated output (like /etc/passwd format)
+
+task=0
+hostname=localhost
+command=output_generator.sh
+arguments=colon
+exec=local
+stdout_split=colon,2
+# Output: "alpha:beta:gamma:delta:epsilon" → Extract "gamma" (index 2)
+
+task=1
+hostname=localhost
+command=echo
+arguments=Colon-separated field: @0_stdout@
+exec=local
+success=stdout=Colon-separated field: gamma
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Colon delimiter splitting works correctly
+exec=local
+next=never

@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Test stdout_split selecting last element", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test selecting the last element
+
+task=0
+hostname=localhost
+command=echo
+arguments=red;green;blue
+exec=local
+stdout_split=semicolon,2
+# Extract last element (index 2 = "blue" from 3-element array)
+
+task=1
+hostname=localhost
+command=echo
+arguments=Last element: @0_stdout@
+exec=local
+success=stdout=Last element: blue
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Last index selection works correctly
+exec=local
+next=never

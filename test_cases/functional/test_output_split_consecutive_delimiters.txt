@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Test stdout_split with consecutive delimiters", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test splitting with consecutive delimiters (empty elements)
+
+task=0
+hostname=localhost
+command=output_generator.sh
+arguments=consecutive
+exec=local
+stdout_split=comma,2
+# "alpha,,gamma,,epsilon" → split creates empty elements, index 2 = "gamma"
+
+task=1
+hostname=localhost
+command=echo
+arguments=Element after consecutive delimiters: @0_stdout@
+exec=local
+success=stdout=Element after consecutive delimiters: gamma
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Consecutive delimiters handling works correctly
+exec=local
+next=never

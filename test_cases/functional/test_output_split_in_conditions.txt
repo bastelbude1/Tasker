@@ -1,0 +1,38 @@
+# TEST_METADATA: {"description": "Test using split output directly in success conditions", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3]}
+
+# Test using split output in various success condition types
+
+# Generate output and split to extract status field
+task=0
+hostname=localhost
+command=echo
+arguments=build:success:2024-10-25:v1.2.3
+exec=local
+stdout_split=colon,1
+# Extract "success" from build status line
+
+# Verify using exact match
+task=1
+hostname=localhost
+command=echo
+arguments=Status check: @0_stdout@
+exec=local
+success=stdout=Status check: success
+
+# Generate different output for regex test
+task=2
+hostname=localhost
+command=echo
+arguments=error,warning,info,debug
+exec=local
+stdout_split=comma,2
+# Extract "info" (index 2)
+
+# Use regex condition with split output
+task=3
+hostname=localhost
+command=echo
+arguments=Log level is @2_stdout@
+exec=local
+success=stdout~^Log level is info$
+next=never

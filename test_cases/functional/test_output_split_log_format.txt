@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Test stdout_split parsing log file formats", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test extracting fields from log formats
+
+# Extract IP address from Apache log
+task=0
+hostname=localhost
+command=log_config_generator.sh
+arguments=apache_log
+exec=local
+stdout_split=space,0
+# Apache log: "192.168.1.100 - - [25/Oct/2024:10:15:23 +0000] ..." → Extract IP
+
+task=1
+hostname=localhost
+command=echo
+arguments=Client IP: @0_stdout@
+exec=local
+success=stdout=Client IP: 192.168.1.100
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Log format parsing works correctly
+exec=local
+next=never

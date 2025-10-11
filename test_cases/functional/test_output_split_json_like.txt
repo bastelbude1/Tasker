@@ -1,0 +1,28 @@
+# TEST_METADATA: {"description": "Test stdout_split extracting from structured data", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test extracting fields from JSON-like structured data
+
+# Extract status field from JSON-like output
+task=0
+hostname=localhost
+command=log_config_generator.sh
+arguments=json_like
+exec=local
+stdout_split=comma,1
+# {"id":1234,"status":"active","timestamp":"2024-10-25T10:15:23Z"} → Get second field
+
+task=1
+hostname=localhost
+command=echo
+arguments=@0_stdout@
+exec=local
+stdout_split=colon,1
+# "status":"active" → Extract value after colon
+success=stdout~active
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Structured data extraction works correctly
+exec=local
+next=never

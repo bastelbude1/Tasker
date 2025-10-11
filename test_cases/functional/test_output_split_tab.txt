@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Test stdout_split with tab delimiter", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test splitting output by tab delimiter
+# Expected: Extract specific fields from tab-separated output
+
+task=0
+hostname=localhost
+command=output_generator.sh
+arguments=tab
+exec=local
+stdout_split=tab,3
+# Output: "alpha	beta	gamma	delta	epsilon" → Extract "delta" (index 3)
+
+task=1
+hostname=localhost
+command=echo
+arguments=Tab-separated field: @0_stdout@
+exec=local
+success=stdout=Tab-separated field: delta
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Tab delimiter splitting works correctly
+exec=local
+next=never

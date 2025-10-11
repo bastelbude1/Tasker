@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Test stdout_split with mixed whitespace", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test splitting with mixed spaces and tabs (space delimiter handles any whitespace)
+
+task=0
+hostname=localhost
+command=echo
+arguments=word1    word2		word3  word4
+exec=local
+stdout_split=space,2
+# Mixed spaces and tabs - space delimiter should handle all whitespace
+
+task=1
+hostname=localhost
+command=echo
+arguments=Third word: @0_stdout@
+exec=local
+success=stdout=Third word: word3
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Mixed whitespace splitting works correctly
+exec=local
+next=never

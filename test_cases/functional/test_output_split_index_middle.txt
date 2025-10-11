@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Test stdout_split selecting middle element", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test selecting a middle element
+
+task=0
+hostname=localhost
+command=echo
+arguments=zero|one|two|three|four|five|six
+exec=local
+stdout_split=pipe,3
+# Extract middle element (index 3 = "three")
+
+task=1
+hostname=localhost
+command=echo
+arguments=Middle element: @0_stdout@
+exec=local
+success=stdout=Middle element: three
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Middle index selection works correctly
+exec=local
+next=never

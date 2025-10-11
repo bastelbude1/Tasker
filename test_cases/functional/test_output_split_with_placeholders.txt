@@ -1,0 +1,38 @@
+# TEST_METADATA: {"description": "Test output splitting used in placeholders across tasks", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3]}
+
+# Test using split output through placeholders in multiple tasks
+
+# Generate data
+task=0
+hostname=localhost
+command=echo
+arguments=server01:active:8cpu:32gb:ssd
+exec=local
+stdout_split=colon,0
+# Extract server name
+
+# Use server name in next task
+task=1
+hostname=localhost
+command=echo
+arguments=Checking server @0_stdout@
+exec=local
+success=stdout=Checking server server01
+
+# Extract another field
+task=2
+hostname=localhost
+command=echo
+arguments=server01:active:8cpu:32gb:ssd
+exec=local
+stdout_split=colon,3
+# Extract memory
+
+# Use memory info
+task=3
+hostname=localhost
+command=echo
+arguments=Server @0_stdout@ has @2_stdout@ memory
+exec=local
+success=stdout=Server server01 has 32gb memory
+next=never

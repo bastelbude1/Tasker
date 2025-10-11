@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Test stdout_split with out-of-bounds index (returns original output)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test out-of-bounds index - should return original output
+
+task=0
+hostname=localhost
+command=echo
+arguments=one:two:three
+exec=local
+stdout_split=colon,10
+# Index 10 is out of bounds for 3-element array, should return original
+
+task=1
+hostname=localhost
+command=echo
+arguments=Output when index out of bounds: @0_stdout@
+exec=local
+success=stdout=Output when index out of bounds: one:two:three
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Out-of-bounds index returns original output as expected
+exec=local
+next=never

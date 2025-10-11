@@ -432,7 +432,8 @@ class ParallelExecutor(BaseExecutor):
 
                                 # Wait for sleep to complete before adding to results
                                 # This ensures proper task completion ordering while freeing the worker thread
-                                wait_timeout = max(float(sleep_seconds), 0.0) + 1.0  # cushion for timer drift
+                                # Increased buffer to handle system load and threading delays
+                                wait_timeout = max(float(sleep_seconds), 0.0) + 5.0  # generous cushion for timer drift and system delays
                                 if not result_completion_event.wait(timeout=wait_timeout):
                                     executor_instance.log_warn(
                                         f"Task {task_display_id}: Post-sleep timer did not signal within {wait_timeout}s; proceeding to record result"

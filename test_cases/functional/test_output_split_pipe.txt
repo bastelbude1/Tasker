@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Test stdout_split with pipe delimiter", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test splitting output by pipe delimiter
+# Expected: Extract specific fields from pipe-delimited output
+
+task=0
+hostname=localhost
+command=output_generator.sh
+arguments=pipe
+exec=local
+stdout_split=pipe,0
+# Output: "alpha|beta|gamma|delta|epsilon" → Extract "alpha" (index 0)
+
+task=1
+hostname=localhost
+command=echo
+arguments=First pipe-delimited field: @0_stdout@
+exec=local
+success=stdout=First pipe-delimited field: alpha
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Pipe delimiter splitting works correctly
+exec=local
+next=never

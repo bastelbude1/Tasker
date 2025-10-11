@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Test stdout_split with newline delimiter (docs say unsupported but actually works)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test splitting output by newline delimiter
+# Expected: Extract specific lines from multi-line output
+
+task=0
+hostname=localhost
+command=output_generator.sh
+arguments=newline
+exec=local
+stdout_split=newline,3
+# Output: "alpha\nbeta\ngamma\ndelta\nepsilon" → Extract "delta" (index 3, 4th line)
+
+task=1
+hostname=localhost
+command=echo
+arguments=Selected line: @0_stdout@
+exec=local
+success=stdout=Selected line: delta
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Newline delimiter splitting works correctly
+exec=local
+next=never

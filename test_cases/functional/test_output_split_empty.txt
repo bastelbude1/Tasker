@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Test stdout_split with empty output", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test splitting empty output
+
+task=0
+hostname=localhost
+command=output_generator.sh
+arguments=empty
+exec=local
+stdout_split=comma,0
+# Empty output should return empty
+
+task=1
+hostname=localhost
+command=echo
+arguments=Empty output result: [@0_stdout@]
+exec=local
+success=stdout=Empty output result: []
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Empty output handling works correctly
+exec=local
+next=never

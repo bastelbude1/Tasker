@@ -519,10 +519,32 @@ class TaskerTestExecutor:
 
         # Set environment for supporting scripts
         env = os.environ.copy()
+
+        # Build PATH with multiple fallback locations for helper scripts
+        path_additions = []
+
+        # 1. Absolute path to test_cases/bin (primary location)
+        script_dir = Path(__file__).resolve().parent  # scripts directory
+        test_cases_dir = script_dir.parent  # test_cases directory
+        main_bin_dir = test_cases_dir / "bin"
+        if main_bin_dir.exists():
+            path_additions.append(str(main_bin_dir))
+
+        # 2. Relative to test file's parent directory (for backward compatibility)
         test_dir = os.path.dirname(os.path.abspath(test_file))
-        bin_dir = os.path.join(os.path.dirname(test_dir), "bin")
-        if os.path.exists(bin_dir):
-            env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
+        relative_bin_dir = os.path.join(os.path.dirname(test_dir), "bin")
+        if os.path.exists(relative_bin_dir) and relative_bin_dir not in path_additions:
+            path_additions.append(relative_bin_dir)
+
+        # 3. Relative to test file's directory (for tests with local bin)
+        local_bin_dir = os.path.join(test_dir, "bin")
+        if os.path.exists(local_bin_dir) and local_bin_dir not in path_additions:
+            path_additions.append(local_bin_dir)
+
+        # Prepend all bin directories to PATH
+        if path_additions:
+            existing_path = env.get('PATH', '')
+            env["PATH"] = ":".join(path_additions) + ":" + existing_path
 
         # Execute the test with performance monitoring
         start_time = datetime.now()

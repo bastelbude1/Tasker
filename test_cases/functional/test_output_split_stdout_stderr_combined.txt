@@ -1,0 +1,20 @@
+# TEST_METADATA: {"description": "Test both stdout_split and stderr_split in same task", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1]}
+
+# Test splitting both stdout and stderr in the same task
+
+task=0
+hostname=localhost
+command=sh
+arguments=-c "echo 'info1,info2,info3' && echo 'error1 error2 error3' >&2"
+exec=local
+stdout_split=comma,1
+stderr_split=space,2
+# Split stdout by comma, stderr by space
+
+task=1
+hostname=localhost
+command=echo
+arguments=stdout field: @0_stdout@ - stderr field: @0_stderr@
+exec=local
+success=stdout=stdout field: info2 - stderr field: error3
+next=never

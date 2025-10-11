@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Test stdout_split with trailing delimiter", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test splitting with trailing delimiter
+
+task=0
+hostname=localhost
+command=output_generator.sh
+arguments=trailing
+exec=local
+stdout_split=comma,2
+# "alpha,beta,gamma," → Index 2 = "gamma"
+
+task=1
+hostname=localhost
+command=echo
+arguments=Element before trailing delimiter: @0_stdout@
+exec=local
+success=stdout=Element before trailing delimiter: gamma
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Trailing delimiter handling works correctly
+exec=local
+next=never

@@ -7,7 +7,7 @@ hostname=localhost
 command=echo
 arguments=red;green;blue
 exec=local
-stdout_split=semi,2
+stdout_split=semicolon,2
 # Extract last element (index 2 = "blue" from 3-element array)
 
 task=1

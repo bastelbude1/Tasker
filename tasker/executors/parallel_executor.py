@@ -505,10 +505,6 @@ class ParallelExecutor(BaseExecutor):
                 if sleep_trackers:
                     executor_instance.log_debug(f"Task {task_id}: Waiting for {len(sleep_trackers)} post-execution sleeps to complete...")
 
-                    # Calculate the maximum time we should wait for all sleeps
-                    max_sleep_duration = max(tracker['duration'] for tracker in sleep_trackers) if sleep_trackers else 0
-                    overall_sleep_timeout = max_sleep_duration + 5.0  # Add buffer for system delays
-
                     # Wait for each sleep tracker
                     for tracker in sleep_trackers:
                         task_display_id = tracker['task_id']

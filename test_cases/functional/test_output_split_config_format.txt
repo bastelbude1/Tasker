@@ -1,0 +1,36 @@
+# TEST_METADATA: {"description": "Test stdout_split parsing config file formats (/etc/passwd style)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3]}
+
+# Test extracting fields from /etc/passwd style format
+
+# Get passwd-style line
+task=0
+hostname=localhost
+command=log_config_generator.sh
+arguments=passwd_format
+exec=local
+stdout_split=colon,6
+# "root:x:0:0:root:/root:/bin/bash" → Extract shell (index 6)
+
+task=1
+hostname=localhost
+command=echo
+arguments=User shell: @0_stdout@
+exec=local
+success=stdout=User shell: /bin/bash
+
+# Also test extracting home directory
+task=2
+hostname=localhost
+command=log_config_generator.sh
+arguments=passwd_format
+exec=local
+stdout_split=colon,5
+# Extract home directory (index 5)
+success=stdout=/root
+
+task=3
+hostname=localhost
+command=echo
+arguments=SUCCESS: Config format parsing works correctly
+exec=local
+next=never

@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Test stdout_split with semicolon delimiter", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test splitting output by semicolon delimiter
+# Expected: Extract specific fields from semicolon-separated output
+
+task=0
+hostname=localhost
+command=output_generator.sh
+arguments=semicolon
+exec=local
+stdout_split=semi,4
+# Output: "alpha;beta;gamma;delta;epsilon" → Extract "epsilon" (index 4)
+
+task=1
+hostname=localhost
+command=echo
+arguments=Last element: @0_stdout@
+exec=local
+success=stdout=Last element: epsilon
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Semicolon delimiter splitting works correctly
+exec=local
+next=never

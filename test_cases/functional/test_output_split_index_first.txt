@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Test stdout_split selecting first element (index 0)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test selecting the first element (index 0)
+
+task=0
+hostname=localhost
+command=echo
+arguments=first,second,third,fourth,fifth
+exec=local
+stdout_split=comma,0
+# Extract first element
+
+task=1
+hostname=localhost
+command=echo
+arguments=First element: @0_stdout@
+exec=local
+success=stdout=First element: first
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Index 0 selection works correctly
+exec=local
+next=never

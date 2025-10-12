@@ -317,8 +317,10 @@ class ConditionEvaluator:
                 return success_value
         
         # Check for stdout/stderr conditions (only specific patterns like ~, !~, and _count, not general comparison operators)
-        # Note: Patterns with =, !=, <, <=, >, >= are handled by evaluate_operator_comparison below
-        if condition.startswith('stdout') and not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>=']):
+        # Note: General patterns with =, !=, <, <=, >, >= (but not _count patterns) are handled by evaluate_operator_comparison below
+        # IMPORTANT: _count patterns use operators as part of their syntax (e.g., stdout_count=3, stdout_count<5)
+        # so we must check for _count BEFORE blocking based on operators
+        if condition.startswith('stdout') and ('_count' in condition or not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>='])):
             stdout_stripped = stdout.rstrip('\n')
             if condition == 'stdout~':
                 result = stdout.strip() == ''
@@ -374,8 +376,10 @@ class ConditionEvaluator:
                     return False
 
         # Check for stderr conditions (only specific patterns like ~, !~, and _count, not general comparison operators)
-        # Note: Patterns with =, !=, <, <=, >, >= are handled by evaluate_operator_comparison below
-        if condition.startswith('stderr') and not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>=']):
+        # Note: General patterns with =, !=, <, <=, >, >= (but not _count patterns) are handled by evaluate_operator_comparison below
+        # IMPORTANT: _count patterns use operators as part of their syntax (e.g., stderr_count=0, stderr_count<5)
+        # so we must check for _count BEFORE blocking based on operators
+        if condition.startswith('stderr') and ('_count' in condition or not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>='])):
             stderr_stripped = stderr.rstrip('\n')
             if condition == 'stderr~':
                 result = stderr.strip() == ''

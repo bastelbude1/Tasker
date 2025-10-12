@@ -1,0 +1,42 @@
+# TEST_METADATA: {"description": "Test stdout= and stderr= with empty strings", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3]}
+
+# Test exact empty matches for stdout and stderr
+
+task=0
+hostname=localhost
+command=/usr/bin/true
+exec=local
+# true produces no output, so stdout should equal empty string
+success=stdout=
+on_failure=99
+
+task=1
+hostname=localhost  
+command=/usr/bin/true
+exec=local
+# true produces no stderr, so stderr should equal empty string
+success=stderr=
+on_failure=99
+
+task=2
+hostname=localhost
+command=/usr/bin/echo
+arguments=test
+exec=local
+# echo produces output, so stdout should NOT equal empty string
+success=stdout!=
+on_failure=99
+
+task=3
+hostname=localhost
+command=/usr/bin/echo
+arguments=SUCCESS: Empty exact match tests passed
+exec=local
+next=never
+
+task=99
+hostname=localhost
+command=/usr/bin/echo
+arguments=FAILED: Empty exact match condition failed
+exec=local
+return=1

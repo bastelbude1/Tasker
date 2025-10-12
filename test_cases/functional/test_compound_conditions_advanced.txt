@@ -1,0 +1,83 @@
+# TEST_METADATA: {"description": "Test compound conditions with various groupings and operators", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4, 5, 6, 7, 8]}
+
+# Test compound conditions with parentheses and different operator combinations
+
+# === SIMPLE AND CONDITIONS ===
+task=0
+hostname=localhost
+command=sh
+arguments=-c "echo 'pass' && echo 'pass' >&2"
+exec=local
+# Both must be true
+success=(stdout=pass) & (stderr=pass)
+
+# === SIMPLE OR CONDITIONS ===
+task=1
+hostname=localhost
+command=sh
+arguments=-c "echo 'success' && echo 'fail' >&2"
+exec=local
+# At least one must be true
+success=(stdout=success) | (stderr=success)
+
+# === MIXED PARENTHESES WITH AND ===
+task=2
+hostname=localhost
+command=sh
+arguments=-c "echo 'Test passed with code 0' && echo 'No errors' >&2"
+exec=local
+# Multiple conditions with different operators
+success=(stdout~passed) & (stderr~No errors) & (exit_0)
+
+# === MIXED PARENTHESES WITH OR ===
+task=3
+hostname=localhost
+command=sh
+arguments=-c "echo 'Warning: minor issue' && echo 'Error: none' >&2 && exit 0"
+exec=local
+# Any of these conditions makes it succeed
+success=(stdout~Warning) | (stderr~Error) | (exit_1)
+
+# === COMPLEX NESTED CONDITIONS ===
+task=4
+hostname=localhost
+command=sh
+arguments=-c "echo 'Result: 42' && echo 'Time: 100ms' >&2"
+exec=local
+# Complex combination of different operators
+success=(stdout~Result) & (stdout!=Result: 0) & (stderr~Time)
+
+# === NUMERIC COMPARISONS IN COMPOUND ===
+task=5
+hostname=localhost
+command=sh
+arguments=-c "echo '75' && echo '25' >&2"
+exec=local
+# Numeric range checks
+success=(stdout>50) & (stdout<100) & (stderr>=20) & (stderr<=30)
+
+# === EMPTY AND WHITESPACE HANDLING ===
+task=6
+hostname=localhost
+command=sh
+arguments=-c "echo '   ' && echo '' >&2"
+exec=local
+# Check for empty/whitespace
+success=(stdout!=) | (stderr=)
+
+# === SPECIAL CHARACTERS IN COMPOUND ===
+task=7
+hostname=localhost
+command=sh
+arguments=-c "echo 'Status: OK (100%)' && echo 'Error: [none]' >&2"
+exec=local
+# Special characters in comparisons
+success=(stdout=Status: OK (100%)) & (stderr~[none])
+
+task=8
+hostname=localhost
+command=echo
+arguments=COMPOUND TESTS COMPLETE
+exec=local
+success=stdout~COMPLETE
+next=never

@@ -1,0 +1,112 @@
+# TEST_METADATA: {"description": "Test edge cases in success conditions", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}
+
+# Test edge cases: empty strings, special characters, whitespace, numeric boundaries
+
+# === EMPTY STRING TESTS ===
+task=0
+hostname=localhost
+command=echo
+arguments=
+exec=local
+# Empty stdout should match empty string
+success=stdout=
+
+task=1
+hostname=localhost
+command=sh
+arguments=-c "echo -n ''"
+exec=local
+# Empty output with no newline
+success=stdout=
+
+task=2
+hostname=localhost
+command=sh
+arguments=-c "echo '' >&2"
+exec=local
+# Empty stderr with newline
+success=stderr=
+
+# === WHITESPACE HANDLING ===
+task=3
+hostname=localhost
+command=echo
+arguments=test with spaces
+exec=local
+# Whitespace in string comparison
+success=stdout=test with spaces
+
+task=4
+hostname=localhost
+command=printf
+arguments="test\ttab"
+exec=local
+# Tab character handling
+success=stdout~tab
+
+# === SPECIAL CHARACTERS ===
+task=5
+hostname=localhost
+command=echo
+arguments=$PATH contains paths
+exec=local
+# Dollar sign gets expanded - check for /bin in PATH
+success=stdout~/bin
+
+task=6
+hostname=localhost
+command=echo
+arguments="Test with 'quotes' and \"double quotes\""
+exec=local
+# Quotes in output
+success=stdout~quotes
+
+task=7
+hostname=localhost
+command=echo
+arguments="Special: !@#$%^&*()_+-=[]{}|;:,.<>?/"
+exec=local
+# Various special characters - use contains check for simpler matching
+success=stdout~Special:
+
+# === NUMERIC EDGE CASES ===
+task=8
+hostname=localhost
+command=echo
+arguments=0
+exec=local
+# Zero comparison
+success=stdout>=0
+
+task=9
+hostname=localhost
+command=echo
+arguments=-42
+exec=local
+# Negative number comparison
+success=stdout<0
+
+task=10
+hostname=localhost
+command=echo
+arguments=999999999999
+exec=local
+# Large number comparison
+success=stdout>1000000
+
+# === NEWLINE AND LINE COUNT TESTS ===
+task=11
+hostname=localhost
+command=printf
+arguments="line1\nline2\nline3"
+exec=local
+# Multi-line output contains check
+success=stdout~line2
+
+task=12
+hostname=localhost
+command=echo
+arguments=EDGE CASE TESTS COMPLETE
+exec=local
+success=stdout=EDGE CASE TESTS COMPLETE
+next=never

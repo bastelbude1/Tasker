@@ -1,0 +1,36 @@
+# TEST_METADATA: {"description": "Test proper boolean operators vs text containing 'and'/'or'", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3]}
+
+# Test that only &, |, and () are interpreted as operators, not words
+
+task=0
+hostname=localhost
+command=echo
+arguments=bread and butter
+exec=local
+# 'and' in output should NOT be an operator
+success=stdout=bread and butter
+
+task=1
+hostname=localhost
+command=echo
+arguments=true or false
+exec=local
+# 'or' in output should NOT be an operator
+success=stdout=true or false
+
+task=2
+hostname=localhost
+command=bash
+arguments=-c "echo test1 && echo test2 >&2"
+exec=local
+# Proper use of & operator for compound conditions
+success=(stdout=test1) & (stderr=test2)
+
+task=3
+hostname=localhost
+command=echo
+arguments=SUCCESS: Boolean operators work correctly
+exec=local
+# Proper use of | operator
+success=(stdout=SUCCESS: Boolean operators work correctly) | (exit_0)
+next=never

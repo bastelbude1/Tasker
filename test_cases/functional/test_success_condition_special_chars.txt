@@ -1,0 +1,35 @@
+# TEST_METADATA: {"description": "Test success conditions with special characters and 'and' word", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3]}
+
+# Test that commas, the word 'and', and other special characters in success conditions
+# are NOT interpreted as boolean operators
+
+task=0
+hostname=localhost
+command=echo
+arguments=Hello, world and goodbye
+exec=local
+# This should check for the exact string, not interpret comma or 'and' as operators
+success=stdout=Hello, world and goodbye
+
+task=1
+hostname=localhost
+command=echo
+arguments=Testing comma, and semicolon; characters
+exec=local
+# Should match the exact output with comma and semicolon
+success=stdout=Testing comma, and semicolon; characters
+
+task=2
+hostname=localhost
+command=echo
+arguments=Rock and roll band
+exec=local
+# 'and' in the middle of text should not be interpreted as AND operator
+success=stdout=Rock and roll band
+
+task=3
+hostname=localhost
+command=echo
+arguments=SUCCESS: Special chars handled correctly
+exec=local
+next=never

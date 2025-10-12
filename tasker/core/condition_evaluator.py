@@ -207,50 +207,15 @@ class ConditionEvaluator:
         if debug_callback:
             debug_callback(f"Condition after variable replacement: '{condition}'")
         
-        # Handle simple conditions without boolean operators (check for |, &, AND, OR, NOT)
-        if not any(op in condition for op in ['|', '&']) and not any(op in condition.upper() for op in [' AND ', ' OR ', ' NOT ']):
+        # Handle simple conditions without boolean operators (check for | and &)
+        if not any(op in condition for op in ['|', '&']):
             return ConditionEvaluator.evaluate_simple_condition(condition, exit_code, stdout, stderr, debug_callback, current_task_success)
         
         # For complex conditions with boolean operators, we need to parse them
         # This is a simplified implementation that handles basic cases
         # More complex parsing would require a proper expression parser
-        
-        # Handle NOT operator first (highest precedence)
+
         condition = condition.strip()
-        if condition.upper().startswith('NOT '):
-            inner_condition = condition[4:].strip()
-            result = not ConditionEvaluator.evaluate_simple_condition(inner_condition, exit_code, stdout, stderr, debug_callback, current_task_success)
-            if debug_callback:
-                debug_callback(f"NOT condition '{inner_condition}' evaluated to: {result}")
-            return result
-        
-        # Handle AND operator (higher precedence than OR)
-        if ' AND ' in condition.upper():
-            parts = re.split(r'\s+AND\s+', condition, flags=re.IGNORECASE)
-            results = []
-            for part in parts:
-                part_result = ConditionEvaluator.evaluate_simple_condition(part.strip(), exit_code, stdout, stderr, debug_callback, current_task_success)
-                results.append(part_result)
-                if debug_callback:
-                    debug_callback(f"AND part '{part.strip()}' evaluated to: {part_result}")
-            result = all(results)
-            if debug_callback:
-                debug_callback(f"AND condition overall result: {result}")
-            return result
-        
-        # Handle OR operator (lowest precedence)
-        if ' OR ' in condition.upper():
-            parts = re.split(r'\s+OR\s+', condition, flags=re.IGNORECASE)
-            results = []
-            for part in parts:
-                part_result = ConditionEvaluator.evaluate_simple_condition(part.strip(), exit_code, stdout, stderr, debug_callback, current_task_success)
-                results.append(part_result)
-                if debug_callback:
-                    debug_callback(f"OR part '{part.strip()}' evaluated to: {part_result}")
-            result = any(results)
-            if debug_callback:
-                debug_callback(f"OR condition overall result: {result}")
-            return result
         
         # Handle | operator (OR - pipe symbol)
         if '|' in condition:
@@ -351,8 +316,8 @@ class ConditionEvaluator:
                     debug_callback(f"Success condition (default): {success_value}")
                 return success_value
         
-        # Check for stdout/stderr conditions (legacy support maintained)
-        if condition.startswith('stdout'):
+        # Check for stdout/stderr conditions (only specific patterns, not general operators)
+        if condition.startswith('stdout') and not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>=']):
             stdout_stripped = stdout.rstrip('\n')
             if condition == 'stdout~':
                 result = stdout.strip() == ''
@@ -407,8 +372,8 @@ class ConditionEvaluator:
                         debug_callback(f"Warning: Invalid count specification in condition: {condition}")
                     return False
 
-        # Check for stderr conditions 
-        if condition.startswith('stderr'):
+        # Check for stderr conditions (only specific patterns, not general operators)
+        if condition.startswith('stderr') and not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>=']):
             stderr_stripped = stderr.rstrip('\n')
             if condition == 'stderr~':
                 result = stderr.strip() == ''

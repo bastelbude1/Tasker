@@ -316,7 +316,8 @@ class ConditionEvaluator:
                     debug_callback(f"Success condition (default): {success_value}")
                 return success_value
         
-        # Check for stdout/stderr conditions (only specific patterns, not general operators)
+        # Check for stdout/stderr conditions (only specific patterns like ~, !~, and _count, not general comparison operators)
+        # Note: Patterns with =, !=, <, <=, >, >= are handled by evaluate_operator_comparison below
         if condition.startswith('stdout') and not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>=']):
             stdout_stripped = stdout.rstrip('\n')
             if condition == 'stdout~':
@@ -372,7 +373,8 @@ class ConditionEvaluator:
                         debug_callback(f"Warning: Invalid count specification in condition: {condition}")
                     return False
 
-        # Check for stderr conditions (only specific patterns, not general operators)
+        # Check for stderr conditions (only specific patterns like ~, !~, and _count, not general comparison operators)
+        # Note: Patterns with =, !=, <, <=, >, >= are handled by evaluate_operator_comparison below
         if condition.startswith('stderr') and not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>=']):
             stderr_stripped = stderr.rstrip('\n')
             if condition == 'stderr~':

@@ -839,21 +839,27 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `stdout_split` | String | ❌ Optional | Split stdout by delimiter and select element |
-| `stderr_split` | String | ❌ Optional | Split stderr by delimiter and select element |
+| Parameter | Type | Required | Description | Format |
+|-----------|------|----------|-------------|--------|
+| `stdout_split` | String | ❌ Optional | Split stdout by delimiter and select element at index | `DELIMITER,INDEX` |
+| `stderr_split` | String | ❌ Optional | Split stderr by delimiter and select element at index | `DELIMITER,INDEX` |
 
-### Supported Delimiters
-| Keyword | Splits On | Example |
-|---------|-----------|---------|
-| `space` | Any whitespace(s) | `stdout_split=space,0` |
-| `tab` | Tab character(s) | `stdout_split=tab,1` |
-| `comma` | Comma | `stdout_split=comma,2` |
-| `semi` | Semicolon | `stdout_split=semi,0` |
-| `pipe` | Pipe character | `stdout_split=pipe,1` |
+### Supported Delimiter Keywords
+| Keyword | Splits On | Example | Input → Output |
+|---------|-----------|---------|----------------|
+| `space` | Any whitespace(s) | `stdout_split=space,1` | `"alpha beta gamma"` → `"beta"` |
+| `tab` | Tab character(s) | `stdout_split=tab,2` | `"A\tB\tC\tD"` → `"C"` |
+| `comma` | Comma | `stdout_split=comma,0` | `"red,green,blue"` → `"red"` |
+| `semicolon` | Semicolon | `stdout_split=semicolon,1` | `"foo;bar;baz"` → `"bar"` |
+| `semi` | Semicolon (alias) | `stdout_split=semi,2` | `"a;b;c;d"` → `"c"` |
+| `colon` | Colon | `stdout_split=colon,2` | `"user:x:1000:1000"` → `"1000"` |
+| `pipe` | Pipe character | `stdout_split=pipe,1` | `"cmd1|cmd2|cmd3"` → `"cmd2"` |
+| `newline` | Line break(s) | `stdout_split=newline,0` | `"line1\nline2\nline3"` → `"line1"` |
 
-**⚠️ WARNING**: Escape sequences like `\n` are NOT interpreted! Use literal characters only.
+**Important Notes:**
+- Index is zero-based (0 = first element, 1 = second element, etc.)
+- If index is out of bounds, the original output is returned unchanged
+- The split operation occurs AFTER command execution but BEFORE placeholder storage
 
 ### Example
 ```
@@ -866,10 +872,11 @@ stderr_split=space,0    # Split by spaces, get 1st element
 Applied to any task that produces output
 
 ### Behavior
-- Splits stdout/stderr by specified delimiter and selects element by index (0-based)
-- Format: `delimiter,index` (e.g., `comma,1` for second element)
-- Modified output replaces original for subsequent processing
-- **LIMITATION**: Cannot split by newline - escape sequences not supported
+- Splits stdout/stderr by specified delimiter keyword and selects element by index (0-based)
+- Format: `DELIMITER,INDEX` where DELIMITER is one of the supported keywords
+- Modified output replaces original for subsequent processing and placeholder storage
+- Split results are what gets stored in `@TASK_stdout@` and `@TASK_stderr@` placeholders
+- Useful for parsing structured output like CSV data, log files, configuration files, etc.
 
 </td>
 </tr>

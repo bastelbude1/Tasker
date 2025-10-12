@@ -329,19 +329,19 @@ success=exit_0
 
 **Note:** Loop control is only available for sequential tasks. See [Sequential Execution Parameters](#sequential-execution-parameters-default-mode) table below.
 
-### Output Processing Parameters
+### Output Processing Block
 
-Extract specific data from command output using simple split operations. These are basic functions for common extraction needs.
+The Output Processing Block provides simple yet powerful text extraction capabilities for task outputs. These parameters allow you to split command output by delimiters and extract specific fields, making it easy to parse structured data like CSV, logs, configuration files, and more.
 
-**Available Delimiters:**
-- `space` - Split by whitespace
-- `tab` - Split by tab characters
-- `newline` - Split by line breaks (NEW!)
-- `colon` - Split by colons (`:`)
-- `semicolon` - Split by semicolons (`;`)
-- `comma` - Split by commas
-- `pipe` - Split by pipe characters
-- `semi` - Legacy alias for semicolon
+**Supported Delimiter Keywords:**
+- `space` - Split by any whitespace character(s) (spaces, tabs, etc.)
+- `tab` - Split by tab character(s)
+- `newline` - Split by line break(s)
+- `colon` - Split by colon character (`:`)
+- `semicolon` - Split by semicolon character (`;`)
+- `comma` - Split by comma character (`,`)
+- `pipe` - Split by pipe character (`|`)
+- `semi` - Alias for `semicolon` (backward compatibility)
 
 ```
 task=0
@@ -406,7 +406,9 @@ exec=local
 
 **Parameters:** See [Output Processing Parameters](#output-processing-parameters-all-standard-tasks) table below.
 
-**Supported delimiters:** `space` (any whitespace), `tab`, `comma`, `semi`, `pipe`, or any literal string (e.g., `\n` for newline, `:` for colon)
+**Format:** `stdout_split=DELIMITER,INDEX` or `stderr_split=DELIMITER,INDEX`
+- `DELIMITER`: One of the supported keywords above
+- `INDEX`: Zero-based index of the element to extract (0 = first, 1 = second, etc.)
 
 **Practical Examples:**
 
@@ -1890,19 +1892,29 @@ on_failure=99
 
 Simple extraction functions for any task that executes a command:
 
-| Parameter | Type | Description | Format |
-|-----------|------|-------------|--------|
-| `stdout_split` | String | Split stdout and select element | `DELIMITER,INDEX` |
-| `stderr_split` | String | Split stderr and select element | `DELIMITER,INDEX` |
+| Parameter | Type | Description | Format | Example |
+|-----------|------|-------------|--------|---------|
+| `stdout_split` | String | Split stdout by delimiter and select element at index | `DELIMITER,INDEX` | `stdout_split=comma,1` |
+| `stderr_split` | String | Split stderr by delimiter and select element at index | `DELIMITER,INDEX` | `stderr_split=space,0` |
 
-**Valid Delimiters:**
-- `space` (any whitespace)
-- `tab` (tab characters)
-- `comma` (comma)
-- `semi` (semicolon)
-- `pipe` (pipe character |)
+**Supported Delimiter Keywords:**
 
-**✅ NEW**: Added support for newline, colon, and semicolon delimiters! See Available Delimiters list above.
+| Keyword | Splits On | Example Usage | Input → Output |
+|---------|-----------|---------------|----------------|
+| `space` | Any whitespace(s) | `stdout_split=space,1` | `"alpha beta gamma"` → `"beta"` |
+| `tab` | Tab character(s) | `stdout_split=tab,2` | `"A\tB\tC\tD"` → `"C"` |
+| `comma` | Comma | `stdout_split=comma,0` | `"red,green,blue"` → `"red"` |
+| `semicolon` | Semicolon | `stdout_split=semicolon,1` | `"foo;bar;baz"` → `"bar"` |
+| `colon` | Colon | `stdout_split=colon,2` | `"user:x:1000:1000"` → `"1000"` |
+| `pipe` | Pipe character | `stdout_split=pipe,1` | `"cmd1|cmd2|cmd3"` → `"cmd2"` |
+| `newline` | Line break(s) | `stdout_split=newline,0` | `"line1\nline2\nline3"` → `"line1"` |
+| `semi` | Semicolon (alias) | `stdout_split=semi,2` | `"a;b;c;d"` → `"c"` |
+
+**Important Notes:**
+- Index is zero-based (0 = first element, 1 = second element, etc.)
+- If index is out of bounds, the original output is returned unchanged
+- The split operation occurs AFTER command execution but BEFORE placeholder storage
+- Split results are what gets stored in `@TASK_stdout@` and `@TASK_stderr@` placeholders
 
 **Simple Example:**
 ```

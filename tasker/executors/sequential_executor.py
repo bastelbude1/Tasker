@@ -325,20 +325,21 @@ class SequentialExecutor(BaseExecutor):
                     if not executor_instance.dry_run and sleep_time > 0:
                         # Use non-blocking sleep for consistency with parallel executor
                         sleep_completion_event = threading.Event()
+                        task_display = f"{task_id}{loop_display}"
 
-                        def sleep_callback():
+                        def sleep_callback(event=sleep_completion_event, display_id=task_display):
                             try:
-                                executor_instance.log_debug(f"Task {task_id}{loop_display}: Sleep completed")
+                                executor_instance.log_debug(f"Task {display_id}: Sleep completed")
                             except Exception as e:
                                 # Log the logging exception but don't let it prevent event signaling
                                 try:
-                                    executor_instance.log(f"Task {task_id}{loop_display}: Sleep callback logging failed: {e}")
+                                    executor_instance.log(f"Task {display_id}: Sleep callback logging failed: {e}")
                                 except Exception:
                                     # Even fallback logging failed - just ignore to ensure event gets set
                                     pass
                             finally:
                                 # Always signal completion regardless of logging success/failure
-                                sleep_completion_event.set()
+                                event.set()
 
                         sleep_async(
                             sleep_time,
@@ -347,8 +348,9 @@ class SequentialExecutor(BaseExecutor):
                             logger_callback=executor_instance.log_debug
                         )
 
-                        # Wait for sleep to complete
-                        sleep_completion_event.wait()
+                        # Wait for sleep to complete with timeout to prevent indefinite blocking
+                        if not sleep_completion_event.wait(timeout=sleep_time + 5.0):
+                            executor_instance.log_warn(f"Task {task_id}{loop_display}: Sleep timer did not complete within timeout, proceeding")
                 else:
                     executor_instance.log(f"Task {task_id}{loop_display}: Unresolved variables in sleep time. Skipping sleep.")
             except ValueError:

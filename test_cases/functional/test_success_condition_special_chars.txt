@@ -40,4 +40,6 @@ hostname=localhost
 command=echo
 arguments=SUCCESS: Special chars handled correctly
 exec=local
+# Verify the final success message with special characters is output correctly
+success=stdout=SUCCESS: Special chars handled correctly
 next=never

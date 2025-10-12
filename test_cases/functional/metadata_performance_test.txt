@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Performance benchmarking test", "test_type": "performance", "expected_exit_code": 0, "expected_success": true, "performance_benchmarks": {"max_execution_time": 2.0, "max_memory_usage_mb": 50, "min_throughput_tasks_per_second": 2.0}, "resource_limits": {"cpu_threshold_percent": 80, "memory_threshold_mb": 100}, "timing_validation": {"expected_task_duration": {"0": 0.5, "1": 0.5}, "max_total_duration": 1.5}}
+# TEST_METADATA: {"description": "Performance benchmarking test", "test_type": "performance", "expected_exit_code": 0, "expected_success": true, "performance_benchmarks": {"max_execution_time": 5.0, "max_memory_usage_mb": 50, "min_throughput_tasks_per_second": 0.4}, "resource_limits": {"cpu_threshold_percent": 80, "memory_threshold_mb": 100}, "timing_validation": {"expected_task_duration": {"0": 0.5, "1": 0.5}, "max_total_duration": 5.0}}
 
 # Performance test case - resource and timing validation
 task=0

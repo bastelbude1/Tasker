@@ -1,0 +1,18 @@
+# TEST_METADATA: {"description": "Test that comma used as operator is still rejected", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "skip_host_validation": true}
+
+# This should fail validation because comma is not a valid operator
+
+task=0
+hostname=localhost
+command=echo
+arguments=test
+exec=local
+# This is invalid - trying to use comma as an operator
+success=exit_0,stdout~test
+
+task=1
+hostname=localhost
+command=echo
+arguments=never reached
+exec=local
+next=never

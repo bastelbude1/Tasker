@@ -347,8 +347,9 @@ class SequentialExecutor(BaseExecutor):
                             logger_callback=executor_instance.log_debug
                         )
 
-                        # Wait for sleep to complete
-                        sleep_completion_event.wait()
+                        # Wait for sleep to complete with timeout to prevent indefinite blocking
+                        if not sleep_completion_event.wait(timeout=sleep_time + 5.0):
+                            executor_instance.log_warn(f"Task {task_id}{loop_display}: Sleep timer did not complete within timeout, proceeding")
                 else:
                     executor_instance.log(f"Task {task_id}{loop_display}: Unresolved variables in sleep time. Skipping sleep.")
             except ValueError:

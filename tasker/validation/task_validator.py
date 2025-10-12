@@ -1426,45 +1426,6 @@ class TaskValidator:
             if not part:
                 continue
 
-            # Check for comma used as an operator (not part of a string value)
-            # Only reject comma if it appears to be separating conditions
-            # Allow comma in string comparisons like "stdout=Hello, world"
-            # Check if comma appears outside of a comparison value
-            if ',' in part:
-                # Check if this looks like comma-separated conditions
-                # (e.g., "exit_0,stdout~OK" would be invalid)
-                # But "stdout=Hello, world" should be valid
-
-                # If the part contains an operator, check if comma is after it
-                has_operator = False
-                for op in ['!=', '!~', '<=', '>=', '=', '~', '<', '>']:
-                    if op in part:
-                        has_operator = True
-                        # Split on the first operator found
-                        op_parts = part.split(op, 1)
-                        if len(op_parts) == 2:
-                            # Comma in the value part (right side) is OK
-                            # Comma in the left part might be an issue
-                            if ',' in op_parts[0]:
-                                # Comma before operator - likely invalid
-                                self.errors.append(
-                                    f"Line {line_number}: Task {task_id} has invalid {field_name} condition: '{part}'. "
-                                    f"Comma ',' is not a valid operator. Use '|' for OR or '&' for AND."
-                                )
-                                break
-                        break
-
-                # If no operator found and comma exists, it's likely invalid
-                # (e.g., "exit_0,exit_1" or "true,false")
-                if not has_operator:
-                    # Check for known patterns that shouldn't have commas
-                    if re.match(r'^(exit_\d+|true|false|success)', part):
-                        self.errors.append(
-                            f"Line {line_number}: Task {task_id} has invalid {field_name} condition: '{part}'. "
-                            f"Comma ',' is not a valid operator. Use '|' for OR or '&' for AND."
-                        )
-                        continue
-
             # Strip outer matching parentheses to support grouped conditions like '(stdout~OK)'
             # This allows validation of the inner condition while preserving grouping semantics
             stripped_part = part.strip()

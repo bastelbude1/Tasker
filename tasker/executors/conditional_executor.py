@@ -138,9 +138,8 @@ class ConditionalExecutor(BaseExecutor):
                 executor_instance.log(f"Task {task_display_id}: Sleeping for {sleep_seconds} seconds...")
                 sleep_completion_event = threading.Event()
 
-                # Bind all loop variables to avoid capturing mutated state
-                def sleep_callback(event=sleep_completion_event, display_id=task_display_id,
-                                 current_result=result, parent_task_id=task_id, sleep_duration=sleep_seconds):
+                # Bind loop variables to avoid capturing mutated state
+                def sleep_callback(event=sleep_completion_event, display_id=task_display_id):
                     try:
                         executor_instance.log_debug(f"Task {display_id}: Sleep completed")
                     except Exception as e:

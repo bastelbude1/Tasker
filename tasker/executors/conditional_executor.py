@@ -6,8 +6,10 @@ Conditional task execution based on condition evaluation.
 """
 
 import time
+import threading
 from .base_executor import BaseExecutor
 from ..core.condition_evaluator import ConditionEvaluator
+from ..utils.non_blocking_sleep import sleep_async
 
 
 class ConditionalExecutor(BaseExecutor):
@@ -126,9 +128,40 @@ class ConditionalExecutor(BaseExecutor):
                 result = ConditionalExecutor.execute_single_task_with_retry_conditional(task, master_timeout, retry_config, executor_instance=executor_instance)
             else:
                 result = ConditionalExecutor.execute_single_task_for_conditional(task, master_timeout, executor_instance=executor_instance)
-            
+
             results.append(result)
-            
+
+            # Handle sleep AFTER task completion (similar to parallel executor)
+            sleep_seconds = result.get('sleep_seconds', 0)
+            if sleep_seconds > 0 and not executor_instance.dry_run:
+                executor_instance.log(f"Task {task_id}-{result['task_id']}: Sleeping for {sleep_seconds} seconds...")
+                sleep_completion_event = threading.Event()
+
+                def sleep_callback():
+                    try:
+                        executor_instance.log_debug(f"Task {task_id}-{result['task_id']}: Sleep completed")
+                    except Exception as e:
+                        # Log the logging exception but don't let it prevent event signaling
+                        try:
+                            executor_instance.log(f"Task {task_id}-{result['task_id']}: Sleep callback logging failed: {e}")
+                        except Exception:
+                            # Even fallback logging failed - just ignore to ensure event gets set
+                            pass
+                    finally:
+                        # Always signal completion regardless of logging success/failure
+                        sleep_completion_event.set()
+
+                sleep_async(
+                    sleep_seconds,
+                    sleep_callback,
+                    task_id=f"{task_id}-{result['task_id']}-sleep",
+                    logger_callback=executor_instance.log_debug
+                )
+
+                # Wait with timeout to prevent indefinite blocking
+                if not sleep_completion_event.wait(timeout=sleep_seconds + 5.0):
+                    executor_instance.log_warn(f"Task {task_id}-{result['task_id']}: Sleep timer did not complete within timeout, proceeding")
+
             # Store individual task results for future reference - THREAD SAFE
             executor_instance.store_task_result(result['task_id'], {
                 'exit_code': result['exit_code'],

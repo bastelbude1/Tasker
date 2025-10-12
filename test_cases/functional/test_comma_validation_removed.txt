@@ -1,0 +1,19 @@
+# TEST_METADATA: {"description": "Test that comma validation removal works correctly", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1]}
+
+# Test that commas in string values still work after removing complex comma validation
+
+task=0
+hostname=localhost
+command=echo
+arguments=Hello, world
+exec=local
+# Comma in string value should work fine
+success=stdout=Hello, world
+
+task=1
+hostname=localhost
+command=echo
+arguments=Test complete: comma handling works
+exec=local
+success=stdout~complete
+next=never

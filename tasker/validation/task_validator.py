@@ -1411,33 +1411,19 @@ class TaskValidator:
         This ensures each part is a valid simple condition.
         """
         # Split on operators while preserving the structure
-        # Handle |, &, AND, OR operators
+        # Handle ONLY |, & operators (not word operators)
         parts = []
 
-        # First split on word operators (AND, OR, NOT) - case insensitive
-        temp_parts = re.split(r'\s+(AND|OR|NOT)\s+', expression, flags=re.IGNORECASE)
-        for part in temp_parts:
-            # Skip the operators themselves (they appear as separate elements after split)
-            if part.upper() in ['AND', 'OR', 'NOT']:
-                continue
-            # Further split on symbol operators
-            sub_parts = re.split(r'([|&])', part)
-            for sub_part in sub_parts:
-                # Skip empty parts and operator symbols
-                if sub_part.strip() and sub_part not in ['|', '&']:
-                    parts.append(sub_part.strip())
+        # Split only on symbol operators (& and |)
+        sub_parts = re.split(r'([|&])', expression)
+        for sub_part in sub_parts:
+            # Skip empty parts and operator symbols
+            if sub_part.strip() and sub_part not in ['|', '&']:
+                parts.append(sub_part.strip())
 
         # Validate each part is a valid simple condition
         for part in parts:
             if not part:
-                continue
-
-            # Check for comma in the condition part (comma is NOT a valid operator)
-            if ',' in part:
-                self.errors.append(
-                    f"Line {line_number}: Task {task_id} has invalid {field_name} condition: '{part}'. "
-                    f"Comma ',' is not a valid operator. Use '|' for OR or '&' for AND."
-                )
                 continue
 
             # Strip outer matching parentheses to support grouped conditions like '(stdout~OK)'
@@ -1518,11 +1504,11 @@ class TaskValidator:
 
     def _check_operators_inside_parentheses(self, condition, field_name, task_id, line_number):
         """
-        Check if operators (&, |, AND, OR) exist inside parentheses and reject them.
+        Check if operators (&, |) exist inside parentheses and reject them.
         Parentheses should only wrap simple conditions, not complex expressions.
 
-        Supported:   (exit_0), (stdout~OK), (exit_0)&(stdout~OK), (exit_0) AND (stdout~OK)
-        Unsupported: (exit_0&stdout~OK), (exit_0|exit_1), (exit_0 AND stdout~OK), (exit_0 OR exit_1)
+        Supported:   (exit_0), (stdout~OK), (exit_0)&(stdout~OK)
+        Unsupported: (exit_0&stdout~OK), (exit_0|exit_1)
 
         Returns True if error found, False otherwise.
         """
@@ -1542,26 +1528,6 @@ class TaskValidator:
                 depth -= 1
                 if depth == 0:
                     inside_parens = False
-                    # Check for textual operators in the substring that just closed
-                    if paren_start >= 0:
-                        paren_content = condition[paren_start+1:i]
-                        # Check for whole-word AND/OR operators (case-insensitive)
-                        textual_match = re.search(r'\b(AND|OR)\b', paren_content, re.IGNORECASE)
-                        if textual_match:
-                            # Extract context around the error
-                            start = max(0, paren_start - 10)
-                            end = min(len(condition), i + 10)
-                            context = condition[start:end]
-                            operator = textual_match.group(1)
-
-                            self.errors.append(
-                                f"Line {line_number}: Task {task_id} has operators inside parentheses in '{field_name}' condition. "
-                                f"Context: '...{context}...' "
-                                f"Parentheses can only wrap simple conditions, not complex expressions. "
-                                f"Use operators OUTSIDE parentheses: '(exit_0) {operator.upper()} (stdout~OK)' instead of '(exit_0 {operator.upper()} stdout~OK)'. "
-                                f"For complex grouping, wait for JSON/YAML support (see Future Features)."
-                            )
-                            return True  # Found error
                     paren_start = -1
             elif inside_parens and char in ['&', '|']:
                 # Extract context around the error for better error message

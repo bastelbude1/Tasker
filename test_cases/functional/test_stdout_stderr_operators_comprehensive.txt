@@ -1,0 +1,102 @@
+# TEST_METADATA: {"description": "Comprehensive test of all stdout/stderr operators", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}
+
+# Test all operator combinations with stdout and stderr
+
+# === EQUALITY OPERATOR (=) ===
+task=0
+hostname=localhost
+command=echo
+arguments=exact match test
+exec=local
+success=stdout=exact match test
+
+task=1
+hostname=localhost
+command=sh
+arguments=-c "echo 'stdout test' && echo 'stderr test' >&2"
+exec=local
+success=(stdout=stdout test) & (stderr=stderr test)
+
+# === INEQUALITY OPERATOR (!=) ===
+task=2
+hostname=localhost
+command=echo
+arguments=not this
+exec=local
+success=stdout!=that
+
+task=3
+hostname=localhost
+command=sh
+arguments=-c "echo 'hello' && echo 'world' >&2"
+exec=local
+success=(stdout!=goodbye) & (stderr!=universe)
+
+# === CONTAINS OPERATOR (~) ===
+task=4
+hostname=localhost
+command=echo
+arguments=this contains needle in haystack
+exec=local
+success=stdout~needle
+
+task=5
+hostname=localhost
+command=sh
+arguments=-c "echo 'alpha beta gamma' && echo 'delta epsilon' >&2"
+exec=local
+success=(stdout~beta) & (stderr~epsilon)
+
+# === NOT CONTAINS OPERATOR (!~) ===
+task=6
+hostname=localhost
+command=echo
+arguments=this does not have it
+exec=local
+success=stdout!~missing
+
+task=7
+hostname=localhost
+command=sh
+arguments=-c "echo 'present' && echo 'available' >&2"
+exec=local
+success=(stdout!~absent) & (stderr!~missing)
+
+# === NUMERIC COMPARISON OPERATORS (<, >, <=, >=) ===
+task=8
+hostname=localhost
+command=echo
+arguments=42
+exec=local
+success=stdout>40
+
+task=9
+hostname=localhost
+command=echo
+arguments=100
+exec=local
+success=stdout<=100
+
+task=10
+hostname=localhost
+command=sh
+arguments=-c "echo '50' && echo '75' >&2"
+exec=local
+success=(stdout>=50) & (stderr<80)
+
+# === MIXED OPERATORS IN COMPOUND CONDITIONS ===
+task=11
+hostname=localhost
+command=sh
+arguments=-c "echo 'Status: OK' && echo 'Warnings: 2' >&2"
+exec=local
+# Mix contains and equals operators
+success=(stdout~OK) & (stderr=Warnings: 2)
+
+task=12
+hostname=localhost
+command=echo
+arguments=ALL TESTS COMPLETED SUCCESSFULLY
+exec=local
+success=stdout~SUCCESSFULLY
+next=never

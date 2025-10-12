@@ -91,7 +91,7 @@ class ParallelExecutor(BaseExecutor):
                     )
 
                     # Wait for retry delay with timeout to prevent infinite blocking
-                    timeout_buffer = retry_delay + 2  # Add 2 second buffer for safety
+                    timeout_buffer = retry_delay + 5  # Add 5 second buffer for safety (matches Phase 2 sleep buffer)
                     if retry_completed_event.wait(timeout=timeout_buffer):
                         # Event was set - normal completion
                         executor_instance.log_debug(f"Task {parent_task_id}-{task_id}{retry_display}: Retry delay completed normally")

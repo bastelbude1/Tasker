@@ -246,7 +246,7 @@ class TestMetadata:
         if "error" in self.metadata:
             return False
 
-        required_fields = ["description", "test_type"]
+        required_fields = ["description", "test_type", "expected_exit_code", "expected_success"]
         missing_fields = [field for field in required_fields if field not in self.metadata]
 
         if missing_fields:
@@ -308,13 +308,13 @@ class TestMetadata:
                     self.metadata["error"] = f"Inconsistent metadata: test_type='negative' but expected_exit_code=0 (should be non-zero)"
                     return False
 
-            # Security negative tests should expect failure (non-zero exit)
+            # Security negative tests should expect failure with exit code 20
             elif test_type == "security_negative":
                 if expected_success:
                     self.metadata["error"] = f"Inconsistent metadata: test_type='security_negative' but expected_success=true"
                     return False
-                if expected_exit_code == 0:
-                    self.metadata["error"] = f"Inconsistent metadata: test_type='security_negative' but expected_exit_code=0 (should be non-zero)"
+                if expected_exit_code != 20:
+                    self.metadata["error"] = f"Inconsistent metadata: security_negative must use expected_exit_code=20 (validation failure)"
                     return False
 
         # Phase 5: Validate performance-specific metadata

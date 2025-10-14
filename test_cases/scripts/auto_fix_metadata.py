@@ -9,6 +9,11 @@ import re
 import subprocess
 import sys
 
+# Compute test_cases directory relative to this script's location
+# Script is in test_cases/scripts/, so parent directory is test_cases/
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+TEST_CASES_DIR = os.path.dirname(SCRIPT_DIR)
+
 def run_test(filepath):
     """Run a test and capture exit code and warnings."""
     cmd = [
@@ -24,7 +29,7 @@ def run_test(filepath):
             stderr=subprocess.PIPE,
             universal_newlines=True,
             timeout=10,
-            cwd='/home/baste/tasker/test_cases'
+            cwd=TEST_CASES_DIR
         )
 
         exit_code = result.returncode
@@ -126,7 +131,7 @@ def main():
 
     fixed_count = 0
     for filepath in sorted(test_files):
-        rel_path = os.path.relpath(filepath, '/home/baste/tasker/test_cases')
+        rel_path = os.path.relpath(filepath, TEST_CASES_DIR)
         print(f"\n Testing: {rel_path}")
 
         # Run test

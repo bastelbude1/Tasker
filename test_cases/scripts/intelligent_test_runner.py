@@ -295,10 +295,10 @@ class TestMetadata:
             # Security negative tests should expect failure with exit code 20
             elif test_type == "security_negative":
                 if expected_success:
-                    self.metadata["error"] = f"Inconsistent metadata: test_type='security_negative' but expected_success=true"
+                    self.metadata["error"] = "Inconsistent metadata: test_type='security_negative' but expected_success=true"
                     return False
                 if expected_exit_code != 20:
-                    self.metadata["error"] = f"Inconsistent metadata: security_negative must use expected_exit_code=20 (validation failure)"
+                    self.metadata["error"] = "Inconsistent metadata: security_negative must use expected_exit_code=20 (validation failure)"
                     return False
 
         # Phase 5: Validate performance-specific metadata

@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Global Variable Block test - task keyword breaks parser", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_category": "parser_crash", "skip_host_validation": true}
+# TEST_METADATA: {"description": "Global Variable Block test - task keyword breaks parser", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "security_category": "malformed_input", "validation_category": "parser_crash", "skip_host_validation": true}
 # Test Block 14: Global Variable Definition Block - Task Keyword
 # Tests that using 'task' as a global variable name breaks the parser completely
 # Expected: Validation failure (exit 20) due to reserved keyword 'task' used as a global

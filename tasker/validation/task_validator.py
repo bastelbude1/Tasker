@@ -73,11 +73,22 @@ class TaskValidator:
         self.parallel_conditional_specific_fields = [
             'retry_failed', 'retry_count', 'retry_delay'
         ]
-        
+
+        # Known task field names (used for global variable validation)
+        # Defined once here to avoid re-allocation during parsing
+        self.known_task_fields = [
+            'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
+            'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure',
+            'on_success', 'success', 'condition', 'exec', 'timeout', 'return',
+            'type', 'max_parallel', 'tasks',  # Parallel task fields
+            'if_true_tasks', 'if_false_tasks',  # NEW: Conditional task fields
+            *self.parallel_conditional_specific_fields  # Add retry fields
+        ]
+
         # Valid values for certain fields - SIMPLIFIED
         self.valid_next_values = [
             'always', 'never', 'loop', 'success',
-            # Parallel and Conditional-specific next conditions  
+            # Parallel and Conditional-specific next conditions
             'all_success', 'any_success', 'majority_success'
         ]
         
@@ -361,17 +372,9 @@ class TaskValidator:
                         continue  # Skip this line
 
                     # Check if this is a global variable (not a known task field)
-                    known_task_fields = [
-                        'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
-                        'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure',
-                        'on_success', 'success', 'condition', 'exec', 'timeout', 'return',
-                        'type', 'max_parallel', 'tasks',  # Parallel task fields
-                        'if_true_tasks', 'if_false_tasks'  # NEW: Conditional task fields
-                    ] + self.parallel_conditional_specific_fields  # Add retry fields
-
                     # CRITICAL: Task field names are silently ignored during parsing
                     # This causes confusing "undefined variable" errors later
-                    if key in known_task_fields:
+                    if key in self.known_task_fields:
                         self.errors.append(
                             f"Line {line_number}: Cannot use task field name '{key}' as a global variable name. "
                             f"Task field names are reserved. Use a different name like '{key.upper()}' or 'MY_{key.upper()}'."
@@ -382,7 +385,7 @@ class TaskValidator:
                     # They don't conflict with task result variables (@0_stdout@, @0_stderr@, etc.)
                     # because the patterns are different: @VARNAME@ vs @N_stdout@
 
-                    if key not in known_task_fields:
+                    if key not in self.known_task_fields:
                         # Check for inline comments in global variables
                         if self.check_for_inline_comments(key, value, line_number):
                             continue  # Skip this global variable if it has inline comments

@@ -680,6 +680,55 @@ class TestValidator:
             validation_results["failures"].append(f"Execution error: {actual_results['error']}")
             return validation_results
 
+        # CRITICAL: Detect Python tracebacks/exceptions (indicates internal bug/crash)
+        # These indicate code failures, not clean validation errors
+        combined_output = actual_results.get("stdout", "") + "\n" + actual_results.get("stderr", "")
+
+        # Check for Python traceback
+        if "Traceback (most recent call last):" in combined_output:
+            validation_results["passed"] = False
+            validation_results["failures"].append(
+                "INTERNAL ERROR: Python traceback detected (code crash, not clean validation failure)"
+            )
+            # Extract traceback for debugging (show first 10 lines)
+            traceback_lines = []
+            capture = False
+            for line in combined_output.split('\n'):
+                if "Traceback (most recent call last):" in line:
+                    capture = True
+                if capture:
+                    traceback_lines.append(line)
+                    if len(traceback_lines) >= 10:
+                        break
+            for tb_line in traceback_lines:
+                validation_results["failures"].append(f"  {tb_line}")
+
+        # Check for common Python exception types (not preceded by "Task X:" logging)
+        # These indicate unhandled exceptions
+        # Skip this check if we already detected a traceback (avoid duplicate reports)
+        traceback_detected = any("Python traceback detected" in f for f in validation_results["failures"])
+
+        if not traceback_detected:
+            exception_patterns = [
+                "AttributeError:", "KeyError:", "TypeError:", "NameError:",
+                "IndexError:", "ImportError:", "RuntimeError:", "OSError:",
+                "FileNotFoundError:", "PermissionError:"
+            ]
+
+            for line in combined_output.split('\n'):
+                # Skip if it's part of TASKER's normal logging (Task X: output)
+                if re.match(r'^\[\d{2}\w{3}\d{2} \d{2}:\d{2}:\d{2}\] Task \d+:', line):
+                    continue
+
+                # Check for exception patterns
+                for exception_pattern in exception_patterns:
+                    if exception_pattern in line:
+                        validation_results["passed"] = False
+                        validation_results["failures"].append(
+                            f"INTERNAL ERROR: Unhandled Python exception detected: {line.strip()}"
+                        )
+                        break
+
         # Validate exit code
         if "expected_exit_code" in metadata:
             expected_exit = metadata["expected_exit_code"]

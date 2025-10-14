@@ -20,8 +20,9 @@ def run_test(filepath):
     try:
         result = subprocess.run(
             cmd,
-            capture_output=True,
-            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
             timeout=10,
             cwd='/home/baste/tasker/test_cases'
         )

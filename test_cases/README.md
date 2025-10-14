@@ -8,14 +8,17 @@ This directory contains a comprehensive test suite for TASKER organized by funct
 
 ```
 test_cases/
-├── functional/          # Core functionality tests (200+ tests)
-├── edge_cases/         # Boundary conditions and edge cases
-├── security/          # Security validation tests (negative testing)
-├── integration/       # Multi-component integration tests
+├── functional/          # Core functionality tests (137 tests)
+├── edge_cases/         # Boundary conditions and edge cases (68 tests)
+├── security/          # Security validation tests (27 tests)
+├── integration/       # Multi-component integration tests (33 tests)
+├── performance/       # Performance and timing tests (10 tests)
 ├── scripts/           # Testing infrastructure and utilities
 ├── templates/         # Test file templates
 ├── README/            # Example/demo files
 └── README.md          # This documentation
+
+Total: 275 tests with TEST_METADATA
 ```
 
 ## 🎯 Test Categories

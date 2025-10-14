@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Path traversal encoding test","test_type": "security_negative","expected_exit_code": 20,"expected_success": false,"risk_level": "high","skip_host_validation": true,"security_category": "path_traversal"}
 # PATH TRAVERSAL ENCODING TEST
 # Tests various encoding techniques for path traversal
 

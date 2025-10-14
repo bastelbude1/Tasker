@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Comprehensive retry validation test","test_type": "validation_only","expected_exit_code": 20,"expected_success": false,"skip_host_validation": true}
 # COMPREHENSIVE RETRY VALIDATION TEST CASE
 # Tests all retry validation rules in task_validator.py
 # This file is designed to trigger various validation errors and warnings

@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Buffer overflow format string test","test_type": "positive","expected_exit_code": 0,"expected_success": true,"risk_level": "high","skip_host_validation": true,"security_category": "buffer_overflow"}
 # BUFFER OVERFLOW FORMAT STRING TEST
 # Tests format string vulnerabilities in arguments
 

@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Stress test result","test_type": "performance","expected_exit_code": 24,"expected_success": false,"skip_host_validation": true,"expected_warnings": 1}
 WARNING: Skipping host validation can lead to connection failures!
 [02Oct25 08:36:29] === Task Execution Start: 02Oct25_083629 ===
 [02Oct25 08:36:29] # Task file: thread_safety_stress_test.txt

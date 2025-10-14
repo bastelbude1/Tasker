@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Path traversal global vars test","test_type": "security_negative","expected_exit_code": 20,"expected_success": false,"risk_level": "high","skip_host_validation": true,"security_category": "path_traversal"}
 # PATH TRAVERSAL GLOBAL VARIABLES TEST
 # Tests path traversal through global variable injection
 

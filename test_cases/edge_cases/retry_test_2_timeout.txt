@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Retry test 2 timeout","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true}
+# TEST_METADATA: {"description": "Retry test 2 timeout","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_warnings": 1}
 # TEST 2: Timeout Behavior Analysis
 # Tests that timeout tasks are NOT retried (only failed tasks are retried)
 
@@ -16,7 +16,7 @@ timeout=4
 retry_failed=true
 retry_count=3
 retry_delay=1
-next=min_success=2
+success=min_success=2
 on_success=2
 on_failure=50
 

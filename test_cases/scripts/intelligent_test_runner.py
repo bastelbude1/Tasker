@@ -693,9 +693,11 @@ class TestValidator:
         # Check for common Python exception types (not preceded by "Task X:" logging)
         # These indicate unhandled exceptions
         # Skip this check if we already detected a traceback (avoid duplicate reports)
+        # Only check when exit code is non-zero to avoid false positives from user output
         traceback_detected = any("Python traceback detected" in f for f in validation_results["failures"])
+        nonzero_exit = actual_results.get("exit_code", 1) != 0
 
-        if not traceback_detected:
+        if not traceback_detected and nonzero_exit:
             exception_patterns = [
                 "AttributeError:", "KeyError:", "TypeError:", "NameError:",
                 "IndexError:", "ImportError:", "RuntimeError:", "OSError:",

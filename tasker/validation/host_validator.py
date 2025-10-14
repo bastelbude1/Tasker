@@ -11,6 +11,7 @@ import os
 import sys
 import socket
 import subprocess
+import threading
 from ..core.condition_evaluator import ConditionEvaluator
 from ..core.utilities import ExitCodes
 
@@ -142,6 +143,40 @@ class HostValidator:
         return validated_hosts
 
     @staticmethod
+    def _dns_lookup_with_timeout(hostname, timeout=5):
+        """
+        Perform DNS lookup with timeout using threading.
+        Python 3.6 compatible - socket.gethostbyname has no timeout parameter.
+
+        Returns:
+            (success: bool, result: str or None, error: Exception or None)
+        """
+        result = [None]  # Use list to allow modification from thread
+        exception = [None]
+
+        def dns_lookup():
+            try:
+                result[0] = socket.gethostbyname(hostname)
+            except Exception as e:
+                exception[0] = e
+
+        thread = threading.Thread(target=dns_lookup)
+        thread.daemon = True
+        thread.start()
+        thread.join(timeout=timeout)
+
+        if thread.is_alive():
+            # Thread is still running - timeout occurred
+            return False, None, TimeoutError(f"DNS lookup timed out after {timeout}s")
+
+        if exception[0] is not None:
+            # DNS lookup failed with exception
+            return False, None, exception[0]
+
+        # DNS lookup succeeded
+        return True, result[0], None
+
+    @staticmethod
     def resolve_hostname(hostname, debug_callback=None):
         """Try to resolve hostname - optimized for WSL2 environment with fast /etc/hosts lookup."""
         try:
@@ -158,12 +193,20 @@ class HostValidator:
                                 return True, hostname
             except (IOError, OSError):
                 pass  # Fall back to DNS resolution
-            
-            # Fallback to DNS resolution (may be slow in WSL2)
-            socket.gethostbyname(hostname)
-            if debug_callback:
-                debug_callback(f"Hostname '{hostname}' resolved via DNS")
-            return True, hostname
+
+            # Fallback to DNS resolution with timeout (prevents WSL2 long delays)
+            success, ip_address, error = HostValidator._dns_lookup_with_timeout(hostname, timeout=5)
+            if success:
+                if debug_callback:
+                    debug_callback(f"Hostname '{hostname}' resolved via DNS to {ip_address}")
+                return True, hostname
+            elif isinstance(error, TimeoutError):
+                if debug_callback:
+                    debug_callback(f"DNS lookup for '{hostname}' timed out after 5s")
+                raise socket.gaierror("DNS timeout")
+            else:
+                # Re-raise the original exception
+                raise error
 
         except socket.gaierror:
             if debug_callback:

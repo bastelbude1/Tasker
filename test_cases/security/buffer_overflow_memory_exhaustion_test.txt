@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Buffer overflow memory exhaustion test","test_type": "security_negative","expected_exit_code": 1,"expected_success": false,"risk_level": "high","skip_host_validation": true,"security_category": "buffer_overflow"}
+# TEST_METADATA: {"description": "Buffer overflow memory exhaustion test","test_type": "security_negative","expected_exit_code": 20,"expected_success": false,"risk_level": "high","skip_host_validation": true,"security_category": "buffer_overflow"}
 # BUFFER OVERFLOW MEMORY EXHAUSTION TEST
 # Tests memory exhaustion through excessive parallel tasks
 

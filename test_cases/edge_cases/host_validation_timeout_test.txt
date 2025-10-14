@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Host validation timeout test","test_type": "negative","expected_exit_code": 1,"expected_success": false}
+# TEST_METADATA: {"description": "Host validation timeout test","test_type": "negative","expected_exit_code": 21,"expected_success": false}
 # Host Validation Timeout Test
 # Tests timeout scenarios during host validation
 # These tests will timeout during validation and should fail appropriately

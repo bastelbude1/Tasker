@@ -1,0 +1,103 @@
+# TEST_METADATA: {"description": "SIGTERM state persistence for resume capability", "test_type": "signal_handling", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 3, "verify_cleanup": true, "verify_state_persistence": true, "verify_state_integrity": true, "skip_host_validation": true}
+
+# SIGNAL TEST: State persistence for resume capability
+#
+# Test Scenario:
+# 1. Execute workflow with:
+#    - Global variables
+#    - Multiple completed tasks
+#    - Loop counter tracking
+#    - Task result variables
+# 2. After 3 seconds (some tasks complete), send SIGTERM
+# 3. Verify state file is written correctly
+# 4. Verify state contains all necessary data for resume
+# 5. Verify state file is valid JSON
+#
+# Critical Test: Resume Capability Foundation
+# This test verifies the foundation for --start-from functionality:
+# - State file written on signal
+# - All completed task results preserved
+# - Global variables preserved
+# - Loop counters preserved
+# - Execution path preserved
+# - State file is valid JSON (not corrupted)
+#
+# Expected State File Contents:
+# {
+#   "task_results": {
+#     "0": {"exit_code": 0, "success": true, "stdout": "..."},
+#     "1": {"exit_code": 0, "success": true, "stdout": "..."}
+#   },
+#   "global_vars": {
+#     "TEST_VAR": "test_value",
+#     "COUNTER": "5"
+#   },
+#   "loop_counter": {},
+#   "last_completed_task": 1,
+#   "interrupted_at": "task_2",
+#   "timestamp": "2025-10-14T23:45:30"
+# }
+#
+# State Verification Steps:
+# 1. Check file exists: ~/.tasker/state/<workflow>.json
+# 2. Validate JSON: jq . state.json
+# 3. Verify task_results: Contains tasks 0, 1
+# 4. Verify global_vars: Contains TEST_VAR, COUNTER
+# 5. Verify integrity: No partial writes, no corruption
+#
+# Resume Test (if implemented):
+# tasker.py test_sigterm_state_persistence.txt -r --start-from=2
+# - Should skip tasks 0, 1 (already complete)
+# - Should start at task 2
+# - Should use preserved global variables
+#
+# Test Execution:
+# This test requires a wrapper script that:
+# 1. Clears: any existing state files
+# 2. Starts: tasker.py test_sigterm_state_persistence.txt -r &
+# 3. Waits: 3 seconds (ensures tasks 0, 1 complete)
+# 4. Signals: kill -TERM $TASKER_PID
+# 5. Waits: for exit
+# 6. Verifies: state file exists and is valid JSON
+# 7. Verifies: state contains expected data
+# 8. Verifies: no corruption (file completely written)
+
+# Global variables for state persistence
+TEST_VAR=test_value
+COUNTER=5
+WORKFLOW_NAME=signal_test
+
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0: Using TEST_VAR=@TEST_VAR@
+exec=local
+sleep=1
+
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1: Counter is @COUNTER@
+exec=local
+sleep=1
+
+# This task will be interrupted (long sleep)
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2: This will be interrupted
+exec=local
+sleep=10
+
+# Subsequent tasks (should not execute)
+task=3
+hostname=localhost
+command=echo
+arguments=ERROR: Task 3 should not execute
+exec=local
+
+task=4
+hostname=localhost
+command=echo
+arguments=ERROR: Task 4 should not execute
+exec=local

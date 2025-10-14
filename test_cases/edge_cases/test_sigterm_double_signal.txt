@@ -1,0 +1,89 @@
+# TEST_METADATA: {"description": "Double SIGTERM forces immediate exit", "test_type": "signal_handling", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 2, "second_signal_delay": 1, "verify_immediate_exit": true, "skip_host_validation": true}
+
+# SIGNAL TEST: Double SIGTERM (impatient user)
+#
+# Test Scenario:
+# 1. Start long-running workflow
+# 2. After 2 seconds, send first SIGTERM (graceful shutdown starts)
+# 3. After 1 more second (3s total), send second SIGTERM
+# 4. Verify TASKER exits IMMEDIATELY (within 1 second)
+# 5. Verify best-effort cleanup (may be incomplete)
+#
+# Critical Test: User Experience - Impatient User
+# When user sends signal once:  Graceful shutdown (up to 10s)
+# When user sends signal twice: IMMEDIATE exit (< 1s)
+#
+# This mimics real user behavior:
+# - User presses Ctrl+C once: "Please stop gracefully"
+# - User presses Ctrl+C again: "STOP NOW!"
+# - User should not wait more than 1 second after second signal
+#
+# Expected Behavior:
+# - First SIGTERM:  Graceful shutdown begins
+#                   - Stop accepting new tasks
+#                   - Let current tasks finish (with timeout)
+#                   - Clean up resources
+# - Second SIGTERM: IMMEDIATE exit
+#                   - Cancel all tasks immediately
+#                   - Skip graceful cleanup
+#                   - Exit within 1 second
+# - Exit code: 143 (128 + SIGTERM=15)
+#
+# Cleanup Verification:
+# - May have incomplete cleanup (acceptable)
+# - May leave temp files (acceptable)
+# - Should still close file handles (critical)
+# - Should not leave zombies (critical)
+#
+# Implementation Note:
+# TASKER should track signal count:
+# - signal_count = 0: Normal operation
+# - signal_count = 1: Graceful shutdown (10s timeout)
+# - signal_count >= 2: Immediate exit (force)
+#
+# Test Execution:
+# This test requires a wrapper script that:
+# 1. Starts: tasker.py test_sigterm_double_signal.txt -r &
+# 2. Waits: 2 seconds
+# 3. Signals: kill -TERM $TASKER_PID  # First signal
+# 4. Waits: 1 second (for graceful shutdown to start)
+# 5. Signals: kill -TERM $TASKER_PID  # Second signal (force)
+# 6. Times: exit time (should be < 1 second after second signal)
+# 7. Verifies: exit code and no zombies
+
+task=0
+hostname=localhost
+command=echo
+arguments=Starting long-running workflow
+exec=local
+
+task=1
+hostname=localhost
+command=sleep
+arguments=30
+exec=local
+
+task=2
+hostname=localhost
+command=sleep
+arguments=30
+exec=local
+
+task=3
+hostname=localhost
+command=sleep
+arguments=30
+exec=local
+
+# Many more tasks to ensure graceful shutdown would take time
+task=4
+hostname=localhost
+command=sleep
+arguments=30
+exec=local
+
+task=5
+hostname=localhost
+command=sleep
+arguments=30
+exec=local

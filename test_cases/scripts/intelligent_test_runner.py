@@ -496,7 +496,8 @@ class TaskerTestExecutor:
         # Prepare command arguments based on test type
         cmd_args = [self.tasker_path, test_file]
 
-        if metadata.get("validation_only", False):
+        # Respect both explicit flag and test_type="validation_only"
+        if (metadata.get("test_type") == "validation_only") or metadata.get("validation_only", False):
             cmd_args.append("--validate-only")
         else:
             cmd_args.append("-r")  # Run mode

@@ -566,7 +566,9 @@ class TaskerTestExecutor:
                     self.performance_monitor.start_monitoring(process)
 
                 try:
-                    stdout, stderr = process.communicate(timeout=60)
+                    # Increased timeout to 120s to accommodate multi-host validation tests
+                    # Host validation: 3 hosts × ~25s per host (DNS 10s + ping 5s + remote 10s) = 75s+
+                    stdout, stderr = process.communicate(timeout=120)
                     exit_code = process.returncode
 
                     # Stop performance monitoring
@@ -647,7 +649,7 @@ class TaskerTestExecutor:
                 "stderr": "Test execution timeout",
                 "execution_time": execution_time,
                 "timed_out": True,
-                "error": "Timeout after 60 seconds",
+                "error": "Timeout after 120 seconds",
                 "execution_path": {"executed_tasks": [], "skipped_tasks": [], "final_task": None}
             }
         except Exception as e:

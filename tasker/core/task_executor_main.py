@@ -1025,8 +1025,27 @@ class TaskExecutor:
             if not line or line.startswith('#'):
                 continue
 
+            # STOP at first task definition - everything after is task fields, not globals
+            if line.startswith('task='):
+                # Before stopping, validate that the task ID is a valid integer
+                # This prevents 'task=invalid_value' from being treated as a task and causing parser crash
+                try:
+                    task_value = line.split('=', 1)[1].strip()
+                    int(task_value)  # Try to convert to integer
+                    self.log_debug(f"First task found at line {line_num}, stopping global variable parsing")
+                    break
+                except ValueError:
+                    # Invalid task ID - this is likely an attempt to use 'task' as a global variable
+                    self.log_error(
+                        f"Line {line_num}: Cannot use 'task' as a global variable name. "
+                        f"'task' is reserved for task ID definitions and must be an integer. "
+                        f"Use a different name like 'TASK_NAME' or 'MY_TASK'."
+                    )
+                    self.log_error("# VALIDATION FAILED: Invalid task definition")
+                    ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Invalid task definition", False)
+
             # Check if this is a global variable definition
-            if '=' in line and not line.startswith('task='):
+            if '=' in line:
                 key, value = line.split('=', 1)
                 key = key.strip()
                 value = value.strip()

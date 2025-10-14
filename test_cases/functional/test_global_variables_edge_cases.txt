@@ -1,0 +1,73 @@
+# TEST_METADATA: {"description": "Global Variable Block test - edge cases with empty values and special characters", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3, 4], "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - Edge Cases
+# Tests edge cases like empty values, special characters, and long values
+
+# Basic required variables
+HOSTNAME=localhost
+EXEC=local
+
+# Edge case: Empty value
+EMPTY_VAR=
+
+# Edge case: Value with spaces
+VAR_WITH_SPACES=This is a value with spaces
+
+# Edge case: Value with special characters
+VAR_WITH_SPECIAL=value-with_dashes.and.dots
+
+# Edge case: Value with equals sign
+VAR_WITH_EQUALS=key=value
+
+# Edge case: Very long variable name (64 characters)
+VERY_LONG_VARIABLE_NAME_THAT_TESTS_THE_LIMITS_OF_NAME_LENGTH_X=long_name_works
+
+# Edge case: Very long variable value (256 characters)
+LONG_VALUE=This_is_a_very_long_value_that_tests_whether_the_system_can_handle_extremely_long_variable_values_without_any_issues_or_truncation_occurring_during_the_parsing_or_replacement_phases_of_the_variable_substitution_process_in_the_tasker_system_12345
+
+# Edge case: Numeric-only value
+NUMERIC_VALUE=12345
+
+# Edge case: Boolean-like values
+TRUE_LIKE=true
+FALSE_LIKE=false
+
+# Task 0: Test empty variable
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Empty var: [@EMPTY_VAR@]
+on_success=1
+
+# Task 1: Test variable with spaces
+task=1
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=@VAR_WITH_SPACES@
+on_success=2
+
+# Task 2: Test variable with special characters
+task=2
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=@VAR_WITH_SPECIAL@
+on_success=3
+
+# Task 3: Test very long variable name
+task=3
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=@VERY_LONG_VARIABLE_NAME_THAT_TESTS_THE_LIMITS_OF_NAME_LENGTH_X@
+on_success=4
+
+# Task 4: Test numeric and boolean-like values
+task=4
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Numeric: @NUMERIC_VALUE@, True: @TRUE_LIKE@, False: @FALSE_LIKE@
+success=exit_0
+next=never

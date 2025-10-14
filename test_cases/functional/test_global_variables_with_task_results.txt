@@ -1,0 +1,46 @@
+# TEST_METADATA: {"description": "Global Variable Block test - mixing global variables with task result variables", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3], "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - With Task Results
+# Tests that global variables and task result variables can be used together
+
+# Global variable definitions
+HOSTNAME=localhost
+EXEC=local
+BASE_CMD=echo
+PREFIX=Result from task
+SUFFIX=processed
+DELIMITER=:
+
+# Task 0: Generate output to be used in later tasks
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=@BASE_CMD@
+arguments=DYNAMIC_VALUE
+on_success=1
+
+# Task 1: Mix global variables with task result variables
+task=1
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=@BASE_CMD@
+arguments=@PREFIX@ 0 is@DELIMITER@ @0_stdout@ @SUFFIX@
+on_success=2
+
+# Task 2: Use task result in condition with global variable
+task=2
+condition=@0_stdout@=DYNAMIC_VALUE
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=@BASE_CMD@
+arguments=Task 0 output matched expected value
+on_success=3
+
+# Task 3: Combine multiple task results with global variables
+task=3
+condition=@1_success@=true&@2_success@=true
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=@BASE_CMD@
+arguments=@PREFIX@ 1 exit code@DELIMITER@ @1_exit@, @PREFIX@ 2 exit code@DELIMITER@ @2_exit@
+success=exit_0
+next=never

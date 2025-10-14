@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Buffer overflow null bytes test","test_type": "security_negative","expected_exit_code": 20,"expected_success": false,"risk_level": "high","skip_host_validation": true,"security_category": "buffer_overflow"}
 # BUFFER OVERFLOW NULL BYTES TEST
 # Tests null byte injection and string termination vulnerabilities
 

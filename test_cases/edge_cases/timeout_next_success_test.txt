@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Timeout next success test","test_type": "performance","expected_exit_code": 124,"expected_success": false,"skip_host_validation": true,"expected_warnings": 1}
 # Test to verify next=success correctly evaluates to false for timeout
 # Task 1 should timeout, next=success should be false, execution should stop
 

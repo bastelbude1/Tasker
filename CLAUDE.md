@@ -109,29 +109,33 @@ cp tasker.py tasker.py.backup_YYYYMMDD
 ### **MANDATORY: Verification Testing Protocol**
 **BEFORE pushing any code changes, ALWAYS perform this verification:**
 
-**🎯 CRITICAL PROTOCOL - EXCEPTION-AWARE VERIFICATION (ZERO TOLERANCE)**
+**🎯 CRITICAL PROTOCOL - METADATA-DRIVEN VERIFICATION (ZERO TOLERANCE)**
 
-1. **Run the comprehensive verification:**
+1. **Run the intelligent test runner:**
    ```bash
    cd test_cases/
-   ./focused_verification.sh
+   python3 scripts/intelligent_test_runner.py functional/ edge_cases/ integration/ security/
    ```
-   - Tests ALL .txt files with `tasker.py` (captures stderr to detect exceptions)
-   - **CRITICAL:** Detects Python exceptions (Traceback, AttributeError, etc.) and treats as FAILURE
-   - Automatic state file cleanup between tests using `reset_state()` function
-   - 60-second timeout per test - **Must achieve 100% success rate with ZERO timeouts AND ZERO exceptions**
-   - **Key protection:** Prevents false positives from hidden runtime errors
+   - **Metadata-driven validation:** Validates execution paths, variable states, exit codes, and success criteria
+   - **CRITICAL:** Detects Python exceptions, validates expected behavior, verifies execution flow
+   - **Advanced validation:** Beyond exit codes - checks execution paths, variable resolution, performance metrics
+   - **All tests must pass:** 100% success rate required (0 failures, 0 skips)
+   - **Key protection:** Prevents false positives through comprehensive behavioral validation
 
-2. **Test execution requirements:**
+2. **Test execution features:**
    ```bash
-   # Essential: Set PATH for mock commands
-   PATH="../test_scripts:$PATH"
+   # Validates:
+   - Exit codes match expected values
+   - Execution paths follow expected task flow
+   - Variables resolve to expected values
+   - Performance within acceptable benchmarks
+   - Security tests properly rejected
 
-   # Essential: Skip host validation for testing
-   --skip-host-validation
-
-   # Essential: Exclude validation test files designed to fail
-   comprehensive_retry_validation_test.txt
+   # Automatically:
+   - Sets PATH for mock commands
+   - Skips host validation when metadata specifies
+   - Handles timeout tests appropriately
+   - Provides detailed failure diagnostics
    ```
 
 3. **Code review with CodeRabbit (MANDATORY):**
@@ -144,18 +148,22 @@ cp tasker.py tasker.py.backup_YYYYMMDD
    - Must be run on all modified files before git push operations
 
 4. **CRITICAL Verification logic (ZERO TOLERANCE):**
-   - ❌ **Python exceptions = IMMEDIATE FAILURE:** Any Traceback, AttributeError, Exception detected in stderr
-   - ❌ **Timeouts = IMMEDIATE FAILURE:** Any timeout (exit 124) = immediate failure
-   - ✅ **Exit code matching:** `tasker.py` must have valid exit codes (0 for success)
-   - ✅ **State consistency:** `reset_state()` ensures each test starts with clean state
+   - ❌ **Python exceptions = IMMEDIATE FAILURE:** Any Traceback, AttributeError, Exception detected
+   - ❌ **Execution path mismatch = FAILURE:** Tasks executed must match expected_execution_path
+   - ❌ **Variable mismatch = FAILURE:** Variables must match expected values (if specified)
+   - ❌ **Exit code mismatch = FAILURE:** Exit code must match expected_exit_code
+   - ✅ **Metadata validation:** All tests must have valid TEST_METADATA
+   - ✅ **Behavioral validation:** Execution behavior must match metadata expectations
 
 5. **CRITICAL Success criteria (ZERO TOLERANCE):**
-   - **100% success rate with ZERO timeouts AND ZERO exceptions**
-   - **ANY Python exception = VERIFICATION FAILURE** (prevents false positives)
-   - All test cases produce functionally identical results
-   - **Exception detection:** Captures stderr to detect runtime errors that exit codes miss
+   - **100% pass rate required** (0 failures, 0 skips)
+   - **ALL tests must have TEST_METADATA** (no skipped tests due to missing metadata)
+   - **Execution paths must match expectations** (validates task flow control)
+   - **Variables must resolve correctly** (validates variable substitution)
+   - **Performance within benchmarks** (for performance tests)
+   - **Security tests properly rejected** (validates security hardening)
 
-**CRITICAL LESSON LEARNED:** Previous verification falsely reported SUCCESS because `> /dev/null 2>&1` hid Python exceptions. The improved verification captures stderr and detects runtime errors, preventing false positives that could break production code.
+**CRITICAL IMPROVEMENT:** Intelligent test runner validates BEHAVIOR not just exit codes. Catches execution path errors, variable resolution issues, and performance regressions that basic exit code testing misses.
 
 ### Communication Style
 - Provide detailed explanations of reasoning

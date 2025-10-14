@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Host validation comprehensive test","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true}
 # Comprehensive Host Validation Test
 # Tests various host validation scenarios using descriptive hostnames
 # Requires /etc/hosts entries (see ../etc_hosts_entries.txt)

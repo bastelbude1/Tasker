@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Debug timeout test","test_type": "validation_only","expected_exit_code": 20,"expected_success": false,"skip_host_validation": true}
 # DEBUG TIMEOUT TEST
 task=0
 hostname=localhost

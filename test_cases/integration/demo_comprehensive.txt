@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Demo comprehensive","test_type": "validation_only","expected_exit_code": 20,"expected_success": false,"skip_host_validation": true}
 # TASKER 2.0 Comprehensive Demo - Copy & Paste Ready!
 # Features: loops, conditionals, parallel execution, output processing, flow control
 # Uses existing scripts: toggle_exit.sh and increment_counter.sh

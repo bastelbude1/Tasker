@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Conditional comprehensive test","test_type": "validation_only","expected_exit_code": 20,"expected_success": false,"skip_host_validation": true}
 # COMPREHENSIVE CONDITIONAL TASKS TEST SUITE
 # Tests all conditional task features including basic logic, advanced features, and edge cases
 

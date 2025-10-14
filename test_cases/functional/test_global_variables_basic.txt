@@ -1,0 +1,59 @@
+# TEST_METADATA: {"description": "Global Variable Block test - basic definition and usage", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3, 4], "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block
+# Tests basic global variable definition and usage in various task fields
+
+# Basic global variable definitions
+HOSTNAME=localhost
+EXEC_TYPE=local
+BASE_COMMAND=echo
+TEST_MESSAGE=Hello from global variables
+TIMEOUT_VALUE=10
+SLEEP_DURATION=1
+
+# Variables with different naming patterns
+_UNDERSCORE_VAR=underscore_value
+VAR_WITH_123=numeric_value
+MY_LONG_VARIABLE_NAME_WITH_UNDERSCORES=long_value
+
+# Task 0: Use global variables in basic fields
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC_TYPE@
+command=@BASE_COMMAND@
+arguments=@TEST_MESSAGE@
+timeout=@TIMEOUT_VALUE@
+on_success=1
+
+# Task 1: Test case sensitivity - VAR vs var should be different
+task=1
+hostname=@HOSTNAME@
+exec=@EXEC_TYPE@
+command=echo
+arguments=Variable with underscore: @_UNDERSCORE_VAR@
+on_success=2
+
+# Task 2: Use global variable with numbers
+task=2
+hostname=@HOSTNAME@
+exec=@EXEC_TYPE@
+command=echo
+arguments=Variable with numbers: @VAR_WITH_123@
+sleep=@SLEEP_DURATION@
+on_success=3
+
+# Task 3: Use long variable name
+task=3
+hostname=@HOSTNAME@
+exec=@EXEC_TYPE@
+command=echo
+arguments=Long variable: @MY_LONG_VARIABLE_NAME_WITH_UNDERSCORES@
+on_success=4
+
+# Task 4: Multiple global variables in one field
+task=4
+hostname=@HOSTNAME@
+exec=@EXEC_TYPE@
+command=echo
+arguments=@TEST_MESSAGE@ and @_UNDERSCORE_VAR@ and @VAR_WITH_123@
+success=exit_0
+next=never

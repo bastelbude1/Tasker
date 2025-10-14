@@ -1,0 +1,43 @@
+# TEST_METADATA: {"description": "Global Variable Block test - using globals in all possible task fields", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1], "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - All Fields Usage
+# Tests that global variables can be used in every possible task field
+
+# Global variables for all task fields
+HOSTNAME=localhost
+EXEC=local
+CMD=echo
+ARGS=test message
+TIMEOUT_VAL=30
+SLEEP_VAL=1
+LOOP_COUNT=2
+RETRY_COUNT=2
+RETRY_DELAY=1
+SUCCESS_COND=exit_0
+CONDITION_TRUE=true
+MAX_PARALLEL=2
+STDERR_CONTAINS=error
+STDOUT_CONTAINS=test
+
+# Task 0: Test basic fields with global variables
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=@CMD@
+arguments=@ARGS@
+timeout=@TIMEOUT_VAL@
+sleep=@SLEEP_VAL@
+success=@SUCCESS_COND@
+on_success=1
+
+# Task 1: Test retry fields with global variables (without loop)
+task=1
+condition=@CONDITION_TRUE@
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=@CMD@
+arguments=Retry test
+retry_failed=true
+retry_count=@RETRY_COUNT@
+retry_delay=@RETRY_DELAY@
+success=@SUCCESS_COND@
+next=never

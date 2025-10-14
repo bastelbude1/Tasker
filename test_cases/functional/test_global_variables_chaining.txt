@@ -1,0 +1,57 @@
+# TEST_METADATA: {"description": "Global Variable Block test - variable chaining and nested references", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3], "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - Variable Chaining
+# Tests whether global variables can reference other global variables
+
+# Base variables
+HOST_PREFIX=local
+HOST_SUFFIX=host
+EXEC_TYPE=local
+BASE_CMD=echo
+
+# Chained variables (referencing other globals)
+FULL_HOST=@HOST_PREFIX@@HOST_SUFFIX@
+EXEC_MODE=@EXEC_TYPE@
+COMMAND_TO_RUN=@BASE_CMD@
+
+# Multi-level chaining
+PRIMARY_HOST=@FULL_HOST@
+BACKUP_HOST=@PRIMARY_HOST@
+FINAL_HOST=@BACKUP_HOST@
+
+# Complex chaining with text
+MESSAGE_PREFIX=Testing
+MESSAGE_SUFFIX=Complete
+FULL_MESSAGE=@MESSAGE_PREFIX@ is @MESSAGE_SUFFIX@
+
+# Task 0: Test simple chained variable
+task=0
+hostname=@FULL_HOST@
+exec=@EXEC_MODE@
+command=@COMMAND_TO_RUN@
+arguments=Using chained variable: @FULL_HOST@
+on_success=1
+
+# Task 1: Test multi-level chained variable
+task=1
+hostname=@FINAL_HOST@
+exec=@EXEC_TYPE@
+command=echo
+arguments=Multi-level chain: @PRIMARY_HOST@ -> @BACKUP_HOST@ -> @FINAL_HOST@
+on_success=2
+
+# Task 2: Test complex chaining with text
+task=2
+hostname=@FULL_HOST@
+exec=@EXEC_TYPE@
+command=echo
+arguments=@FULL_MESSAGE@
+on_success=3
+
+# Task 3: Test all chained variables together
+task=3
+hostname=@FINAL_HOST@
+exec=@EXEC_MODE@
+command=@COMMAND_TO_RUN@
+arguments=Host: @FULL_HOST@, Message: @FULL_MESSAGE@
+success=exit_0
+next=never

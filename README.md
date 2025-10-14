@@ -622,6 +622,175 @@ hostname=@0_stdout@
 command=connect_database
 ```
 
+### Global Variable Validation Rules
+
+TASKER validates global variable names to prevent conflicts with internal keywords and task fields. Understanding these rules helps you choose safe, descriptive variable names.
+
+#### ❌ Reserved Keywords (Cannot Be Used)
+
+**1. The `task` Keyword**
+```
+# ❌ BLOCKED - Causes parser crash
+task=my_custom_value
+
+# ✅ USE INSTEAD
+TASK_NAME=my_custom_value
+MY_TASK=my_custom_value
+```
+**Why blocked:** `task` is reserved for task ID definitions and must be followed by an integer. Using it as a global variable causes parser crashes with `ValueError: invalid literal for int()`.
+
+**2. Task Field Names**
+```
+# ❌ BLOCKED - Silently ignored, causes confusion
+hostname=myvalue
+command=myvalue
+arguments=myvalue
+success=myvalue
+condition=myvalue
+exec=myvalue
+timeout=myvalue
+next=myvalue
+on_success=myvalue
+on_failure=myvalue
+loop=myvalue
+sleep=myvalue
+return=myvalue
+
+# ✅ USE INSTEAD - Add prefix or make uppercase
+MY_HOSTNAME=myvalue
+TARGET_HOSTNAME=myvalue
+HOSTNAME=myvalue
+COMMAND=myvalue
+```
+**Why blocked:** These names are filtered out during parsing because they're task field names. Variables appear to be defined but report "undefined variable" errors when referenced - extremely confusing behavior.
+
+**Validation Error Example:**
+```
+# This triggers validation error
+hostname=web-server.com
+
+# Error message:
+Line 5: Cannot use task field name 'hostname' as a global variable name.
+Task field names are reserved. Use a different name like 'HOSTNAME' or 'MY_HOSTNAME'.
+```
+
+#### ✅ Safe Names (Can Be Used!)
+
+**Important Discovery:** Names like `stdout`, `stderr`, `exit`, `exit_0`, `exit_1` are **100% SAFE** to use as global variable names!
+
+```
+# ✅ PERFECTLY SAFE - No conflicts!
+stdout=my_custom_stdout_value
+stderr=my_custom_stderr_value
+exit=my_custom_exit_value
+exit_0=success_value
+exit_1=failure_value
+success=my_success_indicator
+
+# Task 0: Generate real task output
+task=0
+hostname=localhost
+command=echo
+arguments=Task output here
+exec=local
+
+# Task 1: Use BOTH global variable AND task result variable
+task=1
+hostname=localhost
+command=echo
+# @stdout@ = global variable (my_custom_stdout_value)
+# @0_stdout@ = task 0 result (Task output here)
+arguments=Global: @stdout@, Task Result: @0_stdout@
+exec=local
+```
+
+**Why these are safe:** TASKER uses different regex patterns for each:
+- **Global variables**: `@([a-zA-Z_][a-zA-Z0-9_]*)@` matches `@stdout@`, `@exit@`, etc.
+- **Task results**: `@(\d+)_(stdout|stderr|success|exit)@` matches `@0_stdout@`, `@1_exit@`, etc.
+
+The patterns are mutually exclusive - no conflict possible!
+
+#### Variable Expansion Depth
+
+TASKER supports **nested variable expansion** (variable chaining) with a maximum depth of **10 iterations** to prevent infinite loops in circular references.
+
+**How Variable Chaining Works:**
+```
+# Variables can reference other variables
+BASE_PATH=/opt/myapp
+CONFIG_PATH=@BASE_PATH@/config
+LOG_PATH=@BASE_PATH@/logs
+FULL_CONFIG=@CONFIG_PATH@/app.conf
+
+# Resolves to:
+# CONFIG_PATH = /opt/myapp/config
+# LOG_PATH = /opt/myapp/logs
+# FULL_CONFIG = /opt/myapp/config/app.conf
+```
+
+**Circular Reference Handling:**
+```
+# Self-referencing variable (intentional or accidental)
+VAR_A=prefix_@VAR_A@_suffix
+
+# After 10 expansions, stops automatically:
+# Result: prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_prefix_@VAR_A@_suffix_suffix_suffix_suffix_suffix_suffix_suffix_suffix_suffix_suffix_suffix
+# (11 copies of prefix/suffix = original + 10 expansions)
+```
+
+**Technical Details:**
+- **Constant**: `MAX_VARIABLE_EXPANSION_DEPTH = 10`
+- **Location**: `tasker/core/constants.py`
+- **Usage**: Used consistently in both validation phase (`task_validator.py`) and runtime execution (`condition_evaluator.py`)
+- **Benefit**: Prevents infinite loops while allowing reasonable chaining depth
+
+**Best Practices:**
+- Keep variable chains under 3-4 levels deep for maintainability
+- Avoid circular references (TASKER handles them safely, but they indicate a design issue)
+- Use descriptive names to make variable relationships clear
+
+#### Variable Naming Best Practices
+
+**✅ Recommended Naming Patterns:**
+```
+# 1. ALL_CAPS for true constants
+ENVIRONMENT=production
+VERSION=v2.1.0
+MAX_RETRIES=3
+
+# 2. PascalCase for configuration values
+DatabaseHost=prod-db-01
+ServiceName=web-api
+BackupPath=/backup/data
+
+# 3. Prefixed names for clarity
+TARGET_HOST=app-server
+SOURCE_DIR=/src/app
+DEST_DIR=/opt/app
+
+# 4. Descriptive names that indicate purpose
+DEPLOYMENT_ENV=staging
+API_ENDPOINT=https://api.example.com
+RETRY_DELAY=5
+```
+
+**❌ Names to Avoid:**
+```
+# Too generic - unclear what they represent
+VALUE=something
+DATA=mydata
+TEMP=tmpvalue
+
+# Looks like task field - confusing
+next=5
+success=true
+command=mycommand
+
+# Single letter - not descriptive
+X=value
+Y=value
+```
+
 ## Memory-Efficient Output Streaming
 
 TASKER 2.1 includes an advanced memory-efficient output streaming system that prevents Out-of-Memory (OOM) errors when processing commands that generate large amounts of output (1GB+). This system automatically manages memory usage and seamlessly handles outputs of any size.

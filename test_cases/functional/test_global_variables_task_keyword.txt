@@ -1,0 +1,21 @@
+# TEST_METADATA: {"description": "Global Variable Block test - task keyword breaks parser", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_category": "parser_crash", "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - Task Keyword
+# Tests that using 'task' as a global variable name breaks the parser completely
+# Expected: ValueError during parsing
+
+# Valid global variables
+HOSTNAME=localhost
+EXEC=local
+
+# CRITICAL: This breaks the parser completely
+# The parser tries to use this as a task ID and fails: ValueError: invalid literal for int()
+task=this_breaks_the_parser
+
+# Task 0: Will never be reached due to parser crash
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=This will never execute
+success=exit_0
+next=never

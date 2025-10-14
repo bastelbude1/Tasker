@@ -1,0 +1,36 @@
+# TEST_METADATA: {"description": "Global Variable Block test - task field names should cause validation errors", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_category": "task_fields", "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - Task Field Names
+# Tests that task field names cannot be used as global variable names
+# This test should FAIL during validation phase
+
+# Valid global variables (these are OK)
+MY_HOSTNAME=localhost
+MY_EXEC=local
+MY_COMMAND=echo
+
+# CRITICAL: Task field names should be reserved
+# These should cause validation failure
+task=should_fail
+hostname=should_fail
+exec=should_fail
+command=should_fail
+arguments=should_fail
+timeout=should_fail
+condition=should_fail
+on_success=should_fail
+on_failure=should_fail
+next=should_fail
+sleep=should_fail
+loop=should_fail
+retry_failed=should_fail
+retry_count=should_fail
+retry_delay=should_fail
+
+# Task 0: This task should never execute due to validation failure
+task=0
+hostname=@MY_HOSTNAME@
+exec=@MY_EXEC@
+command=@MY_COMMAND@
+arguments=This task should never run
+success=exit_0
+next=never

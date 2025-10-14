@@ -1,0 +1,38 @@
+# TEST_METADATA: {"description": "Global Variable Block test - security validation for injection attempts", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false, "security_category": "command_injection", "risk_level": "high", "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - Security Tests
+# Tests that command injection and other security issues are prevented
+
+# Basic safe variables
+HOSTNAME=localhost
+EXEC=local
+
+# Security test: Command injection attempts in variable values
+INJECT_SEMICOLON=value; rm -rf /
+INJECT_BACKTICK=value`whoami`
+INJECT_DOLLAR=value$(whoami)
+INJECT_PIPE=value | cat /etc/passwd
+INJECT_AND=value && malicious_command
+INJECT_OR=value || malicious_command
+INJECT_REDIRECT=value > /etc/passwd
+
+# Path traversal attempts
+PATH_TRAVERSAL=../../../../../../etc/passwd
+PATH_ABSOLUTE=/etc/passwd
+PATH_HOME=~/sensitive_file
+
+# Task 0: Attempt to use variables with injection characters
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=@INJECT_SEMICOLON@
+on_success=1
+
+# Task 1: Multiple injection attempts
+task=1
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=@INJECT_BACKTICK@ @INJECT_DOLLAR@ @INJECT_PIPE@
+success=exit_0
+next=never

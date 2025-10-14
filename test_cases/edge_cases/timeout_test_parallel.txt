@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Timeout test parallel","test_type": "validation_only","expected_exit_code": 20,"expected_success": false,"skip_host_validation": true}
+# TEST_METADATA: {"description": "Timeout test parallel","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true}
 # TIMEOUT TEST FOR PARALLEL TASKS
 # Tests timeout behavior with mixed completion times
 

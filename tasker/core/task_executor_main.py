@@ -76,7 +76,16 @@ class TaskExecutor:
         'INFO': 3,
         'DEBUG': 4
     }
-    
+
+    # Known task field names - used for validation and filtering
+    KNOWN_TASK_FIELDS = (
+        'task', 'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
+        'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure',
+        'on_success', 'success', 'condition', 'exec', 'timeout', 'return',
+        'type', 'max_parallel', 'tasks', 'retry_failed', 'retry_count', 'retry_delay',
+        'if_true_tasks', 'if_false_tasks'
+    )
+
     # ===== 1. CLASS LIFECYCLE =====
     
     def __init__(self, task_file, log_dir='logs', dry_run=True, log_level='INFO',
@@ -1053,15 +1062,8 @@ class TaskExecutor:
                 value = value.strip()
 
                 # Check if this is a global variable (not a known task field)
-                known_task_fields = [
-                    'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
-                    'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure',
-                    'on_success', 'success', 'condition', 'exec', 'timeout', 'return',
-                    'type', 'max_parallel', 'tasks', 'retry_failed', 'retry_count', 'retry_delay',  # Parallel fields
-                    'if_true_tasks', 'if_false_tasks'  # NEW: Conditional task fields
-                ]
-
-                if key not in known_task_fields:
+                # Use class constant to avoid duplication
+                if key not in self.KNOWN_TASK_FIELDS:
                     # This is a global variable
                     parsed_global_vars[key] = value
                     self.log_debug(f"Global variable: {key} = {value}")
@@ -1078,7 +1080,7 @@ class TaskExecutor:
         current_task = None
         parsed_tasks = {}  # Local dictionary to collect tasks
 
-        for line in lines:
+        for line_num, line in enumerate(lines, 1):
             line = line.strip()
 
             # Skip empty lines and comments
@@ -1112,9 +1114,13 @@ class TaskExecutor:
                     # Start a new task
                     current_task = {'task': value}
                 else:
-                    # Add to current task (only if it's a known task field)
+                    # Add to current task ONLY if it's a known task field
                     if current_task is not None:
-                        current_task[key] = value
+                        if key in self.KNOWN_TASK_FIELDS:
+                            current_task[key] = value
+                        else:
+                            # Ignore unknown fields with debug logging to avoid surprises
+                            self.log_debug(f"Line {line_num}: Ignoring unknown task field '{key}' (not in KNOWN_TASK_FIELDS)")
 
         # Add the last task if it exists
         if current_task is not None and 'task' in current_task:

@@ -552,7 +552,7 @@ class TaskerTestExecutor:
 
                 try:
                     # Increased timeout to 120s to accommodate multi-host validation tests
-                    # Host validation: 3 hosts × ~25s per host (DNS 10s + ping 5s + remote 10s) = 75s+
+                    # Host validation: 3 hosts x ~25s per host (DNS 10s + ping 5s + remote 10s) = 75s+
                     stdout, stderr = process.communicate(timeout=120)
                     exit_code = process.returncode
 

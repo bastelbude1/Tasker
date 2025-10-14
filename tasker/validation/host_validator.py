@@ -9,6 +9,7 @@ including DNS resolution, ping tests, and execution type specific connectivity t
 
 import os
 import sys
+import signal
 import socket
 import subprocess
 import threading
@@ -345,8 +346,8 @@ class HostValidator:
         """Check if a command exists and is executable."""
         try:
             # Use 'which' command to check if command exists (Python 3.6 compatible)
-            with subprocess.Popen(['which', command], 
-                                stdout=subprocess.PIPE, 
+            with subprocess.Popen(['which', command],
+                                stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
                                 universal_newlines=True) as process:
                 try:
@@ -355,7 +356,7 @@ class HostValidator:
                 except subprocess.TimeoutExpired:
                     process.kill()
                     return False
-        except:
+        except Exception:
             return False
     
     @staticmethod
@@ -378,11 +379,13 @@ class HostValidator:
         try:
             # Use process group to ensure child processes are killed on timeout
             # This is important for shell scripts that spawn subprocesses (like sleep)
-            with subprocess.Popen(cmd_array,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE,
-                                universal_newlines=True,
-                                preexec_fn=os.setsid if sys.platform != 'win32' else None) as process:
+            with subprocess.Popen(
+                cmd_array,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True,
+                start_new_session=(sys.platform != 'win32')
+            ) as process:
                 try:
                     stdout, stderr = process.communicate(timeout=10)
                     exit_code = process.returncode
@@ -405,20 +408,16 @@ class HostValidator:
                     # Kill entire process group to clean up child processes
                     try:
                         if sys.platform != 'win32':
-                            os.killpg(os.getpgid(process.pid), 9)  # SIGKILL
+                            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
                         else:
                             process.kill()
-                    except:
+                    except Exception:
                         process.kill()  # Fallback
                     stdout, stderr = process.communicate()
                     if debug_callback:
                         debug_callback(f"ERROR: {exec_type} connection to '{hostname}' timed out")
                     return False
-            
-        except subprocess.TimeoutExpired:
-            if debug_callback:
-                debug_callback(f"ERROR: {exec_type} connection to '{hostname}' timed out")
-            return False
+
         except Exception as e:
             if debug_callback:
                 debug_callback(f"ERROR: {exec_type} test failed: {str(e)}")

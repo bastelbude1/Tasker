@@ -3,24 +3,29 @@ task=0
 hostname=localhost
 command=echo
 arguments=Starting test
+exec=local
 
 task=1
 type=parallel
 tasks=2,3,4
 timeout=2
 project=TIMEOUT_TEST
+exec=local
 
 task=2
 hostname=localhost
 command=sleep
 arguments=10
+exec=local
 
 task=3
 hostname=localhost
 command=sleep
 arguments=10
+exec=local
 
 task=4
 hostname=localhost
 command=sleep
 arguments=1
+exec=local

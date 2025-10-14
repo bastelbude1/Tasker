@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Malformed invalid task ids test","test_type": "security_negative","expected_exit_code": 1,"expected_success": false,"risk_level": "high","skip_host_validation": true,"security_category": "malformed_input"}
+# TEST_METADATA: {"description": "Malformed invalid task ids test","test_type": "security_negative","expected_exit_code": 20,"expected_success": false,"risk_level": "high","skip_host_validation": true,"security_category": "malformed_input"}
 # MALFORMED INVALID TASK IDS TEST
 # This test should FAIL due to invalid task ID references
 

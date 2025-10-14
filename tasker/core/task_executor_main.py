@@ -1132,7 +1132,15 @@ class TaskExecutor:
 
         # Add the last task if it exists
         if current_task is not None and 'task' in current_task:
-            task_id = int(current_task['task'])
+            # Validate that task ID is an integer before continuing
+            try:
+                task_id = int(current_task['task'])
+            except ValueError:
+                # Non-integer task ID - exit with validation error
+                self.log_error(f"Task ID '{current_task['task']}' is not a valid integer.")
+                self.log_error("# VALIDATION FAILED: Invalid task ID")
+                ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Invalid task ID", False)
+
             if 'arguments' not in current_task:
                 current_task['arguments'] = ''
 

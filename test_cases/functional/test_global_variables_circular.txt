@@ -1,7 +1,7 @@
 # TEST_METADATA: {"description": "Global Variable Block test - circular references are handled safely", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0], "skip_host_validation": true}
 # Test Block 14: Global Variable Definition Block - Circular References
-# Tests that circular references are handled safely (expand max 5 times, then stop)
-# This is correct behavior - prevents infinite loops while remaining functional
+# Tests that circular references are handled safely (expand max 10 times, then stop)
+# This prevents infinite loops while remaining functional
 
 # Basic variables
 HOSTNAME=localhost

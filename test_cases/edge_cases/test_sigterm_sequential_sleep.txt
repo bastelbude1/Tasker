@@ -1,0 +1,52 @@
+# TEST_METADATA: {"description": "SIGTERM during non-blocking sleep operation", "test_type": "signal_handling", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 2, "verify_cleanup": true, "skip_host_validation": true}
+
+# SIGNAL TEST: SIGTERM during non-blocking sleep
+#
+# Test Scenario:
+# 1. Start task 0 with sleep=5 (non-blocking sleep)
+# 2. After 2 seconds, send SIGTERM to TASKER process
+# 3. Verify non-blocking sleep is properly cancelled
+# 4. Verify sleep timer threads are cleaned up
+# 5. Verify task execution is interrupted
+#
+# Critical Test: Non-Blocking Sleep Implementation
+# TASKER uses threading.Timer for non-blocking sleep to avoid
+# thread pool starvation. This test verifies:
+# - Timer threads are properly cancelled on signal
+# - No hung timer threads after exit
+# - Sleep callbacks are not executed after signal
+# - Thread pool remains responsive during signal handling
+#
+# Expected Behavior:
+# - Task 0 command executes, but sleep is interrupted
+# - Sleep timer cancelled immediately on SIGTERM
+# - Task 1 should NOT execute
+# - Exit code: 143 (128 + SIGTERM=15)
+# - No orphaned timer threads
+#
+# Thread Verification:
+# Before signal: TASKER main thread + timer thread(s)
+# After signal:  All threads terminated
+# Command: ps -T -p <tasker_pid>  # Should show process exited
+#
+# Test Execution:
+# This test requires a wrapper script that:
+# 1. Starts: tasker.py test_sigterm_sequential_sleep.txt -r &
+# 2. Waits: 2 seconds (during sleep period)
+# 3. Signals: kill -TERM $TASKER_PID
+# 4. Verifies: timer thread cleanup
+# 5. Verifies: exit code and no hung threads
+
+task=0
+hostname=localhost
+command=echo
+arguments=Task with non-blocking sleep starting
+exec=local
+sleep=5
+
+# This task should NOT execute (workflow interrupted during sleep)
+task=1
+hostname=localhost
+command=echo
+arguments=ERROR: This task should not execute - interrupted during sleep
+exec=local

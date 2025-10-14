@@ -1,0 +1,100 @@
+# TEST_METADATA: {"description": "SIGTERM cleanup verification - no zombie processes", "test_type": "signal_handling", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 3, "verify_cleanup": true, "verify_no_zombies": true, "verify_temp_files": true, "skip_host_validation": true}
+
+# SIGNAL TEST: Comprehensive cleanup verification after SIGTERM
+#
+# Test Scenario:
+# 1. Start complex workflow with:
+#    - Multiple sequential tasks
+#    - Subprocess execution
+#    - File I/O operations
+#    - Parallel tasks
+# 2. After 3 seconds, send SIGTERM to TASKER process
+# 3. Verify COMPREHENSIVE cleanup:
+#    - No zombie processes
+#    - No orphaned subprocesses
+#    - Temp files deleted
+#    - File handles closed
+#    - Lock files released
+#    - Threads terminated
+#
+# Expected Behavior:
+# - Graceful shutdown within 10 seconds
+# - All spawned processes terminated or reaped
+# - All temp files cleaned up
+# - All file descriptors closed
+# - Exit code: 143 (128 + SIGTERM=15)
+#
+# Verification Commands (run after test):
+# 1. ps aux | grep defunct          # No zombies
+# 2. ps aux | grep sleep            # No orphaned sleep processes
+# 3. ps aux | grep echo             # No orphaned echo processes
+# 4. ls -la /tmp/tasker_*           # No temp files
+# 5. lsof | grep tasker             # No open file handles
+# 6. ps -T -p <pid>                 # No threads (process exited)
+#
+# Critical Test: Process Tree Cleanup
+# Before signal: TASKER -> [subprocess1, subprocess2, subprocess3]
+# After signal:  (all processes terminated/reaped)
+#
+# Test Execution:
+# This test requires enhanced wrapper script that:
+# 1. Starts TASKER and records PID
+# 2. Records all child PIDs (subprocess tree)
+# 3. Sends SIGTERM after 3 seconds
+# 4. Waits for TASKER to exit
+# 5. Verifies all child PIDs are gone
+# 6. Verifies no zombies in process table
+# 7. Verifies temp file cleanup
+# 8. Generates detailed cleanup report
+
+task=0
+hostname=localhost
+command=echo
+arguments=Starting cleanup verification test
+exec=local
+
+# Sequential task with subprocess
+task=1
+hostname=localhost
+command=sh
+arguments=-c "sleep 20; echo Task 1 complete"
+exec=shell
+
+# Create some temp file activity
+task=2
+hostname=localhost
+command=sh
+arguments=-c "echo test > /tmp/tasker_test_$$; sleep 20; rm /tmp/tasker_test_$$"
+exec=shell
+
+# Parallel tasks to create multiple subprocesses
+task=3
+type=parallel
+max_parallel=3
+tasks=10,11,12
+timeout=30
+
+task=10
+hostname=localhost
+command=sleep
+arguments=20
+exec=local
+
+task=11
+hostname=localhost
+command=sh
+arguments=-c "for i in 1 2 3 4 5; do echo Iteration $i; sleep 2; done"
+exec=shell
+
+task=12
+hostname=localhost
+command=sh
+arguments=-c "sleep 20; echo Task 12 complete"
+exec=shell
+
+# Subsequent tasks (should not execute)
+task=4
+hostname=localhost
+command=echo
+arguments=ERROR: This task should not execute
+exec=local

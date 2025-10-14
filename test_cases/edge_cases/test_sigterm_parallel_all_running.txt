@@ -1,0 +1,83 @@
+# TEST_METADATA: {"description": "SIGTERM with all parallel tasks actively running", "test_type": "signal_handling", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 2, "verify_cleanup": true, "verify_no_zombies": true, "skip_host_validation": true}
+
+# SIGNAL TEST: SIGTERM during parallel execution (all tasks running)
+#
+# Test Scenario:
+# 1. Start parallel execution with 5 tasks (each sleeping 15 seconds)
+# 2. After 2 seconds, send SIGTERM to TASKER process
+# 3. At signal time, all 5 tasks should still be running
+# 4. Verify graceful shutdown of all tasks
+# 5. Verify no zombie processes left behind
+#
+# Expected Behavior:
+# - All 5 parallel tasks should be interrupted
+# - ThreadPoolExecutor should shut down gracefully
+# - All subprocess handles should be cleaned up
+# - No zombie processes (critical!)
+# - Exit code: 143 (128 + SIGTERM=15)
+# - Clear error message about signal received
+#
+# Critical Verification:
+# - ps aux | grep defunct  # Should show NO zombie processes
+# - ps aux | grep sleep    # Should show NO orphaned sleep processes
+# - ls -la /tmp/tasker_*   # Should show NO temp files
+# - lsof -p <tasker_pid>   # Should show all FDs closed
+#
+# Test Execution:
+# This test requires a wrapper script that:
+# 1. Starts: tasker.py test_sigterm_parallel_all_running.txt -r &
+# 2. Waits: 2 seconds (ensures all tasks started)
+# 3. Signals: kill -TERM $TASKER_PID
+# 4. Waits: for TASKER to exit (max 10 seconds)
+# 5. Verifies: no zombies, no orphans, cleanup complete
+
+task=0
+hostname=localhost
+command=echo
+arguments=Starting parallel task test - all tasks will sleep 15 seconds
+exec=local
+
+task=1
+type=parallel
+max_parallel=5
+tasks=10,11,12,13,14
+timeout=20
+success=all_success
+
+# Parallel subtasks - all sleep 15 seconds
+task=10
+hostname=localhost
+command=sleep
+arguments=15
+exec=local
+
+task=11
+hostname=localhost
+command=sleep
+arguments=15
+exec=local
+
+task=12
+hostname=localhost
+command=sleep
+arguments=15
+exec=local
+
+task=13
+hostname=localhost
+command=sleep
+arguments=15
+exec=local
+
+task=14
+hostname=localhost
+command=sleep
+arguments=15
+exec=local
+
+# This task should NOT execute (workflow interrupted by SIGTERM)
+task=2
+hostname=localhost
+command=echo
+arguments=ERROR: This task should not execute - workflow should be interrupted
+exec=local

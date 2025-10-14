@@ -1,0 +1,37 @@
+# TEST_METADATA: {"description": "Global Variable Block test - testing variable override behavior", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - Override Behavior
+# Tests how global variables interact with direct field values
+
+# Global variable definitions
+HOSTNAME=localhost
+EXEC=local
+DEFAULT_COMMAND=echo
+DEFAULT_ARGS=default message
+DEFAULT_TIMEOUT=30
+
+# Task 0: Use all global variables
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=@DEFAULT_COMMAND@
+arguments=@DEFAULT_ARGS@
+timeout=@DEFAULT_TIMEOUT@
+on_success=1
+
+# Task 1: Override some fields with direct values while using globals for others
+task=1
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=printf
+arguments=Overridden command but using global hostname: @HOSTNAME@
+timeout=10
+on_success=2
+
+# Task 2: Mix literal text with global variables
+task=2
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=@DEFAULT_COMMAND@
+arguments=Prefix-@DEFAULT_ARGS@-Suffix with timeout @DEFAULT_TIMEOUT@
+success=exit_0
+next=never

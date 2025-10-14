@@ -1,0 +1,57 @@
+# TEST_METADATA: {"description": "Global Variable Block test - using globals in conditional expressions", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3, 4], "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - Conditional Expressions
+# Tests that global variables can be used in complex conditional expressions
+
+# Global variables for conditions
+HOSTNAME=localhost
+EXEC=local
+EXPECTED_OUTPUT=SUCCESS
+EXPECTED_EXIT=0
+TRUE_VALUE=true
+FALSE_VALUE=false
+COMPARISON_VALUE=test
+
+# Task 0: Generate output for condition testing
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=SUCCESS
+on_success=1
+
+# Task 1: Test global variable in simple condition equality
+task=1
+condition=@0_stdout@=@EXPECTED_OUTPUT@
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Condition with global variable matched
+on_success=2
+
+# Task 2: Test global variable in exit code comparison
+task=2
+condition=@0_exit@=@EXPECTED_EXIT@
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Exit code matched global variable
+on_success=3
+
+# Task 3: Test global variable in boolean condition
+task=3
+condition=@TRUE_VALUE@
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Boolean global variable evaluated to true
+on_success=4
+
+# Task 4: Test complex condition with multiple global variables
+task=4
+condition=@0_stdout@=@EXPECTED_OUTPUT@&@0_exit@=@EXPECTED_EXIT@&@TRUE_VALUE@
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Complex condition with multiple globals passed
+success=exit_0
+next=never

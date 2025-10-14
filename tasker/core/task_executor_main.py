@@ -76,7 +76,16 @@ class TaskExecutor:
         'INFO': 3,
         'DEBUG': 4
     }
-    
+
+    # Known task field names - used for validation and filtering
+    KNOWN_TASK_FIELDS = (
+        'task', 'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
+        'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure',
+        'on_success', 'success', 'condition', 'exec', 'timeout', 'return',
+        'type', 'max_parallel', 'tasks', 'retry_failed', 'retry_count', 'retry_delay',
+        'if_true_tasks', 'if_false_tasks'
+    )
+
     # ===== 1. CLASS LIFECYCLE =====
     
     def __init__(self, task_file, log_dir='logs', dry_run=True, log_level='INFO',
@@ -1025,22 +1034,36 @@ class TaskExecutor:
             if not line or line.startswith('#'):
                 continue
 
+            # STOP at first task definition - everything after is task fields, not globals
+            # Use regex to handle variations with spaces like 'task = 0' or ' task=0'
+            task_match = re.match(r'^\s*task\s*=\s*(.*)', line)
+            if task_match:
+                # Before stopping, validate that the task ID is a valid integer
+                # This prevents 'task=invalid_value' from being treated as a task and causing parser crash
+                try:
+                    task_value = task_match.group(1).strip()
+                    int(task_value)  # Try to convert to integer
+                    self.log_debug(f"First task found at line {line_num}, stopping global variable parsing")
+                    break
+                except ValueError:
+                    # Invalid task ID - this is likely an attempt to use 'task' as a global variable
+                    self.log_error(
+                        f"Line {line_num}: Cannot use 'task' as a global variable name. "
+                        f"'task' is reserved for task ID definitions and must be an integer. "
+                        f"Use a different name like 'TASK_NAME' or 'MY_TASK'."
+                    )
+                    self.log_error("# VALIDATION FAILED: Invalid task definition")
+                    ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Invalid task definition", False)
+
             # Check if this is a global variable definition
-            if '=' in line and not line.startswith('task='):
+            if '=' in line:
                 key, value = line.split('=', 1)
                 key = key.strip()
                 value = value.strip()
 
                 # Check if this is a global variable (not a known task field)
-                known_task_fields = [
-                    'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
-                    'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure',
-                    'on_success', 'success', 'condition', 'exec', 'timeout', 'return',
-                    'type', 'max_parallel', 'tasks', 'retry_failed', 'retry_count', 'retry_delay',  # Parallel fields
-                    'if_true_tasks', 'if_false_tasks'  # NEW: Conditional task fields
-                ]
-
-                if key not in known_task_fields:
+                # Use class constant to avoid duplication
+                if key not in self.KNOWN_TASK_FIELDS:
                     # This is a global variable
                     parsed_global_vars[key] = value
                     self.log_debug(f"Global variable: {key} = {value}")
@@ -1057,7 +1080,7 @@ class TaskExecutor:
         current_task = None
         parsed_tasks = {}  # Local dictionary to collect tasks
 
-        for line in lines:
+        for line_num, line in enumerate(lines, 1):
             line = line.strip()
 
             # Skip empty lines and comments
@@ -1091,9 +1114,13 @@ class TaskExecutor:
                     # Start a new task
                     current_task = {'task': value}
                 else:
-                    # Add to current task (only if it's a known task field)
+                    # Add to current task ONLY if it's a known task field
                     if current_task is not None:
-                        current_task[key] = value
+                        if key in self.KNOWN_TASK_FIELDS:
+                            current_task[key] = value
+                        else:
+                            # Ignore unknown fields with debug logging to avoid surprises
+                            self.log_debug(f"Line {line_num}: Ignoring unknown task field '{key}' (not in KNOWN_TASK_FIELDS)")
 
         # Add the last task if it exists
         if current_task is not None and 'task' in current_task:
@@ -1147,7 +1174,7 @@ class TaskExecutor:
     def validate_task_dependencies(self):
         """Validate that task dependencies can be resolved given the execution flow."""
         dependency_issues = []
-        pattern = r'@(\d+)_(stdout|stderr|success)@'
+        pattern = r'@(\d+)_(stdout|stderr|success|exit)@'
         
         for task_id, task in self.tasks.items():
             # Check condition dependencies

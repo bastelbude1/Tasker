@@ -10,6 +10,7 @@ unused variable warnings, inline comment detection, PARALLEL TASKS, RETRY LOGIC,
 import os
 import re
 from .input_sanitizer import InputSanitizer
+from ..core.constants import MAX_VARIABLE_EXPANSION_DEPTH
 
 
 class TaskValidator:
@@ -72,11 +73,22 @@ class TaskValidator:
         self.parallel_conditional_specific_fields = [
             'retry_failed', 'retry_count', 'retry_delay'
         ]
-        
+
+        # Known task field names (used for global variable validation)
+        # Defined once here to avoid re-allocation during parsing
+        self.known_task_fields = [
+            'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
+            'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure',
+            'on_success', 'success', 'condition', 'exec', 'timeout', 'return',
+            'type', 'max_parallel', 'tasks',  # Parallel task fields
+            'if_true_tasks', 'if_false_tasks',  # NEW: Conditional task fields
+            *self.parallel_conditional_specific_fields  # Add retry fields
+        ]
+
         # Valid values for certain fields - SIMPLIFIED
         self.valid_next_values = [
             'always', 'never', 'loop', 'success',
-            # Parallel and Conditional-specific next conditions  
+            # Parallel and Conditional-specific next conditions
             'all_success', 'any_success', 'majority_success'
         ]
         
@@ -176,12 +188,15 @@ class TaskValidator:
         
         # Replace global variables
         resolved = re.sub(global_var_pattern, replace_var, text)
-        
-        # Handle nested variables (variable chaining) - max 5 iterations to prevent infinite loops
-        for _ in range(5):
+
+        # Handle nested variables (variable chaining) - max iterations to prevent infinite loops
+        for _ in range(MAX_VARIABLE_EXPANSION_DEPTH):
             new_resolved = re.sub(global_var_pattern, replace_var, resolved)
             if new_resolved == resolved:
                 break  # No more changes
+            if '@' not in new_resolved:
+                resolved = new_resolved
+                break  # No more variables to expand - early exit optimization
             resolved = new_resolved
             
         return resolved
@@ -310,33 +325,67 @@ class TaskValidator:
             return False
 
         # PHASE 1: Parse global variables (first pass)
+        # Global variables are ONLY defined BEFORE the first task definition
+        # Stop processing as soon as we encounter the first 'task=' line
         self.debug_log("Parsing global variables...")
         global_count = 0
-        
+
         for line_number, line in enumerate(lines, 1):
             line = line.strip()
-            
+
             # Skip empty lines and comments
             if not line or line.startswith('#'):
                 continue
-                
-            # Parse key=value pairs
-            if '=' in line and not line.startswith('task='):
+
+            # STOP at first task definition - everything after is task fields, not globals
+            if line.startswith('task='):
+                # Before stopping, validate that the task ID is a valid integer
+                # This prevents 'task=invalid_value' from being treated as a task and causing parser crash
+                try:
+                    task_value = line.split('=', 1)[1].strip()
+                    int(task_value)  # Try to convert to integer
+                    self.debug_log(f"First task found at line {line_number}, stopping global variable parsing")
+                    break
+                except ValueError:
+                    # Invalid task ID - this is likely an attempt to use 'task' as a global variable
+                    self.errors.append(
+                        f"Line {line_number}: Cannot use 'task' as a global variable name. "
+                        f"'task' is reserved for task ID definitions and must be an integer. "
+                        f"Use a different name like 'TASK_NAME' or 'MY_TASK'."
+                    )
+                    continue  # Skip this line and continue parsing globals
+
+            # Parse key=value pairs (only before first task definition)
+            if '=' in line:
                 try:
                     key, value = line.split('=', 1)
                     key = key.strip()
                     value = value.strip()
                     
+                    # CRITICAL: Validate reserved keywords for global variables
+                    # The 'task' keyword causes parser crash (ValueError)
+                    if key == 'task':
+                        self.errors.append(
+                            f"Line {line_number}: Cannot use 'task' as a global variable name. "
+                            f"'task' is reserved for task ID definitions. Use a different name like 'TASK_NAME' or 'MY_TASK'."
+                        )
+                        continue  # Skip this line
+
                     # Check if this is a global variable (not a known task field)
-                    known_task_fields = [
-                        'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
-                        'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure', 
-                        'on_success', 'success', 'condition', 'exec', 'timeout', 'return',
-                        'type', 'max_parallel', 'tasks',  # Parallel task fields
-                        'if_true_tasks', 'if_false_tasks'  # NEW: Conditional task fields
-                    ] + self.parallel_conditional_specific_fields  # Add retry fields
-                    
-                    if key not in known_task_fields:
+                    # CRITICAL: Task field names are silently ignored during parsing
+                    # This causes confusing "undefined variable" errors later
+                    if key in self.known_task_fields:
+                        self.errors.append(
+                            f"Line {line_number}: Cannot use task field name '{key}' as a global variable name. "
+                            f"Task field names are reserved. Use a different name like '{key.upper()}' or 'MY_{key.upper()}'."
+                        )
+                        continue  # Skip this line
+
+                    # NOTE: Names like 'stdout', 'stderr', 'exit' are SAFE to use as global variables
+                    # They don't conflict with task result variables (@0_stdout@, @0_stderr@, etc.)
+                    # because the patterns are different: @VARNAME@ vs @N_stdout@
+
+                    if key not in self.known_task_fields:
                         # Check for inline comments in global variables
                         if self.check_for_inline_comments(key, value, line_number):
                             continue  # Skip this global variable if it has inline comments

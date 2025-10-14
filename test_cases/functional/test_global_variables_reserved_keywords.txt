@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Global Variable Block test - task field names should cause validation errors", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_category": "task_field_names", "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - Task Field Names as Globals
+# Tests that task field names are rejected when used as global variable names
+# The validator explicitly detects this and reports it as a validation error
+
+# Valid global variables (these are OK)
+MY_HOSTNAME=localhost
+MY_EXEC=local
+BASE_COMMAND=echo
+
+# CRITICAL: Task field names are rejected as globals during validation
+# This is reported as a validation error, and the variables remain undefined
+success=this_will_be_ignored
+hostname=this_will_be_ignored
+command=this_will_be_ignored
+
+# Task 0: This task would fail if execution reached it due to undefined variables
+# But validation catches the reserved keywords before execution begins
+task=0
+hostname=@MY_HOSTNAME@
+exec=@MY_EXEC@
+command=@BASE_COMMAND@
+arguments=Using ignored vars: @success@, @hostname@, @command@
+success=exit_0
+next=never

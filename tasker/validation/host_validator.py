@@ -377,17 +377,20 @@ class HostValidator:
             debug_callback(f"Testing {exec_type} connection to '{hostname}': {' '.join(cmd_array)}")
         
         try:
-            with subprocess.Popen(cmd_array, 
-                                stdout=subprocess.PIPE, 
+            # Use process group to ensure child processes are killed on timeout
+            # This is important for shell scripts that spawn subprocesses (like sleep)
+            with subprocess.Popen(cmd_array,
+                                stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE,
-                                universal_newlines=True) as process:
+                                universal_newlines=True,
+                                preexec_fn=os.setsid if sys.platform != 'win32' else None) as process:
                 try:
                     stdout, stderr = process.communicate(timeout=10)
                     exit_code = process.returncode
-                    
+
                     # Check for exit code 0 AND stdout containing "OK"
                     success = (exit_code == 0 and "OK" in stdout)
-                    
+
                     if debug_callback:
                         if success:
                             debug_callback(f"{exec_type} connection to '{hostname}' successful")
@@ -396,11 +399,18 @@ class HostValidator:
                             debug_callback(f"  Exit code: {exit_code}")
                             debug_callback(f"  Stdout: {stdout.strip()}")
                             debug_callback(f"  Stderr: {stderr.strip()}")
-                    
+
                     return success
-                    
+
                 except subprocess.TimeoutExpired:
-                    process.kill()
+                    # Kill entire process group to clean up child processes
+                    try:
+                        if sys.platform != 'win32':
+                            os.killpg(os.getpgid(process.pid), 9)  # SIGKILL
+                        else:
+                            process.kill()
+                    except:
+                        process.kill()  # Fallback
                     stdout, stderr = process.communicate()
                     if debug_callback:
                         debug_callback(f"ERROR: {exec_type} connection to '{hostname}' timed out")

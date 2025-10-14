@@ -15,7 +15,6 @@ test_cases/
 ├── performance/       # Performance and timing tests (10 tests)
 ├── scripts/           # Testing infrastructure and utilities
 ├── templates/         # Test file templates
-├── README/            # Example/demo files
 └── README.md          # This documentation
 
 Total: 275 tests with TEST_METADATA

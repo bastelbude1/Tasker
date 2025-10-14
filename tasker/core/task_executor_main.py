@@ -1168,7 +1168,7 @@ class TaskExecutor:
     def validate_task_dependencies(self):
         """Validate that task dependencies can be resolved given the execution flow."""
         dependency_issues = []
-        pattern = r'@(\d+)_(stdout|stderr|success)@'
+        pattern = r'@(\d+)_(stdout|stderr|success|exit)@'
         
         for task_id, task in self.tasks.items():
             # Check condition dependencies

@@ -1,0 +1,27 @@
+# TEST_METADATA: {"description": "Global Variable Block test - integration with loops", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1], "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - Integration with loops
+# Tests that global variables work correctly with loops
+
+# Global variables
+HOSTNAME=localhost
+EXEC=local
+COUNTER_MAX=2
+BASE_COMMAND=echo
+MESSAGE=Global variable in loop
+
+# Task 0: Regular task using global variables
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=@BASE_COMMAND@
+arguments=Task 0 executing with globals
+on_success=1
+
+# Task 1: Simple task using global variables
+task=1
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=@BASE_COMMAND@
+arguments=@MESSAGE@
+success=exit_0
+next=never

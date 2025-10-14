@@ -1,0 +1,29 @@
+# TEST_METADATA: {"description": "Global Variable Block test - circular references are handled safely", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0], "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - Circular References
+# Tests that circular references are handled safely (expand max 10 times, then stop)
+# This prevents infinite loops while remaining functional
+
+# Basic variables
+HOSTNAME=localhost
+EXEC=local
+
+# Circular reference: VAR_A references VAR_B, VAR_B references VAR_A
+VAR_A=@VAR_B@
+VAR_B=@VAR_A@
+
+# Self-reference
+SELF_REF=prefix_@SELF_REF@_suffix
+
+# Indirect circular reference through chain
+CHAIN_A=@CHAIN_B@
+CHAIN_B=@CHAIN_C@
+CHAIN_C=@CHAIN_A@
+
+# Task 0: Try to use circularly referenced variables
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Circular: @VAR_A@, Self: @SELF_REF@, Chain: @CHAIN_A@
+success=exit_0
+next=never

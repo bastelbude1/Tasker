@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Global Variable Block test - undefined variable references should fail", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_category": "undefined_variables", "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - Undefined Variables
+# Tests that references to undefined global variables cause validation errors
+
+# Define some global variables
+HOSTNAME=localhost
+EXEC=local
+DEFINED_VAR=this_exists
+
+# Task 0: Reference an undefined global variable - should fail validation
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=This references @UNDEFINED_VAR@ which does not exist
+on_success=1
+
+# Task 1: Multiple undefined variables
+task=1
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=@UNDEFINED_1@ and @UNDEFINED_2@ do not exist
+success=exit_0
+next=never

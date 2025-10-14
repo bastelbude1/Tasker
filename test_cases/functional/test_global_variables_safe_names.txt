@@ -1,0 +1,41 @@
+# TEST_METADATA: {"description": "Global Variable Block test - stdout/stderr/exit names are SAFE to use", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - Safe "Reserved-like" Names
+# Proves that stdout, stderr, exit, exit_0 are SAFE to use as global variable names
+# They don't conflict with task result variables because @stdout@ != @0_stdout@
+
+# Basic variables
+HOSTNAME=localhost
+EXEC=local
+
+# These names look "reserved" but are actually SAFE to use as globals
+# @stdout@ (global) is different from @0_stdout@ (task result)
+stdout=my_custom_stdout_value
+stderr=my_custom_stderr_value
+exit=my_custom_exit_value
+exit_0=my_custom_exit_0_value
+exit_1=my_custom_exit_1_value
+
+# Task 0: Generate real task output for comparison
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Real task output
+on_success=1
+
+# Task 1: Prove both global and task result variables work together
+task=1
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Global @stdout@=@stdout@, Task @0_stdout@=@0_stdout@
+on_success=2
+
+# Task 2: Prove all "reserved-like" globals work
+task=2
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=stdout:@stdout@ stderr:@stderr@ exit:@exit@ exit_0:@exit_0@ exit_1:@exit_1@
+success=exit_0
+next=never

@@ -1,0 +1,56 @@
+# TEST_METADATA: {"description": "Global Variable Block test - test ACTUAL impact of using reserved-like names", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3, 4], "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - Reserved Names Impact Test
+# Tests whether using names like stdout, stderr, exit, success as globals actually causes problems
+
+# Basic required variables
+HOSTNAME=localhost
+EXEC=local
+
+# Use "reserved-like" names as global variables (NOT in known_task_fields)
+# These should work because they're not task field names
+stdout=custom_stdout_value
+stderr=custom_stderr_value
+exit=custom_exit_value
+exit_0=custom_exit_0_value
+exit_1=custom_exit_1_value
+
+# Task 0: Generate real output to create task result variables
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Task 0 output
+on_success=1
+
+# Task 1: Use both global variables AND task result variables to test conflict
+task=1
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Global stdout: @stdout@, Task 0 stdout: @0_stdout@
+on_success=2
+
+# Task 2: Test global stderr and task stderr
+task=2
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Global stderr: @stderr@, Global exit: @exit@
+on_success=3
+
+# Task 3: Test global exit_0 and exit_1
+task=3
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Global exit_0: @exit_0@, Global exit_1: @exit_1@
+on_success=4
+
+# Task 4: Mix all - global vs task result variables
+task=4
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Mixed - Global: @stdout@, @stderr@ | Task: @0_stdout@, @0_exit@
+success=exit_0
+next=never

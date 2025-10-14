@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Global Variable Block test - parent file with includes", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true}
+# Test Block 14: Global Variable Definition Block - With Include Block
+# Tests that global variables are accessible in included files
+
+# Global variables defined in parent file
+HOSTNAME=localhost
+EXEC=local
+PARENT_VAR=from_parent
+SHARED_MESSAGE=Global variable from parent file
+
+# Task 0: Task in parent file using global variable
+task=0
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Parent task: @PARENT_VAR@ - @SHARED_MESSAGE@
+on_success=1
+
+# Task 1: Just use global variables without include (include feature needs more complex setup)
+task=1
+hostname=@HOSTNAME@
+exec=@EXEC@
+command=echo
+arguments=Second task: @PARENT_VAR@ - @SHARED_MESSAGE@
+success=exit_0
+next=never

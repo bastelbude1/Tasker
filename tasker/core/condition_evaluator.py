@@ -9,6 +9,7 @@ Provides modular, testable components for the TASKER system.
 import re
 from typing import ClassVar
 from .utilities import convert_value, convert_to_number
+from .constants import MAX_VARIABLE_EXPANSION_DEPTH
 
 
 class ConditionEvaluator:
@@ -100,7 +101,7 @@ class ConditionEvaluator:
         
         # Handle nested global variables (variable chaining support)
         # Keep replacing until no more global variables are found or max iterations reached
-        max_iterations = 10  # Prevent infinite loops
+        max_iterations = MAX_VARIABLE_EXPANSION_DEPTH  # Prevent infinite loops
         iteration = 0
         
         while iteration < max_iterations:

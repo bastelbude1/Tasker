@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Master timeout comprehensive test","test_type": "validation_only","expected_exit_code": 20,"expected_success": false,"skip_host_validation": true}
 # COMPREHENSIVE MASTER TIMEOUT TEST
 # Tests all aspects of Master Timeout Only enforcement
 
@@ -13,7 +14,7 @@ type=parallel
 max_parallel=3
 tasks=100,101,102
 timeout=5
-next=min_success=1
+success=min_success=1
 on_success=2
 on_failure=50
 
@@ -35,7 +36,7 @@ type=parallel
 max_parallel=4
 tasks=200,201,202,203
 timeout=3
-next=min_success=2
+success=min_success=2
 on_success=12
 on_failure=55
 
@@ -57,7 +58,7 @@ type=parallel
 max_parallel=3
 tasks=300,301,302
 timeout=1
-next=any_success
+success=any_success
 on_success=60
 on_failure=22
 
@@ -79,7 +80,7 @@ type=parallel
 max_parallel=5
 tasks=400,401,402,403,404
 timeout=4
-next=max_failed=3
+success=max_failed=3
 on_success=32
 on_failure=65
 

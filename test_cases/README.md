@@ -2,22 +2,25 @@
 
 ## 📋 Overview
 
-This directory contains a comprehensive test suite for TASKER organized by functionality and purpose. Each test category validates specific aspects of the TASKER workflow engine, ensuring complete coverage of all TaskER FlowChart blocks.
+This directory contains a comprehensive test suite for TASKER organized by functionality and purpose. Each test uses **metadata-driven validation** with the `intelligent_test_runner.py` framework, enabling sophisticated behavioral verification beyond simple exit code checking.
 
 ## 🗂️ Directory Structure
 
 ```
 test_cases/
-├── functional/          # Core functionality tests
-├── edge_cases/         # Boundary conditions and edge cases
-├── security/          # Security validation tests (negative testing)
-├── integration/       # Multi-component integration tests
-├── performance/       # Performance and scalability tests (future)
-├── README.md         # This documentation
-└── [legacy files]    # Original test files (to be organized)
+├── functional/          # Core functionality tests (137 tests)
+├── edge_cases/         # Boundary conditions and edge cases (68 tests)
+├── security/          # Security validation tests (27 tests)
+├── integration/       # Multi-component integration tests (33 tests)
+├── performance/       # Performance and timing tests (10 tests)
+├── scripts/           # Testing infrastructure and utilities
+├── templates/         # Test file templates
+└── README.md          # This documentation
+
+Total: 275 tests with TEST_METADATA
 ```
 
-## 🔍 Test Categories
+## 🎯 Test Categories
 
 ### 1. Functional Tests (`functional/`)
 
@@ -25,7 +28,7 @@ Tests that validate core TASKER functionality and ensure all TaskER FlowChart bl
 
 #### 1.1 Basic Execution Blocks
 - **Simple Task Execution**: Basic `task`, `hostname`, `command`, `arguments` parameters
-- **Global Variables**: Variable definition and resolution with `@VARIABLE@` syntax
+- **Global Variables**: Variable definition and resolution with `@VARIABLE@` syntax (17 comprehensive tests)
 - **Configuration Overrides**: `timeout`, `exec` parameter handling
 
 #### 1.2 Flow Control Blocks
@@ -45,7 +48,7 @@ Tests that validate core TASKER functionality and ensure all TaskER FlowChart bl
 
 #### 1.5 Output Processing
 - **Output Split**: `stdout_split`, `stderr_split` with various delimiters
-- **Task Result References**: `@taskid_stdout@`, `@taskid_exit_code@` usage
+- **Task Result References**: `@taskid_stdout@`, `@taskid_exit@` usage
 
 #### 1.6 Terminal Blocks
 - **End Success**: `next=never`, `return=0` workflow termination
@@ -64,7 +67,7 @@ Tests that validate boundary conditions and unusual but valid scenarios:
 #### 2.2 Flow Control Edge Cases
 - **Complex Conditions**: Multi-variable expressions, nested conditions
 - **Jump Sequences**: Non-sequential task IDs, forward/backward jumps
-- **Task Sequences**: Gaps in task numbering, duplicate IDs, high starting IDs
+- **Task Sequences**: Gaps in task numbering, high starting IDs
 
 #### 2.3 Resource Edge Cases
 - **Memory Management**: Large output handling, resource cleanup
@@ -119,86 +122,154 @@ Tests that validate interaction between multiple TASKER components:
 - **Health Checks**: System monitoring and alerting patterns
 - **Data Processing**: ETL-style data transformation workflows
 
-#### 4.4 State Management
-- **Global State**: Global variable updates during execution
-- **Task Dependencies**: Complex task interdependencies
-- **Error Recovery**: Error handling and recovery workflows
+## 📋 TEST_METADATA Specification
 
-### 5. Performance Tests (`performance/`) - Future Implementation
-
-Will contain tests for performance validation and scalability:
-
-- **Execution Speed**: Task execution timing benchmarks
-- **Memory Usage**: Memory consumption profiling
-- **Concurrent Load**: High-concurrency parallel execution
-- **Scalability**: Large workflow processing
-
-## 🎯 Test Naming Convention
-
-Tests follow a structured naming pattern for easy identification:
-
-```
-[category]_[component]_[scenario]_test.txt
-
-Examples:
-- functional_basic_execution_test.txt
-- functional_global_variables_test.txt
-- edge_cases_sleep_decimal_test.txt
-- edge_cases_timeout_maximum_test.txt
-- security_command_injection_basic_test.txt
-- security_path_traversal_encoding_test.txt
-- integration_deployment_workflow_test.txt
-- integration_parallel_coordination_test.txt
-```
-
-## 📋 Test Specification Format
-
-Each test includes embedded documentation in comments:
+Every test file includes **TEST_METADATA** for intelligent validation:
 
 ```bash
-# TEST PURPOSE: Brief description of what this test validates
-# EXPECTED BEHAVIOR: What should happen when test runs
-# VALIDATION CRITERIA: How to determine if test passed
-# FLOWCHART BLOCKS: Which TaskER blocks this test covers
-# CATEGORY: functional|edge_cases|security|integration
-# COMPLEXITY: simple|moderate|complex
+# TEST_METADATA: {"description": "...", "test_type": "...", "expected_exit_code": 0, "expected_success": true}
+```
 
-# Test content...
-task=1
-hostname=localhost
-command=echo
-arguments=test
+### Required Fields
+
+#### **description** (string)
+Clear, concise description of what the test validates.
+
+```json
+"description": "Basic sequential workflow with global variables"
+```
+
+#### **test_type** (string)
+Test classification for appropriate validation logic.
+
+**Valid values:**
+- `positive` - Test should succeed (exit code 0)
+- `negative` - Test should fail validation/execution (exit code 1-255)
+- `validation_only` - Test with `--validate-only` flag
+- `security_negative` - Security test that should be rejected (exit code 20)
+- `performance` - Performance/timing benchmark test
+
+#### **expected_exit_code** (integer)
+Expected exit code from TASKER execution.
+
+```json
+"expected_exit_code": 0    // Success
+"expected_exit_code": 20   // Validation failure
+"expected_exit_code": 124  // Timeout
+```
+
+#### **expected_success** (boolean)
+Expected overall success status.
+
+```json
+"expected_success": true   // Test should pass
+"expected_success": false  // Test should fail
+```
+
+### Optional Fields
+
+#### **expected_execution_path** (array)
+Expected sequence of task IDs that should execute.
+
+```json
+"expected_execution_path": [0, 1, 2, 5]
+```
+
+#### **expected_variables** (object)
+Expected variable values during execution.
+
+```json
+"expected_variables": {
+  "HOSTNAME": "localhost",
+  "BASE_PATH": "/opt/app"
+}
+```
+
+#### **expected_warnings** (integer)
+Number of expected warning messages.
+
+```json
+"expected_warnings": 2
+```
+
+#### **skip_host_validation** (boolean)
+Skip host validation (for tests using invalid/mock hosts).
+
+```json
+"skip_host_validation": true
+```
+
+#### **security_category** (string)
+Security test category (for `security_negative` tests).
+
+```json
+"security_category": "command_injection"
+"security_category": "path_traversal"
+"security_category": "buffer_overflow"
+"security_category": "malformed_input"
+```
+
+#### **performance_benchmarks** (object)
+Performance timing requirements.
+
+```json
+"performance_benchmarks": {
+  "max_execution_time": 5.0,
+  "min_execution_time": 2.0
+}
+```
+
+### Example Metadata
+
+```bash
+# TEST_METADATA: {"description": "Global variable chaining with 3 levels", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0], "expected_variables": {"BASE": "/opt", "CONFIG": "/opt/config"}, "skip_host_validation": true}
 ```
 
 ## 🧪 Test Execution
 
-### Quick Verification
+### Using Intelligent Test Runner (Recommended)
+
 ```bash
-# Run focused verification on core tests
-./focused_verification.sh
+# Run all test categories with metadata validation
+cd test_cases/
+python3 scripts/intelligent_test_runner.py functional/ edge_cases/ integration/ security/
 
 # Run specific category
-./focused_verification.sh functional/
-./focused_verification.sh security/
-```
+python3 scripts/intelligent_test_runner.py functional/
 
-### Comprehensive Validation
-```bash
-# Run complete system validation
-./complete_system_validation.sh
+# Run with verbose output
+python3 scripts/intelligent_test_runner.py functional/ --verbose
 
-# Run with enhanced validation
-./enhanced_test_validator.py
+# Run specific test pattern
+python3 scripts/intelligent_test_runner.py functional/test_global_variables_*.txt
 ```
 
 ### Individual Test Execution
+
 ```bash
-# Basic execution
-../tasker.py functional/simple_execution_test.txt -r --skip-host-validation
+# Basic execution (skip host validation for mock tests)
+../tasker.py functional/test_global_variables_basic.txt -r --skip-host-validation
 
 # Debug mode
-../tasker.py functional/global_variables_test.txt -r --skip-host-validation --log-level=DEBUG
+../tasker.py functional/test_global_variables_basic.txt -r --skip-host-validation --log-level=DEBUG
+
+# Validation only
+../tasker.py functional/test_global_variables_basic.txt --validate-only
 ```
+
+### Verification Protocol (from CLAUDE.md)
+
+**CRITICAL: Run before any code push:**
+
+```bash
+cd test_cases/
+python3 scripts/intelligent_test_runner.py functional/ edge_cases/ integration/ security/
+```
+
+**Success criteria:**
+- ✅ **100% success rate with ZERO timeouts AND ZERO exceptions**
+- Any Python exception = VERIFICATION FAILURE
+- All test cases produce functionally identical results
 
 ## 📊 Coverage Matrix
 
@@ -224,33 +295,36 @@ arguments=test
 **Legend:**
 - ✅ = Comprehensive coverage
 - ❌ = Not applicable for security testing
-- 🔄 = Partial coverage (needs improvement)
 
-## 🔧 Test Validation Tools
+## 🎯 Test Naming Convention
 
-### 1. Enhanced Test Validator (`enhanced_test_validator.py`)
-- Comprehensive behavioral validation beyond exit codes
-- Variable resolution verification
-- Execution path validation
-- Pattern-based regression detection
+Tests follow a structured naming pattern:
 
-### 2. Focused Verification (`focused_verification.sh`)
-- Quick execution of core test suite
-- State cleanup between tests
-- Timeout protection (60s per test)
-- 100% success rate requirement
+```
+test_[component]_[scenario].txt
 
-### 3. Complete System Validation (`complete_system_validation.sh`)
-- Full system testing with enhanced validation
-- Standard functionality + security testing
-- False positive detection
-- Performance validation
+Examples:
+- test_global_variables_basic.txt
+- test_global_variables_chaining.txt
+- test_conditional_block_basic.txt
+- test_parallel_block_retry.txt
+```
 
-### 4. Security Test Runner (`security/security_test_runner.sh`)
-- Specialized security test execution
-- Negative testing validation (tests should fail)
-- Security vulnerability detection
-- Injection pattern verification
+## 🔧 Testing Infrastructure
+
+### Scripts Available
+
+- **`intelligent_test_runner.py`** ⭐ - Main test runner with metadata validation
+- **`unit_test_non_blocking_sleep.py`** - Unit tests for non-blocking sleep
+- **`generate_success_evaluation_tests.py`** - Generate multi-task success tests
+- **`add_missing_metadata.py`** - Add TEST_METADATA to tests missing it
+- **`auto_fix_metadata.py`** - Auto-correct metadata based on actual behavior
+- **`fix_security_metadata.py`** - Fix security test metadata
+
+### Templates
+
+- **`templates/positive_test_template.txt`** - Template for positive tests
+- **`templates/negative_test_template.txt`** - Template for negative tests
 
 ## 📈 Quality Metrics
 
@@ -262,9 +336,10 @@ arguments=test
 
 ### Validation Levels
 1. **Exit Code Validation**: Basic pass/fail determination
-2. **Behavioral Validation**: Output content and execution path verification
-3. **Security Validation**: Injection detection and proper rejection
-4. **Performance Validation**: Execution timing and resource usage
+2. **Metadata Validation**: Verify execution matches TEST_METADATA expectations
+3. **Behavioral Validation**: Execution path and variable state verification
+4. **Security Validation**: Injection detection and proper rejection
+5. **Performance Validation**: Execution timing and resource usage
 
 ## 🚀 Contributing New Tests
 
@@ -274,29 +349,70 @@ arguments=test
 - Consider real-world use cases
 
 ### 2. Create Test File
+- Use appropriate template from `templates/`
 - Follow naming convention
-- Include test specification comments
 - Use appropriate category directory
+- Add comprehensive TEST_METADATA
 
 ### 3. Validate Test
-- Run test individually to verify behavior
-- Add to focused verification if appropriate
-- Test both positive and negative scenarios
+```bash
+# Run test individually
+../tasker.py functional/your_new_test.txt -r --skip-host-validation
 
-### 4. Update Documentation
-- Update coverage matrix
-- Add test description to appropriate category
-- Update any relevant validation tools
+# Run with intelligent_test_runner
+python3 scripts/intelligent_test_runner.py functional/your_new_test.txt
+```
+
+### 4. Verify Metadata
+```bash
+# Auto-detect correct metadata if uncertain
+python3 scripts/auto_fix_metadata.py functional/your_new_test.txt
+```
+
+## 📚 Global Variable Testing
+
+The `functional/` directory includes **17 comprehensive global variable tests**:
+
+### Basic Functionality
+- `test_global_variables_basic.txt` - Basic global variable definition and usage
+- `test_global_variables_chaining.txt` - Variable chaining (@VAR1@ contains @VAR2@)
+- `test_global_variables_override.txt` - Task-specific variable overrides
+
+### Advanced Features
+- `test_global_variables_circular.txt` - Circular reference handling
+- `test_global_variables_conditions.txt` - Variables in condition expressions
+- `test_global_variables_edge_cases.txt` - Empty values, special characters
+- `test_global_variables_with_blocks.txt` - Variables with parallel/conditional blocks
+- `test_global_variables_with_task_results.txt` - Mixing globals with task results
+
+### Validation & Security
+- `test_global_variables_reserved_keywords.txt` - Reserved keyword rejection
+- `test_global_variables_task_keyword.txt` - 'task' keyword causes parser error
+- `test_global_variables_task_fields.txt` - Task field names cause validation errors
+- `test_global_variables_safe_names.txt` - Safe names (stdout, stderr, exit)
+- `test_global_variables_undefined.txt` - Undefined variable handling
+- `test_global_variables_security.txt` - Security validation (command injection)
+
+### Integration
+- `test_global_variables_all_fields.txt` - Variables in all task fields
+- `test_global_variables_reserved_impact.txt` - Impact analysis of reserved keywords
+- `test_global_variables_parent.txt` - Parent-child task variable passing
+
+### Validation Rules
+1. **Reserved Keywords**: `task` cannot be used (causes parser crash)
+2. **Task Field Names**: Cannot use `hostname`, `command`, `success`, etc. (validation error)
+3. **Safe Names**: `stdout`, `stderr`, `exit` are safe (different from `@X_stdout@` pattern)
+4. **Variable Expansion**: Max depth of 10 to prevent infinite loops
+5. **Parsing Scope**: Global variables only valid BEFORE first `task=` line
 
 ## 📚 Related Documentation
 
-- [`TaskER_FlowChart.md`](../TaskER_FlowChart.md) - Complete workflow block specifications
-- [`CLAUDE.md`](../CLAUDE.md) - Development guidelines and requirements
-- [`COMPREHENSIVE_TESTING_METHODOLOGY.md`](COMPREHENSIVE_TESTING_METHODOLOGY.md) - Testing methodology
-- [`security/README.md`](security/README.md) - Security testing guidelines
+- [`../TaskER_FlowChart.md`](../TaskER_FlowChart.md) - Complete workflow block specifications
+- [`../CLAUDE.md`](../CLAUDE.md) - Development guidelines and testing requirements
+- [`../README.md`](../README.md) - Main TASKER documentation
 
 ---
 
 *Last updated: October 2025*
-*TASKER Version: 2.0*
-*Test Framework Version: 1.0*
+*TASKER Version: 2.1*
+*Test Framework: Metadata-driven with intelligent_test_runner.py*

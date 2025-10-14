@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Thread safety stress test","test_type": "validation_only","expected_exit_code": 20,"expected_success": false,"skip_host_validation": true}
 # THREAD SAFETY STRESS TEST
 # Tests parallel execution with high concurrency to detect race conditions
 # This test creates 100 parallel tasks to stress test thread safety

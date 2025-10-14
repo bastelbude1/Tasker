@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Comprehensive globals test","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true}
 # Comprehensive Global Variables Test
 # Demonstrates: global variables, variable chaining, overrides, mixed usage, unused variables
 

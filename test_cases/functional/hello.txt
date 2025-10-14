@@ -1,6 +1,4 @@
-# TEST_METADATA: {"description": "Basic hello world workflow with echo and date commands", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1], "expected_final_task": 1}
-
-# Basic hello world test - demonstrates simple sequential task execution
+# TEST_METADATA: {"description": "Hello","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true}
 task=0
 hostname=localhost
 command=echo

@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Resource exhaustion test","test_type": "security_negative","expected_exit_code": 20,"expected_success": false,"risk_level": "high","skip_host_validation": true,"security_category": "resource_exhaustion"}
 # RESOURCE EXHAUSTION TEST
 # Tests various resource exhaustion attack vectors
 

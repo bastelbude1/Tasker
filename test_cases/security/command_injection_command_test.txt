@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Command injection command test","test_type": "security_negative","expected_exit_code": 20,"expected_success": false,"risk_level": "high","skip_host_validation": true,"security_category": "command_injection"}
 # COMMAND INJECTION COMMAND TEST
 # Tests command injection attempts in command field
 

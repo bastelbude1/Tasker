@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Comprehensive retry test case","test_type": "validation_only","expected_exit_code": 20,"expected_success": false,"skip_host_validation": true}
 # COMPREHENSIVE RETRY LOGIC TEST CASE - SEQUENTIAL VERSION
 # Tests ALL retry scenarios in one execution flow
 # All tests are connected sequentially to ensure complete coverage

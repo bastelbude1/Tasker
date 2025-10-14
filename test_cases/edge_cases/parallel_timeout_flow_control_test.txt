@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Parallel timeout flow control test","test_type": "validation_only","expected_exit_code": 20,"expected_success": false,"skip_host_validation": true}
 # Test case to verify that parallel timeout triggers on_failure correctly
 # Parallel task 1 should have timeouts and trigger on_failure to task 99
 

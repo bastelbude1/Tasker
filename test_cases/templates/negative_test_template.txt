@@ -1,4 +1,9 @@
-# TEST_METADATA: {"description": "DESCRIPTION_HERE", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+# TEST_METADATA: {"description": "DESCRIPTION_HERE", "test_type": "negative", "expected_exit_code": 1, "expected_success": false}
+# NOTE: Choose the appropriate non-zero exit code per the failure scenario:
+#   - 20 = Validation failure (task file validation failed)
+#   - 10 = Task execution failure (task failed during execution)
+#   - 21 = Host validation failure
+#   - 1  = Generic failure (default/unknown failure)
 
 # DESCRIPTION: Brief description of what validation error this test triggers
 # TEMPLATE: Negative test - should fail during validation or execution

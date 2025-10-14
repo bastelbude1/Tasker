@@ -22,25 +22,9 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-# Try to import psutil for enhanced performance monitoring, graceful fallback if not available
-try:
-    # Add psutil path for Python 3.6.8 compatibility - use relative to script location
-    import sys
-    import os
-    from pathlib import Path
-
-    # Get the directory where this script is located
-    script_dir = Path(__file__).resolve().parent
-    psutil_path = script_dir / 'lib'
-
-    if psutil_path.exists() and str(psutil_path) not in sys.path:
-        sys.path.insert(0, str(psutil_path))
-
-    import psutil
-    PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
-    # Note: Performance monitoring will use standard library alternatives
+# External dependencies are not allowed per CLAUDE.md guidelines
+# Python 3.6.8 standard library only - no psutil
+PSUTIL_AVAILABLE = False
 
 
 def _resolve_tasker_path(tasker_path=None):
@@ -246,7 +230,7 @@ class TestMetadata:
         if "error" in self.metadata:
             return False
 
-        required_fields = ["description", "test_type"]
+        required_fields = ["description", "test_type", "expected_exit_code", "expected_success"]
         missing_fields = [field for field in required_fields if field not in self.metadata]
 
         if missing_fields:
@@ -308,13 +292,13 @@ class TestMetadata:
                     self.metadata["error"] = f"Inconsistent metadata: test_type='negative' but expected_exit_code=0 (should be non-zero)"
                     return False
 
-            # Security negative tests should expect failure (non-zero exit)
+            # Security negative tests should expect failure with exit code 20
             elif test_type == "security_negative":
                 if expected_success:
-                    self.metadata["error"] = f"Inconsistent metadata: test_type='security_negative' but expected_success=true"
+                    self.metadata["error"] = "Inconsistent metadata: test_type='security_negative' but expected_success=true"
                     return False
-                if expected_exit_code == 0:
-                    self.metadata["error"] = f"Inconsistent metadata: test_type='security_negative' but expected_exit_code=0 (should be non-zero)"
+                if expected_exit_code != 20:
+                    self.metadata["error"] = "Inconsistent metadata: security_negative must use expected_exit_code=20 (validation failure)"
                     return False
 
         # Phase 5: Validate performance-specific metadata
@@ -496,7 +480,8 @@ class TaskerTestExecutor:
         # Prepare command arguments based on test type
         cmd_args = [self.tasker_path, test_file]
 
-        if metadata.get("validation_only", False):
+        # Respect both explicit flag and test_type="validation_only"
+        if (metadata.get("test_type") == "validation_only") or metadata.get("validation_only", False):
             cmd_args.append("--validate-only")
         else:
             cmd_args.append("-r")  # Run mode
@@ -566,7 +551,9 @@ class TaskerTestExecutor:
                     self.performance_monitor.start_monitoring(process)
 
                 try:
-                    stdout, stderr = process.communicate(timeout=60)
+                    # Increased timeout to 120s to accommodate multi-host validation tests
+                    # Host validation: 3 hosts x ~25s per host (DNS 10s + ping 5s + remote 10s) = 75s+
+                    stdout, stderr = process.communicate(timeout=120)
                     exit_code = process.returncode
 
                     # Stop performance monitoring
@@ -647,7 +634,7 @@ class TaskerTestExecutor:
                 "stderr": "Test execution timeout",
                 "execution_time": execution_time,
                 "timed_out": True,
-                "error": "Timeout after 60 seconds",
+                "error": "Timeout after 120 seconds",
                 "execution_path": {"executed_tasks": [], "skipped_tasks": [], "final_task": None}
             }
         except Exception as e:
@@ -679,6 +666,57 @@ class TestValidator:
             validation_results["passed"] = False
             validation_results["failures"].append(f"Execution error: {actual_results['error']}")
             return validation_results
+
+        # CRITICAL: Detect Python tracebacks/exceptions (indicates internal bug/crash)
+        # These indicate code failures, not clean validation errors
+        combined_output = actual_results.get("stdout", "") + "\n" + actual_results.get("stderr", "")
+
+        # Check for Python traceback
+        if "Traceback (most recent call last):" in combined_output:
+            validation_results["passed"] = False
+            validation_results["failures"].append(
+                "INTERNAL ERROR: Python traceback detected (code crash, not clean validation failure)"
+            )
+            # Extract traceback for debugging (show first 10 lines)
+            traceback_lines = []
+            capture = False
+            for line in combined_output.split('\n'):
+                if "Traceback (most recent call last):" in line:
+                    capture = True
+                if capture:
+                    traceback_lines.append(line)
+                    if len(traceback_lines) >= 10:
+                        break
+            for tb_line in traceback_lines:
+                validation_results["failures"].append(f"  {tb_line}")
+
+        # Check for common Python exception types (not preceded by "Task X:" logging)
+        # These indicate unhandled exceptions
+        # Skip this check if we already detected a traceback (avoid duplicate reports)
+        # Only check when exit code is non-zero to avoid false positives from user output
+        traceback_detected = any("Python traceback detected" in f for f in validation_results["failures"])
+        nonzero_exit = actual_results.get("exit_code", 1) != 0
+
+        if not traceback_detected and nonzero_exit:
+            exception_patterns = [
+                "AttributeError:", "KeyError:", "TypeError:", "NameError:",
+                "IndexError:", "ImportError:", "RuntimeError:", "OSError:",
+                "FileNotFoundError:", "PermissionError:"
+            ]
+
+            for line in combined_output.split('\n'):
+                # Skip if it's part of TASKER's normal logging (Task X: output)
+                if re.match(r'^\[\d{2}\w{3}\d{2} \d{2}:\d{2}:\d{2}\] Task \d+:', line):
+                    continue
+
+                # Check for exception patterns
+                for exception_pattern in exception_patterns:
+                    if exception_pattern in line:
+                        validation_results["passed"] = False
+                        validation_results["failures"].append(
+                            f"INTERNAL ERROR: Unhandled Python exception detected: {line.strip()}"
+                        )
+                        break
 
         # Validate exit code
         if "expected_exit_code" in metadata:

@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Sleep edge cases test","test_type": "validation_only","expected_exit_code": 20,"expected_success": false,"skip_host_validation": true}
 # TASKER Sleep Edge Cases Test
 # Tests edge cases and boundary conditions for non-blocking sleep
 

@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Global Variable Block test - test ACTUAL impact of using reserved-like names", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3, 4], "skip_host_validation": true}
+# TEST_METADATA: {"description": "Global Variable Block test - test ACTUAL impact of using reserved-like names", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "security_category": "malformed_input", "expected_execution_path": [0, 1, 2, 3, 4], "skip_host_validation": true}
 # Test Block 14: Global Variable Definition Block - Reserved Names Impact Test
 # Tests whether using names like stdout, stderr, exit, success as globals actually causes problems
 

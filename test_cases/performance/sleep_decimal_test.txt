@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Sleep decimal test","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true}
+# TEST_METADATA: {"description": "Sleep decimal test","test_type": "performance","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"performance_benchmarks": {"max_execution_time": 3}}
 # TASKER Decimal Sleep Test
 # Tests the fix for decimal sleep value parsing
 

@@ -1026,11 +1026,13 @@ class TaskExecutor:
                 continue
 
             # STOP at first task definition - everything after is task fields, not globals
-            if line.startswith('task='):
+            # Use regex to handle variations with spaces like 'task = 0' or ' task=0'
+            task_match = re.match(r'^\s*task\s*=\s*(.*)', line)
+            if task_match:
                 # Before stopping, validate that the task ID is a valid integer
                 # This prevents 'task=invalid_value' from being treated as a task and causing parser crash
                 try:
-                    task_value = line.split('=', 1)[1].strip()
+                    task_value = task_match.group(1).strip()
                     int(task_value)  # Try to convert to integer
                     self.log_debug(f"First task found at line {line_num}, stopping global variable parsing")
                     break

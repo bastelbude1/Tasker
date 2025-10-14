@@ -685,7 +685,6 @@ stderr=my_custom_stderr_value
 exit=my_custom_exit_value
 exit_0=success_value
 exit_1=failure_value
-success=my_success_indicator
 
 # Task 0: Generate real task output
 task=0

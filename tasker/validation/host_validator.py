@@ -205,8 +205,8 @@ class HostValidator:
                     debug_callback(f"DNS lookup for '{hostname}' timed out after 5s")
                 raise socket.gaierror("DNS timeout")
             else:
-                # Re-raise the original exception
-                raise error
+                # Normalize other DNS failures to gaierror so fallback is applied
+                raise socket.gaierror(str(error)) from error
 
         except socket.gaierror:
             if debug_callback:

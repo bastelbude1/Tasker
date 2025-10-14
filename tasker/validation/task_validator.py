@@ -183,6 +183,9 @@ class TaskValidator:
             new_resolved = re.sub(global_var_pattern, replace_var, resolved)
             if new_resolved == resolved:
                 break  # No more changes
+            if '@' not in new_resolved:
+                resolved = new_resolved
+                break  # No more variables to expand - early exit optimization
             resolved = new_resolved
             
         return resolved

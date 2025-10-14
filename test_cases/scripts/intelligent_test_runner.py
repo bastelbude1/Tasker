@@ -22,25 +22,9 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-# Try to import psutil for enhanced performance monitoring, graceful fallback if not available
-try:
-    # Add psutil path for Python 3.6.8 compatibility - use relative to script location
-    import sys
-    import os
-    from pathlib import Path
-
-    # Get the directory where this script is located
-    script_dir = Path(__file__).resolve().parent
-    psutil_path = script_dir / 'lib'
-
-    if psutil_path.exists() and str(psutil_path) not in sys.path:
-        sys.path.insert(0, str(psutil_path))
-
-    import psutil
-    PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
-    # Note: Performance monitoring will use standard library alternatives
+# External dependencies are not allowed per CLAUDE.md guidelines
+# Python 3.6.8 standard library only - no psutil
+PSUTIL_AVAILABLE = False
 
 
 def _resolve_tasker_path(tasker_path=None):

@@ -157,11 +157,10 @@ class HostValidator:
         def dns_lookup():
             try:
                 result[0] = socket.gethostbyname(hostname)
-            except Exception as e:
+            except Exception as e:  # Broad catch is intentional to surface any resolver failure back to caller
                 exception[0] = e
 
-        thread = threading.Thread(target=dns_lookup)
-        thread.daemon = True
+        thread = threading.Thread(target=dns_lookup, daemon=True)
         thread.start()
         thread.join(timeout=timeout)
 

@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Double SIGTERM forces immediate exit", "test_type": "negative", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 2, "second_signal_delay": 1, "verify_immediate_exit": true, "skip_host_validation": true}
+# TEST_METADATA: {"description": "Double SIGTERM forces immediate exit", "test_type": "negative", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 2, "second_signal_delay": 1, "verify_immediate_exit": true, "expected_warnings": 2, "skip_host_validation": true}
 
 # SIGNAL TEST: Double SIGTERM (impatient user)
 #

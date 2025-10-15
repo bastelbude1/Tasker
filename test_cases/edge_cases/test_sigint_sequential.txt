@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "SIGINT (Ctrl+C) during sequential task execution", "test_type": "negative", "expected_exit_code": 130, "expected_success": false, "signal_type": "SIGINT", "signal_delay_seconds": 2, "verify_cleanup": true, "skip_host_validation": true}
+# TEST_METADATA: {"description": "SIGINT (Ctrl+C) during sequential task execution", "test_type": "negative", "expected_exit_code": 130, "expected_success": false, "signal_type": "SIGINT", "signal_delay_seconds": 2, "verify_cleanup": true, "expected_warnings": 2, "skip_host_validation": true}
 
 # SIGNAL TEST: SIGINT (Keyboard Interrupt) during sequential execution
 #

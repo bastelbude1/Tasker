@@ -1693,6 +1693,14 @@ class TaskExecutor:
                         self.log_warn(f"Task {task_id}{loop_display}: No routing specified, task failed - continuing anyway (fire-and-forget mode)")
                         return True  # Continue despite failure
                     else:
+                        # Check if failure was due to signal interruption
+                        if getattr(self, '_shutdown_requested', False):
+                            # Task interrupted by signal - exit immediately with POSIX signal exit code
+                            signum = getattr(self, '_shutdown_signum', signal.SIGTERM)
+                            signal_exit_code = 128 + signum
+                            self.log_error(f"FAILED: Task {task_id} interrupted by signal - workflow stopping.")
+                            ExitHandler.exit_with_code(signal_exit_code, "Task interrupted by signal", False)
+
                         self.log_info(f"Task {task_id}{loop_display}: No routing specified, task failed - stopping execution")
                         return False  # Stop on failure (default safe behavior)
             

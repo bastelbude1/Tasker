@@ -171,11 +171,11 @@ else
     echo "$TEMP_FILES"
 fi
 
-# 4. Display TASKER output (first 20 lines)
+# 4. Display TASKER output (full output for test validation)
 echo "=========================================="
-echo "TASKER Output (first 20 lines):"
+echo "TASKER Output:"
 echo "=========================================="
-head -20 "$TASKER_OUTPUT_FILE" 2>/dev/null || echo "(no output)"
+cat "$TASKER_OUTPUT_FILE" 2>/dev/null || echo "(no output)"
 
 # 5. Display TASKER errors (if any)
 if [ -s "$TASKER_ERRORS_FILE" ]; then

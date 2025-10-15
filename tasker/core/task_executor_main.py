@@ -638,9 +638,10 @@ class TaskExecutor:
         signal_name = "SIGINT" if signum == signal.SIGINT else "SIGTERM"
         self.log_warn(f"Received {signal_name}, initiating graceful shutdown...")
         self._shutdown_requested = True
-        
-        # Store signal info for summary
+
+        # Store signal info for summary and exit code calculation
         self._shutdown_signal = signal_name
+        self._shutdown_signum = signum
 
     def _check_shutdown(self):
         """Check if shutdown was requested - call at natural breakpoints."""
@@ -663,18 +664,27 @@ class TaskExecutor:
                         self.final_hostname = 'graceful_shutdown'
                         self.final_command = 'interrupted_by_signal'
                 
-                # Set graceful shutdown specific values
-                self.final_exit_code = 130  # Standard SIGINT exit code
+                # Calculate POSIX standard exit code based on signal type
+                # SIGINT (2): 128 + 2 = 130
+                # SIGTERM (15): 128 + 15 = 143
+                signum = getattr(self, '_shutdown_signum', signal.SIGTERM)
+                signal_exit_code = 128 + signum
+
+                self.final_exit_code = signal_exit_code
                 self.final_success = False  # Graceful shutdown is not success
-                
+
                 # Add graceful shutdown marker to command for clarity
                 if 'graceful_shutdown' not in str(self.final_command):
                     # Add signal info to command if available
                     signal_info = getattr(self, '_shutdown_signal', 'SIGNAL')
                     self.final_command = f"{self.final_command} [GRACEFUL_SHUTDOWN_{signal_info}]"
-            
+
             self.cleanup()
-            ExitHandler.exit_with_code(ExitCodes.SIGNAL_INTERRUPT, 
+
+            # Use POSIX standard exit code for signal termination
+            signum = getattr(self, '_shutdown_signum', signal.SIGTERM)
+            signal_exit_code = 128 + signum
+            ExitHandler.exit_with_code(signal_exit_code,
                                      "Task execution interrupted by signal", False)
 
     def __del__(self):

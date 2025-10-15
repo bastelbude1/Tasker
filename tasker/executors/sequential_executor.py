@@ -201,8 +201,12 @@ class SequentialExecutor(BaseExecutor):
                         # This intentionally deviates from repo coding guidelines to achieve memory efficiency.
                         # Standard communicate() loads entire output into memory, causing OOM with large outputs (1GB+).
                         # Manual streaming with temp file fallback prevents memory exhaustion while maintaining timeout support.
+
+                        # Create shutdown check callback to terminate subprocess on signal
+                        shutdown_check = lambda: getattr(executor_instance, '_shutdown_requested', False)
+
                         stdout, stderr, exit_code, timed_out = output_handler.stream_process_output(
-                            process, timeout=task_timeout
+                            process, timeout=task_timeout, shutdown_check=shutdown_check
                         )
 
                         # Log memory usage for large outputs

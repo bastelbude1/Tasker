@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "SIGTERM during non-blocking sleep operation", "test_type": "signal_handling", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 2, "verify_cleanup": true, "skip_host_validation": true}
+# TEST_METADATA: {"description": "SIGTERM during non-blocking sleep operation", "test_type": "negative", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 2, "verify_cleanup": true, "skip_host_validation": true}
 
 # SIGNAL TEST: SIGTERM during non-blocking sleep
 #

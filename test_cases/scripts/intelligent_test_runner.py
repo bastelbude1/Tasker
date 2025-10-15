@@ -473,9 +473,105 @@ class TaskerTestExecutor:
             "output_patterns": output_patterns
         }
 
+    def execute_signal_test(self, test_file, metadata):
+        """Execute signal test using signal_test_wrapper.sh from metadata.
+
+        Signal tests require external signal delivery which cannot be done
+        by running tasker.py directly. This method delegates to the
+        signal_test_wrapper.sh script which handles signal delivery.
+        """
+        test_name = os.path.basename(test_file)
+
+        # Extract signal test parameters from metadata
+        signal_type = metadata.get('signal_type', 'SIGTERM')
+        signal_delay = metadata.get('signal_delay_seconds', 2)
+        second_signal_delay = metadata.get('second_signal_delay', 0)
+
+        # Locate signal_test_wrapper.sh
+        script_dir = Path(__file__).resolve().parent  # scripts directory
+        test_cases_dir = script_dir.parent  # test_cases directory
+        wrapper_path = test_cases_dir / "bin" / "signal_test_wrapper.sh"
+
+        if not wrapper_path.exists():
+            return {
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": f"Signal test wrapper not found: {wrapper_path}",
+                "execution_time": 0,
+                "timed_out": False,
+                "error": f"Signal test wrapper script not found at {wrapper_path}",
+                "execution_path": {"executed_tasks": [], "skipped_tasks": [], "final_task": None}
+            }
+
+        # Build wrapper command with parameters from metadata
+        cmd_args = [str(wrapper_path), test_file, signal_type, str(signal_delay)]
+        if second_signal_delay:
+            cmd_args.append(str(second_signal_delay))
+
+        # Execute signal test with wrapper
+        start_time = datetime.now()
+
+        try:
+            # Signal tests may take longer (signal delay + execution + cleanup)
+            # Use 60 second timeout (should be enough for most signal tests)
+            process = subprocess.Popen(
+                cmd_args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            )
+
+            try:
+                stdout, stderr = process.communicate(timeout=60)
+                exit_code = process.returncode
+            except subprocess.TimeoutExpired:
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+
+                try:
+                    stdout, stderr = process.communicate(timeout=1)
+                except subprocess.TimeoutExpired:
+                    stdout, stderr = "", "Signal test wrapper timeout"
+
+                exit_code = 124
+
+            execution_time = (datetime.now() - start_time).total_seconds()
+
+            # Parse execution path from TASKER output embedded in wrapper output
+            execution_path_data = self.parse_execution_path(stdout)
+
+            return {
+                "exit_code": exit_code,
+                "stdout": stdout,
+                "stderr": stderr,
+                "execution_time": execution_time,
+                "timed_out": (exit_code == 124),
+                "error": None,
+                "execution_path": execution_path_data
+            }
+
+        except Exception as e:
+            execution_time = (datetime.now() - start_time).total_seconds()
+            return {
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": str(e),
+                "execution_time": execution_time,
+                "timed_out": False,
+                "error": f"Signal test execution error: {e}",
+                "execution_path": {"executed_tasks": [], "skipped_tasks": [], "final_task": None}
+            }
+
     def execute_test(self, test_file, metadata):
         """Execute a single test case and capture results."""
         test_name = os.path.basename(test_file)
+
+        # Detect signal tests and route to signal test executor
+        if 'signal_type' in metadata:
+            return self.execute_signal_test(test_file, metadata)
 
         # Prepare command arguments based on test type
         cmd_args = [self.tasker_path, test_file]

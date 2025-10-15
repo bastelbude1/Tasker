@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "SIGTERM with parallel tasks in mixed state (some complete, some running)", "test_type": "negative", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 3, "verify_cleanup": true, "verify_state_persistence": true, "skip_host_validation": true}
+# TEST_METADATA: {"description": "SIGTERM with parallel tasks in mixed state (some complete, some running)", "test_type": "negative", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 3, "verify_cleanup": true, "verify_state_persistence": true, "expected_warnings": 2, "skip_host_validation": true}
 
 # SIGNAL TEST: SIGTERM during parallel execution (mixed state)
 #

@@ -100,13 +100,14 @@ class StreamingOutputHandler:
                 self.stderr_data += data
             self.stderr_size += len(data)
 
-    def stream_process_output(self, process, timeout=None):
+    def stream_process_output(self, process, timeout=None, shutdown_check=None):
         """
         Stream output from subprocess with memory-efficient handling.
 
         Args:
             process: subprocess.Popen instance
             timeout: Maximum time to wait for process completion
+            shutdown_check: Optional callable that returns True if shutdown requested
 
         Returns:
             tuple: (stdout_content, stderr_content, exit_code, timed_out)
@@ -131,20 +132,30 @@ class StreamingOutputHandler:
         stdout_thread.start()
         stderr_thread.start()
 
-        # Wait for process completion with timeout
+        # Wait for process completion with timeout and shutdown monitoring
         timed_out = False
-        if timeout:
-            # Manual timeout handling for Python 3.6.8 compatibility
+        shutdown_requested = False
+        if timeout or shutdown_check:
+            # Manual timeout/shutdown handling for Python 3.6.8 compatibility
             start_wait = time.time()
             while process.poll() is None:
-                if time.time() - start_wait > timeout:
+                # Check for timeout
+                if timeout and time.time() - start_wait > timeout:
                     timed_out = True
                     process.kill()
+                    break
+                # Check for shutdown signal
+                if shutdown_check and shutdown_check():
+                    shutdown_requested = True
+                    process.terminate()  # SIGTERM first for graceful shutdown
+                    time.sleep(0.5)  # Give process 500ms to terminate gracefully
+                    if process.poll() is None:
+                        process.kill()  # Force kill if still running
                     break
                 time.sleep(0.1)  # Check every 100ms
             process.wait()  # Ensure process is cleaned up
         else:
-            process.wait()  # Wait indefinitely if no timeout
+            process.wait()  # Wait indefinitely if no timeout or shutdown check
 
         # Wait for reading threads to complete
         stdout_thread.join(timeout=5)  # Give threads time to finish reading

@@ -195,6 +195,13 @@ TOTAL TESTS: 275 (0 skipped)
 - Changed "signal_handling" → "negative"
 - Tests now properly recognized
 
+**Commit 3:** Fix: Use POSIX standard exit codes for signal handling
+- **Problem discovered**: TASKER was exiting with code 40 (ExitCodes.SIGNAL_INTERRUPT) for both SIGTERM and SIGINT
+- **Expected behavior**: POSIX standard codes: 130 for SIGINT (128+2), 143 for SIGTERM (128+15)
+- **Root cause**: Signal handler hardcoded exit code 40 instead of calculating based on signal number
+- **Fix applied**: Calculate exit code as `128 + signum` in `_signal_handler()` and `_check_shutdown()`
+- **Verification**: All 8 tests now pass with correct exit codes using signal_test_wrapper.sh
+
 ## Next Steps
 
 1. **Manual testing** - Verify signal tests work with wrapper script

@@ -154,6 +154,7 @@ class TaskExecutor:
         
         # Graceful shutdown handling
         self._shutdown_requested = False
+        self._shutdown_warning_logged = False  # Track if shutdown warning already shown
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
 
@@ -646,7 +647,10 @@ class TaskExecutor:
     def _check_shutdown(self):
         """Check if shutdown was requested - call at natural breakpoints."""
         if self._shutdown_requested:
-            self.log_warn("Graceful shutdown requested - stopping execution")
+            # Only log the warning once to avoid duplicates
+            if not self._shutdown_warning_logged:
+                self.log_warn("Graceful shutdown requested - stopping execution")
+                self._shutdown_warning_logged = True
             
             # Ensure summary gets written for graceful shutdown
             if hasattr(self, 'summary_log') and self.summary_log:

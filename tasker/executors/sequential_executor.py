@@ -202,7 +202,8 @@ class SequentialExecutor(BaseExecutor):
                         # Manual streaming with temp file fallback prevents memory exhaustion while maintaining timeout support.
 
                         # Create shutdown check callback to terminate subprocess on signal
-                        shutdown_check = lambda: getattr(executor_instance, '_shutdown_requested', False)
+                        def shutdown_check():
+                            return getattr(executor_instance, '_shutdown_requested', False)
 
                         stdout, stderr, exit_code, timed_out = output_handler.stream_process_output(
                             process, timeout=task_timeout, shutdown_check=shutdown_check

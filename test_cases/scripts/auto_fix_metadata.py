@@ -31,8 +31,20 @@ def run_test(filepath):
             universal_newlines=True,
             cwd=TEST_CASES_DIR
         ) as process:
-            stdout, stderr = process.communicate(timeout=10)
-            exit_code = process.returncode
+            try:
+                stdout, stderr = process.communicate(timeout=10)
+                exit_code = process.returncode
+            except subprocess.TimeoutExpired:
+                # Kill the process and reap the child to prevent hanging
+                process.kill()
+                stdout, stderr = process.communicate()  # Reap without timeout
+                return {
+                    'exit_code': 124,
+                    'warning_count': 0,
+                    'is_validation_failure': False,
+                    'is_timeout': True,
+                    'stderr': ''
+                }
 
         # Count warnings (check both stdout and stderr)
         warning_count = stdout.count('WARN:') + stderr.count('WARN:')
@@ -50,14 +62,6 @@ def run_test(filepath):
             'is_validation_failure': is_validation_failure,
             'is_timeout': is_timeout,
             'stderr': stderr
-        }
-    except subprocess.TimeoutExpired:
-        return {
-            'exit_code': 124,
-            'warning_count': 0,
-            'is_validation_failure': False,
-            'is_timeout': True,
-            'stderr': ''
         }
     except Exception as e:
         print(f"ERROR running {filepath}: {e}")

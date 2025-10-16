@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Basic retry functionality - parallel tasks with retry_count=2", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+# TEST_METADATA: {"description": "Basic retry functionality - parallel tasks with retry_count=2","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2]}
 # TEST 1: Basic Retry Functionality
 # Tests basic retry logic with failed tasks that succeed on retry
 
@@ -12,7 +12,6 @@ task=1
 type=parallel
 max_parallel=4
 tasks=100,101,102,103
-timeout=10
 retry_failed=true
 retry_count=2
 retry_delay=2
@@ -45,6 +44,7 @@ hostname=localhost
 command=echo
 arguments=Task 100 - Always succeeds
 exec=local
+timeout=10
 
 # Task 101: Fails first time, succeeds on retry
 task=101
@@ -52,6 +52,7 @@ hostname=localhost
 command=sh
 arguments=-c "if [ ! -f /tmp/task101_attempt ]; then touch /tmp/task101_attempt; echo 'Task 101 - First attempt fails'; exit 1; else echo 'Task 101 - Retry succeeds'; exit 0; fi"
 exec=local
+timeout=10
 
 # Task 102: Fails twice, succeeds on third attempt
 task=102
@@ -59,6 +60,7 @@ hostname=localhost
 command=sh
 arguments=-c "attempts=$(cat /tmp/task102_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task102_counter; if [ $attempts -le 2 ]; then echo \"Task 102 - Attempt $attempts fails\"; exit 1; else echo \"Task 102 - Attempt $attempts succeeds\"; exit 0; fi"
 exec=shell
+timeout=10
 
 # Task 103: Always succeeds (no retry needed)
 task=103
@@ -66,3 +68,4 @@ hostname=localhost
 command=echo
 arguments=Task 103 - Always succeeds
 exec=local
+timeout=10

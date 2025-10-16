@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Conditional Conditional any_success with all tasks succeeding - condition met", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11", "1-12"], "expected_success_count": 3, "expected_failed_count": 0, "expected_condition_met": true, "expected_final_task": 2, "success_condition": "any_success"}
+# TEST_METADATA: {"description": "Conditional any_success with all tasks succeeding - condition met","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2],"expected_subtasks": ["1-10","1-11","1-12"],"expected_success_count": 3,"expected_failed_count": 0,"expected_condition_met": true,"expected_final_task": 2,"success_condition": "any_success"}
 # Test conditional execution with any_success condition
 # Conditional any_success with all tasks succeeding - condition met
 
@@ -10,8 +10,8 @@ exec=local
 
 # Conditional block with any_success condition
 # Section 10.1: Multi-Task Success Evaluation Block (next)
-# If condition met → continue to task 2 (sequential)
-# If condition not met → workflow ends
+# If condition met -> continue to task 2 (sequential)
+# If condition not met -> workflow ends
 task=1
 type=conditional
 condition=@0_stdout@=PRODUCTION

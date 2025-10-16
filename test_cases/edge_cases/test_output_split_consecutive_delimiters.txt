@@ -8,7 +8,7 @@ command=output_generator.sh
 arguments=consecutive
 exec=local
 stdout_split=comma,2
-# "alpha,,gamma,,epsilon" → split creates empty elements, index 2 = "gamma"
+# "alpha,,gamma,,epsilon" -> split creates empty elements, index 2 = "gamma"
 
 task=1
 hostname=localhost

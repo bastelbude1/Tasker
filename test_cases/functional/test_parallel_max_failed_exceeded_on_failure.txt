@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Parallel max_failed=2 with 3 failures - takes on_failure path", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 99]}
+# TEST_METADATA: {"description": "Parallel max_failed=2 with 3 failures - takes on_failure path","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,99]}
 
 # Test Section 10.2: Multi-Task Success Evaluation with on_success/on_failure routing
 # max_failed=2 with 3 failures - condition NOT met - takes on_failure path

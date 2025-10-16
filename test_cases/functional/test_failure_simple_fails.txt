@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test failure parameter where task actually fails (exit 1 with failure=exit_1)", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "skip_host_validation": true, "expected_execution_path": [0, 1]}
+# TEST_METADATA: {"description": "Test failure parameter where task actually fails (exit 1 with failure=exit_1)","test_type": "negative","expected_exit_code": 1,"expected_success": false,"skip_host_validation": true,"expected_execution_path": [0,1]}
 # Test failure parameter: task exits with 1, failure=exit_1
 # Exit 1 = failure condition met = task failed
 
@@ -8,7 +8,7 @@ command=/usr/bin/echo
 arguments=Starting failure parameter test
 exec=local
 
-# Task 1: exit 1, failure=exit_1 → failure condition met → task failed
+# Task 1: exit 1, failure=exit_1 -> failure condition met -> task failed
 task=1
 hostname=localhost
 command=/usr/bin/false

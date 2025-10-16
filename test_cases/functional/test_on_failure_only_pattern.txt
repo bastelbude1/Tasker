@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test on_failure-only pattern (firewall handler)", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "skip_host_validation": true, "expected_execution_path": [0, 1, 99], "expected_final_task": 99}
+# TEST_METADATA: {"description": "Test on_failure-only pattern (firewall handler)","test_type": "negative","expected_exit_code": 1,"expected_success": false,"skip_host_validation": true,"expected_execution_path": [0,1,99],"expected_final_task": 99}
 # Pattern 1: on_failure ONLY
 # Success case: continue to next task
 # Failure case: jump to error handler (task 99)

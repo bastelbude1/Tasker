@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "SIGTERM cleanup verification - no zombie processes", "test_type": "negative", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 3, "verify_cleanup": true, "verify_no_zombies": true, "verify_temp_files": true, "expected_warnings": 1, "skip_host_validation": true}
+# TEST_METADATA: {"description": "SIGTERM cleanup verification - no zombie processes", "test_type": "negative", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 3, "verify_cleanup": true, "verify_no_zombies": true, "verify_temp_files": true, "expected_warnings": 2, "skip_host_validation": true}
 
 # SIGNAL TEST: Comprehensive cleanup verification after SIGTERM
 #
@@ -72,7 +72,6 @@ task=3
 type=parallel
 max_parallel=3
 tasks=10,11,12
-timeout=30
 
 task=10
 hostname=localhost

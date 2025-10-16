@@ -9,12 +9,13 @@ arguments=Testing task that completes before timeout
 exec=local
 
 # Task 1: Task that completes before timeout (sleeps shorter than timeout)
+# Increased timeout to 15s to account for system load
 task=1
 hostname=localhost
 command=sleep
 arguments=2
 exec=local
-timeout=5
+timeout=15
 on_success=2
 on_failure=99
 

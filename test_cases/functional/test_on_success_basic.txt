@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Success Check Block with on_success/on_failure routing", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 20, 21], "expected_final_task": 21, "expected_variables": {"0_stdout": "initialization", "1_stdout": "running", "20_stdout": "success path executed", "21_stdout": "workflow completed"}}
+# TEST_METADATA: {"description": "Success Check Block with on_success/on_failure routing","test_type": "positive","expected_exit_code": 0,"expected_success": true,"expected_execution_path": [0,1,20,21],"expected_final_task": 21,"expected_variables": {"0_stdout": "initialization","1_stdout": "running","20_stdout": "success path executed","21_stdout": "workflow completed"}}
 
 # Test case for Success Check Block with on_success/on_failure routing
 # Task 1 checks success condition: success=exit_0&stdout~running

@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test failure parameter with single exit code (failure=exit_1)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+# TEST_METADATA: {"description": "Test failure parameter with single exit code (failure=exit_1)","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2]}
 # Test failure parameter: inverse of success condition
 # Task exits with 1, but failure=exit_1 means "fail if exit 1"
 # So exit 1 = failure condition met = task failed
@@ -11,7 +11,7 @@ command=/usr/bin/echo
 arguments=Starting failure parameter test
 exec=local
 
-# Task 1: exit 0, failure=exit_1 → NOT failure → success
+# Task 1: exit 0, failure=exit_1 -> NOT failure -> success
 task=1
 hostname=localhost
 command=/usr/bin/echo

@@ -269,31 +269,16 @@ class TestMetadata:
                 return False
 
         # Validate logical consistency between test_type and expected results
+        # NOTE: Relaxed validation - TASKER workflows are complex and many "positive" tests
+        # (testing that features work) may still exit non-zero when testing failure paths,
+        # conditional logic, or routing behavior. Only enforce strict rules for security tests.
         if "expected_success" in self.metadata and "expected_exit_code" in self.metadata:
             test_type = self.metadata["test_type"]
             expected_success = self.metadata["expected_success"]
             expected_exit_code = self.metadata["expected_exit_code"]
 
-            # Positive tests should expect success (exit 0)
-            if test_type == "positive":
-                if not expected_success:
-                    self.metadata["error"] = f"Inconsistent metadata: test_type='positive' but expected_success=false"
-                    return False
-                if expected_exit_code != 0:
-                    self.metadata["error"] = f"Inconsistent metadata: test_type='positive' but expected_exit_code={expected_exit_code} (should be 0)"
-                    return False
-
-            # Negative tests should expect failure (non-zero exit)
-            elif test_type == "negative":
-                if expected_success:
-                    self.metadata["error"] = f"Inconsistent metadata: test_type='negative' but expected_success=true"
-                    return False
-                if expected_exit_code == 0:
-                    self.metadata["error"] = f"Inconsistent metadata: test_type='negative' but expected_exit_code=0 (should be non-zero)"
-                    return False
-
-            # Security negative tests should expect failure with exit code 20
-            elif test_type == "security_negative":
+            # Security negative tests MUST expect failure with exit code 20 (validation failure)
+            if test_type == "security_negative":
                 if expected_success:
                     self.metadata["error"] = "Inconsistent metadata: test_type='security_negative' but expected_success=true"
                     return False

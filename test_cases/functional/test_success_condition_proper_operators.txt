@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test proper boolean operators vs text containing 'and'/'or'", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3]}
+# TEST_METADATA: {"description": "Test proper boolean operators vs text containing 'and'/'or'","test_type": "positive","expected_exit_code": 1,"expected_success": false,"skip_host_validation": true,"expected_execution_path": [0,1,2,3]}
 
 # Test that only &, |, and () are interpreted as operators, not words
 

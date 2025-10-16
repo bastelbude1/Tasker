@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Conditional branching path validation", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "expected_execution_path": [0, 3], "expected_skipped_tasks": [1, 2], "expected_final_task": 3}
+# TEST_METADATA: {"description": "Conditional branching path validation","test_type": "negative","expected_exit_code": 1,"expected_success": false,"expected_execution_path": [0,3],"expected_skipped_tasks": [1,2],"expected_final_task": 3}
 
 # Test case for conditional branching (failure path)
 task=0

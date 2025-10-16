@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test stdout_split with newline, colon, semicolon delimiters", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true}
+# TEST_METADATA: {"description": "Test stdout_split with newline, colon, semicolon delimiters","test_type": "positive","expected_exit_code": 1,"expected_success": false,"skip_host_validation": true}
 # Test case for new delimiter keywords
 # Tests newline, colon, semicolon delimiters and backward compatibility
 

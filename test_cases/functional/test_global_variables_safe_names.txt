@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Global Variable Block test - stdout/stderr/exit names are SAFE to use", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "skip_host_validation": true}
+# TEST_METADATA: {"description": "Global Variable Block test - stdout/stderr/exit names are SAFE to use","test_type": "positive","expected_exit_code": 0,"expected_success": true,"expected_execution_path": [0,1,2],"skip_host_validation": true}
 # Test Block 14: Global Variable Definition Block - Safe "Reserved-like" Names
 # Proves that stdout, stderr, exit, exit_0 are SAFE to use as global variable names
 # They don't conflict with task result variables because @stdout@ != @0_stdout@

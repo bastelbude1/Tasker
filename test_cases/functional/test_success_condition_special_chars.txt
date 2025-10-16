@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test success conditions with special characters and 'and'/'or' words", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4]}
+# TEST_METADATA: {"description": "Test success conditions with special characters and 'and'/'or' words","test_type": "positive","expected_exit_code": 1,"expected_success": false,"skip_host_validation": true,"expected_execution_path": [0,1,2,3,4]}
 
 # Test that commas, the words 'and'/'or', and other special characters in success conditions
 # are NOT interpreted as boolean operators

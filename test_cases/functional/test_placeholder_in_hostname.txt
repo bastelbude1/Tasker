@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test @N_stdout@ placeholder in hostname parameter for dynamic host resolution", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+# TEST_METADATA: {"description": "Test @N_stdout@ placeholder in hostname parameter for dynamic host resolution","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2]}
 
 # Test dynamic hostname resolution using task result placeholders
 # Task 0: Generate server name

@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Conditional Block test - basic true/false branching", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11"], "expected_skipped_tasks": []}
+# TEST_METADATA: {"description": "Conditional Block test - basic true/false branching","test_type": "positive","expected_exit_code": 0,"expected_success": true,"expected_execution_path": [0,1,2],"expected_subtasks": ["1-10","1-11"],"expected_skipped_tasks": []}
 
 # Test basic conditional block with stdout comparison
 # Task 0 outputs "OPEN", so if_true branch should execute

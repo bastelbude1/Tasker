@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Conditional Block test - with global variables", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11", "2-30", "2-31"], "expected_skipped_tasks": []}
+# TEST_METADATA: {"description": "Conditional Block test - with global variables","test_type": "positive","expected_exit_code": 0,"expected_success": true,"expected_execution_path": [0,1,2],"expected_subtasks": ["1-10","1-11","2-30","2-31"],"expected_skipped_tasks": []}
 
 # Global variables
 ENV_TYPE=PRODUCTION

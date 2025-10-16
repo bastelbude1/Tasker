@@ -9,7 +9,7 @@ command=log_config_generator.sh
 arguments=apache_log
 exec=local
 stdout_split=space,0
-# Apache log: "192.168.1.100 - - [25/Oct/2024:10:15:23 +0000] ..." → Extract IP
+# Apache log: "192.168.1.100 - - [25/Oct/2024:10:15:23 +0000] ..." -> Extract IP
 
 task=1
 hostname=localhost

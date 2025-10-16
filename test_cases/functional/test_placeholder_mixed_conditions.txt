@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test all placeholder types (@N_stdout@, @N_stderr@, @N_exit@, @N_success@) in mixed conditions", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4, 5]}
+# TEST_METADATA: {"description": "Test all placeholder types (@N_stdout@, @N_stderr@, @N_exit@, @N_success@) in mixed conditions","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2,3,4,5]}
 
 # Test all four placeholder types in various condition combinations
 # Task 0: Generate all types of output

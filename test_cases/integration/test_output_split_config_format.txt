@@ -9,7 +9,7 @@ command=log_config_generator.sh
 arguments=passwd_format
 exec=local
 stdout_split=colon,6
-# "root:x:0:0:root:/root:/bin/bash" → Extract shell (index 6)
+# "root:x:0:0:root:/root:/bin/bash" -> Extract shell (index 6)
 
 task=1
 hostname=localhost

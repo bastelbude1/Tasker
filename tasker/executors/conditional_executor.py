@@ -106,28 +106,28 @@ class ConditionalExecutor(BaseExecutor):
         
         # Get conditional execution parameters (similar to parallel)
         retry_config = executor_instance.parse_retry_config(conditional_task)
-        master_timeout = executor_instance.get_task_timeout(conditional_task)
-        
+
         # Log execution start
         retry_info = ""
         if retry_config:
             retry_info = f", retry_failed=true (count={retry_config['count']}, delay={retry_config['delay']}s)"
-        
-        executor_instance.log(f"Task {task_id}: Executing {branch} branch with {len(tasks_to_execute)} tasks (sequential, timeout={master_timeout}s{retry_info})")
-        
+
+        executor_instance.log(f"Task {task_id}: Executing {branch} branch with {len(tasks_to_execute)} tasks (sequential{retry_info})")
+
         # Execute tasks sequentially in chosen branch
         results = []
         start_time = time.time()
-        
+
         for task in tasks_to_execute:
             # Check for shutdown before each conditional task
             executor_instance._check_shutdown()
 
             # Execute task with retry logic if enabled
+            # NOTE: Pass None for task_timeout to let each task use its own timeout
             if retry_config:
-                result = ConditionalExecutor.execute_single_task_with_retry_conditional(task, master_timeout, retry_config, executor_instance=executor_instance)
+                result = ConditionalExecutor.execute_single_task_with_retry_conditional(task, None, retry_config, executor_instance=executor_instance)
             else:
-                result = ConditionalExecutor.execute_single_task_for_conditional(task, master_timeout, executor_instance=executor_instance)
+                result = ConditionalExecutor.execute_single_task_for_conditional(task, None, executor_instance=executor_instance)
 
             results.append(result)
 

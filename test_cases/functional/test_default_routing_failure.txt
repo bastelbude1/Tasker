@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test default routing behavior when task fails", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "skip_host_validation": true}
+# TEST_METADATA: {"description": "Test default routing behavior when task fails","test_type": "negative","expected_exit_code": 1,"expected_success": false,"skip_host_validation": true}
 # Test that tasks without routing parameters stop on failure (implicit next=success)
 
 task=0

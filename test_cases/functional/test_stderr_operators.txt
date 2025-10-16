@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test stderr operators (~, !=, count)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4]}
+# TEST_METADATA: {"description": "Test stderr operators (~, !=, count)","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2,3,4]}
 # Test stderr operator functionality
 
 task=0

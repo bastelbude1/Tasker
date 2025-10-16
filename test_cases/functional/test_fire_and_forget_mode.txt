@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test fire-and-forget mode continues on failure", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "fire_and_forget": true, "expected_warnings": 1}
+# TEST_METADATA: {"description": "Test fire-and-forget mode continues on failure","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"fire_and_forget": true,"expected_warnings": 1}
 # Test that tasks without routing continue on failure when using --fire-and-forget flag
 
 task=0

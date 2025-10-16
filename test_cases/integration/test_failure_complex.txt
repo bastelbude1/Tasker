@@ -12,7 +12,7 @@ exec=local
 # Task 1: failure=@0_success@=false
 # Task 0 succeeded, so @0_success@=true
 # failure condition (@0_success@=false) evaluates to false
-# → failure condition NOT met → task 1 succeeds
+# -> failure condition NOT met -> task 1 succeeds
 task=1
 hostname=localhost
 command=/usr/bin/echo

@@ -836,8 +836,8 @@ exec=local
 # - Final success message should be displayed
 #
 # Key test points:
-# - Environment=production → TRUE branches for production conditions
-# - Service_status=running → TRUE branches for service conditions
+# - Environment=production -> TRUE branches for production conditions
+# - Service_status=running -> TRUE branches for service conditions
 # - Task result dependencies work correctly
 # - Master timeout overrides individual timeouts
 # - Retry logic works for failed tasks in conditional branches

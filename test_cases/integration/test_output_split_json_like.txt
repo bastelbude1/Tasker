@@ -9,7 +9,7 @@ command=log_config_generator.sh
 arguments=json_like
 exec=local
 stdout_split=comma,1
-# {"id":1234,"status":"active","timestamp":"2024-10-25T10:15:23Z"} → Get second field
+# {"id":1234,"status":"active","timestamp":"2024-10-25T10:15:23Z"} -> Get second field
 
 task=1
 hostname=localhost
@@ -17,7 +17,7 @@ command=echo
 arguments=@0_stdout@
 exec=local
 stdout_split=colon,1
-# "status":"active" → Extract value after colon
+# "status":"active" -> Extract value after colon
 success=stdout~active
 
 task=2

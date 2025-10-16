@@ -8,7 +8,7 @@ command=output_generator.sh
 arguments=trailing
 exec=local
 stdout_split=comma,2
-# "alpha,beta,gamma," → Index 2 = "gamma"
+# "alpha,beta,gamma," -> Index 2 = "gamma"
 
 task=1
 hostname=localhost

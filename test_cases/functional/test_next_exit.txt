@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Next condition test with exit_0", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_skipped_tasks": [], "expected_final_task": 2, "expected_variables": {"0_stdout": "task 0 output", "1_stdout": "task 1 executed", "2_stdout": "final task"}}
+# TEST_METADATA: {"description": "Next condition test with exit_0","test_type": "positive","expected_exit_code": 0,"expected_success": true,"expected_execution_path": [0,1,2],"expected_skipped_tasks": [],"expected_final_task": 2,"expected_variables": {"0_stdout": "task 0 output","1_stdout": "task 1 executed","2_stdout": "final task"}}
 
 # Test case for next=exit_0 condition (TASKER_FlowChart.md step)
 # Task 0 succeeds (exit 0) so next=exit_0 is true, continues to task 1

@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Parallel max_failed=4 with 4 failures - edge case met", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11", "1-12", "1-13", "1-14"], "expected_success_count": 1, "expected_failed_count": 4, "expected_condition_met": true, "expected_final_task": 2, "success_condition": "max_failed=4"}
+# TEST_METADATA: {"description": "Parallel max_failed=4 with 4 failures - edge case met","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2],"expected_subtasks": ["1-10","1-11","1-12","1-13","1-14"],"expected_success_count": 1,"expected_failed_count": 4,"expected_condition_met": true,"expected_final_task": 2,"success_condition": "max_failed=4"}
 # Test parallel execution with max_failed=4 condition
 # max_failed=4 with 4 failures - edge case met
 
@@ -10,8 +10,8 @@ exec=local
 
 # Parallel block with max_failed=4 condition
 # Section 10.1: Multi-Task Success Evaluation Block (next)
-# If condition met → continue to task 2 (sequential)
-# If condition not met → workflow ends
+# If condition met -> continue to task 2 (sequential)
+# If condition not met -> workflow ends
 task=1
 type=parallel
 tasks=10,11,12,13,14

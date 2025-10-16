@@ -1,0 +1,102 @@
+# TEST_METADATA: {"description": "SIGTERM with parallel tasks in mixed state (some complete, some running)", "test_type": "negative", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 3, "verify_cleanup": true, "verify_state_persistence": true, "expected_warnings": 2, "allow_variable_warnings": true, "skip_host_validation": true}
+
+# SIGNAL TEST: SIGTERM during parallel execution (mixed state)
+#
+# Test Scenario:
+# 1. Start parallel execution with 5 tasks:
+#    - Task 10: 1 second (will complete before signal)
+#    - Task 11: 2 seconds (will complete before signal)
+#    - Task 12: 10 seconds (will be running at signal)
+#    - Task 13: 10 seconds (will be running at signal)
+#    - Task 14: 10 seconds (will be running at signal)
+# 2. After 3 seconds, send SIGTERM to TASKER process
+# 3. At signal time:
+#    - Tasks 10, 11 should be COMPLETE
+#    - Tasks 12, 13, 14 should be RUNNING
+# 4. Verify state persistence captures completed tasks
+# 5. Verify running tasks are properly interrupted
+#
+# Critical Test: Partial Completion Handling
+# This tests TASKER's ability to:
+# - Preserve results from completed tasks
+# - Interrupt only running tasks
+# - Save state for potential resume
+# - Handle mixed task states gracefully
+#
+# Expected Behavior:
+# - Tasks 10, 11: Results preserved in state file
+# - Tasks 12, 13, 14: Interrupted, marked as incomplete
+# - State file should contain:
+#   * task_results for tasks 10, 11 (success=true)
+#   * No results for tasks 12, 13, 14
+#   * Last completed task: 11
+#   * Interrupted at: parallel block task 1
+# - Exit code: 143 (128 + SIGTERM=15)
+#
+# Resume Capability Test:
+# If --start-from is implemented, resuming should:
+# - Skip tasks 0, 10, 11 (already complete)
+# - Retry tasks 12, 13, 14 (were interrupted)
+# - Continue to task 2 (subsequent task)
+#
+# Test Execution:
+# This test requires a wrapper script that:
+# 1. Starts: tasker.py test_sigterm_parallel_mixed_state.txt -r &
+# 2. Waits: 3 seconds (ensures tasks 10, 11 complete)
+# 3. Signals: kill -TERM $TASKER_PID
+# 4. Verifies: state file contains results for 10, 11
+# 5. Verifies: cleanup and exit code
+
+task=0
+hostname=localhost
+command=echo
+arguments=Starting mixed state parallel test
+exec=local
+
+task=1
+type=parallel
+max_parallel=5
+tasks=10,11,12,13,14
+timeout=15
+success=all_success
+
+# Fast tasks (will complete before signal at 3s)
+task=10
+hostname=localhost
+command=echo
+arguments=Task 10 - Fast (1 second)
+exec=local
+sleep=1
+
+task=11
+hostname=localhost
+command=echo
+arguments=Task 11 - Fast (2 seconds)
+exec=local
+sleep=2
+
+# Slow tasks (will be running at signal time)
+task=12
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+
+task=13
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+
+task=14
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+
+# This task should NOT execute (workflow interrupted)
+task=2
+hostname=localhost
+command=echo
+arguments=ERROR: This task should not execute - workflow interrupted
+exec=local

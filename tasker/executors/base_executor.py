@@ -200,9 +200,16 @@ class BaseExecutor(ABC):
                         stderr=subprocess.PIPE,
                         universal_newlines=True
                     ) as process:
-                        # Stream output with memory efficiency
+                        # Create shutdown check callback if available
+                        shutdown_check = None
+                        if hasattr(execution_context, 'executor') and hasattr(execution_context.executor, '_shutdown_requested'):
+                            def shutdown_check():
+                                """Check if shutdown was requested by executor."""
+                                return execution_context.executor._shutdown_requested
+
+                        # Stream output with memory efficiency and shutdown monitoring
                         raw_stdout, raw_stderr, exit_code, timed_out = output_handler.stream_process_output(
-                            process, timeout=task_timeout
+                            process, timeout=task_timeout, shutdown_check=shutdown_check
                         )
                         execution_time = time.time() - start_time
                         execution_context.log_debug(f"Task {task_display_id}: Execution time: {execution_time:.3f}s")

@@ -1,0 +1,49 @@
+# TEST_METADATA: {"description": "SIGINT (Ctrl+C) during sequential task execution", "test_type": "negative", "expected_exit_code": 130, "expected_success": false, "signal_type": "SIGINT", "signal_delay_seconds": 2, "verify_cleanup": true, "expected_warnings": 1, "skip_host_validation": true}
+
+# SIGNAL TEST: SIGINT (Keyboard Interrupt) during sequential execution
+#
+# Test Scenario:
+# 1. Start task 0 (sleep 10 seconds)
+# 2. After 2 seconds, send SIGINT to TASKER process (simulating Ctrl+C)
+# 3. Verify immediate interruption and cleanup
+# 4. Verify faster cleanup than SIGTERM (SIGINT should be more aggressive)
+#
+# Expected Behavior:
+# - Task 0 should be interrupted immediately
+# - Task 1 should NOT execute
+# - Exit code: 130 (128 + SIGINT=2)
+# - Cleanup should be FASTER than SIGTERM (< 5 seconds)
+# - Clear error message: "Keyboard interrupt received" or similar
+# - All resources cleaned up
+#
+# Difference from SIGTERM:
+# - SIGINT: Immediate cancellation (user initiated)
+# - SIGTERM: Graceful shutdown (system initiated)
+# - SIGINT should prioritize speed over graceful completion
+#
+# User Experience Note:
+# When user presses Ctrl+C, they want IMMEDIATE response
+# - Cancel current operation quickly
+# - Don't wait for tasks to "complete gracefully"
+# - Still clean up resources, but faster
+#
+# Test Execution:
+# This test requires a wrapper script that:
+# 1. Starts: tasker.py test_sigint_sequential.txt -r &
+# 2. Waits: 2 seconds
+# 3. Signals: kill -INT $TASKER_PID  # Or kill -2 $TASKER_PID
+# 4. Times: how long until exit (should be < 5 seconds)
+# 5. Verifies: cleanup and exit code 130
+
+task=0
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+
+# This task should NOT execute (workflow interrupted by SIGINT)
+task=1
+hostname=localhost
+command=echo
+arguments=ERROR: This task should not execute - workflow should be interrupted by Ctrl+C
+exec=local

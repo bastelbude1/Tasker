@@ -1,0 +1,38 @@
+# TEST_METADATA: {"description": "SIGTERM during basic sequential task execution", "test_type": "negative", "expected_exit_code": 143, "expected_success": false, "signal_type": "SIGTERM", "signal_delay_seconds": 2, "verify_cleanup": true, "expected_warnings": 1, "skip_host_validation": true}
+
+# SIGNAL TEST: SIGTERM during sequential execution
+#
+# Test Scenario:
+# 1. Start task 0 (sleep 10 seconds)
+# 2. After 2 seconds, send SIGTERM to TASKER process
+# 3. Verify TASKER exits gracefully with code 143 (128 + 15)
+# 4. Verify no zombie processes
+# 5. Verify temp files cleaned up
+# 6. Verify log files properly closed
+#
+# Expected Behavior:
+# - Task 0 should be interrupted mid-execution
+# - Task 1 should NOT execute
+# - Exit code: 143 (128 + SIGTERM=15)
+# - Clear error message about signal received
+# - All resources cleaned up
+#
+# Test Execution:
+# This test requires a wrapper script that:
+# 1. Starts: tasker.py test_sigterm_sequential_basic.txt -r &
+# 2. Waits: 2 seconds
+# 3. Signals: kill -TERM $TASKER_PID
+# 4. Verifies: cleanup and exit code
+
+task=0
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+
+# This task should NOT execute (workflow interrupted by SIGTERM)
+task=1
+hostname=localhost
+command=echo
+arguments=ERROR: This task should not execute - workflow should be interrupted
+exec=local

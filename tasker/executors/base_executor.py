@@ -201,13 +201,11 @@ class BaseExecutor(ABC):
                         universal_newlines=True
                     ) as process:
                         # Create shutdown check callback if available
-                        def create_shutdown_check():
-                            """Create shutdown monitoring callback if executor supports it."""
-                            if hasattr(execution_context, 'executor') and hasattr(execution_context.executor, '_shutdown_requested'):
-                                return lambda: execution_context.executor._shutdown_requested
-                            return None
-
-                        shutdown_check = create_shutdown_check()
+                        shutdown_check = None
+                        if hasattr(execution_context, 'executor') and hasattr(execution_context.executor, '_shutdown_requested'):
+                            def shutdown_check():
+                                """Check if shutdown was requested by executor."""
+                                return execution_context.executor._shutdown_requested
 
                         # Stream output with memory efficiency and shutdown monitoring
                         raw_stdout, raw_stderr, exit_code, timed_out = output_handler.stream_process_output(

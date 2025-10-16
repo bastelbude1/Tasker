@@ -525,8 +525,6 @@ class TaskerTestExecutor:
         by running tasker.py directly. This method delegates to the
         signal_test_wrapper.sh script which handles signal delivery.
         """
-        test_name = os.path.basename(test_file)
-
         # Extract signal test parameters from metadata
         signal_type = metadata.get('signal_type', 'SIGTERM')
         signal_delay = metadata.get('signal_delay_seconds', 2)

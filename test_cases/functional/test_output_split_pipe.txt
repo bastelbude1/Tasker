@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test stdout_split with pipe delimiter","test_type": "positive","expected_exit_code": 1,"expected_success": false,"skip_host_validation": true,"expected_execution_path": [0,1,2]}
+# TEST_METADATA: {"description": "Test stdout_split with pipe delimiter","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2]}
 
 # Test splitting output by pipe delimiter
 # Expected: Extract specific fields from pipe-delimited output

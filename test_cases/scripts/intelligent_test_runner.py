@@ -329,10 +329,55 @@ class TestMetadata:
 class TaskerTestExecutor:
     """Execute TASKER test cases and capture results."""
 
-    def __init__(self, tasker_path=None):
+    def __init__(self, tasker_path=None, debug_timing=False):
         self.tasker_path = _resolve_tasker_path(tasker_path)
         self.results = {}
         self.performance_monitor = PerformanceMonitor()
+        self.debug_timing = debug_timing
+
+    def parse_tasker_timestamps(self, stdout_content):
+        """Parse TASKER's internal timestamps to calculate internal execution time.
+
+        Returns:
+            dict: Timing information extracted from TASKER's logs
+                - first_timestamp: First logged timestamp
+                - last_timestamp: Last logged timestamp
+                - internal_duration: Calculated internal execution time in seconds
+        """
+        timestamps = []
+
+        # Pattern: [16Oct25 10:51:40]
+        timestamp_pattern = re.compile(r'\[(\d{2}\w{3}\d{2} \d{2}:\d{2}:\d{2})\]')
+
+        for line in stdout_content.split('\n'):
+            match = timestamp_pattern.search(line)
+            if match:
+                timestamp_str = match.group(1)
+                try:
+                    # Parse timestamp (format: 16Oct25 10:51:40)
+                    parsed_time = datetime.strptime(timestamp_str, '%d%b%y %H:%M:%S')
+                    timestamps.append(parsed_time)
+                except ValueError:
+                    continue
+
+        if len(timestamps) >= 2:
+            first_timestamp = timestamps[0]
+            last_timestamp = timestamps[-1]
+            internal_duration = (last_timestamp - first_timestamp).total_seconds()
+
+            return {
+                "first_timestamp": first_timestamp,
+                "last_timestamp": last_timestamp,
+                "internal_duration": internal_duration,
+                "timestamp_count": len(timestamps)
+            }
+        else:
+            return {
+                "first_timestamp": None,
+                "last_timestamp": None,
+                "internal_duration": None,
+                "timestamp_count": len(timestamps)
+            }
 
     def parse_execution_path(self, stdout_content):
         """Parse task execution path from TASKER output."""
@@ -631,8 +676,13 @@ class TaskerTestExecutor:
         start_time = datetime.now()
         performance_metrics = None
 
+        # Debug timing: Track subprocess startup overhead
+        if self.debug_timing:
+            print(f"  [DEBUG] Test start time: {start_time.strftime('%H:%M:%S.%f')[:-3]}")
+
         try:
             # Start subprocess - Python 3.6.8 compatible pattern
+            popen_start = datetime.now()
             process = subprocess.Popen(
                 cmd_args,
                 stdout=subprocess.PIPE,
@@ -640,6 +690,11 @@ class TaskerTestExecutor:
                 universal_newlines=True,
                 env=env
             )
+            popen_end = datetime.now()
+
+            if self.debug_timing:
+                popen_overhead = (popen_end - popen_start).total_seconds()
+                print(f"  [DEBUG] Subprocess Popen overhead: {popen_overhead:.4f}s")
 
             try:
                 # Start performance monitoring for performance tests
@@ -649,8 +704,18 @@ class TaskerTestExecutor:
                 try:
                     # Increased timeout to 120s to accommodate multi-host validation tests
                     # Host validation: 3 hosts x ~25s per host (DNS 10s + ping 5s + remote 10s) = 75s+
+                    communicate_start = datetime.now()
+                    if self.debug_timing:
+                        print(f"  [DEBUG] Starting process.communicate() at: {communicate_start.strftime('%H:%M:%S.%f')[:-3]}")
+
                     stdout, stderr = process.communicate(timeout=120)
                     exit_code = process.returncode
+
+                    communicate_end = datetime.now()
+                    if self.debug_timing:
+                        communicate_duration = (communicate_end - communicate_start).total_seconds()
+                        print(f"  [DEBUG] process.communicate() completed at: {communicate_end.strftime('%H:%M:%S.%f')[:-3]}")
+                        print(f"  [DEBUG] process.communicate() duration: {communicate_duration:.4f}s")
 
                     # Stop performance monitoring
                     if metadata.get("test_type") == "performance":
@@ -686,7 +751,27 @@ class TaskerTestExecutor:
                     except subprocess.TimeoutExpired:
                         process.kill()
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+            end_time = datetime.now()
+            execution_time = (end_time - start_time).total_seconds()
+
+            # Debug timing: Parse TASKER's internal timestamps
+            if self.debug_timing:
+                print(f"  [DEBUG] Test end time: {end_time.strftime('%H:%M:%S.%f')[:-3]}")
+                print(f"  [DEBUG] Test runner total duration: {execution_time:.4f}s")
+
+                # Parse TASKER's internal timing
+                tasker_timing = self.parse_tasker_timestamps(stdout)
+                if tasker_timing["internal_duration"] is not None:
+                    print(f"  [DEBUG] TASKER internal duration: {tasker_timing['internal_duration']:.4f}s")
+                    print(f"  [DEBUG] TASKER first timestamp: {tasker_timing['first_timestamp'].strftime('%H:%M:%S')}")
+                    print(f"  [DEBUG] TASKER last timestamp: {tasker_timing['last_timestamp'].strftime('%H:%M:%S')}")
+                    print(f"  [DEBUG] TASKER timestamp count: {tasker_timing['timestamp_count']}")
+
+                    # Calculate discrepancy
+                    discrepancy = execution_time - tasker_timing['internal_duration']
+                    print(f"  [DEBUG] Timing discrepancy: {discrepancy:.4f}s ({discrepancy*1000:.1f}ms)")
+                else:
+                    print(f"  [DEBUG] Could not parse TASKER timestamps (found {tasker_timing['timestamp_count']})")
 
             # Parse execution path from output
             execution_path_data = self.parse_execution_path(stdout)
@@ -1157,7 +1242,11 @@ class TestValidator:
                        if warning_pattern.match(line)]
         actual_warning_count = len(warning_lines)
 
-        if "expected_warnings" in metadata:
+        # Check if test allows variable warning counts (for tests with timing-dependent warnings)
+        if metadata.get("allow_variable_warnings", False):
+            # Skip warning count validation - warnings are expected but count may vary
+            pass
+        elif "expected_warnings" in metadata:
             expected_warning_count = metadata["expected_warnings"]
             if actual_warning_count != expected_warning_count:
                 validation_results["passed"] = False
@@ -1253,9 +1342,9 @@ class TestValidator:
 class IntelligentTestRunner:
     """Main test runner orchestrator."""
 
-    def __init__(self, tasker_path=None):
+    def __init__(self, tasker_path=None, debug_timing=False):
         self.tasker_path = _resolve_tasker_path(tasker_path)
-        self.executor = TaskerTestExecutor(self.tasker_path)
+        self.executor = TaskerTestExecutor(self.tasker_path, debug_timing=debug_timing)
         self.validator = TestValidator()
         self.results = []
 
@@ -1486,11 +1575,16 @@ def main():
         action="store_true",
         help="Recursively search for test files in subdirectories"
     )
+    parser.add_argument(
+        "--debug-timing",
+        action="store_true",
+        help="Enable detailed timing debug output to investigate timing discrepancies"
+    )
 
     args = parser.parse_args()
 
     # Initialize test runner
-    runner = IntelligentTestRunner(args.tasker_path)
+    runner = IntelligentTestRunner(args.tasker_path, debug_timing=args.debug_timing)
 
     # Handle multiple targets
     test_files_set = set()

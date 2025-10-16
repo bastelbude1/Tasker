@@ -12,7 +12,6 @@ task=1
 type=parallel
 max_parallel=5
 tasks=500,501,502,503,504
-timeout=6
 retry_failed=true
 retry_count=2
 retry_delay=1
@@ -45,6 +44,7 @@ hostname=localhost
 command=echo
 arguments=Task 500 - Immediate success
 exec=local
+timeout=6
 
 # Task 501: Fails first time, succeeds on retry
 task=501
@@ -52,13 +52,15 @@ hostname=localhost
 command=sh
 arguments=-c "if [ ! -f /tmp/task501_attempt ]; then touch /tmp/task501_attempt; echo 'Task 501 - First attempt fails'; exit 1; else echo 'Task 501 - Retry succeeds'; exit 0; fi"
 exec=shell
+timeout=6
 
-# Task 502: Times out (master timeout=6s, this takes 8s) - should NOT be retried
+# Task 502: Times out (timeout=6s, this takes 8s) - should NOT be retried
 task=502
 hostname=localhost
 command=sleep
 arguments=8
 exec=local
+timeout=6
 
 # Task 503: Fails multiple times but eventually succeeds
 task=503
@@ -66,6 +68,7 @@ hostname=localhost
 command=sh
 arguments=-c "attempts=$(cat /tmp/task503_counter 2>/dev/null || echo 0); attempts=$((attempts + 1)); echo $attempts > /tmp/task503_counter; if [ $attempts -le 1 ]; then echo \"Task 503 - Attempt $attempts fails\"; exit 1; else echo \"Task 503 - Succeeds on attempt $attempts\"; exit 0; fi"
 exec=shell
+timeout=6
 
 # Task 504: Always fails (even after retries)
 task=504
@@ -73,3 +76,4 @@ hostname=localhost
 command=sh
 arguments=-c "echo 'Task 504 - Always fails'; exit 1"
 exec=shell
+timeout=6

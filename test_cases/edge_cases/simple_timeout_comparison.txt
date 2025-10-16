@@ -10,7 +10,6 @@ task=1
 type=parallel
 max_parallel=2
 tasks=100,101
-timeout=3
 next=min_success=1
 
 task=2
@@ -26,10 +25,12 @@ hostname=localhost
 command=echo
 arguments=Quick success
 exec=local
+timeout=3
 
 task=101
 hostname=localhost
 command=echo
 arguments=Should sleep after completion
 exec=local
+timeout=3
 sleep=5

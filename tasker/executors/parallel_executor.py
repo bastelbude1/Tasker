@@ -276,24 +276,16 @@ class ParallelExecutor(BaseExecutor):
         # NEW: Parse retry configuration
         retry_config = executor_instance.parse_retry_config(parallel_task)
         
-        # MASTER TIMEOUT ENFORCEMENT: One timeout rules them all
-        master_timeout = executor_instance.get_task_timeout(parallel_task)
-        
+        # PARALLEL EXECUTION TIMEOUT: Default timeout for the overall parallel execution
+        # NOTE: Individual tasks use their own timeout values, not this overall timeout
+        overall_parallel_timeout = executor_instance.get_task_timeout(parallel_task)
+
         # IMPROVED: Cleaner startup message with retry info
         retry_info = ""
         if retry_config:
             retry_info = f", retry_failed=true (count={retry_config['count']}, delay={retry_config['delay']}s)"
-        
-        executor_instance.log(f"Task {task_id}: Starting parallel execution of {len(tasks_to_execute)} tasks (max_parallel={max_parallel}, timeout={master_timeout}s{retry_info})")
-        
-        # Check for individual timeouts and warn about overrides (DEBUG ONLY)
-        individual_timeout_count = 0
-        for task in tasks_to_execute:
-            if 'timeout' in task:
-                individual_timeout_count += 1
-        
-        if individual_timeout_count > 0:
-            executor_instance.log_debug(f"Task {task_id}: WARNING: {individual_timeout_count} sub-tasks have individual timeouts - MASTER timeout {master_timeout}s will override them")
+
+        executor_instance.log(f"Task {task_id}: Starting parallel execution of {len(tasks_to_execute)} tasks (max_parallel={max_parallel}, timeout={overall_parallel_timeout}s{retry_info})")
         
         # Execute tasks in parallel with master timeout enforcement and retry logic
         results = []
@@ -387,18 +379,20 @@ class ParallelExecutor(BaseExecutor):
 
                     if retry_config:
                         # With retry config -> .1, .2, etc.
-                        future = thread_executor.submit(ParallelExecutor.execute_single_task_with_retry, task, master_timeout, retry_config, executor_instance=executor_instance)
+                        # NOTE: Pass None for task_timeout to let each task use its own timeout
+                        future = thread_executor.submit(ParallelExecutor.execute_single_task_with_retry, task, None, retry_config, executor_instance=executor_instance)
                     else:
                         # Without retry config -> no number
-                        future = thread_executor.submit(ParallelExecutor.execute_single_task_for_parallel, task, master_timeout, "", executor_instance=executor_instance)
+                        # NOTE: Pass None for task_timeout to let each task use its own timeout
+                        future = thread_executor.submit(ParallelExecutor.execute_single_task_for_parallel, task, None, "", executor_instance=executor_instance)
                     future_to_task[future] = task
                 
-                # Collect results with MASTER TIMEOUT enforcement
+                # Collect results with OVERALL PARALLEL TIMEOUT enforcement
                 # Phase 1: Collect all task results and start sleeps in parallel
                 sleep_trackers = []  # Track sleep operations separately
 
                 try:
-                    for future in as_completed(future_to_task, timeout=master_timeout):
+                    for future in as_completed(future_to_task, timeout=overall_parallel_timeout):
                         task = future_to_task[future]
                         # Check for shutdown during result collection
                         if executor_instance._shutdown_requested:
@@ -471,29 +465,29 @@ class ParallelExecutor(BaseExecutor):
                             })
                             
                 except Exception as timeout_exception:
-                    # MASTER TIMEOUT REACHED - Graceful cancellation
+                    # OVERALL PARALLEL TIMEOUT REACHED - Graceful cancellation
                     elapsed = time.time() - start_time
-                    executor_instance.log(f"Task {task_id}: MASTER TIMEOUT ({master_timeout}s) reached after {elapsed:.1f}s")
-                    
+                    executor_instance.log(f"Task {task_id}: PARALLEL TIMEOUT ({overall_parallel_timeout}s) reached after {elapsed:.1f}s")
+
                     # Cancel remaining futures and collect partial results
                     cancelled_count = 0
                     for future, task in future_to_task.items():
                         if not future.done():
                             future.cancel()
                             cancelled_count += 1
-                            
+
                             # Create timeout result for cancelled tasks
                             task_id_inner = int(task['task'])
                             results.append({
                                 'task_id': task_id_inner,
                                 'exit_code': 124,  # Timeout exit code
                                 'stdout': '',
-                                'stderr': f'Task cancelled due to master timeout ({master_timeout}s)',
+                                'stderr': f'Task cancelled due to parallel timeout ({overall_parallel_timeout}s)',
                                 'success': False,
                                 'skipped': False
                             })
-                            
-                    executor_instance.log(f"Task {task_id}: Cancelled {cancelled_count} remaining tasks due to master timeout")
+
+                    executor_instance.log(f"Task {task_id}: Cancelled {cancelled_count} remaining tasks due to parallel timeout")
 
                     # Also cancel any pending sleeps
                     for tracker in sleep_trackers:
@@ -587,7 +581,7 @@ class ParallelExecutor(BaseExecutor):
         if not overall_success:
             if timeout_count > 0:
                 timeout_task_ids = [r['task_id'] for r in timeout_tasks]
-                executor_instance.log_debug(f"Task {task_id}: TIMEOUT DETAILS - Tasks {timeout_task_ids} exceeded master timeout of {master_timeout}s")
+                executor_instance.log_debug(f"Task {task_id}: TIMEOUT DETAILS - Tasks {timeout_task_ids} exceeded their individual timeouts")
             
             if failed_count > 0:
                 failed_task_ids = [r['task_id'] for r in failed_tasks]

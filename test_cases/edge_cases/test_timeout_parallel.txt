@@ -13,7 +13,6 @@ task=1
 type=parallel
 max_parallel=3
 tasks=10,11,12
-timeout=5
 success=min_success=1
 on_success=2
 on_failure=99
@@ -32,6 +31,7 @@ hostname=localhost
 command=sleep
 arguments=1
 exec=local
+timeout=5
 
 # Task 11: Times out
 task=11
@@ -39,6 +39,7 @@ hostname=localhost
 command=sleep
 arguments=10
 exec=local
+timeout=5
 
 # Task 12: Times out
 task=12
@@ -46,6 +47,7 @@ hostname=localhost
 command=sleep
 arguments=10
 exec=local
+timeout=5
 
 # Task 99: Error handler (should not execute)
 task=99

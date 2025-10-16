@@ -13,7 +13,6 @@ task=1
 type=parallel
 max_parallel=5
 tasks=100,101,102,103,104
-timeout=6
 success=min_success=2
 on_success=2
 on_failure=50
@@ -35,7 +34,6 @@ task=11
 type=parallel
 max_parallel=3
 tasks=200,201,202
-timeout=8
 success=max_failed=1
 on_success=12
 on_failure=55
@@ -70,12 +68,13 @@ return=0
 # PARALLEL TASKS WITH DIFFERENT SLEEP TIMES
 # ===============================================
 
-# Fast completion tasks (under 5s global timeout)
+# Fast completion tasks (under 6s timeout)
 task=100
 hostname=localhost
 command=echo
 arguments=Task 100 - FAST (1s)
 exec=local
+timeout=6
 sleep=1
 
 task=101
@@ -83,6 +82,7 @@ hostname=localhost
 command=echo
 arguments=Task 101 - FAST (2s)
 exec=local
+timeout=6
 sleep=2
 
 # Medium completion tasks (around timeout boundary)
@@ -91,14 +91,16 @@ hostname=localhost
 command=echo
 arguments=Task 102 - MEDIUM (4s)
 exec=local
+timeout=6
 sleep=4
 
-# Slow tasks (exceed 5s global timeout)
+# Slow tasks (exceed 6s timeout)
 task=103
 hostname=localhost
 command=echo
 arguments=Task 103 - SLOW (7s) - should timeout
 exec=local
+timeout=6
 sleep=7
 
 task=104
@@ -106,6 +108,7 @@ hostname=localhost
 command=echo
 arguments=Task 104 - VERY SLOW (10s) - should timeout
 exec=local
+timeout=6
 sleep=10
 
 # Tasks with individual timeout issues (some succeed, some timeout)
@@ -114,6 +117,7 @@ hostname=localhost
 command=echo
 arguments=Task 200 - SUCCESS (2s)
 exec=local
+timeout=8
 sleep=2
 
 task=201
@@ -121,10 +125,12 @@ hostname=localhost
 command=sh
 arguments=-c "sleep 12; echo 'Task 201 - TIMEOUT (12s)'; exit 0"
 exec=local
+timeout=8
 
 task=202
 hostname=localhost
 command=echo
 arguments=Task 202 - SUCCESS (3s)
 exec=local
+timeout=8
 sleep=3

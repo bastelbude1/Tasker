@@ -57,7 +57,6 @@ task=1
 type=parallel
 max_parallel=5
 tasks=10,11,12,13,14
-timeout=15
 success=all_success
 
 # Fast tasks (will complete before signal at 3s)
@@ -66,6 +65,7 @@ hostname=localhost
 command=echo
 arguments=Task 10 - Fast (1 second)
 exec=local
+timeout=15
 sleep=1
 
 task=11
@@ -73,6 +73,7 @@ hostname=localhost
 command=echo
 arguments=Task 11 - Fast (2 seconds)
 exec=local
+timeout=15
 sleep=2
 
 # Slow tasks (will be running at signal time)
@@ -81,18 +82,21 @@ hostname=localhost
 command=sleep
 arguments=10
 exec=local
+timeout=15
 
 task=13
 hostname=localhost
 command=sleep
 arguments=10
 exec=local
+timeout=15
 
 task=14
 hostname=localhost
 command=sleep
 arguments=10
 exec=local
+timeout=15
 
 # This task should NOT execute (workflow interrupted)
 task=2

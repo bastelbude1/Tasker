@@ -14,7 +14,6 @@ task=1
 type=parallel
 max_parallel=1
 tasks=10
-timeout=5
 retry_count=2
 retry_delay=1
 on_success=2
@@ -34,6 +33,7 @@ hostname=localhost
 command=sleep
 arguments=10
 exec=local
+timeout=5
 
 # Task 50: Timeout handler
 task=50

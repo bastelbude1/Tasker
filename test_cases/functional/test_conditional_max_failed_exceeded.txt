@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Conditional Conditional max_failed=2 with 3 failures - condition exceeded","test_type": "negative","expected_exit_code": 10,"expected_success": false,"skip_host_validation": true,"expected_execution_path": [0,1],"expected_subtasks": ["1-10","1-11","1-12","1-13","1-14"],"expected_success_count": 2,"expected_failed_count": 3,"expected_condition_met": false,"expected_final_task": 1,"success_condition": "max_failed=2"}
+# TEST_METADATA: {"description": "Conditional max_failed=2 with 3 failures - condition exceeded","test_type": "negative","expected_exit_code": 10,"expected_success": false,"skip_host_validation": true,"expected_execution_path": [0,1],"expected_subtasks": ["1-10","1-11","1-12","1-13","1-14"],"expected_success_count": 2,"expected_failed_count": 3,"expected_condition_met": false,"expected_final_task": 1,"success_condition": "max_failed=2"}
 # Test conditional execution with max_failed=2 condition
 # Conditional max_failed=2 with 3 failures - condition exceeded
 

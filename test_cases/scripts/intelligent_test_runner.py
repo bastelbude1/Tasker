@@ -54,10 +54,13 @@ def _resolve_tasker_path(tasker_path=None):
 
 
 def _collect_test_files(target_path, recursive=False):
-    """Collect .txt test files from a directory."""
+    """Collect .txt test files from a directory, excluding templates."""
     test_files = []
     if recursive:
         for root, _dirs, files in os.walk(target_path):
+            # Skip templates directory
+            if '/templates' in root or root.endswith('templates'):
+                continue
             for file in files:
                 if file.endswith('.txt'):
                     file_path = os.path.join(root, file)

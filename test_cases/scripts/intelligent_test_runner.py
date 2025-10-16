@@ -86,6 +86,8 @@ class PerformanceMonitor:
         self.monitor_thread = None
         self.process = None
         self.task_timings = {}
+        self.monitoring_error = None  # Track monitoring errors for debugging
+        self.sample_count = 0  # Track successful sample count
 
     def start_monitoring(self, process):
         """Start monitoring system resources for a process."""
@@ -94,6 +96,9 @@ class PerformanceMonitor:
         self.monitoring = True
         self.peak_memory_mb = 0
         self.peak_cpu_percent = 0
+        self.monitoring_error = None  # Reset error for each monitoring session
+        self.sample_count = 0  # Track how many samples we collect
+        self.process_pid = process.pid if process else None  # Track PID for diagnostics
 
         self.monitor_thread = threading.Thread(target=self._monitor_resources)
         self.monitor_thread.daemon = True
@@ -107,23 +112,41 @@ class PerformanceMonitor:
         if self.monitor_thread:
             self.monitor_thread.join(timeout=1.0)
 
-        return {
+        metrics = {
             "execution_time": self.end_time - self.start_time,
             "peak_memory_mb": self.peak_memory_mb,
             "peak_cpu_percent": self.peak_cpu_percent,
-            "task_timings": self.task_timings.copy()
+            "task_timings": self.task_timings.copy(),
+            "sample_count": self.sample_count
         }
+
+        # Include error/diagnostic info
+        if self.monitoring_error:
+            metrics["monitoring_error"] = self.monitoring_error
+        elif self.sample_count == 0:
+            # No samples collected but no error - monitoring flag might have been cleared too quickly
+            expected_samples = int((self.end_time - self.start_time) * 10)
+            pid_info = f" (PID {self.process_pid})" if hasattr(self, 'process_pid') and self.process_pid else ""
+            metrics["monitoring_error"] = f"No samples collected (0/{expected_samples} expected){pid_info} - thread may have started too late or monitoring stopped prematurely"
+
+        return metrics
 
     def _monitor_resources(self):
         """Monitor resources in background thread - inspired by parallelr.py patterns."""
         if not PSUTIL_AVAILABLE:
+            self.monitoring_error = "psutil not available"
             return
 
         try:
             # Monitor the TASKER subprocess process, not the test runner process
-            if self.process:
+            if not self.process:
+                self.monitoring_error = "No process to monitor"
+                return
+
+            try:
                 target_process = psutil.Process(self.process.pid)
-            else:
+            except Exception as e:
+                self.monitoring_error = f"Failed to create psutil.Process({self.process.pid}): {type(e).__name__}: {str(e)}"
                 return
 
             while self.monitoring:
@@ -138,18 +161,28 @@ class PerformanceMonitor:
                     if cpu_percent > self.peak_cpu_percent:
                         self.peak_cpu_percent = cpu_percent
 
+                    self.sample_count += 1  # Track successful samples
+
                     time.sleep(0.1)  # Sample every 100ms
 
-                except (psutil.NoSuchProcess, psutil.AccessDenied, ProcessLookupError):
+                except (psutil.NoSuchProcess, psutil.AccessDenied, ProcessLookupError) as e:
                     # Process ended or no permission (parallelr.py pattern)
+                    if self.sample_count == 0:
+                        self.monitoring_error = f"Process monitoring failed on first sample: {type(e).__name__}"
+                    else:
+                        self.monitoring_error = f"Process ended after {self.sample_count} samples: {type(e).__name__}"
                     break
-                except Exception:
+                except Exception as e:
                     # Unexpected error - graceful degradation
+                    if self.sample_count == 0:
+                        self.monitoring_error = f"Monitoring failed on first sample: {type(e).__name__}: {str(e)}"
+                    else:
+                        self.monitoring_error = f"Monitoring error after {self.sample_count} samples: {type(e).__name__}: {str(e)}"
                     break
 
-        except Exception:
+        except Exception as e:
             # Monitoring setup failed - graceful degradation
-            pass
+            self.monitoring_error = f"Monitoring setup failed: {type(e).__name__}: {str(e)}"
 
     def parse_task_timings(self, stdout_content):
         """Parse individual task execution times from TASKER output."""
@@ -539,8 +572,12 @@ class TaskerTestExecutor:
                 "execution_path": {"executed_tasks": [], "skipped_tasks": [], "final_task": None}
             }
 
+        # Convert test_file to absolute path to ensure wrapper can find it
+        # regardless of current working directory
+        test_file_abs = os.path.abspath(test_file)
+
         # Build wrapper command with parameters from metadata
-        cmd_args = [str(wrapper_path), test_file, signal_type, str(signal_delay)]
+        cmd_args = [str(wrapper_path), test_file_abs, signal_type, str(signal_delay)]
         if second_signal_delay:
             cmd_args.append(str(second_signal_delay))
 
@@ -1479,7 +1516,16 @@ class IntelligentTestRunner:
             peak_memory = performance_metrics.get("peak_memory_mb", 0)
             peak_cpu = performance_metrics.get("peak_cpu_percent", 0)
 
-            print(f"    PERFORMANCE: ⏱️  {execution_time:.2f}s | 🧠 {peak_memory:.1f}MB | ⚡ {peak_cpu:.1f}% CPU")
+            # Show sample count for debugging
+            sample_count = performance_metrics.get("sample_count", 0)
+            print(f"    PERFORMANCE: ⏱️  {execution_time:.2f}s | 🧠 {peak_memory:.1f}MB | ⚡ {peak_cpu:.1f}% CPU ({sample_count} samples)")
+
+            # Show monitoring error if metrics are 0 or sample count is low
+            monitoring_error = performance_metrics.get("monitoring_error")
+            if monitoring_error:
+                print(f"    ⚠️  Performance monitoring issue: {monitoring_error}")
+            elif sample_count == 0:
+                print(f"    ⚠️  Warning: No performance samples collected during {execution_time:.2f}s execution")
 
             # Show benchmark status
             if "performance_benchmarks" in metadata:

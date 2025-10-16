@@ -1699,11 +1699,9 @@ class TaskExecutor:
                     else:
                         # Check if failure was due to signal interruption
                         if getattr(self, '_shutdown_requested', False):
-                            # Task interrupted by signal - exit immediately with POSIX signal exit code
-                            signum = getattr(self, '_shutdown_signum', signal.SIGTERM)
-                            signal_exit_code = 128 + signum
                             self.log_error(f"FAILED: Task {task_id} interrupted by signal - workflow stopping.")
-                            ExitHandler.exit_with_code(signal_exit_code, "Task interrupted by signal", False)
+                            # Centralized graceful shutdown (sets final fields, writes summary, cleans up, exits)
+                            self._check_shutdown()  # will exit
 
                         self.log_info(f"Task {task_id}{loop_display}: No routing specified, task failed - stopping execution")
                         return False  # Stop on failure (default safe behavior)
@@ -1993,17 +1991,9 @@ class TaskExecutor:
                     if self.final_success is False or self.final_exit_code != 0:
                         # Check if this was a graceful shutdown scenario
                         if getattr(self, '_shutdown_requested', False):
-                            # Task failed due to signal interruption - use signal exit code
-                            signum = getattr(self, '_shutdown_signum', signal.SIGTERM)
-                            signal_exit_code = 128 + signum
                             self.log_error(f"FAILED: Workflow interrupted by signal - last task (Task {self.current_task}) was interrupted.")
-                            # Write summary before exiting
-                            if self.summary_log and self.final_task_id is not None:
-                                try:
-                                    self.write_final_summary()
-                                except Exception as e:
-                                    self.log_warn(f"Failed to write final summary: {e}")
-                            ExitHandler.exit_with_code(signal_exit_code, "Workflow interrupted by signal", False)
+                            # Centralized graceful shutdown (sets final fields, writes summary, cleans up, exits)
+                            self._check_shutdown()  # will exit
 
                         # Normal task failure (not signal-related)
                         self.log_error(f"FAILED: Workflow stopped - last task (Task {self.current_task}) failed with exit code {self.final_exit_code}.")

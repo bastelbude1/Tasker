@@ -134,7 +134,6 @@ class StreamingOutputHandler:
 
         # Wait for process completion with timeout and shutdown monitoring
         timed_out = False
-        shutdown_requested = False
         if timeout:
             # Manual timeout/shutdown handling for Python 3.6.8 compatibility
             start_wait = time.time()
@@ -146,7 +145,6 @@ class StreamingOutputHandler:
                     break
                 # Check for shutdown signal (if callback provided)
                 if shutdown_check and shutdown_check():
-                    shutdown_requested = True
                     process.terminate()  # SIGTERM first for graceful shutdown
                     time.sleep(0.5)  # Give process 500ms to terminate gracefully
                     if process.poll() is None:

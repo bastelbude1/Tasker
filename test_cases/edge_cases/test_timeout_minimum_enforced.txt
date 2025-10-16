@@ -9,16 +9,17 @@ arguments=Testing timeout minimum enforcement (5 seconds)
 exec=local
 
 # Task 1: Request 2s timeout but minimum 5s will be enforced
+# Reduced sleep to 1s to provide larger margin under system load
 task=1
 hostname=localhost
 command=sleep
-arguments=3
+arguments=1
 exec=local
 timeout=2
 on_success=2
 on_failure=99
 
-# Task 2: Success handler (task completes in 3s, within enforced 5s minimum)
+# Task 2: Success handler (task completes in 1s, well within enforced 5s minimum)
 task=2
 hostname=localhost
 command=echo

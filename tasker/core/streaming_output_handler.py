@@ -135,16 +135,16 @@ class StreamingOutputHandler:
         # Wait for process completion with timeout and shutdown monitoring
         timed_out = False
         shutdown_requested = False
-        if timeout or shutdown_check:
+        if timeout:
             # Manual timeout/shutdown handling for Python 3.6.8 compatibility
             start_wait = time.time()
             while process.poll() is None:
                 # Check for timeout
-                if timeout and time.time() - start_wait > timeout:
+                if time.time() - start_wait > timeout:
                     timed_out = True
                     process.kill()
                     break
-                # Check for shutdown signal
+                # Check for shutdown signal (if callback provided)
                 if shutdown_check and shutdown_check():
                     shutdown_requested = True
                     process.terminate()  # SIGTERM first for graceful shutdown
@@ -155,7 +155,10 @@ class StreamingOutputHandler:
                 time.sleep(0.1)  # Check every 100ms
             process.wait()  # Ensure process is cleaned up
         else:
-            process.wait()  # Wait indefinitely if no timeout or shutdown check
+            # No timeout - just wait for process to complete
+            # Note: We don't monitor shutdown_check here to avoid unnecessary polling
+            # which can interfere with thread scheduling for sleep operations
+            process.wait()
 
         # Wait for reading threads to complete
         stdout_thread.join(timeout=5)  # Give threads time to finish reading

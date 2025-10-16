@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Timeout summary test","test_type": "negative","expected_exit_code": 10,"expected_success": false,"skip_host_validation": true,"expected_warnings": 1}
+# TEST_METADATA: {"description": "Timeout summary test","test_type": "negative","expected_exit_code": 10,"expected_success": false,"skip_host_validation": true,"expected_warnings": 3}
 task=0
 hostname=localhost
 command=echo

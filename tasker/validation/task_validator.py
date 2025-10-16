@@ -1327,16 +1327,31 @@ class TaskValidator:
 
         # Validate 'timeout' field
         if 'timeout' in task:
-            timeout_resolved = self.resolve_global_variables_for_validation(task['timeout'])
-            timeout_clean = self.clean_field_value(timeout_resolved)
-            try:
-                timeout = int(timeout_clean)
-                if timeout < 5:
-                    self.warnings.append(f"Line {line_number}: Task {task_id} has timeout {timeout} less than minimum (5)")
-                elif timeout > 1000:
-                    self.warnings.append(f"Line {line_number}: Task {task_id} has timeout {timeout} greater than maximum (1000)")
-            except ValueError:
-                self.errors.append(f"Line {line_number}: Task {task_id} has invalid timeout: '{timeout_clean}'.")
+            # CRITICAL: Timeout can only be used on tasks that execute commands
+            # Tasks without commands (return, parallel, conditional) don't execute anything
+            has_command = 'command' in task
+            is_return_task = 'return' in task
+            is_parallel = task.get('type') == 'parallel'
+            is_conditional = task.get('type') == 'conditional'
+
+            if not has_command or is_return_task or is_parallel or is_conditional:
+                self.errors.append(
+                    f"Line {line_number}: Task {task_id} cannot use 'timeout' parameter. "
+                    f"Timeout only applies to tasks that execute commands. "
+                    f"Tasks with 'return', 'type=parallel', or 'type=conditional' don't execute commands."
+                )
+            else:
+                # Validate timeout value if task has command
+                timeout_resolved = self.resolve_global_variables_for_validation(task['timeout'])
+                timeout_clean = self.clean_field_value(timeout_resolved)
+                try:
+                    timeout = int(timeout_clean)
+                    if timeout < 5:
+                        self.warnings.append(f"Line {line_number}: Task {task_id} has timeout {timeout} less than minimum (5)")
+                    elif timeout > 1000:
+                        self.warnings.append(f"Line {line_number}: Task {task_id} has timeout {timeout} greater than maximum (1000)")
+                except ValueError:
+                    self.errors.append(f"Line {line_number}: Task {task_id} has invalid timeout: '{timeout_clean}'.")
         
         if 'exec' in task:
             # Resolve placeholders and validate exec type

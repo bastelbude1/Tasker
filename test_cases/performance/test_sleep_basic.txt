@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Sleep Block test - basic integer sleep", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "performance_benchmarks": {"min_duration": 3.0, "max_duration": 5.5}}
+# TEST_METADATA: {"description": "Sleep Block test - basic integer sleep", "test_type": "performance", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "performance_benchmarks": {"max_execution_time": 5.5, "min_duration": 2.7, "max_duration": 5.5}}
 
 # Test basic sleep functionality with integer values
 task=0

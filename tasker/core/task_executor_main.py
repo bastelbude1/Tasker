@@ -154,6 +154,7 @@ class TaskExecutor:
         
         # Graceful shutdown handling
         self._shutdown_requested = False
+        self._shutdown_warning_logged = False  # Track if shutdown warning already shown
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
 
@@ -638,14 +639,18 @@ class TaskExecutor:
         signal_name = "SIGINT" if signum == signal.SIGINT else "SIGTERM"
         self.log_warn(f"Received {signal_name}, initiating graceful shutdown...")
         self._shutdown_requested = True
-        
-        # Store signal info for summary
+
+        # Store signal info for summary and exit code calculation
         self._shutdown_signal = signal_name
+        self._shutdown_signum = signum
 
     def _check_shutdown(self):
         """Check if shutdown was requested - call at natural breakpoints."""
         if self._shutdown_requested:
-            self.log_warn("Graceful shutdown requested - stopping execution")
+            # Only log the warning once to avoid duplicates
+            if not self._shutdown_warning_logged:
+                self.log_warn("Graceful shutdown requested - stopping execution")
+                self._shutdown_warning_logged = True
             
             # Ensure summary gets written for graceful shutdown
             if hasattr(self, 'summary_log') and self.summary_log:
@@ -663,18 +668,27 @@ class TaskExecutor:
                         self.final_hostname = 'graceful_shutdown'
                         self.final_command = 'interrupted_by_signal'
                 
-                # Set graceful shutdown specific values
-                self.final_exit_code = 130  # Standard SIGINT exit code
+                # Calculate POSIX standard exit code based on signal type
+                # SIGINT (2): 128 + 2 = 130
+                # SIGTERM (15): 128 + 15 = 143
+                signum = getattr(self, '_shutdown_signum', signal.SIGTERM)
+                signal_exit_code = 128 + signum
+
+                self.final_exit_code = signal_exit_code
                 self.final_success = False  # Graceful shutdown is not success
-                
+
                 # Add graceful shutdown marker to command for clarity
                 if 'graceful_shutdown' not in str(self.final_command):
                     # Add signal info to command if available
                     signal_info = getattr(self, '_shutdown_signal', 'SIGNAL')
                     self.final_command = f"{self.final_command} [GRACEFUL_SHUTDOWN_{signal_info}]"
-            
+
             self.cleanup()
-            ExitHandler.exit_with_code(ExitCodes.SIGNAL_INTERRUPT, 
+
+            # Use POSIX standard exit code for signal termination
+            signum = getattr(self, '_shutdown_signum', signal.SIGTERM)
+            signal_exit_code = 128 + signum
+            ExitHandler.exit_with_code(signal_exit_code,
                                      "Task execution interrupted by signal", False)
 
     def __del__(self):
@@ -1683,6 +1697,12 @@ class TaskExecutor:
                         self.log_warn(f"Task {task_id}{loop_display}: No routing specified, task failed - continuing anyway (fire-and-forget mode)")
                         return True  # Continue despite failure
                     else:
+                        # Check if failure was due to signal interruption
+                        if getattr(self, '_shutdown_requested', False):
+                            self.log_error(f"FAILED: Task {task_id} interrupted by signal - workflow stopping.")
+                            # Centralized graceful shutdown (sets final fields, writes summary, cleans up, exits)
+                            self._check_shutdown()  # will exit
+
                         self.log_info(f"Task {task_id}{loop_display}: No routing specified, task failed - stopping execution")
                         return False  # Stop on failure (default safe behavior)
             
@@ -1969,7 +1989,13 @@ class TaskExecutor:
                 elif tasks_executed_count > 0:
                     # Check if the final task actually succeeded
                     if self.final_success is False or self.final_exit_code != 0:
-                        # Last task failed - workflow should exit with failure
+                        # Check if this was a graceful shutdown scenario
+                        if getattr(self, '_shutdown_requested', False):
+                            self.log_error(f"FAILED: Workflow interrupted by signal - last task (Task {self.current_task}) was interrupted.")
+                            # Centralized graceful shutdown (sets final fields, writes summary, cleans up, exits)
+                            self._check_shutdown()  # will exit
+
+                        # Normal task failure (not signal-related)
                         self.log_error(f"FAILED: Workflow stopped - last task (Task {self.current_task}) failed with exit code {self.final_exit_code}.")
                         # Write summary before exiting
                         if self.summary_log and self.final_task_id is not None:

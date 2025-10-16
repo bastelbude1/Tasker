@@ -329,10 +329,55 @@ class TestMetadata:
 class TaskerTestExecutor:
     """Execute TASKER test cases and capture results."""
 
-    def __init__(self, tasker_path=None):
+    def __init__(self, tasker_path=None, debug_timing=False):
         self.tasker_path = _resolve_tasker_path(tasker_path)
         self.results = {}
         self.performance_monitor = PerformanceMonitor()
+        self.debug_timing = debug_timing
+
+    def parse_tasker_timestamps(self, stdout_content):
+        """Parse TASKER's internal timestamps to calculate internal execution time.
+
+        Returns:
+            dict: Timing information extracted from TASKER's logs
+                - first_timestamp: First logged timestamp
+                - last_timestamp: Last logged timestamp
+                - internal_duration: Calculated internal execution time in seconds
+        """
+        timestamps = []
+
+        # Pattern: [16Oct25 10:51:40]
+        timestamp_pattern = re.compile(r'\[(\d{2}\w{3}\d{2} \d{2}:\d{2}:\d{2})\]')
+
+        for line in stdout_content.split('\n'):
+            match = timestamp_pattern.search(line)
+            if match:
+                timestamp_str = match.group(1)
+                try:
+                    # Parse timestamp (format: 16Oct25 10:51:40)
+                    parsed_time = datetime.strptime(timestamp_str, '%d%b%y %H:%M:%S')
+                    timestamps.append(parsed_time)
+                except ValueError:
+                    continue
+
+        if len(timestamps) >= 2:
+            first_timestamp = timestamps[0]
+            last_timestamp = timestamps[-1]
+            internal_duration = (last_timestamp - first_timestamp).total_seconds()
+
+            return {
+                "first_timestamp": first_timestamp,
+                "last_timestamp": last_timestamp,
+                "internal_duration": internal_duration,
+                "timestamp_count": len(timestamps)
+            }
+        else:
+            return {
+                "first_timestamp": None,
+                "last_timestamp": None,
+                "internal_duration": None,
+                "timestamp_count": len(timestamps)
+            }
 
     def parse_execution_path(self, stdout_content):
         """Parse task execution path from TASKER output."""
@@ -473,9 +518,102 @@ class TaskerTestExecutor:
             "output_patterns": output_patterns
         }
 
+    def execute_signal_test(self, test_file, metadata):
+        """Execute signal test using signal_test_wrapper.sh from metadata.
+
+        Signal tests require external signal delivery which cannot be done
+        by running tasker.py directly. This method delegates to the
+        signal_test_wrapper.sh script which handles signal delivery.
+        """
+        # Extract signal test parameters from metadata
+        signal_type = metadata.get('signal_type', 'SIGTERM')
+        signal_delay = metadata.get('signal_delay_seconds', 2)
+        second_signal_delay = metadata.get('second_signal_delay', 0)
+
+        # Locate signal_test_wrapper.sh
+        script_dir = Path(__file__).resolve().parent  # scripts directory
+        test_cases_dir = script_dir.parent  # test_cases directory
+        wrapper_path = test_cases_dir / "bin" / "signal_test_wrapper.sh"
+
+        if not wrapper_path.exists():
+            return {
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": f"Signal test wrapper not found: {wrapper_path}",
+                "execution_time": 0,
+                "timed_out": False,
+                "error": f"Signal test wrapper script not found at {wrapper_path}",
+                "execution_path": {"executed_tasks": [], "skipped_tasks": [], "final_task": None}
+            }
+
+        # Build wrapper command with parameters from metadata
+        cmd_args = [str(wrapper_path), test_file, signal_type, str(signal_delay)]
+        if second_signal_delay:
+            cmd_args.append(str(second_signal_delay))
+
+        # Execute signal test with wrapper
+        start_time = datetime.now()
+
+        try:
+            # Signal tests may take longer (signal delay + execution + cleanup)
+            # Use 60 second timeout (should be enough for most signal tests)
+            with subprocess.Popen(
+                cmd_args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            ) as process:
+                try:
+                    stdout, stderr = process.communicate(timeout=60)
+                    exit_code = process.returncode
+                except subprocess.TimeoutExpired:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+
+                    try:
+                        stdout, stderr = process.communicate(timeout=1)
+                    except subprocess.TimeoutExpired:
+                        stdout, stderr = "", "Signal test wrapper timeout"
+
+                    exit_code = 124
+
+                execution_time = (datetime.now() - start_time).total_seconds()
+
+                # Parse execution path from TASKER output embedded in wrapper output
+                execution_path_data = self.parse_execution_path(stdout)
+
+                return {
+                    "exit_code": exit_code,
+                    "stdout": stdout,
+                    "stderr": stderr,
+                    "execution_time": execution_time,
+                    "timed_out": (exit_code == 124),
+                    "error": None,
+                    "execution_path": execution_path_data
+                }
+
+        except Exception as e:
+            execution_time = (datetime.now() - start_time).total_seconds()
+            return {
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": str(e),
+                "execution_time": execution_time,
+                "timed_out": False,
+                "error": f"Signal test execution error: {e}",
+                "execution_path": {"executed_tasks": [], "skipped_tasks": [], "final_task": None}
+            }
+
     def execute_test(self, test_file, metadata):
         """Execute a single test case and capture results."""
         test_name = os.path.basename(test_file)
+
+        # Detect signal tests and route to signal test executor
+        if 'signal_type' in metadata:
+            return self.execute_signal_test(test_file, metadata)
 
         # Prepare command arguments based on test type
         cmd_args = [self.tasker_path, test_file]
@@ -535,62 +673,102 @@ class TaskerTestExecutor:
         start_time = datetime.now()
         performance_metrics = None
 
+        # Debug timing: Track subprocess startup overhead
+        if self.debug_timing:
+            print(f"  [DEBUG] Test start time: {start_time.strftime('%H:%M:%S.%f')[:-3]}")
+
         try:
             # Start subprocess - Python 3.6.8 compatible pattern
-            process = subprocess.Popen(
+            popen_start = datetime.now()
+            with subprocess.Popen(
                 cmd_args,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
                 env=env
-            )
+            ) as process:
+                popen_end = datetime.now()
 
-            try:
-                # Start performance monitoring for performance tests
-                if metadata.get("test_type") == "performance":
-                    self.performance_monitor.start_monitoring(process)
+                if self.debug_timing:
+                    popen_overhead = (popen_end - popen_start).total_seconds()
+                    print(f"  [DEBUG] Subprocess Popen overhead: {popen_overhead:.4f}s")
 
                 try:
-                    # Increased timeout to 120s to accommodate multi-host validation tests
-                    # Host validation: 3 hosts x ~25s per host (DNS 10s + ping 5s + remote 10s) = 75s+
-                    stdout, stderr = process.communicate(timeout=120)
-                    exit_code = process.returncode
-
-                    # Stop performance monitoring
+                    # Start performance monitoring for performance tests
                     if metadata.get("test_type") == "performance":
-                        performance_metrics = self.performance_monitor.stop_monitoring()
-                        # Parse task timings from output
-                        task_timings = self.performance_monitor.parse_task_timings(stdout)
-                        performance_metrics["task_timings"] = task_timings
+                        self.performance_monitor.start_monitoring(process)
 
-                except subprocess.TimeoutExpired:
-                    # Terminate the process on timeout
-                    process.terminate()
                     try:
-                        process.wait(timeout=5)  # Give process 5 seconds to terminate gracefully
+                        # Increased timeout to 120s to accommodate multi-host validation tests
+                        # Host validation: 3 hosts x ~25s per host (DNS 10s + ping 5s + remote 10s) = 75s+
+                        communicate_start = datetime.now()
+                        if self.debug_timing:
+                            print(f"  [DEBUG] Starting process.communicate() at: {communicate_start.strftime('%H:%M:%S.%f')[:-3]}")
+
+                        stdout, stderr = process.communicate(timeout=120)
+                        exit_code = process.returncode
+
+                        communicate_end = datetime.now()
+                        if self.debug_timing:
+                            communicate_duration = (communicate_end - communicate_start).total_seconds()
+                            print(f"  [DEBUG] process.communicate() completed at: {communicate_end.strftime('%H:%M:%S.%f')[:-3]}")
+                            print(f"  [DEBUG] process.communicate() duration: {communicate_duration:.4f}s")
+
+                        # Stop performance monitoring
+                        if metadata.get("test_type") == "performance":
+                            performance_metrics = self.performance_monitor.stop_monitoring()
+                            # Parse task timings from output
+                            task_timings = self.performance_monitor.parse_task_timings(stdout)
+                            performance_metrics["task_timings"] = task_timings
+
                     except subprocess.TimeoutExpired:
-                        process.kill()  # Force kill if it doesn't terminate
+                        # Terminate the process on timeout
+                        process.terminate()
+                        try:
+                            process.wait(timeout=5)  # Give process 5 seconds to terminate gracefully
+                        except subprocess.TimeoutExpired:
+                            process.kill()  # Force kill if it doesn't terminate
 
-                    # Capture any output before termination
-                    try:
-                        stdout, stderr = process.communicate(timeout=1)
-                    except subprocess.TimeoutExpired:
-                        stdout, stderr = "", "Process killed due to timeout"
+                        # Capture any output before termination
+                        try:
+                            stdout, stderr = process.communicate(timeout=1)
+                        except subprocess.TimeoutExpired:
+                            stdout, stderr = "", "Process killed due to timeout"
 
-                    exit_code = 124
-                    if metadata.get("test_type") == "performance":
-                        performance_metrics = self.performance_monitor.stop_monitoring()
+                        exit_code = 124
+                        if metadata.get("test_type") == "performance":
+                            performance_metrics = self.performance_monitor.stop_monitoring()
 
-            finally:
-                # Ensure process cleanup - avoid zombies
-                if process.poll() is None:
-                    process.terminate()
-                    try:
-                        process.wait(timeout=2)
-                    except subprocess.TimeoutExpired:
-                        process.kill()
+                finally:
+                    # Ensure process cleanup - avoid zombies
+                    if process.poll() is None:
+                        process.terminate()
+                        try:
+                            process.wait(timeout=2)
+                        except subprocess.TimeoutExpired:
+                            process.kill()
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+                end_time = datetime.now()
+                execution_time = (end_time - start_time).total_seconds()
+
+            # Debug timing: Parse TASKER's internal timestamps
+            if self.debug_timing:
+                print(f"  [DEBUG] Test end time: {end_time.strftime('%H:%M:%S.%f')[:-3]}")
+                print(f"  [DEBUG] Test runner total duration: {execution_time:.4f}s")
+
+                # Parse TASKER's internal timing
+                tasker_timing = self.parse_tasker_timestamps(stdout)
+                if tasker_timing["internal_duration"] is not None:
+                    print(f"  [DEBUG] TASKER internal duration: {tasker_timing['internal_duration']:.4f}s")
+                    print(f"  [DEBUG] TASKER first timestamp: {tasker_timing['first_timestamp'].strftime('%H:%M:%S')}")
+                    print(f"  [DEBUG] TASKER last timestamp: {tasker_timing['last_timestamp'].strftime('%H:%M:%S')}")
+                    print(f"  [DEBUG] TASKER timestamp count: {tasker_timing['timestamp_count']}")
+
+                    # Calculate discrepancy
+                    discrepancy = execution_time - tasker_timing['internal_duration']
+                    print(f"  [DEBUG] Timing discrepancy: {discrepancy:.4f}s ({discrepancy*1000:.1f}ms)")
+                else:
+                    print(f"  [DEBUG] Could not parse TASKER timestamps (found {tasker_timing['timestamp_count']})")
 
             # Parse execution path from output
             execution_path_data = self.parse_execution_path(stdout)
@@ -1061,7 +1239,11 @@ class TestValidator:
                        if warning_pattern.match(line)]
         actual_warning_count = len(warning_lines)
 
-        if "expected_warnings" in metadata:
+        # Check if test allows variable warning counts (for tests with timing-dependent warnings)
+        if metadata.get("allow_variable_warnings", False):
+            # Skip warning count validation - warnings are expected but count may vary
+            pass
+        elif "expected_warnings" in metadata:
             expected_warning_count = metadata["expected_warnings"]
             if actual_warning_count != expected_warning_count:
                 validation_results["passed"] = False
@@ -1157,9 +1339,9 @@ class TestValidator:
 class IntelligentTestRunner:
     """Main test runner orchestrator."""
 
-    def __init__(self, tasker_path=None):
+    def __init__(self, tasker_path=None, debug_timing=False):
         self.tasker_path = _resolve_tasker_path(tasker_path)
-        self.executor = TaskerTestExecutor(self.tasker_path)
+        self.executor = TaskerTestExecutor(self.tasker_path, debug_timing=debug_timing)
         self.validator = TestValidator()
         self.results = []
 
@@ -1390,11 +1572,16 @@ def main():
         action="store_true",
         help="Recursively search for test files in subdirectories"
     )
+    parser.add_argument(
+        "--debug-timing",
+        action="store_true",
+        help="Enable detailed timing debug output to investigate timing discrepancies"
+    )
 
     args = parser.parse_args()
 
     # Initialize test runner
-    runner = IntelligentTestRunner(args.tasker_path)
+    runner = IntelligentTestRunner(args.tasker_path, debug_timing=args.debug_timing)
 
     # Handle multiple targets
     test_files_set = set()

@@ -11,7 +11,6 @@ from .base_executor import BaseExecutor
 from ..core.condition_evaluator import ConditionEvaluator
 from ..core.utilities import ExitHandler, ExitCodes, format_output_for_log
 from ..core.streaming_output_handler import create_memory_efficient_handler
-from ..utils.non_blocking_sleep import sleep_async
 
 
 class SequentialExecutor(BaseExecutor):
@@ -201,8 +200,13 @@ class SequentialExecutor(BaseExecutor):
                         # This intentionally deviates from repo coding guidelines to achieve memory efficiency.
                         # Standard communicate() loads entire output into memory, causing OOM with large outputs (1GB+).
                         # Manual streaming with temp file fallback prevents memory exhaustion while maintaining timeout support.
+
+                        # Create shutdown check callback to terminate subprocess on signal
+                        def shutdown_check():
+                            return getattr(executor_instance, '_shutdown_requested', False)
+
                         stdout, stderr, exit_code, timed_out = output_handler.stream_process_output(
-                            process, timeout=task_timeout
+                            process, timeout=task_timeout, shutdown_check=shutdown_check
                         )
 
                         # Log memory usage for large outputs
@@ -323,34 +327,18 @@ class SequentialExecutor(BaseExecutor):
                     sleep_time = float(sleep_time_str)
                     executor_instance.log(f"Task {task_id}{loop_display}: Sleeping for {sleep_time} seconds")
                     if not executor_instance.dry_run and sleep_time > 0:
-                        # Use non-blocking sleep for consistency with parallel executor
-                        sleep_completion_event = threading.Event()
-                        task_display = f"{task_id}{loop_display}"
-
-                        def sleep_callback(event=sleep_completion_event, display_id=task_display):
-                            try:
-                                executor_instance.log_debug(f"Task {display_id}: Sleep completed")
-                            except Exception as e:
-                                # Log the logging exception but don't let it prevent event signaling
-                                try:
-                                    executor_instance.log(f"Task {display_id}: Sleep callback logging failed: {e}")
-                                except Exception:
-                                    # Even fallback logging failed - just ignore to ensure event gets set
-                                    pass
-                            finally:
-                                # Always signal completion regardless of logging success/failure
-                                event.set()
-
-                        sleep_async(
-                            sleep_time,
-                            sleep_callback,
-                            task_id=f"{task_id}{loop_display}-sleep",
-                            logger_callback=executor_instance.log_debug
-                        )
-
-                        # Wait for sleep to complete with timeout to prevent indefinite blocking
-                        if not sleep_completion_event.wait(timeout=sleep_time + 5.0):
-                            executor_instance.log_warn(f"Task {task_id}{loop_display}: Sleep timer did not complete within timeout, proceeding")
+                        # Sequential execution: use simple time.sleep() with periodic shutdown checks
+                        # Parallel executor uses non-blocking sleep to avoid thread pool starvation
+                        sleep_interval = 0.5  # Check every 500ms
+                        elapsed = 0
+                        while elapsed < sleep_time:
+                            if getattr(executor_instance, '_shutdown_requested', False):
+                                executor_instance.log(f"Task {task_id}{loop_display}: Sleep interrupted by shutdown signal")
+                                executor_instance._check_shutdown()  # Trigger shutdown
+                                break
+                            chunk = min(sleep_interval, sleep_time - elapsed)
+                            time.sleep(chunk)
+                            elapsed += chunk
                 else:
                     executor_instance.log(f"Task {task_id}{loop_display}: Unresolved variables in sleep time. Skipping sleep.")
             except ValueError:

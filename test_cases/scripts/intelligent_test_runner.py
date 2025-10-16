@@ -58,8 +58,10 @@ def _collect_test_files(target_path, recursive=False):
     test_files = []
     if recursive:
         for root, _dirs, files in os.walk(target_path):
-            # Skip templates directory
-            if '/templates' in root or root.endswith('templates'):
+            # Skip templates directory - cross-platform compatible
+            # Check if 'templates' is in any path segment (works on Windows/Unix)
+            path_parts = Path(root).parts
+            if 'templates' in path_parts:
                 continue
             for file in files:
                 if file.endswith('.txt'):

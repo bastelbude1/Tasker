@@ -149,7 +149,7 @@ class PerformanceMonitor:
 
             try:
                 target_process = psutil.Process(self.process.pid)
-            except Exception as e:
+            except (psutil.Error, OSError, ValueError) as e:
                 self.monitoring_error = f"Failed to create psutil.Process({self.process.pid}): {type(e).__name__}: {e!s}"
                 return
 
@@ -176,7 +176,7 @@ class PerformanceMonitor:
                     else:
                         self.monitoring_error = f"Process ended after {self.sample_count} samples: {type(e).__name__}"
                     break
-                except Exception as e:
+                except (psutil.Error, OSError) as e:
                     # Unexpected error - graceful degradation
                     if self.sample_count == 0:
                         self.monitoring_error = f"Monitoring failed on first sample: {type(e).__name__}: {e!s}"
@@ -184,7 +184,7 @@ class PerformanceMonitor:
                         self.monitoring_error = f"Monitoring error after {self.sample_count} samples: {type(e).__name__}: {e!s}"
                     break
 
-        except Exception as e:
+        except RuntimeError as e:
             # Monitoring setup failed - graceful degradation
             self.monitoring_error = f"Monitoring setup failed: {type(e).__name__}: {e!s}"
 

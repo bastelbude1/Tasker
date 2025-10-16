@@ -18,6 +18,7 @@ def run_test(filepath):
     """Run a test and capture exit code and warnings."""
     cmd = [
         'python3', '../tasker.py',
+        '-r',  # RUN mode - actually execute tasks
         '--skip-host-validation',
         filepath
     ]

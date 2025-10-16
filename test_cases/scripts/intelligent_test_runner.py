@@ -128,7 +128,7 @@ class PerformanceMonitor:
         elif self.sample_count == 0:
             # No samples collected but no error - monitoring flag might have been cleared too quickly
             expected_samples = int((self.end_time - self.start_time) * 10)
-            pid_info = f" (PID {self.process_pid})" if hasattr(self, 'process_pid') and self.process_pid else ""
+            pid_info = f" (PID {self.process_pid})" if self.process_pid else ""
             metrics["monitoring_error"] = f"No samples collected (0/{expected_samples} expected){pid_info} - thread may have started too late or monitoring stopped prematurely"
 
         return metrics

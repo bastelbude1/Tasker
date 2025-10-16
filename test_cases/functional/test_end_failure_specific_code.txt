@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "End Failure Block - return=14 specific error code (Section 12, Pattern 2)","test_type": "negative","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,97],"expected_final_task": 97}
+# TEST_METADATA: {"description": "End Failure Block - return=14 specific error code (Section 12, Pattern 2)","test_type": "negative","expected_exit_code": 14,"expected_success": false,"skip_host_validation": true,"expected_execution_path": [0,1,97],"expected_final_task": 97}
 # Test End Failure Block as defined in TaskER_FlowChart.md Section 12
 # Pattern: Stop with specific error code (return=14)
 # As shown in TaskER_FlowChart.md Section 12 example

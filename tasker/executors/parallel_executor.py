@@ -275,17 +275,13 @@ class ParallelExecutor(BaseExecutor):
         
         # NEW: Parse retry configuration
         retry_config = executor_instance.parse_retry_config(parallel_task)
-        
-        # PARALLEL EXECUTION TIMEOUT: Default timeout for the overall parallel execution
-        # NOTE: Individual tasks use their own timeout values, not this overall timeout
-        overall_parallel_timeout = executor_instance.get_task_timeout(parallel_task)
 
         # IMPROVED: Cleaner startup message with retry info
         retry_info = ""
         if retry_config:
             retry_info = f", retry_failed=true (count={retry_config['count']}, delay={retry_config['delay']}s)"
 
-        executor_instance.log(f"Task {task_id}: Starting parallel execution of {len(tasks_to_execute)} tasks (max_parallel={max_parallel}, timeout={overall_parallel_timeout}s{retry_info})")
+        executor_instance.log(f"Task {task_id}: Starting parallel execution of {len(tasks_to_execute)} tasks (max_parallel={max_parallel}{retry_info})")
         
         # Execute tasks in parallel with master timeout enforcement and retry logic
         results = []
@@ -387,112 +383,80 @@ class ParallelExecutor(BaseExecutor):
                         future = thread_executor.submit(ParallelExecutor.execute_single_task_for_parallel, task, None, "", executor_instance=executor_instance)
                     future_to_task[future] = task
                 
-                # Collect results with OVERALL PARALLEL TIMEOUT enforcement
                 # Phase 1: Collect all task results and start sleeps in parallel
                 sleep_trackers = []  # Track sleep operations separately
 
-                try:
-                    for future in as_completed(future_to_task, timeout=overall_parallel_timeout):
-                        task = future_to_task[future]
-                        # Check for shutdown during result collection
-                        if executor_instance._shutdown_requested:
-                            # Cancel remaining tasks and exit gracefully
-                            for f in future_to_task:
-                                if not f.done():
-                                    f.cancel()
-                            executor_instance.log("Parallel execution interrupted by shutdown request")
-                            executor_instance._check_shutdown()
+                for future in as_completed(future_to_task):
+                    task = future_to_task[future]
+                    # Check for shutdown during result collection
+                    if executor_instance._shutdown_requested:
+                        # Cancel remaining tasks and exit gracefully
+                        for f in future_to_task:
+                            if not f.done():
+                                f.cancel()
+                        executor_instance.log("Parallel execution interrupted by shutdown request")
+                        executor_instance._check_shutdown()
 
-                        try:
-                            result = future.result()
-                            task_display_id = f"{task_id}-{result['task_id']}"
+                    try:
+                        result = future.result()
+                        task_display_id = f"{task_id}-{result['task_id']}"
 
-                            # Handle sleep AFTER task completion - START WITHOUT WAITING
-                            sleep_seconds = result.get('sleep_seconds', 0)
-                            if sleep_seconds > 0 and not executor_instance.dry_run:
-                                executor_instance.log(f"Task {task_display_id}: Scheduling non-blocking sleep for {sleep_seconds} seconds...")
+                        # Handle sleep AFTER task completion - START WITHOUT WAITING
+                        sleep_seconds = result.get('sleep_seconds', 0)
+                        if sleep_seconds > 0 and not executor_instance.dry_run:
+                            executor_instance.log(f"Task {task_display_id}: Scheduling non-blocking sleep for {sleep_seconds} seconds...")
 
-                                # Create event for this sleep operation
-                                result_completion_event = threading.Event()
+                            # Create event for this sleep operation
+                            result_completion_event = threading.Event()
 
-                                def make_sleep_callback(event, task_id_local):
-                                    """Create a closure to capture the correct event and task_id."""
-                                    def sleep_completed_callback():
-                                        """Process result after sleep completes."""
-                                        executor_instance.log_debug(f"Task {task_id_local}: Sleep completed")
-                                        event.set()
-                                    return sleep_completed_callback
+                            def make_sleep_callback(event, task_id_local):
+                                """Create a closure to capture the correct event and task_id."""
+                                def sleep_completed_callback():
+                                    """Process result after sleep completes."""
+                                    executor_instance.log_debug(f"Task {task_id_local}: Sleep completed")
+                                    event.set()
+                                return sleep_completed_callback
 
-                                # Start the sleep timer without waiting
-                                sleep_timer = sleep_async(
-                                    sleep_seconds,
-                                    make_sleep_callback(result_completion_event, task_display_id),
-                                    task_id=f"{task_display_id}-post-sleep",
-                                    logger_callback=executor_instance.log_debug
-                                )
+                            # Start the sleep timer without waiting
+                            sleep_timer = sleep_async(
+                                sleep_seconds,
+                                make_sleep_callback(result_completion_event, task_display_id),
+                                task_id=f"{task_display_id}-post-sleep",
+                                logger_callback=executor_instance.log_debug
+                            )
 
-                                # Track this sleep operation for later collection
-                                sleep_trackers.append({
-                                    'event': result_completion_event,
-                                    'timer': sleep_timer,
-                                    'task_id': task_display_id,
-                                    'duration': sleep_seconds,
-                                    'result': result,
-                                    'start_time': time.time()
-                                })
-                            else:
-                                # No sleep needed, add result immediately
-                                results.append(result)
-
-                                # Log completion immediately for non-sleeping tasks
-                                success_text = "Success: True" if result['success'] else "Success: False"
-                                if result['exit_code'] == 124:
-                                    success_text += " (timeout)"
-                                elif result.get('skipped', False):
-                                    success_text += " (skipped)"
-                                executor_instance.log(f"Task {task_display_id}: Completed - {success_text}")
-                                
-                        except Exception as e:
-                            task_id_inner = int(task['task'])
-                            executor_instance.log(f"Task {task_id}: [ERROR] Task {task_id_inner} exception: {str(e)}")
-                            results.append({
-                                'task_id': task_id_inner,
-                                'exit_code': 1,
-                                'stdout': '',
-                                'stderr': f'Exception: {str(e)}',
-                                'success': False,
-                                'skipped': False
+                            # Track this sleep operation for later collection
+                            sleep_trackers.append({
+                                'event': result_completion_event,
+                                'timer': sleep_timer,
+                                'task_id': task_display_id,
+                                'duration': sleep_seconds,
+                                'result': result,
+                                'start_time': time.time()
                             })
-                            
-                except Exception as timeout_exception:
-                    # OVERALL PARALLEL TIMEOUT REACHED - Graceful cancellation
-                    elapsed = time.time() - start_time
-                    executor_instance.log(f"Task {task_id}: PARALLEL TIMEOUT ({overall_parallel_timeout}s) reached after {elapsed:.1f}s")
+                        else:
+                            # No sleep needed, add result immediately
+                            results.append(result)
 
-                    # Cancel remaining futures and collect partial results
-                    cancelled_count = 0
-                    for future, task in future_to_task.items():
-                        if not future.done():
-                            future.cancel()
-                            cancelled_count += 1
+                            # Log completion immediately for non-sleeping tasks
+                            success_text = "Success: True" if result['success'] else "Success: False"
+                            if result['exit_code'] == 124:
+                                success_text += " (timeout)"
+                            elif result.get('skipped', False):
+                                success_text += " (skipped)"
+                            executor_instance.log(f"Task {task_display_id}: Completed - {success_text}")
 
-                            # Create timeout result for cancelled tasks
-                            task_id_inner = int(task['task'])
-                            results.append({
-                                'task_id': task_id_inner,
-                                'exit_code': 124,  # Timeout exit code
-                                'stdout': '',
-                                'stderr': f'Task cancelled due to parallel timeout ({overall_parallel_timeout}s)',
-                                'success': False,
-                                'skipped': False
-                            })
-
-                    executor_instance.log(f"Task {task_id}: Cancelled {cancelled_count} remaining tasks due to parallel timeout")
-
-                    # Also cancel any pending sleeps
-                    for tracker in sleep_trackers:
-                        if tracker['timer'] and not tracker['event'].is_set():
-                            tracker['timer'].cancel()
+                    except Exception as e:
+                        task_id_inner = int(task['task'])
+                        executor_instance.log(f"Task {task_id}: [ERROR] Task {task_id_inner} exception: {str(e)}")
+                        results.append({
+                            'task_id': task_id_inner,
+                            'exit_code': 1,
+                            'stdout': '',
+                            'stderr': f'Exception: {str(e)}',
+                            'success': False,
+                            'skipped': False
+                        })
 
                 # Phase 2: Wait for all sleep operations to complete in parallel
                 # This happens AFTER all task results are collected

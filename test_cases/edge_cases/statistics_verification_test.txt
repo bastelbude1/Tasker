@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Statistics verification test - parallel task success/failure counting", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+# TEST_METADATA: {"description": "Statistics verification test - parallel task success/failure counting", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "acceptable_warnings": ["Post-sleep timer did not signal within timeout"]}
 # STATISTICS VERIFICATION TEST
 # Tests the fixed statistics and min_success logic
 

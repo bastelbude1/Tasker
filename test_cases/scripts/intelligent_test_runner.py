@@ -557,44 +557,43 @@ class TaskerTestExecutor:
         try:
             # Signal tests may take longer (signal delay + execution + cleanup)
             # Use 60 second timeout (should be enough for most signal tests)
-            process = subprocess.Popen(
+            with subprocess.Popen(
                 cmd_args,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True
-            )
-
-            try:
-                stdout, stderr = process.communicate(timeout=60)
-                exit_code = process.returncode
-            except subprocess.TimeoutExpired:
-                process.terminate()
+            ) as process:
                 try:
-                    process.wait(timeout=5)
+                    stdout, stderr = process.communicate(timeout=60)
+                    exit_code = process.returncode
                 except subprocess.TimeoutExpired:
-                    process.kill()
+                    process.terminate()
+                    try:
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
 
-                try:
-                    stdout, stderr = process.communicate(timeout=1)
-                except subprocess.TimeoutExpired:
-                    stdout, stderr = "", "Signal test wrapper timeout"
+                    try:
+                        stdout, stderr = process.communicate(timeout=1)
+                    except subprocess.TimeoutExpired:
+                        stdout, stderr = "", "Signal test wrapper timeout"
 
-                exit_code = 124
+                    exit_code = 124
 
-            execution_time = (datetime.now() - start_time).total_seconds()
+                execution_time = (datetime.now() - start_time).total_seconds()
 
-            # Parse execution path from TASKER output embedded in wrapper output
-            execution_path_data = self.parse_execution_path(stdout)
+                # Parse execution path from TASKER output embedded in wrapper output
+                execution_path_data = self.parse_execution_path(stdout)
 
-            return {
-                "exit_code": exit_code,
-                "stdout": stdout,
-                "stderr": stderr,
-                "execution_time": execution_time,
-                "timed_out": (exit_code == 124),
-                "error": None,
-                "execution_path": execution_path_data
-            }
+                return {
+                    "exit_code": exit_code,
+                    "stdout": stdout,
+                    "stderr": stderr,
+                    "execution_time": execution_time,
+                    "timed_out": (exit_code == 124),
+                    "error": None,
+                    "execution_path": execution_path_data
+                }
 
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
@@ -681,76 +680,76 @@ class TaskerTestExecutor:
         try:
             # Start subprocess - Python 3.6.8 compatible pattern
             popen_start = datetime.now()
-            process = subprocess.Popen(
+            with subprocess.Popen(
                 cmd_args,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
                 env=env
-            )
-            popen_end = datetime.now()
+            ) as process:
+                popen_end = datetime.now()
 
-            if self.debug_timing:
-                popen_overhead = (popen_end - popen_start).total_seconds()
-                print(f"  [DEBUG] Subprocess Popen overhead: {popen_overhead:.4f}s")
-
-            try:
-                # Start performance monitoring for performance tests
-                if metadata.get("test_type") == "performance":
-                    self.performance_monitor.start_monitoring(process)
+                if self.debug_timing:
+                    popen_overhead = (popen_end - popen_start).total_seconds()
+                    print(f"  [DEBUG] Subprocess Popen overhead: {popen_overhead:.4f}s")
 
                 try:
-                    # Increased timeout to 120s to accommodate multi-host validation tests
-                    # Host validation: 3 hosts x ~25s per host (DNS 10s + ping 5s + remote 10s) = 75s+
-                    communicate_start = datetime.now()
-                    if self.debug_timing:
-                        print(f"  [DEBUG] Starting process.communicate() at: {communicate_start.strftime('%H:%M:%S.%f')[:-3]}")
-
-                    stdout, stderr = process.communicate(timeout=120)
-                    exit_code = process.returncode
-
-                    communicate_end = datetime.now()
-                    if self.debug_timing:
-                        communicate_duration = (communicate_end - communicate_start).total_seconds()
-                        print(f"  [DEBUG] process.communicate() completed at: {communicate_end.strftime('%H:%M:%S.%f')[:-3]}")
-                        print(f"  [DEBUG] process.communicate() duration: {communicate_duration:.4f}s")
-
-                    # Stop performance monitoring
+                    # Start performance monitoring for performance tests
                     if metadata.get("test_type") == "performance":
-                        performance_metrics = self.performance_monitor.stop_monitoring()
-                        # Parse task timings from output
-                        task_timings = self.performance_monitor.parse_task_timings(stdout)
-                        performance_metrics["task_timings"] = task_timings
+                        self.performance_monitor.start_monitoring(process)
 
-                except subprocess.TimeoutExpired:
-                    # Terminate the process on timeout
-                    process.terminate()
                     try:
-                        process.wait(timeout=5)  # Give process 5 seconds to terminate gracefully
+                        # Increased timeout to 120s to accommodate multi-host validation tests
+                        # Host validation: 3 hosts x ~25s per host (DNS 10s + ping 5s + remote 10s) = 75s+
+                        communicate_start = datetime.now()
+                        if self.debug_timing:
+                            print(f"  [DEBUG] Starting process.communicate() at: {communicate_start.strftime('%H:%M:%S.%f')[:-3]}")
+
+                        stdout, stderr = process.communicate(timeout=120)
+                        exit_code = process.returncode
+
+                        communicate_end = datetime.now()
+                        if self.debug_timing:
+                            communicate_duration = (communicate_end - communicate_start).total_seconds()
+                            print(f"  [DEBUG] process.communicate() completed at: {communicate_end.strftime('%H:%M:%S.%f')[:-3]}")
+                            print(f"  [DEBUG] process.communicate() duration: {communicate_duration:.4f}s")
+
+                        # Stop performance monitoring
+                        if metadata.get("test_type") == "performance":
+                            performance_metrics = self.performance_monitor.stop_monitoring()
+                            # Parse task timings from output
+                            task_timings = self.performance_monitor.parse_task_timings(stdout)
+                            performance_metrics["task_timings"] = task_timings
+
                     except subprocess.TimeoutExpired:
-                        process.kill()  # Force kill if it doesn't terminate
+                        # Terminate the process on timeout
+                        process.terminate()
+                        try:
+                            process.wait(timeout=5)  # Give process 5 seconds to terminate gracefully
+                        except subprocess.TimeoutExpired:
+                            process.kill()  # Force kill if it doesn't terminate
 
-                    # Capture any output before termination
-                    try:
-                        stdout, stderr = process.communicate(timeout=1)
-                    except subprocess.TimeoutExpired:
-                        stdout, stderr = "", "Process killed due to timeout"
+                        # Capture any output before termination
+                        try:
+                            stdout, stderr = process.communicate(timeout=1)
+                        except subprocess.TimeoutExpired:
+                            stdout, stderr = "", "Process killed due to timeout"
 
-                    exit_code = 124
-                    if metadata.get("test_type") == "performance":
-                        performance_metrics = self.performance_monitor.stop_monitoring()
+                        exit_code = 124
+                        if metadata.get("test_type") == "performance":
+                            performance_metrics = self.performance_monitor.stop_monitoring()
 
-            finally:
-                # Ensure process cleanup - avoid zombies
-                if process.poll() is None:
-                    process.terminate()
-                    try:
-                        process.wait(timeout=2)
-                    except subprocess.TimeoutExpired:
-                        process.kill()
+                finally:
+                    # Ensure process cleanup - avoid zombies
+                    if process.poll() is None:
+                        process.terminate()
+                        try:
+                            process.wait(timeout=2)
+                        except subprocess.TimeoutExpired:
+                            process.kill()
 
-            end_time = datetime.now()
-            execution_time = (end_time - start_time).total_seconds()
+                end_time = datetime.now()
+                execution_time = (end_time - start_time).total_seconds()
 
             # Debug timing: Parse TASKER's internal timestamps
             if self.debug_timing:

@@ -1,5 +1,5 @@
 # Test conditional 
-# TEST_METADATA: {"description": "Test conditional block", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11"]}
+# TEST_METADATA: {"description": "Test conditional block","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2],"expected_subtasks": ["1-10","1-11"]}
 
 task=0
 hostname=localhost

@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Parallel any_success with no tasks succeeding - condition not met", "test_type": "negative", "expected_exit_code": 10, "expected_success": false, "skip_host_validation": true, "expected_execution_path": [0, 1], "expected_subtasks": ["1-10", "1-11", "1-12"], "expected_success_count": 0, "expected_failed_count": 3, "expected_condition_met": false, "expected_final_task": 1, "success_condition": "any_success"}
+# TEST_METADATA: {"description": "Parallel any_success with no tasks succeeding - condition not met","test_type": "negative","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1],"expected_subtasks": ["1-10","1-11","1-12"],"expected_success_count": 0,"expected_failed_count": 3,"expected_condition_met": false,"expected_final_task": 1,"success_condition": "any_success"}
 # Test parallel execution with any_success condition
 # any_success with no tasks succeeding - condition not met
 

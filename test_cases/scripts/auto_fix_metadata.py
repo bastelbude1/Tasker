@@ -23,18 +23,15 @@ def run_test(filepath):
     ]
 
     try:
-        result = subprocess.run(
+        with subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             universal_newlines=True,
-            timeout=10,
             cwd=TEST_CASES_DIR
-        )
-
-        exit_code = result.returncode
-        stderr = result.stderr
-        stdout = result.stdout
+        ) as process:
+            stdout, stderr = process.communicate(timeout=10)
+            exit_code = process.returncode
 
         # Count warnings (check both stdout and stderr)
         warning_count = stdout.count('WARN:') + stderr.count('WARN:')

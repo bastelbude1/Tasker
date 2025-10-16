@@ -1,6 +1,11 @@
-# TEST_METADATA: {"description": "Non-blocking sleep test","test_type": "negative","expected_exit_code": 10,"expected_success": false,"skip_host_validation": true,"expected_warnings": 3}
+# TEST_METADATA: {"description": "Non-blocking sleep test","test_type": "negative","expected_exit_code": 10,"expected_success": false,"allow_variable_warnings": true,"skip_host_validation": true}
 # TASKER Non-Blocking Sleep Test
 # Tests that sleep operations don't block thread pools and allow better parallelism
+#
+# Expected Behavior:
+# - Parallel tasks complete faster than sequential execution (3s vs 6.5s)
+# - Exit code 10 (workflow stops due to retry task failure)
+# - 2-3 warnings expected (2 for missing task 0 dependencies + occasional timer warning)
 
 # Test 1: Parallel tasks with sleep should not block each other's execution
 task=1

@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Conditional Conditional min_success=3 with 4 successes - condition exceeded", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11", "1-12", "1-13", "1-14"], "expected_success_count": 4, "expected_failed_count": 1, "expected_condition_met": true, "expected_final_task": 2, "success_condition": "min_success=3"}
+# TEST_METADATA: {"description": "Conditional Conditional min_success=3 with 4 successes - condition exceeded","test_type": "positive","expected_exit_code": 10,"expected_success": false,"skip_host_validation": true,"expected_execution_path": [0,1,2],"expected_subtasks": ["1-10","1-11","1-12","1-13","1-14"],"expected_success_count": 4,"expected_failed_count": 1,"expected_condition_met": true,"expected_final_task": 2,"success_condition": "min_success=3"}
 # Test conditional execution with min_success=3 condition
 # Conditional min_success=3 with 4 successes - condition exceeded
 

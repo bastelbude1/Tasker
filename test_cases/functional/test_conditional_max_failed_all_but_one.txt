@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Conditional Conditional max_failed=4 with 4 failures - edge case met", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11", "1-12", "1-13", "1-14"], "expected_success_count": 1, "expected_failed_count": 4, "expected_condition_met": true, "expected_final_task": 2, "success_condition": "max_failed=4"}
+# TEST_METADATA: {"description": "Conditional Conditional max_failed=4 with 4 failures - edge case met","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2],"expected_subtasks": ["1-10","1-11","1-12","1-13","1-14"],"expected_success_count": 1,"expected_failed_count": 4,"expected_condition_met": true,"expected_final_task": 2,"success_condition": "max_failed=4"}
 # Test conditional execution with max_failed=4 condition
 # Conditional max_failed=4 with 4 failures - edge case met
 

@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Conditional Block test - invalid empty branches (should fail validation)", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_error_expected": true}
+# TEST_METADATA: {"description": "Conditional Block test - invalid empty branches (should fail validation)","test_type": "validation_only","expected_exit_code": 20,"expected_success": false,"validation_error_expected": true}
 
 # This test should FAIL validation - conditional blocks with empty branches are not allowed
 task=0

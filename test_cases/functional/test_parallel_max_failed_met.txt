@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Parallel max_failed=2 with exactly 2 failures - condition met", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11", "1-12", "1-13", "1-14"], "expected_success_count": 3, "expected_failed_count": 2, "expected_condition_met": true, "expected_final_task": 2, "success_condition": "max_failed=2"}
+# TEST_METADATA: {"description": "Parallel max_failed=2 with exactly 2 failures - condition met","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2],"expected_subtasks": ["1-10","1-11","1-12","1-13","1-14"],"expected_success_count": 3,"expected_failed_count": 2,"expected_condition_met": true,"expected_final_task": 2,"success_condition": "max_failed=2"}
 # Test parallel execution with max_failed=2 condition
 # max_failed=2 with exactly 2 failures - condition met
 

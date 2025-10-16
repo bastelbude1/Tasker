@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Global Variable Block test - undefined variable references should fail", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_category": "undefined_variables", "skip_host_validation": true}
+# TEST_METADATA: {"description": "Global Variable Block test - undefined variable references should fail","test_type": "validation_only","expected_exit_code": 20,"expected_success": false,"validation_category": "undefined_variables","skip_host_validation": true}
 # Test Block 14: Global Variable Definition Block - Undefined Variables
 # Tests that references to undefined global variables cause validation errors
 

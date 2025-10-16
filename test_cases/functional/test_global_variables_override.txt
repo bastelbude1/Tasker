@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Global Variable Block test - testing variable override behavior", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "skip_host_validation": true}
+# TEST_METADATA: {"description": "Global Variable Block test - testing variable override behavior","test_type": "positive","expected_exit_code": 0,"expected_success": true,"expected_execution_path": [0,1,2],"skip_host_validation": true}
 # Test Block 14: Global Variable Definition Block - Override Behavior
 # Tests how global variables interact with direct field values
 

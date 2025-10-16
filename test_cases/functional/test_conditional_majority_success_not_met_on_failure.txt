@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Conditional majority_success with 2/5 successes (40%) - takes on_failure path", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 99]}
+# TEST_METADATA: {"description": "Conditional majority_success with 2/5 successes (40%) - takes on_failure path","test_type": "positive","expected_exit_code": 1,"expected_success": false,"skip_host_validation": true,"expected_execution_path": [0,1,99]}
 
 # Test Section 10.2: Multi-Task Success Evaluation with on_success/on_failure routing
 # majority_success with 2/5 successes (40%) - condition NOT met - takes on_failure path

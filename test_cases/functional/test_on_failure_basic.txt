@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Success Check Block with on_failure routing when condition fails", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "expected_execution_path": [0, 1, 99], "expected_final_task": 99, "expected_variables": {"0_stdout": "initialization", "1_stdout": "stopped", "99_stdout": "failure path executed"}}
+# TEST_METADATA: {"description": "Success Check Block with on_failure routing when condition fails","test_type": "negative","expected_exit_code": 1,"expected_success": false,"expected_execution_path": [0,1,99],"expected_final_task": 99,"expected_variables": {"0_stdout": "initialization","1_stdout": "stopped","99_stdout": "failure path executed"}}
 
 # Test case for Success Check Block with on_success/on_failure routing - FAILURE PATH
 # Task 1 checks success condition: success=exit_0&stdout~running

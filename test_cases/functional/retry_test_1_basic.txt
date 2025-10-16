@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Basic retry functionality - parallel tasks with retry_count=2", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+# TEST_METADATA: {"description": "Basic retry functionality - parallel tasks with retry_count=2","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2]}
 # TEST 1: Basic Retry Functionality
 # Tests basic retry logic with failed tasks that succeed on retry
 

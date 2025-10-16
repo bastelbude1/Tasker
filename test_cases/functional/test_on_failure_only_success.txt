@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test on_failure-only pattern with success path", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_final_task": 2}
+# TEST_METADATA: {"description": "Test on_failure-only pattern with success path","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2],"expected_final_task": 2}
 # Pattern 1: on_failure ONLY
 # Success case: continue to next task (task 2)
 # Failure case: would jump to error handler (task 99)

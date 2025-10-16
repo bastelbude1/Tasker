@@ -1473,7 +1473,7 @@ class IntelligentTestRunner:
             status_icon = "[SKIP]"
         else:
             status_icon = "[FAIL]"
-        print(f"{status_icon} {name} ({status}) - {time:.2f}s")
+        print(f"{status_icon} {name} - {time:.2f}s")
 
         # Show execution path info for passed tests (if available)
         if status == "PASSED" and "execution_results" in result:
@@ -1616,9 +1616,9 @@ class IntelligentTestRunner:
         print(f"Total Duration: {total_time:.2f} seconds")
         print()
         print("RESULTS:")
-        print(f"[PASS] PASSED: {passed_tests}/{total_tests} tests")
-        print(f"[FAIL] FAILED: {failed_tests}/{total_tests} tests")
-        print(f"[SKIP] SKIPPED: {skipped_tests}/{total_tests} tests (missing metadata)")
+        print(f"[PASS] {passed_tests}/{total_tests} tests")
+        print(f"[FAIL] {failed_tests}/{total_tests} tests")
+        print(f"[SKIP] {skipped_tests}/{total_tests} tests (missing metadata)")
         print()
 
         if failed_tests > 0:

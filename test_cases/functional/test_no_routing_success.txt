@@ -1,6 +1,6 @@
 # TEST_METADATA: {"description": "Test task with no routing parameters - success should continue","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2],"expected_final_task": 2}
 # Test default behavior when task has NO routing parameters
-# Task succeeds → workflow should CONTINUE to next task
+# Task succeeds -> workflow should CONTINUE to next task
 
 task=0
 hostname=localhost

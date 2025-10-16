@@ -9,7 +9,7 @@ command=output_generator.sh
 arguments=newline
 exec=local
 stdout_split=newline,3
-# Output: "alpha\nbeta\ngamma\ndelta\nepsilon" → Extract "delta" (index 3, 4th line)
+# Output: "alpha\nbeta\ngamma\ndelta\nepsilon" -> Extract "delta" (index 3, 4th line)
 
 task=1
 hostname=localhost

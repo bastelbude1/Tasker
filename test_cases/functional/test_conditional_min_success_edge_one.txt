@@ -10,8 +10,8 @@ exec=local
 
 # Conditional block with min_success=1 condition
 # Section 10.1: Multi-Task Success Evaluation Block (next)
-# If condition met → continue to task 2 (sequential)
-# If condition not met → workflow ends
+# If condition met -> continue to task 2 (sequential)
+# If condition not met -> workflow ends
 task=1
 type=conditional
 condition=@0_stdout@=PRODUCTION

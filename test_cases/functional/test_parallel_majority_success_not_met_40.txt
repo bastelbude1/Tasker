@@ -10,8 +10,8 @@ exec=local
 
 # Parallel block with majority_success condition
 # Section 10.1: Multi-Task Success Evaluation Block (next)
-# If condition met → continue to task 2 (sequential)
-# If condition not met → workflow ends
+# If condition met -> continue to task 2 (sequential)
+# If condition not met -> workflow ends
 task=1
 type=parallel
 tasks=10,11,12,13,14

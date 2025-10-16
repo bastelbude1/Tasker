@@ -11,7 +11,7 @@ command=/usr/bin/echo
 arguments=Starting failure parameter test
 exec=local
 
-# Task 1: exit 0, failure=exit_1 → NOT failure → success
+# Task 1: exit 0, failure=exit_1 -> NOT failure -> success
 task=1
 hostname=localhost
 command=/usr/bin/echo

@@ -1279,13 +1279,21 @@ class TestValidator:
         acceptable_warnings = metadata.get("acceptable_warnings", [])
 
         # Filter out acceptable warnings before counting (test-specific)
+        # Supports both regex patterns and literal strings with case-insensitive matching
         non_acceptable_warnings = []
         for warning_line in warning_lines:
             is_acceptable = False
             for acceptable_pattern in acceptable_warnings:
-                if acceptable_pattern in warning_line:
-                    is_acceptable = True
-                    break
+                # Treat patterns as regex; fall back to literal if invalid
+                try:
+                    if re.search(acceptable_pattern, warning_line, re.IGNORECASE):
+                        is_acceptable = True
+                        break
+                except re.error:
+                    # Invalid regex - fall back to case-insensitive substring match
+                    if acceptable_pattern.lower() in warning_line.lower():
+                        is_acceptable = True
+                        break
             if not is_acceptable:
                 non_acceptable_warnings.append(warning_line)
 

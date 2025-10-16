@@ -41,7 +41,6 @@ task=1
 type=parallel
 max_parallel=5
 tasks=10,11,12,13,14
-timeout=20
 success=all_success
 
 # Parallel subtasks - all sleep 15 seconds
@@ -49,30 +48,35 @@ task=10
 hostname=localhost
 command=sleep
 arguments=15
+timeout=20
 exec=local
 
 task=11
 hostname=localhost
 command=sleep
 arguments=15
+timeout=20
 exec=local
 
 task=12
 hostname=localhost
 command=sleep
 arguments=15
+timeout=20
 exec=local
 
 task=13
 hostname=localhost
 command=sleep
 arguments=15
+timeout=20
 exec=local
 
 task=14
 hostname=localhost
 command=sleep
 arguments=15
+timeout=20
 exec=local
 
 # This task should NOT execute (workflow interrupted by SIGTERM)

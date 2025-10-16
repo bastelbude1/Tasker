@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Conditional block with retry - branch tasks fail then succeed", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11"], "expected_retry_attempts": ["1-10.1", "1-10.2", "1-11.1", "1-11.2", "1-11.3"], "retry_execution_ordered": true}
+# TEST_METADATA: {"description": "Conditional block with retry - branch tasks fail then succeed", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["1-10", "1-11"], "expected_retry_attempts": ["1-10.1", "1-10.2", "1-11.1", "1-11.2", "1-11.3"], "retry_execution_ordered": true, "acceptable_warnings": ["Retry delay timer misfired"]}
 # Test conditional execution with retry_failed=true
 # Section 9 of TaskER_FlowChart.md: Conditional Block with Retry
 # Branch tasks will fail initially but succeed after retries

@@ -172,7 +172,6 @@ task=21
 condition=@20_success@
 hostname=@HOSTNAME@
 exec=@EXEC@
-timeout=@DEFAULT_TIMEOUT@
 command=rm
 arguments=-rf @BASE_PATH@/@SUBDIR@ @BASE_PATH@/@LOG_DIR@
 success=exit_0

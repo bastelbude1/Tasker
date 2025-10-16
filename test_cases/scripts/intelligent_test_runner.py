@@ -90,6 +90,7 @@ class PerformanceMonitor:
         self.task_timings = {}
         self.monitoring_error = None  # Track monitoring errors for debugging
         self.sample_count = 0  # Track successful sample count
+        self.process_pid = None  # PID for diagnostics
 
     def start_monitoring(self, process):
         """Start monitoring system resources for a process."""

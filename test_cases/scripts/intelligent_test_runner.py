@@ -1458,11 +1458,11 @@ class IntelligentTestRunner:
         time = result["execution_time"]
 
         if status == "PASSED":
-            status_icon = "✅"
+            status_icon = "[PASS]"
         elif status == "SKIPPED":
-            status_icon = "⊘"
+            status_icon = "[SKIP]"
         else:
-            status_icon = "❌"
+            status_icon = "[FAIL]"
         print(f"{status_icon} {name} ({status}) - {time:.2f}s")
 
         # Show execution path info for passed tests (if available)
@@ -1529,12 +1529,12 @@ class IntelligentTestRunner:
             security_category = metadata.get("security_category", "N/A")
             risk_level = metadata.get("risk_level", "N/A")
 
-            # Risk level with color coding
-            risk_icon = {"low": "🟢", "medium": "🟡", "high": "🟠", "critical": "🔴"}.get(risk_level, "⚫")
-            print(f"    SECURITY: {security_category.upper()} {risk_icon} {risk_level.upper()}")
+            # Risk level with text labels
+            risk_label = {"low": "[LOW]", "medium": "[MED]", "high": "[HIGH]", "critical": "[CRIT]"}.get(risk_level, "[?]")
+            print(f"    SECURITY: {security_category.upper()} RISK: {risk_level.upper()} {risk_label}")
 
             if status == "PASSED":
-                print(f"    RESULT: ✅ Correctly rejected malicious input")
+                print(f"    RESULT: [PASS] Correctly rejected malicious input")
 
         # Show performance information for performance tests (Phase 5)
         if "metadata" in result and result["metadata"].get("test_type") == "performance":
@@ -1548,14 +1548,14 @@ class IntelligentTestRunner:
 
             # Show sample count for debugging
             sample_count = performance_metrics.get("sample_count", 0)
-            print(f"    PERFORMANCE: ⏱️  {execution_time:.2f}s | 🧠 {peak_memory:.1f}MB | ⚡ {peak_cpu:.1f}% CPU ({sample_count} samples)")
+            print(f"    PERFORMANCE: TIME: {execution_time:.2f}s | MEMORY: {peak_memory:.1f}MB | CPU: {peak_cpu:.1f}% ({sample_count} samples)")
 
             # Show monitoring error if metrics are 0 or sample count is low
             monitoring_error = performance_metrics.get("monitoring_error")
             if monitoring_error:
-                print(f"    ⚠️  Performance monitoring issue: {monitoring_error}")
+                print(f"    WARNING: Performance monitoring issue: {monitoring_error}")
             elif sample_count == 0:
-                print(f"    ⚠️  Warning: No performance samples collected during {execution_time:.2f}s execution")
+                print(f"    WARNING: No performance samples collected during {execution_time:.2f}s execution")
 
             # Show benchmark status
             if "performance_benchmarks" in metadata:
@@ -1563,8 +1563,8 @@ class IntelligentTestRunner:
                 max_time = benchmarks.get("max_execution_time", float('inf'))
                 max_memory = benchmarks.get("max_memory_usage_mb", float('inf'))
 
-                time_status = "✅" if execution_time <= max_time else "⚠️"
-                memory_status = "✅" if peak_memory <= max_memory else "⚠️"
+                time_status = "[OK]" if execution_time <= max_time else "[PERF ISSUE]"
+                memory_status = "[OK]" if peak_memory <= max_memory else "[PERF ISSUE]"
 
                 print(f"    BENCHMARKS: {time_status} Time: {execution_time:.2f}s/{max_time}s | {memory_status} Memory: {peak_memory:.1f}/{max_memory}MB")
 
@@ -1606,16 +1606,16 @@ class IntelligentTestRunner:
         print(f"Total Duration: {total_time:.2f} seconds")
         print()
         print("RESULTS:")
-        print(f"✅ PASSED: {passed_tests}/{total_tests} tests")
-        print(f"❌ FAILED: {failed_tests}/{total_tests} tests")
-        print(f"⊘ SKIPPED: {skipped_tests}/{total_tests} tests (missing metadata)")
+        print(f"[PASS] PASSED: {passed_tests}/{total_tests} tests")
+        print(f"[FAIL] FAILED: {failed_tests}/{total_tests} tests")
+        print(f"[SKIP] SKIPPED: {skipped_tests}/{total_tests} tests (missing metadata)")
         print()
 
         if failed_tests > 0:
             print("FAILED TESTS:")
             for result in self.results:
                 if result["status"] == "FAILED":
-                    print(f"  • {result['test_name']}")
+                    print(f"  - {result['test_name']}")
                     for failure in result["validation_results"]["failures"]:
                         print(f"    - {failure}")
             print()
@@ -1624,18 +1624,18 @@ class IntelligentTestRunner:
             print("SKIPPED TESTS (Need TEST_METADATA):")
             for result in self.results:
                 if result["status"] == "SKIPPED":
-                    print(f"  • {result['test_name']}: {result.get('skip_reason', 'No metadata')}")
+                    print(f"  - {result['test_name']}: {result.get('skip_reason', 'No metadata')}")
             print()
 
         # Overall result
         if failed_tests == 0:
             if skipped_tests > 0:
-                print(f"✅ ALL EXECUTABLE TESTS PASSED! ({skipped_tests} tests skipped)")
+                print(f"[SUCCESS] ALL EXECUTABLE TESTS PASSED! ({skipped_tests} tests skipped)")
             else:
-                print("🎉 ALL TESTS PASSED!")
+                print("[SUCCESS] ALL TESTS PASSED!")
             return 0
         else:
-            print("❌ SOME TESTS FAILED!")
+            print("[FAIL] SOME TESTS FAILED!")
             return 1
 
 

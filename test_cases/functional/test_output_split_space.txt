@@ -9,7 +9,7 @@ command=output_generator.sh
 arguments=space
 exec=local
 stdout_split=space,2
-# Output: "alpha beta gamma delta epsilon" → Extract "gamma" (index 2)
+# Output: "alpha beta gamma delta epsilon" -> Extract "gamma" (index 2)
 
 task=1
 hostname=localhost

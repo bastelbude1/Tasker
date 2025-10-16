@@ -9,7 +9,7 @@ command=output_generator.sh
 arguments=pipe
 exec=local
 stdout_split=pipe,0
-# Output: "alpha|beta|gamma|delta|epsilon" → Extract "alpha" (index 0)
+# Output: "alpha|beta|gamma|delta|epsilon" -> Extract "alpha" (index 0)
 
 task=1
 hostname=localhost

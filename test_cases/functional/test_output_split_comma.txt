@@ -9,7 +9,7 @@ command=output_generator.sh
 arguments=comma
 exec=local
 stdout_split=comma,1
-# Output: "alpha,beta,gamma,delta,epsilon" → Extract "beta" (index 1)
+# Output: "alpha,beta,gamma,delta,epsilon" -> Extract "beta" (index 1)
 
 task=1
 hostname=localhost

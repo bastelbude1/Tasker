@@ -18,7 +18,7 @@ command=echo
 arguments=@0_stdout@
 exec=local
 stdout_split=comma,2
-# "1001,Laptop,999.99,15" → Extract price (index 2)
+# "1001,Laptop,999.99,15" -> Extract price (index 2)
 
 task=2
 hostname=localhost

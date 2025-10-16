@@ -9,7 +9,7 @@ command=output_generator.sh
 arguments=tab
 exec=local
 stdout_split=tab,3
-# Output: "alpha	beta	gamma	delta	epsilon" → Extract "delta" (index 3)
+# Output: "alpha	beta	gamma	delta	epsilon" -> Extract "delta" (index 3)
 
 task=1
 hostname=localhost

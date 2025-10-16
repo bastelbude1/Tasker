@@ -8,7 +8,7 @@ command=/usr/bin/echo
 arguments=Starting failure parameter test
 exec=local
 
-# Task 1: exit 1, failure=exit_1 → failure condition met → task failed
+# Task 1: exit 1, failure=exit_1 -> failure condition met -> task failed
 task=1
 hostname=localhost
 command=/usr/bin/false

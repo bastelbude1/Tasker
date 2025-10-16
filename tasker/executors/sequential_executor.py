@@ -327,9 +327,18 @@ class SequentialExecutor(BaseExecutor):
                     sleep_time = float(sleep_time_str)
                     executor_instance.log(f"Task {task_id}{loop_display}: Sleeping for {sleep_time} seconds")
                     if not executor_instance.dry_run and sleep_time > 0:
-                        # Sequential execution: use simple time.sleep() - no thread pool starvation risk
+                        # Sequential execution: use simple time.sleep() with periodic shutdown checks
                         # Parallel executor uses non-blocking sleep to avoid thread pool starvation
-                        time.sleep(sleep_time)
+                        sleep_interval = 0.5  # Check every 500ms
+                        elapsed = 0
+                        while elapsed < sleep_time:
+                            if getattr(executor_instance, '_shutdown_requested', False):
+                                executor_instance.log(f"Task {task_id}{loop_display}: Sleep interrupted by shutdown signal")
+                                executor_instance._check_shutdown()  # Trigger shutdown
+                                break
+                            chunk = min(sleep_interval, sleep_time - elapsed)
+                            time.sleep(chunk)
+                            elapsed += chunk
                 else:
                     executor_instance.log(f"Task {task_id}{loop_display}: Unresolved variables in sleep time. Skipping sleep.")
             except ValueError:

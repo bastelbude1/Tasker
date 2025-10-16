@@ -775,8 +775,12 @@ class TaskValidator:
         # CRITICAL: Parallel blocks cannot use timeout parameter
         # Parallel blocks coordinate execution but don't run commands themselves
         if 'timeout' in task:
+            # Concise error for INFO level
             self.errors.append(
-                f"Line {line_number}: Task {task_id} (parallel) cannot use 'timeout' parameter. "
+                f"Line {line_number}: Task {task_id} (parallel) cannot use 'timeout' parameter."
+            )
+            # Detailed explanation for DEBUG level
+            self.debug_log(
                 f"Parallel blocks coordinate execution but don't run commands. "
                 f"Set timeout on individual child tasks instead."
             )
@@ -850,8 +854,12 @@ class TaskValidator:
         # CRITICAL: Conditional blocks cannot use timeout parameter
         # Conditional blocks coordinate execution but don't run commands themselves
         if 'timeout' in task:
+            # Concise error for INFO level
             self.errors.append(
-                f"Line {line_number}: Task {task_id} (conditional) cannot use 'timeout' parameter. "
+                f"Line {line_number}: Task {task_id} (conditional) cannot use 'timeout' parameter."
+            )
+            # Detailed explanation for DEBUG level
+            self.debug_log(
                 f"Conditional blocks coordinate execution but don't run commands. "
                 f"Set timeout on individual child tasks instead."
             )
@@ -1327,31 +1335,38 @@ class TaskValidator:
 
         # Validate 'timeout' field
         if 'timeout' in task:
-            # CRITICAL: Timeout can only be used on tasks that execute commands
-            # Tasks without commands (return, parallel, conditional) don't execute anything
-            has_command = 'command' in task
-            is_return_task = 'return' in task
+            # Skip timeout validation for parallel/conditional tasks - they have their own specific validation
             is_parallel = task.get('type') == 'parallel'
             is_conditional = task.get('type') == 'conditional'
 
-            if not has_command or is_return_task or is_parallel or is_conditional:
-                self.errors.append(
-                    f"Line {line_number}: Task {task_id} cannot use 'timeout' parameter. "
-                    f"Timeout only applies to tasks that execute commands. "
-                    f"Tasks with 'return', 'type=parallel', or 'type=conditional' don't execute commands."
-                )
-            else:
-                # Validate timeout value if task has command
-                timeout_resolved = self.resolve_global_variables_for_validation(task['timeout'])
-                timeout_clean = self.clean_field_value(timeout_resolved)
-                try:
-                    timeout = int(timeout_clean)
-                    if timeout < 5:
-                        self.warnings.append(f"Line {line_number}: Task {task_id} has timeout {timeout} less than minimum (5)")
-                    elif timeout > 1000:
-                        self.warnings.append(f"Line {line_number}: Task {task_id} has timeout {timeout} greater than maximum (1000)")
-                except ValueError:
-                    self.errors.append(f"Line {line_number}: Task {task_id} has invalid timeout: '{timeout_clean}'.")
+            if not is_parallel and not is_conditional:
+                # CRITICAL: Timeout can only be used on tasks that execute commands
+                # Tasks without commands (return) don't execute anything
+                has_command = 'command' in task
+                is_return_task = 'return' in task
+
+                if not has_command or is_return_task:
+                    # Concise error for INFO level
+                    self.errors.append(
+                        f"Line {line_number}: Task {task_id} cannot use 'timeout' parameter."
+                    )
+                    # Detailed explanation for DEBUG level
+                    self.debug_log(
+                        f"Timeout only applies to tasks that execute commands. "
+                        f"Tasks with 'return' don't execute commands."
+                    )
+                else:
+                    # Validate timeout value if task has command
+                    timeout_resolved = self.resolve_global_variables_for_validation(task['timeout'])
+                    timeout_clean = self.clean_field_value(timeout_resolved)
+                    try:
+                        timeout = int(timeout_clean)
+                        if timeout < 5:
+                            self.warnings.append(f"Line {line_number}: Task {task_id} has timeout {timeout} less than minimum (5)")
+                        elif timeout > 1000:
+                            self.warnings.append(f"Line {line_number}: Task {task_id} has timeout {timeout} greater than maximum (1000)")
+                    except ValueError:
+                        self.errors.append(f"Line {line_number}: Task {task_id} has invalid timeout: '{timeout_clean}'.")
         
         if 'exec' in task:
             # Resolve placeholders and validate exec type

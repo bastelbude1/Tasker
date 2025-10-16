@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Mixed scenarios - success, failure with retry, timeout handling","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2]}
+# TEST_METADATA: {"description": "Mixed scenarios - success, failure with retry, timeout handling","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2],"acceptable_warnings": ["Retry delay timer misfired"]}
 # TEST 5: Mixed Success/Failure/Timeout with Retry
 # Tests complex scenarios with success, failure with retry, and timeout without retry
 

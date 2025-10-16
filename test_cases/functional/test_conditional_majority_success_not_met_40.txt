@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Conditional Conditional majority_success with 2/5 (40%) - condition not met","test_type": "negative","expected_exit_code": 10,"expected_success": false,"skip_host_validation": true,"expected_execution_path": [0,1],"expected_subtasks": ["1-10","1-11","1-12","1-13","1-14"],"expected_success_count": 2,"expected_failed_count": 3,"expected_condition_met": false,"expected_final_task": 1,"success_condition": "majority_success"}
+# TEST_METADATA: {"description": "Conditional majority_success with 2/5 (40%) - condition not met","test_type": "negative","expected_exit_code": 10,"expected_success": false,"skip_host_validation": true,"expected_execution_path": [0,1],"expected_subtasks": ["1-10","1-11","1-12","1-13","1-14"],"expected_success_count": 2,"expected_failed_count": 3,"expected_condition_met": false,"expected_final_task": 1,"success_condition": "majority_success"}
 # Test conditional execution with majority_success condition
 # Conditional majority_success with 2/5 (40%) - condition not met
 

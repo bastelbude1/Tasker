@@ -15,7 +15,6 @@ task=1
 type=parallel
 max_parallel=3
 tasks=100,101,102
-timeout=5
 success=min_success=1
 on_success=2
 on_failure=50
@@ -46,14 +45,16 @@ hostname=localhost
 command=echo
 arguments=Task 100 - SUCCESS (1s)
 exec=local
+timeout=5
 sleep=1
 
-# Task 101: Times out (sleeps 5s, master timeout 3s upgraded to 5s minimum)
+# Task 101: Times out (sleeps 5s with timeout=5s)
 task=101
 hostname=localhost
 command=echo
-arguments=Task 101 - TIMEOUT (5s, master=3s)
+arguments=Task 101 - TIMEOUT (5s sleep, 5s timeout)
 exec=local
+timeout=5
 sleep=5
 
 # Task 102: Fails immediately
@@ -62,3 +63,4 @@ hostname=localhost
 command=sh
 arguments=-c "echo 'Task 102 - FAILURE'; exit 1"
 exec=local
+timeout=5

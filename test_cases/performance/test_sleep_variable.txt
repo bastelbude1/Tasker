@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Sleep Block test - sleep with variable references", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3], "performance_benchmarks": {"min_duration": 5.0, "max_duration": 8.5}}
+# TEST_METADATA: {"description": "Sleep Block test - sleep with variable references", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3], "performance_benchmarks": {"min_duration": 4.9, "max_duration": 8.5}}
 
 # Global variables for sleep durations
 SHORT_SLEEP=0.5

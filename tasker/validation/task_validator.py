@@ -772,6 +772,15 @@ class TaskValidator:
                 f"Use aggregate conditions like 'max_failed' in 'next' parameter instead."
             )
 
+        # CRITICAL: Parallel blocks cannot use timeout parameter
+        # Parallel blocks coordinate execution but don't run commands themselves
+        if 'timeout' in task:
+            self.errors.append(
+                f"Line {line_number}: Task {task_id} (parallel) cannot use 'timeout' parameter. "
+                f"Parallel blocks coordinate execution but don't run commands. "
+                f"Set timeout on individual child tasks instead."
+            )
+
         # Validate 'max_parallel' field
         if 'max_parallel' in task:
             try:
@@ -836,6 +845,15 @@ class TaskValidator:
             self.errors.append(
                 f"Line {line_number}: Task {task_id} (conditional) cannot use 'failure' parameter. "
                 f"Use aggregate conditions like 'max_failed' in 'next' parameter instead."
+            )
+
+        # CRITICAL: Conditional blocks cannot use timeout parameter
+        # Conditional blocks coordinate execution but don't run commands themselves
+        if 'timeout' in task:
+            self.errors.append(
+                f"Line {line_number}: Task {task_id} (conditional) cannot use 'timeout' parameter. "
+                f"Conditional blocks coordinate execution but don't run commands. "
+                f"Set timeout on individual child tasks instead."
             )
 
         # Validate 'condition' field (required for conditional tasks)

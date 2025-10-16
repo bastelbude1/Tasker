@@ -14,7 +14,6 @@ exec=local
 task=1
 type=parallel
 tasks=2,3,4
-timeout=3
 project=COMPREHENSIVE_TIMEOUT_TEST
 exec=local
 
@@ -24,6 +23,7 @@ hostname=localhost
 command=sleep
 arguments=10
 exec=local
+timeout=3
 
 # This will also timeout (sleeps for 10 seconds)
 task=3
@@ -31,6 +31,7 @@ hostname=localhost
 command=sleep
 arguments=10
 exec=local
+timeout=3
 
 # This will succeed (sleeps for only 1 second)
 task=4
@@ -38,6 +39,7 @@ hostname=localhost
 command=sleep
 arguments=1
 exec=local
+timeout=3
 
 # Final task to show execution continues after parallel timeouts
 task=5

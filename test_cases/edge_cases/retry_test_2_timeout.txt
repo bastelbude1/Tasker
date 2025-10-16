@@ -12,7 +12,6 @@ task=1
 type=parallel
 max_parallel=3
 tasks=200,201,202
-timeout=4
 retry_failed=true
 retry_count=3
 retry_delay=1
@@ -45,6 +44,7 @@ hostname=localhost
 command=sh
 arguments=-c "if [ ! -f /tmp/task200_attempt ]; then touch /tmp/task200_attempt; echo 'Task 200 - First attempt fails'; exit 1; else echo 'Task 200 - Retry succeeds'; exit 0; fi"
 exec=local
+timeout=4
 
 # Task 201: Always times out (should NOT be retried)
 task=201
@@ -52,6 +52,7 @@ hostname=localhost
 command=sleep
 arguments=8
 exec=local
+timeout=4
 
 # Task 202: Succeeds after short delay
 task=202
@@ -59,4 +60,5 @@ hostname=localhost
 command=echo
 arguments=Task 202 - Success after delay
 exec=local
+timeout=4
 sleep=2

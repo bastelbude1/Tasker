@@ -781,8 +781,8 @@ class TaskValidator:
             )
             # Detailed explanation for DEBUG level
             self.debug_log(
-                f"Parallel blocks coordinate execution but don't run commands. "
-                f"Set timeout on individual child tasks instead."
+                "Parallel blocks coordinate execution but don't run commands. "
+                "Set timeout on individual child tasks instead."
             )
 
         # Validate 'max_parallel' field
@@ -860,8 +860,8 @@ class TaskValidator:
             )
             # Detailed explanation for DEBUG level
             self.debug_log(
-                f"Conditional blocks coordinate execution but don't run commands. "
-                f"Set timeout on individual child tasks instead."
+                "Conditional blocks coordinate execution but don't run commands. "
+                "Set timeout on individual child tasks instead."
             )
 
         # Validate 'condition' field (required for conditional tasks)
@@ -1352,8 +1352,8 @@ class TaskValidator:
                     )
                     # Detailed explanation for DEBUG level
                     self.debug_log(
-                        f"Timeout only applies to tasks that execute commands. "
-                        f"Tasks with 'return' don't execute commands."
+                        "Timeout only applies to tasks that execute commands. "
+                        "Tasks with 'return' don't execute commands."
                     )
                 else:
                     # Validate timeout value if task has command

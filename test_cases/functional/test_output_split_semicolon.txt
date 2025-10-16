@@ -9,7 +9,7 @@ command=output_generator.sh
 arguments=semicolon
 exec=local
 stdout_split=semi,4
-# Output: "alpha;beta;gamma;delta;epsilon" → Extract "epsilon" (index 4)
+# Output: "alpha;beta;gamma;delta;epsilon" -> Extract "epsilon" (index 4)
 
 task=1
 hostname=localhost

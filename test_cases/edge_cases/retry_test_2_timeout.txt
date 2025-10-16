@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Retry test 2 timeout","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_warnings": 1}
+# TEST_METADATA: {"description": "Retry test 2 timeout","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_warnings": 3}
 # TEST 2: Timeout Behavior Analysis
 # Tests that timeout tasks are NOT retried (only failed tasks are retried)
 

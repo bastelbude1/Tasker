@@ -1228,26 +1228,24 @@ class TestValidator:
         warning_lines = [line for line in actual_results["stdout"].split('\n')
                        if warning_pattern.match(line)]
 
-        # WARNING WHITELIST: Known load-related warnings that should be ignored
-        # These warnings occur due to system load and timing imprecision and are acceptable
-        warning_whitelist = [
-            "Retry delay timer misfired",  # Retry timing under load
-            "Post-sleep timer did not signal within timeout",  # Sleep timing under load
-        ]
+        # TEST-SPECIFIC ACCEPTABLE WARNINGS: Extract from metadata (if present)
+        # These warnings may occur due to timing/load but are acceptable for this specific test
+        # Format in metadata: "acceptable_warnings": ["pattern1", "pattern2", ...]
+        acceptable_warnings = metadata.get("acceptable_warnings", [])
 
-        # Filter out whitelisted warnings before counting
-        non_whitelisted_warnings = []
+        # Filter out acceptable warnings before counting (test-specific)
+        non_acceptable_warnings = []
         for warning_line in warning_lines:
-            is_whitelisted = False
-            for whitelist_pattern in warning_whitelist:
-                if whitelist_pattern in warning_line:
-                    is_whitelisted = True
+            is_acceptable = False
+            for acceptable_pattern in acceptable_warnings:
+                if acceptable_pattern in warning_line:
+                    is_acceptable = True
                     break
-            if not is_whitelisted:
-                non_whitelisted_warnings.append(warning_line)
+            if not is_acceptable:
+                non_acceptable_warnings.append(warning_line)
 
-        # Only count non-whitelisted warnings
-        actual_warning_count = len(non_whitelisted_warnings)
+        # Count non-acceptable warnings for validation
+        actual_warning_count = len(non_acceptable_warnings)
 
         # Check if test allows variable warning counts (for tests with timing-dependent warnings)
         if metadata.get("allow_variable_warnings", False):
@@ -1261,14 +1259,14 @@ class TestValidator:
                     f"Warning count mismatch: expected {expected_warning_count}, got {actual_warning_count}"
                 )
         else:
-            # If expected_warnings not specified, default to 0 - fail on any non-whitelisted warnings
+            # If expected_warnings not specified, default to 0 - fail on any non-acceptable warnings
             if actual_warning_count > 0:
                 validation_results["passed"] = False
                 validation_results["failures"].append(
-                    f"Unexpected warnings detected ({actual_warning_count} non-whitelisted warnings found). Add 'expected_warnings': {actual_warning_count} to metadata if warnings are expected."
+                    f"Unexpected warnings detected ({actual_warning_count} warnings found). Add 'expected_warnings': {actual_warning_count} or 'acceptable_warnings' patterns to metadata."
                 )
-                # Show the actual non-whitelisted warning messages for debugging
-                for warning_line in non_whitelisted_warnings[:5]:  # Show first 5 warnings
+                # Show the actual warning messages for debugging
+                for warning_line in non_acceptable_warnings[:5]:  # Show first 5 warnings
                     validation_results["failures"].append(f"  {warning_line.strip()}")
 
         # Validate stdout patterns per task

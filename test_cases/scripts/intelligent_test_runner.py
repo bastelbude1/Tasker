@@ -514,13 +514,14 @@ class TaskerTestExecutor:
 
             # Capture task exit codes (Phase 3 enhancement)
             # Matches both regular tasks (Task 0:) and subtasks (Task 0-1:)
-            elif re.search(r'Task (\d+|\d+-\d+): Exit code: (\d+)', line):
-                match = re.search(r'Task (\d+|\d+-\d+): Exit code: (\d+)', line)
+            # Supports negative exit codes (signal interruptions: -15 = SIGTERM, -2 = SIGINT)
+            elif re.search(r'Task (\d+|\d+-\d+): Exit code: (-?\d+)', line):
+                match = re.search(r'Task (\d+|\d+-\d+): Exit code: (-?\d+)', line)
                 if match:
                     task_id = match.group(1)
                     exit_code = match.group(2)
                     variables[f"{task_id}_exit"] = exit_code
-                    # Infer success status from exit code (0 = True, non-zero = False)
+                    # Infer success status from exit code (0 = True, non-zero/negative = False)
                     # Note: This is a simplification - actual success may depend on success/failure conditions
                     variables[f"{task_id}_success"] = "True" if exit_code == "0" else "False"
 
@@ -1488,10 +1489,37 @@ class IntelligentTestRunner:
             # Show variables if captured (Phase 3)
             variables = execution_path.get("variables", {})
             if variables:
-                var_display = ", ".join([f"{k}='{v}'" for k, v in list(variables.items())[:3]])
-                if len(variables) > 3:
-                    var_display += f" (+{len(variables)-3} more)"
-                print(f"    VARIABLES: {var_display}")
+                # For signal tests, prioritize showing interrupted tasks (negative exit codes)
+                is_signal_test = result.get("metadata", {}).get("signal_type") is not None
+
+                if is_signal_test:
+                    # Show signal-interrupted tasks first (negative exit codes)
+                    interrupted_vars = {k: v for k, v in variables.items() if k.endswith('_exit') and v.startswith('-')}
+                    normal_vars = {k: v for k, v in variables.items() if k not in interrupted_vars}
+
+                    # Display interrupted tasks prominently
+                    if interrupted_vars:
+                        interrupted_tasks = [k.replace('_exit', '') for k in interrupted_vars.keys()]
+                        for task_id in interrupted_tasks:
+                            exit_code = variables.get(f"{task_id}_exit", "?")
+                            success = variables.get(f"{task_id}_success", "?")
+                            stdout = variables.get(f"{task_id}_stdout", "")
+                            stdout_preview = f", stdout='{stdout[:30]}...'" if stdout and len(stdout) > 30 else (f", stdout='{stdout}'" if stdout else "")
+                            print(f"    INTERRUPTED: Task {task_id}: exit={exit_code}, success={success}{stdout_preview}")
+
+                    # Show first 2 normal variables
+                    if normal_vars:
+                        normal_display = ", ".join([f"{k}='{v}'" for k, v in list(normal_vars.items())[:2]])
+                        remaining = len(normal_vars) - 2
+                        if remaining > 0:
+                            normal_display += f" (+{remaining} more)"
+                        print(f"    OTHER VARS: {normal_display}")
+                else:
+                    # Normal test - show first 3 variables as before
+                    var_display = ", ".join([f"{k}='{v}'" for k, v in list(variables.items())[:3]])
+                    if len(variables) > 3:
+                        var_display += f" (+{len(variables)-3} more)"
+                    print(f"    VARIABLES: {var_display}")
 
         # Show security information for security tests (Phase 4)
         if "metadata" in result and result["metadata"].get("test_type") == "security_negative":

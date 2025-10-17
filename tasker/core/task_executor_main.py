@@ -1931,7 +1931,37 @@ class TaskExecutor:
                 # Validate dependencies for resume
                 from ..validation.dependency_analyzer import DependencyAnalyzer
                 execution_path = recovery_data.get('execution_path', [])
-                resume_task_id = recovery_data.get('current_task')
+
+                # Calculate next task to execute based on last successful task
+                last_successful_task = recovery_data.get('last_successful_task')
+
+                # Determine resume task ID
+                if last_successful_task is not None:
+                    # Resume from next task after last successful
+                    resume_task_id = last_successful_task + 1
+                else:
+                    # No successful tasks yet, start from first task
+                    resume_task_id = min(self.tasks.keys()) if self.tasks else 0
+
+                # Ensure resume_task_id is valid and not already completed
+                valid_task_ids = sorted(self.tasks.keys())
+                if resume_task_id not in valid_task_ids:
+                    # Find next valid task ID
+                    resume_task_id = None
+                    for tid in valid_task_ids:
+                        if tid > (last_successful_task if last_successful_task is not None else -1):
+                            resume_task_id = tid
+                            break
+
+                # Check if task was already completed (shouldn't re-run)
+                if resume_task_id is not None and resume_task_id in execution_path:
+                    self.log_warning(f"# Task {resume_task_id} already in execution path, finding next task")
+                    # Find next task not in execution_path
+                    resume_task_id = None
+                    for tid in valid_task_ids:
+                        if tid not in execution_path and tid > (last_successful_task if last_successful_task is not None else -1):
+                            resume_task_id = tid
+                            break
 
                 if resume_task_id is not None and resume_task_id in self.tasks:
                     # Build dependency analyzer
@@ -1969,6 +1999,12 @@ class TaskExecutor:
                     recovery_resume_task = resume_task_id
 
                     self.log_info(f"# State restored successfully - starting from task {resume_task_id}")
+                else:
+                    self.log_warning("# No valid resume task found - recovery file may indicate workflow completion")
+                    # Delete recovery file if no tasks left to execute
+                    if self.recovery_manager:
+                        self.recovery_manager.delete_recovery_file()
+                        self.log_info("# Deleted recovery file (no tasks to resume)")
 
         # Determine starting task ID
         if recovery_resume_task is not None:

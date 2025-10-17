@@ -1,0 +1,60 @@
+# TEST_METADATA: {"description": "Resume before on_success/on_failure branch", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 5, "expected_execution_path": [5, 10], "skip_host_validation": true, "expected_warnings": 1}
+
+# Resume Capability Test: Resume Before Branch
+#
+# Purpose: Validate resume works correctly with on_success/on_failure routing
+#
+# Test Scenario:
+# 1. Task 0-2: Skipped (before resume point)
+# 2. Task 5: Resume point with on_success routing
+# 3. Task 10: on_success target (should execute)
+# 4. Task 99: on_failure target (should NOT execute)
+#
+# Expected Behavior:
+# - Resume from task 5
+# - Task 5 executes successfully and routes to task 10 (on_success)
+# - Task 10 executes
+# - Task 99 is not executed (failure path)
+# - Exit code: 0 (success)
+
+# Tasks before resume point (will be skipped)
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0 - Should be skipped
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1 - Should be skipped
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2 - Should be skipped
+exec=local
+
+# Resume point - task 5 with routing
+task=5
+hostname=localhost
+command=echo
+arguments=Task 5 - Resume starts here with routing
+exec=local
+on_success=10
+on_failure=99
+
+# Success branch (should execute)
+task=10
+hostname=localhost
+command=echo
+arguments=Task 10 - Success path
+exec=local
+
+# Failure branch (should NOT execute)
+task=99
+hostname=localhost
+command=echo
+arguments=ERROR: Task 99 should not execute - failure path
+exec=local

@@ -1,0 +1,41 @@
+# TEST_METADATA: {"description": "Resume into variable chain (negative)", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "start_from_task": 3, "skip_host_validation": true, "expected_warnings": 1}
+
+# Resume Capability Test: Resume into Variable Chain (Negative)
+#
+# Purpose: Validate error when resuming into middle of dependent variable chain
+#
+# Test Scenario:
+# 1. Task 1: Produces value A (will be skipped)
+# 2. Task 2: Uses A, produces value B (will be skipped)
+# 3. Task 3: Resume point - uses both A and B (both missing)
+# 4. TASKER should handle undefined variables
+#
+# Expected Behavior:
+# - Resume from task 3
+# - Task 3 tries to use @1_stdout@ and @2_stdout@ (both undefined)
+# - Variable resolution fails or produces empty values
+# - Exit code: 1 (execution failure) OR completes with empty variables
+#
+# Note: This test demonstrates resume limitation - can't resume into
+# middle of variable dependency chain without state persistence
+
+# Task 1 - produces value A (will be skipped)
+task=1
+hostname=localhost
+command=echo
+arguments=ValueA
+exec=local
+
+# Task 2 - uses A, produces value B (will be skipped)
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2 uses @1_stdout@ and produces ValueB
+exec=local
+
+# Resume point - task 3 depends on both 1 and 2
+task=3
+hostname=localhost
+command=echo
+arguments=Task 3 needs A=@1_stdout@ and B=@2_stdout@
+exec=local

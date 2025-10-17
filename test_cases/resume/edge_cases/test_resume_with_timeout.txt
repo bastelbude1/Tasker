@@ -1,0 +1,44 @@
+# TEST_METADATA: {"description": "Resume from task with timeout parameter", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 5, "expected_execution_path": [5, 6], "skip_host_validation": true, "expected_warnings": 1}
+
+# Resume Capability Test: Resume with Timeout
+#
+# Purpose: Validate resume works with tasks that have timeout configuration
+#
+# Test Scenario:
+# 1. Task 5: Resume point with timeout=10
+# 2. Task executes successfully within timeout
+# 3. Timeout enforcement starts fresh for this execution
+#
+# Expected Behavior:
+# - Resume from task 5
+# - Task 5 has 10-second timeout (completes quickly)
+# - Timeout is enforced for this execution
+# - Exit code: 0 (success)
+
+# Tasks before resume point (will be skipped)
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0 - Should be skipped
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1 - Should be skipped
+exec=local
+
+# Resume point - task with timeout
+task=5
+hostname=localhost
+command=echo
+arguments=Task 5 - Resume with timeout (completes quickly)
+exec=local
+timeout=10
+
+# Next task
+task=6
+hostname=localhost
+command=echo
+arguments=Task 6 - After timeout task
+exec=local

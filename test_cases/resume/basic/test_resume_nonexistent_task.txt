@@ -1,0 +1,83 @@
+# TEST_METADATA: {"description": "Resume from non-existent task (negative test)", "test_type": "negative", "expected_exit_code": 21, "expected_success": false, "start_from_task": 99, "skip_host_validation": true, "expected_warnings": 1}
+
+# Resume Capability Test: Resume from Non-Existent Task (Negative)
+#
+# Purpose: Validate proper error handling when resume task doesn't exist
+#
+# Test Scenario:
+# 1. Workflow has tasks 0-10
+# 2. Use --start-from=99 (task doesn't exist)
+# 3. TASKER should detect missing task and fail validation
+# 4. Error message should indicate task 99 not found
+#
+# Expected Behavior:
+# - Error log: "Start task 99 not found in task definitions"
+# - Error log: "Available task IDs: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"
+# - No tasks execute
+# - Exit code: 21 (task dependency failed)
+
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2
+exec=local
+
+task=3
+hostname=localhost
+command=echo
+arguments=Task 3
+exec=local
+
+task=4
+hostname=localhost
+command=echo
+arguments=Task 4
+exec=local
+
+task=5
+hostname=localhost
+command=echo
+arguments=Task 5
+exec=local
+
+task=6
+hostname=localhost
+command=echo
+arguments=Task 6
+exec=local
+
+task=7
+hostname=localhost
+command=echo
+arguments=Task 7
+exec=local
+
+task=8
+hostname=localhost
+command=echo
+arguments=Task 8
+exec=local
+
+task=9
+hostname=localhost
+command=echo
+arguments=Task 9
+exec=local
+
+task=10
+hostname=localhost
+command=echo
+arguments=Task 10
+exec=local

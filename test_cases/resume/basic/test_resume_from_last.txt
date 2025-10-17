@@ -1,0 +1,85 @@
+# TEST_METADATA: {"description": "Resume from last task only", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 10, "expected_execution_path": [10], "skip_host_validation": true, "expected_warnings": 1}
+
+# Resume Capability Test: Resume from Last Task
+#
+# Purpose: Validate resume from final task executes only that task
+#
+# Test Scenario:
+# 1. Workflow has tasks 0-10
+# 2. Use --start-from=10 to resume from last task
+# 3. Tasks 0-9 should be skipped
+# 4. Only task 10 should execute
+#
+# Expected Behavior:
+# - Resume mode logs "Resume mode: Starting from Task 10"
+# - Tasks 0-9 are skipped (no execution)
+# - Only task 10 executes
+# - Exit code: 0 (success)
+
+# Tasks before resume point (will be skipped)
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0 - Should be skipped
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1 - Should be skipped
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2 - Should be skipped
+exec=local
+
+task=3
+hostname=localhost
+command=echo
+arguments=Task 3 - Should be skipped
+exec=local
+
+task=4
+hostname=localhost
+command=echo
+arguments=Task 4 - Should be skipped
+exec=local
+
+task=5
+hostname=localhost
+command=echo
+arguments=Task 5 - Should be skipped
+exec=local
+
+task=6
+hostname=localhost
+command=echo
+arguments=Task 6 - Should be skipped
+exec=local
+
+task=7
+hostname=localhost
+command=echo
+arguments=Task 7 - Should be skipped
+exec=local
+
+task=8
+hostname=localhost
+command=echo
+arguments=Task 8 - Should be skipped
+exec=local
+
+task=9
+hostname=localhost
+command=echo
+arguments=Task 9 - Should be skipped
+exec=local
+
+# Resume point - task 10 (last task)
+task=10
+hostname=localhost
+command=echo
+arguments=Task 10 - Resume starts here (final task)
+exec=local

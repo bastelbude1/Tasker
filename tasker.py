@@ -69,9 +69,13 @@ Examples:
                        help='Project name for summary logging')
     
     # Resume capability
-    parser.add_argument('--start-from', type=int, metavar='TASK_ID', 
+    parser.add_argument('--start-from', type=int, metavar='TASK_ID',
                        help='Start execution from specific task ID (resume capability)')
-    
+    parser.add_argument('--auto-recovery', action='store_true',
+                       help='Enable automatic error recovery (saves state after each task, auto-resumes on failure)')
+    parser.add_argument('--show-recovery-info', action='store_true',
+                       help='Display recovery state information and exit')
+
     # Granular validation control
     parser.add_argument('--skip-task-validation', action='store_true',
                        help='Skip task file and dependency validation (use for faster resume)')
@@ -154,7 +158,9 @@ Examples:
         show_plan=args.show_plan,
         validate_only=args.validate_only,
         fire_and_forget=args.fire_and_forget,
-        no_task_backup=args.no_task_backup
+        no_task_backup=args.no_task_backup,
+        auto_recovery=args.auto_recovery,
+        show_recovery_info=args.show_recovery_info
     ) as executor:
         executor.run()
 

@@ -642,6 +642,99 @@ class TaskerTestExecutor:
                 "execution_path": {"executed_tasks": [], "skipped_tasks": [], "final_task": None}
             }
 
+    def execute_wrapper_test(self, test_file, metadata):
+        """Execute wrapper-based test (e.g., recovery tests requiring two runs).
+
+        Wrapper tests delegate execution to external wrapper scripts that handle
+        multi-run testing scenarios (e.g., recovery tests that need to fail first,
+        then succeed on second run with auto-recovery).
+        """
+        # Extract wrapper parameters from metadata
+        wrapper_script = metadata.get('requires_wrapper')
+        wrapper_args = metadata.get('wrapper_args', '')
+
+        # Locate wrapper script in test_cases/bin/
+        script_dir = Path(__file__).resolve().parent  # scripts directory
+        test_cases_dir = script_dir.parent  # test_cases directory
+        wrapper_path = test_cases_dir / "bin" / wrapper_script
+
+        if not wrapper_path.exists():
+            return {
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": f"Wrapper script not found: {wrapper_path}",
+                "execution_time": 0,
+                "timed_out": False,
+                "error": f"Wrapper script not found at {wrapper_path}",
+                "execution_path": {"executed_tasks": [], "skipped_tasks": [], "final_task": None}
+            }
+
+        # Convert test_file to absolute path to ensure wrapper can find it
+        test_file_abs = os.path.abspath(test_file)
+
+        # Build wrapper command with test file and optional args
+        cmd_args = [str(wrapper_path), test_file_abs]
+        if wrapper_args:
+            # Split wrapper_args into list (space-separated)
+            cmd_args.extend(wrapper_args.split())
+
+        # Execute wrapper test
+        start_time = datetime.now()
+
+        try:
+            # Wrapper tests may take longer (multiple TASKER runs + validation)
+            # Use 120 second timeout (enough for two full TASKER runs)
+            with subprocess.Popen(
+                cmd_args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            ) as process:
+                try:
+                    stdout, stderr = process.communicate(timeout=120)
+                    exit_code = process.returncode
+                except subprocess.TimeoutExpired:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+
+                    try:
+                        stdout, stderr = process.communicate(timeout=1)
+                    except subprocess.TimeoutExpired:
+                        stdout, stderr = "", "Wrapper test timeout"
+
+                    exit_code = 124
+
+                execution_time = (datetime.now() - start_time).total_seconds()
+
+                # Parse execution path from TASKER output embedded in wrapper output
+                # Wrapper tests may run TASKER multiple times, so we capture final state
+                execution_path_data = self.parse_execution_path(stdout)
+
+                return {
+                    "exit_code": exit_code,
+                    "stdout": stdout,
+                    "stderr": stderr,
+                    "execution_time": execution_time,
+                    "timed_out": (exit_code == 124),
+                    "error": None,
+                    "execution_path": execution_path_data
+                }
+
+        except Exception as e:
+            execution_time = (datetime.now() - start_time).total_seconds()
+            return {
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": str(e),
+                "execution_time": execution_time,
+                "timed_out": False,
+                "error": f"Wrapper test execution error: {e}",
+                "execution_path": {"executed_tasks": [], "skipped_tasks": [], "final_task": None}
+            }
+
     def execute_test(self, test_file, metadata):
         """Execute a single test case and capture results."""
         test_name = os.path.basename(test_file)
@@ -649,6 +742,10 @@ class TaskerTestExecutor:
         # Detect signal tests and route to signal test executor
         if 'signal_type' in metadata:
             return self.execute_signal_test(test_file, metadata)
+
+        # Detect wrapper-based tests (e.g., recovery tests with two-run requirement)
+        if 'requires_wrapper' in metadata:
+            return self.execute_wrapper_test(test_file, metadata)
 
         # Prepare command arguments based on test type
         cmd_args = [self.tasker_path, test_file]

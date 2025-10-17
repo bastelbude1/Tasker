@@ -6,6 +6,23 @@ Comprehensive test suite for automatic error recovery functionality.
 
 These tests validate the `--auto-recovery` feature which enables workflows to automatically resume from the point of failure.
 
+## Test Categories
+
+### Automated Tests (Recommended)
+Fully automated tests that use helper scripts for two-run validation:
+- **test_auto_recovery_basic.txt** - Basic automatic recovery workflow
+- **test_auto_recovery_global_vars.txt** - Recovery with global variable preservation
+- **test_auto_recovery_cleanup.txt** - Recovery file cleanup validation
+
+### Manual Tests (Legacy)
+Original tests requiring manual execution and state management:
+- test_recovery_basic_failure.txt
+- test_recovery_safe_resume.txt
+- test_recovery_unsafe_backward_deps.txt
+- test_recovery_with_global_vars.txt
+- test_recovery_show_info.txt
+- test_recovery_cleanup_on_success.txt
+
 ## Test Cases
 
 ### 1. Basic Recovery Failure (`test_recovery_basic_failure.txt`)
@@ -46,7 +63,69 @@ These tests validate the `--auto-recovery` feature which enables workflows to au
 - **Expected**: Workflow completes, recovery file deleted
 - **Exit Code**: 0 (success)
 
+## How Automated Testing Works
+
+### Architecture
+
+Automated recovery tests use a two-script pattern:
+
+1. **recovery_helper.sh** - Stateful helper script
+   - Takes TEST_ID parameter for test isolation
+   - First execution: Creates state file, exits with code 1 (failure)
+   - Second execution: Removes state file, exits with code 0 (success)
+   - State files stored in `/tmp/recovery_test_${TEST_ID}.state`
+
+2. **recovery_test_wrapper.sh** - Two-run validation wrapper
+   - Cleans up existing recovery files
+   - First run: Executes TASKER with `--auto-recovery` (expects failure)
+   - Validates: Recovery file created in `~/TASKER/recovery/`
+   - Second run: Executes TASKER with `--auto-recovery` (expects success via recovery)
+   - Validates: Recovery file deleted after successful completion
+   - Returns: 0 if all validations pass, 1 otherwise
+
+3. **intelligent_test_runner.py** - Test orchestration
+   - Detects `requires_wrapper` metadata field
+   - Routes test to `execute_wrapper_test()` method
+   - Executes wrapper script with test file and arguments
+   - Validates exit codes and execution behavior
+
+### Test Metadata Format
+
+Automated tests include special metadata fields:
+
+```json
+{
+  "description": "Test description",
+  "test_type": "positive",
+  "expected_exit_code": 0,
+  "expected_success": true,
+  "requires_wrapper": "recovery_test_wrapper.sh",
+  "wrapper_args": "--skip-host-validation",
+  "skip_host_validation": true
+}
+```
+
+### Test Isolation
+
+Each test uses a unique TEST_ID (matching the test file name) to ensure:
+- No state interference between tests
+- Parallel test execution safety
+- Clean state for each test run
+
 ## Running Tests
+
+### Automated Testing (Recommended)
+
+```bash
+# Run all automated recovery tests with intelligent test runner
+python3 test_cases/scripts/intelligent_test_runner.py test_cases/recovery/test_auto_*.txt -r
+
+# Run all recovery tests (automated + manual)
+python3 test_cases/scripts/intelligent_test_runner.py test_cases/recovery/ -r
+
+# Run specific automated test
+python3 test_cases/scripts/intelligent_test_runner.py test_cases/recovery/test_auto_recovery_basic.txt -r
+```
 
 ### Manual Execution
 
@@ -86,6 +165,50 @@ python3 test_cases/scripts/intelligent_test_runner.py test_cases/recovery/ -r
 python3 test_cases/scripts/intelligent_test_runner.py test_cases/recovery/ -r -v
 ```
 
+## Helper Scripts
+
+### test_cases/bin/recovery_helper.sh
+Stateful helper script for automated testing.
+
+**Usage:**
+```bash
+recovery_helper.sh TEST_ID
+```
+
+**Behavior:**
+- First run: Creates `/tmp/recovery_test_${TEST_ID}.state`, exits with 1 (failure)
+- Second run: Removes state file, exits with 0 (success)
+
+**Example in test file:**
+```
+task=2
+hostname=localhost
+exec=local
+command=recovery_helper.sh
+arguments=test_auto_recovery_basic
+```
+
+### test_cases/bin/recovery_test_wrapper.sh
+Two-run validation wrapper for recovery tests.
+
+**Usage:**
+```bash
+recovery_test_wrapper.sh TASK_FILE [OPTIONS...]
+```
+
+**Validation Steps:**
+1. Cleans up existing recovery files
+2. Runs TASKER with `--auto-recovery` (expects exit code 1)
+3. Validates recovery file created
+4. Runs TASKER with `--auto-recovery` again (expects exit code 0)
+5. Validates recovery file deleted
+6. Returns 0 if all validations pass, 1 otherwise
+
+**Example:**
+```bash
+./test_cases/bin/recovery_test_wrapper.sh test_cases/recovery/test_auto_recovery_basic.txt --skip-host-validation
+```
+
 ## Recovery File Location
 
 Recovery files are stored in:
@@ -99,14 +222,19 @@ Where:
 
 ## Key Features Tested
 
-✅ Recovery file creation on failure
+### Automated Tests
+✅ Recovery file creation on failure (two-run validation)
 ✅ Automatic state restoration and resume
-✅ Backward dependency detection
-✅ Global variable preservation
-✅ Task file integrity verification (SHA-256)
+✅ Global variable preservation across recovery
 ✅ Recovery file cleanup on success
-✅ --show-recovery-info flag
+✅ Task file integrity verification (SHA-256)
 ✅ Safe resume validation
+✅ Stateful task behavior (helper script pattern)
+
+### Manual Tests (Legacy)
+✅ Backward dependency detection
+✅ --show-recovery-info flag
+✅ Unsafe resume scenarios
 
 ## Test Metadata Format
 

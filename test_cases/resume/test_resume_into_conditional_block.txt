@@ -1,0 +1,112 @@
+# TEST_METADATA: {"description": "Resume from conditional task coordinator", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 5, "expected_execution_path": [5, 10], "skip_host_validation": true, "expected_warnings": 3}
+
+# Resume Capability Test: Resume Into Conditional Block
+#
+# Purpose: Validate resume works with conditional task execution
+#
+# Test Scenario:
+# 1. Tasks 0-4: Skipped (before resume point)
+# 2. Task 5: Resume point (conditional coordinator with simple condition)
+# 3. Tasks 20, 21: Conditional subtasks (TRUE branch - should execute)
+# 4. Task 30: FALSE branch task (should NOT execute)
+# 5. Tasks 6-9: Skipped
+# 6. Task 10: Next sequential task after conditional
+#
+# Expected Behavior:
+# - Resume from task 5 (conditional coordinator)
+# - Condition evaluates to true (always-true condition)
+# - TRUE branch subtasks (20, 21) execute
+# - FALSE branch subtask (30) does NOT execute
+# - Task 10 executes after conditional
+# - Exit code: 0 (success)
+
+# Tasks before resume point (will be skipped)
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0 - Should be skipped
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1 - Should be skipped
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2 - Should be skipped
+exec=local
+
+task=3
+hostname=localhost
+command=echo
+arguments=Task 3 - Should be skipped
+exec=local
+
+task=4
+hostname=localhost
+command=echo
+arguments=Task 4 - Should be skipped
+exec=local
+
+# Resume point - task 5 (conditional coordinator)
+task=5
+type=conditional
+condition=true
+if_true_tasks=20,21
+if_false_tasks=30
+on_success=10
+
+# Conditional subtasks (TRUE branch)
+task=20
+hostname=localhost
+command=echo
+arguments=Conditional Task 20 (TRUE branch)
+exec=local
+
+task=21
+hostname=localhost
+command=echo
+arguments=Conditional Task 21 (TRUE branch)
+exec=local
+
+# Conditional subtask (FALSE branch - won't execute)
+task=30
+hostname=localhost
+command=echo
+arguments=Conditional Task 30 (FALSE branch - should not execute)
+exec=local
+
+# Tasks after conditional coordinator (will be skipped)
+task=6
+hostname=localhost
+command=echo
+arguments=Task 6 - Should be skipped
+exec=local
+
+task=7
+hostname=localhost
+command=echo
+arguments=Task 7 - Should be skipped
+exec=local
+
+task=8
+hostname=localhost
+command=echo
+arguments=Task 8 - Should be skipped
+exec=local
+
+task=9
+hostname=localhost
+command=echo
+arguments=Task 9 - Should be skipped
+exec=local
+
+# Next sequential task
+task=10
+hostname=localhost
+command=echo
+arguments=Task 10 - After conditional block
+exec=local

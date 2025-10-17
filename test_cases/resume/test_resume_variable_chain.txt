@@ -1,0 +1,48 @@
+# TEST_METADATA: {"description": "Resume into variable chain (documents limitation)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 3, "expected_execution_path": [3], "skip_host_validation": true, "expected_warnings": 3}
+
+# Resume Capability Test: Resume into Variable Chain
+#
+# Purpose: Document behavior when resuming into middle of dependent variable chain
+#
+# Test Scenario:
+# 1. Task 0-2: Will be skipped (produce values)
+# 2. Task 3: Resume point - depends on @1_stdout@ and @2_stdout@
+# 3. TASKER substitutes empty values for undefined variables
+#
+# Expected Behavior:
+# - Resume from task 3
+# - Task 3 tries to use @1_stdout@ and @2_stdout@ (both undefined)
+# - TASKER substitutes empty strings for missing variables
+# - Task completes successfully with empty variable values
+# - Exit code: 0 (success with warnings)
+#
+# Note: This test demonstrates resume limitation - variables from skipped
+# tasks are empty. True resume with state persistence would preserve these values.
+
+# Task 0 - first task (will be skipped)
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0 - Should be skipped
+exec=local
+
+# Task 1 - produces value A (will be skipped)
+task=1
+hostname=localhost
+command=echo
+arguments=ValueA
+exec=local
+
+# Task 2 - uses A, produces value B (will be skipped)
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2 uses @1_stdout@ and produces ValueB
+exec=local
+
+# Resume point - task 3 depends on both 1 and 2
+task=3
+hostname=localhost
+command=echo
+arguments=Task 3 needs A=@1_stdout@ and B=@2_stdout@
+exec=local

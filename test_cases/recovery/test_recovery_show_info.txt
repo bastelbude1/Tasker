@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Show recovery info without execution", "test_type": "validation_only", "expected_exit_code": 0, "expected_success": true, "requires_auto_recovery": true, "requires_show_recovery_info": true, "requires_recovery_file": true, "note": "Run test_recovery_basic_failure.txt first to create recovery file"}
+# TEST_METADATA: {"description": "Show recovery info without execution", "test_type": "validation_only", "expected_exit_code": 0, "expected_success": true, "requires_auto_recovery": true, "requires_show_recovery_info": true, "requires_recovery_file": true, "note": "Prerequisite: Run test_auto_recovery_basic.txt or test_recovery_basic_failure.txt first to create recovery file (first run only, which fails)"}
 # Show recovery info test - displays recovery state without executing
 # Global variables
 HOST_PREFIX=localhost

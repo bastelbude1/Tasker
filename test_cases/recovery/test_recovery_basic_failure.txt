@@ -1,5 +1,5 @@
-# TEST_METADATA: {"description": "Basic recovery - task failure creates recovery file", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "requires_auto_recovery": true, "creates_recovery_file": true}
-# Basic recovery test - intentional failure to create recovery file
+# TEST_METADATA: {"description": "Basic recovery - task failure creates recovery file", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true}
+# Basic recovery test - stateful failure then recovery
 
 # File-defined arguments
 --auto-recovery
@@ -23,16 +23,16 @@ exec=local
 command=echo
 arguments=Task 1 success
 
-# Task 2: Intentional failure
+# Task 2: Stateful task - fails first run, succeeds second run
 task=2
 hostname=@TARGET_HOST@
 exec=local
-command=false
-arguments=
+command=recovery_helper.sh
+arguments=test_recovery_basic_failure
 
-# Task 3: Should not execute
+# Task 3: Should execute only on second run (after recovery)
 task=3
 hostname=@TARGET_HOST@
 exec=local
 command=echo
-arguments=Task 3 should not execute
+arguments=Task 3 success - recovery completed

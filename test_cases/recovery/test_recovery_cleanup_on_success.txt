@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Recovery file cleanup on successful completion", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_auto_recovery": true, "recovery_file_should_be_deleted": true, "note": "Verifies recovery file is deleted after successful workflow completion"}
+# TEST_METADATA: {"description": "Recovery file cleanup on successful completion", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Verifies recovery file is deleted after successful workflow completion"}
 # Recovery cleanup test - recovery file should be deleted on success
 
 # File-defined arguments
@@ -16,14 +16,14 @@ exec=local
 command=echo
 arguments=Task 0 success
 
-# Task 1: Success
+# Task 1: Stateful task - fails first run, succeeds second run
 task=1
 hostname=@TARGET_HOST@
 exec=local
-command=echo
-arguments=Task 1 success
+command=recovery_helper.sh
+arguments=test_recovery_cleanup_on_success
 
-# Task 2: Success
+# Task 2: Should execute only on second run (after recovery)
 task=2
 hostname=@TARGET_HOST@
 exec=local

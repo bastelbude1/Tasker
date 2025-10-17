@@ -1,0 +1,19 @@
+# TEST_METADATA: {"description": "File-defined arguments - multiple flags and options", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Test file-defined arguments with multiple flags and options
+# This test validates that multiple arguments are correctly parsed and applied
+
+# File-defined arguments
+--skip-host-validation
+--log-level=DEBUG
+--no-task-backup
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Tasks
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Testing multiple arguments

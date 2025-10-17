@@ -1,0 +1,17 @@
+# TEST_METADATA: {"description": "File-defined arguments - single boolean flag", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Test file-defined argument with single boolean flag
+# This test validates that a single boolean flag (--skip-host-validation) is correctly parsed from the file header
+
+# File-defined arguments
+--skip-host-validation
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Tasks
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Testing single boolean flag

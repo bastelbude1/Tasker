@@ -189,8 +189,11 @@ class TaskExecutor:
         self.final_hostname = None
         self.final_command = None
 
-        # Generate timestamp for both log file and task copy 
-        timestamp = datetime.now().strftime('%d%b%y_%H%M%S')
+        # Generate timestamps
+        # Use numeric, locale-agnostic, microsecond-resolution timestamp for filenames
+        file_ts = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        # Use human-readable timestamp for log display messages
+        display_ts = datetime.now().strftime('%d%b%y_%H%M%S')
 
         # Skip log file creation for dry runs (simulations don't need logs)
         if self.dry_run:
@@ -206,13 +209,12 @@ class TaskExecutor:
 
             # Set up logging with sanitized task filename as prefix
             sanitized_prefix = sanitize_filename(task_file)
-            timestamp = datetime.now().strftime('%d%b%y_%H%M%S')
             log_appendix = 'log'
-            self.log_file_path = os.path.join(log_subdir, f"{sanitized_prefix}_{timestamp}.{log_appendix}")
+            self.log_file_path = os.path.join(log_subdir, f"{sanitized_prefix}_{file_ts}.{log_appendix}")
             self.log_file = open(self.log_file_path, 'w')
 
             # Smart task file backup: skip if disabled, dry-run, or file unchanged
-            self._create_task_backup_if_needed(task_file, self.log_dir, timestamp)
+            self._create_task_backup_if_needed(task_file, self.log_dir, file_ts)
 
         # Set up project summary logging if project is specified
         if self.project:
@@ -240,7 +242,7 @@ class TaskExecutor:
             self.summary_log = None
 
         # Start logging task execution
-        self.log_info(f"=== Task Execution Start: {timestamp} ===")
+        self.log_info(f"=== Task Execution Start: {display_ts} ===")
         self.log_info(f"# Task file: {task_file}")
         self.log_info(f"# Log level: {self.log_level}")
 

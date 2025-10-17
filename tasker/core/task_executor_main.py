@@ -200,15 +200,11 @@ class TaskExecutor:
             # Create log directory if it doesn't exist
             os.makedirs(self.log_dir, exist_ok=True)
 
-            # Create log subdirectory for organized log file storage
-            log_subdir = os.path.join(self.log_dir, 'log')
-            os.makedirs(log_subdir, exist_ok=True)
-
             # Set up logging with sanitized task filename as prefix
             sanitized_prefix = sanitize_filename(task_file)
             timestamp = datetime.now().strftime('%d%b%y_%H%M%S')
             log_appendix = 'log'
-            self.log_file_path = os.path.join(log_subdir, f"{sanitized_prefix}_{timestamp}.{log_appendix}")
+            self.log_file_path = os.path.join(self.log_dir, f"{sanitized_prefix}_{timestamp}.{log_appendix}")
             self.log_file = open(self.log_file_path, 'w')
 
             # Smart task file backup: skip if disabled, dry-run, or file unchanged

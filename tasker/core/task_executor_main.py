@@ -190,28 +190,32 @@ class TaskExecutor:
         # Generate timestamp for both log file and task copy 
         timestamp = datetime.now().strftime('%d%b%y_%H%M%S')
 
-        # Create log directory if it doesn't exist
-        os.makedirs(self.log_dir, exist_ok=True)
-        
-        # Set up logging with sanitized task filename as prefix
-        sanitized_prefix = sanitize_filename(task_file) 
-        timestamp = datetime.now().strftime('%d%b%y_%H%M%S')
-        log_appendix = 'log'
-        if self.dry_run: log_appendix = 'dryrun'
-        self.log_file_path = os.path.join(self.log_dir, f"{sanitized_prefix}_{timestamp}.{log_appendix}")
-        self.log_file = open(self.log_file_path, 'w')
-
-        # Copy the task file to the tasks directory as backup (only if file exists)
-        if os.path.exists(task_file):
-            try:
-                task_filename = os.path.basename(task_file)
-                task_copy_path = os.path.join(self.log_dir, f"{task_filename}_{timestamp}")
-                shutil.copy2(task_file, task_copy_path)
-                self.log_debug(f"Created task file copy: {task_copy_path}")
-            except Exception as e:
-                self.log_warn(f"Could not copy task file to tasks directory: {str(e)}")
+        # Skip log file creation for dry runs (simulations don't need logs)
+        if self.dry_run:
+            self.log_file = None
+            self.log_file_path = None
         else:
-            self.log_debug(f"Skipping task file copy - file does not exist: {task_file}")
+            # Create log directory if it doesn't exist
+            os.makedirs(self.log_dir, exist_ok=True)
+
+            # Set up logging with sanitized task filename as prefix
+            sanitized_prefix = sanitize_filename(task_file)
+            timestamp = datetime.now().strftime('%d%b%y_%H%M%S')
+            log_appendix = 'log'
+            self.log_file_path = os.path.join(self.log_dir, f"{sanitized_prefix}_{timestamp}.{log_appendix}")
+            self.log_file = open(self.log_file_path, 'w')
+
+            # Copy the task file to the tasks directory as backup (only if file exists)
+            if os.path.exists(task_file):
+                try:
+                    task_filename = os.path.basename(task_file)
+                    task_copy_path = os.path.join(self.log_dir, f"{task_filename}_{timestamp}")
+                    shutil.copy2(task_file, task_copy_path)
+                    self.log_debug(f"Created task file copy: {task_copy_path}")
+                except Exception as e:
+                    self.log_warn(f"Could not copy task file to tasks directory: {str(e)}")
+            else:
+                self.log_debug(f"Skipping task file copy - file does not exist: {task_file}")
 
         # Set up project summary logging if project is specified
         if self.project:

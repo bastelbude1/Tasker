@@ -14,34 +14,46 @@ The `--start-from=TASK_ID` parameter allows resuming workflow execution from a s
 ### Directory Organization
 ```
 test_cases/resume/
-├── basic/                    # Basic resume scenarios (5 tests)
-├── flow_control/            # Resume with routing (4 tests)
-├── variables/               # Resume with variable dependencies (3 tests)
-├── edge_cases/              # Error cases and boundaries (4 tests)
-└── README.md                # This file
+├── test_resume_from_start.txt
+├── test_resume_from_middle.txt
+├── test_resume_from_last.txt
+├── test_resume_nonexistent_task.txt
+├── test_resume_with_task_gap.txt
+├── test_resume_before_branch.txt
+├── test_resume_into_success_branch.txt
+├── test_resume_into_parallel_block.txt
+├── test_resume_into_conditional_block.txt
+├── test_resume_missing_variables.txt
+├── test_resume_with_globals.txt
+├── test_resume_variable_chain.txt
+├── test_resume_from_zero_explicit.txt
+├── test_resume_with_skip_validation.txt
+├── test_resume_with_retry.txt
+├── test_resume_with_timeout.txt
+└── README.md
 ```
 
 ### Test Categories
 
-#### 1. Basic Resume Tests (`basic/`)
+#### 1. Basic Resume Tests (5 tests)
 - **test_resume_from_start.txt**: Resume from task 0 (baseline test)
 - **test_resume_from_middle.txt**: Resume from task 5 in 10-task workflow
 - **test_resume_from_last.txt**: Resume from final task only
 - **test_resume_nonexistent_task.txt**: Resume from non-existent task (negative)
 - **test_resume_with_task_gap.txt**: Resume with non-sequential task IDs
 
-#### 2. Flow Control Tests (`flow_control/`)
+#### 2. Flow Control Tests (4 tests)
 - **test_resume_before_branch.txt**: Resume before on_success/on_failure branch
 - **test_resume_into_success_branch.txt**: Resume directly into routing target
 - **test_resume_into_parallel_block.txt**: Resume from parallel coordinator
 - **test_resume_into_conditional_block.txt**: Resume from conditional coordinator
 
-#### 3. Variable Tests (`variables/`)
-- **test_resume_missing_variables.txt**: Resume when task depends on skipped output (negative)
-- **test_resume_with_globals.txt**: Resume with global variables (should work)
-- **test_resume_variable_chain.txt**: Resume into variable dependency chain (negative)
+#### 3. Variable Tests (3 tests)
+- **test_resume_missing_variables.txt**: Resume when task depends on skipped output
+- **test_resume_with_globals.txt**: Resume with global variables
+- **test_resume_variable_chain.txt**: Resume into variable dependency chain
 
-#### 4. Edge Case Tests (`edge_cases/`)
+#### 4. Edge Case Tests (4 tests)
 - **test_resume_from_zero_explicit.txt**: Explicit --start-from=0
 - **test_resume_with_skip_validation.txt**: Resume with --skip-task-validation
 - **test_resume_with_retry.txt**: Resume from task with retry configuration
@@ -54,22 +66,14 @@ test_cases/resume/
 python3 test_cases/scripts/intelligent_test_runner.py test_cases/resume/ -r
 ```
 
-### Run Specific Category
-```bash
-python3 test_cases/scripts/intelligent_test_runner.py test_cases/resume/basic/
-python3 test_cases/scripts/intelligent_test_runner.py test_cases/resume/flow_control/
-python3 test_cases/scripts/intelligent_test_runner.py test_cases/resume/variables/
-python3 test_cases/scripts/intelligent_test_runner.py test_cases/resume/edge_cases/
-```
-
 ### Run Single Test
 ```bash
-python3 test_cases/scripts/intelligent_test_runner.py test_cases/resume/basic/test_resume_from_middle.txt
+python3 test_cases/scripts/intelligent_test_runner.py test_cases/resume/test_resume_from_middle.txt
 ```
 
 ### Manual Execution
 ```bash
-python3 tasker.py test_cases/resume/basic/test_resume_from_middle.txt -r --start-from=5 --skip-host-validation
+python3 tasker.py test_cases/resume/test_resume_from_middle.txt -r --start-from=5 --skip-host-validation
 ```
 
 ## Metadata Fields

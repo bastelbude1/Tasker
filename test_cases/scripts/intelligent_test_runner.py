@@ -64,12 +64,18 @@ def _collect_test_files(target_path, recursive=False):
             if 'templates' in path_parts:
                 continue
             for file in files:
+                # Skip template files (files with 'template' in name)
+                if 'template' in file.lower():
+                    continue
                 if file.endswith('.txt'):
                     file_path = os.path.join(root, file)
                     if os.path.isfile(file_path):
                         test_files.append(file_path)
     else:
         for file in os.listdir(target_path):
+            # Skip template files (files with 'template' in name)
+            if 'template' in file.lower():
+                continue
             file_path = os.path.join(target_path, file)
             if file.endswith('.txt') and os.path.isfile(file_path):
                 test_files.append(file_path)

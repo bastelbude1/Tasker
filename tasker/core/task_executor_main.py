@@ -256,7 +256,7 @@ class TaskExecutor:
                 except Exception as e:
                     self.log_warn(f"Could not create task file backup: {str(e)}")
             elif self.no_task_backup:
-                self.log_debug(f"Task file backup disabled by --no-task-backup flag")
+                self.log_debug("Task file backup disabled by --no-task-backup flag")
             elif not os.path.exists(task_file):
                 self.log_debug(f"Skipping task file backup - file does not exist: {task_file}")
 
@@ -279,7 +279,7 @@ class TaskExecutor:
                 # Write headers directly with locking
                 try:
                     fcntl.flock(self.summary_log.fileno(), fcntl.LOCK_EX)
-                    self.summary_log.write(f"#Timestamp\tStatus\tExit_Code\tTask_File\tTask_ID\tHostname\tCommand\tLog_File\n")
+                    self.summary_log.write("#Timestamp\tStatus\tExit_Code\tTask_File\tTask_ID\tHostname\tCommand\tLog_File\n")
                 finally:
                     fcntl.flock(self.summary_log.fileno(), fcntl.LOCK_UN)
         else:

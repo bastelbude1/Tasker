@@ -9,33 +9,114 @@ Usage:
     vtps test_resume        # List/view files matching 'test_resume'
     vtps path/to/file.summary  # View specific file
     vtps -n 20              # List last 20 files
+    vtps --dir /path/to/project  # Use specific project directory
 """
 
 import os
 import sys
-import glob
+import argparse
 from pathlib import Path
 from datetime import datetime
 
 
-def get_project_dir():
-    """Find the project summary directory relative to script location."""
-    # Script is in /home/baste/tasker/, project dir is /home/baste/TASKER/project/
-    script_dir = Path(__file__).resolve().parent
+def discover_project_dir(override_dir=None):
+    """
+    Discover project summary directory using a flexible search strategy.
 
-    # Try multiple possible locations
-    possible_dirs = [
-        script_dir.parent / 'TASKER' / 'project',  # /home/baste/TASKER/project/
-        Path('/home/baste/TASKER/project'),         # Absolute fallback
-        script_dir / 'log' / 'project',             # Relative to tasker dir
+    Search order:
+    1. CLI --dir argument (if provided)
+    2. VTPS_PROJECT_DIR environment variable
+    3. Upward search from script dir for logs/project or project directories
+    4. Common relative locations from script dir
+
+    Args:
+        override_dir: Optional directory path from CLI argument
+
+    Returns:
+        Path object to project directory
+
+    Raises:
+        SystemExit if no valid directory found
+    """
+    script_dir = Path(__file__).resolve().parent
+    checked_paths = []
+
+    # 1. CLI argument override (highest priority)
+    if override_dir:
+        path = Path(override_dir).resolve()
+        checked_paths.append(("--dir argument", path))
+        if path.exists() and path.is_dir():
+            return path
+
+    # 2. Environment variable override
+    env_dir = os.environ.get('VTPS_PROJECT_DIR')
+    if env_dir:
+        path = Path(env_dir).resolve()
+        checked_paths.append(("VTPS_PROJECT_DIR env var", path))
+        if path.exists() and path.is_dir():
+            return path
+
+    # 3. Upward search from script directory
+    current = script_dir
+    max_depth = 5  # Limit upward search to prevent infinite loops
+
+    for _ in range(max_depth):
+        # Check for logs/project subdirectory
+        logs_project = current / 'logs' / 'project'
+        checked_paths.append(("upward search (logs/project)", logs_project))
+        if logs_project.exists() and logs_project.is_dir():
+            return logs_project
+
+        # Check for TASKER/log/project subdirectory (legacy layout)
+        tasker_log = current / 'TASKER' / 'log' / 'project'
+        checked_paths.append(("upward search (TASKER/log/project)", tasker_log))
+        if tasker_log.exists() and tasker_log.is_dir():
+            return tasker_log
+
+        # Check for TASKER/project subdirectory (common layout)
+        tasker_project = current / 'TASKER' / 'project'
+        checked_paths.append(("upward search (TASKER/project)", tasker_project))
+        if tasker_project.exists() and tasker_project.is_dir():
+            return tasker_project
+
+        # Check for project subdirectory
+        project = current / 'project'
+        checked_paths.append(("upward search (project)", project))
+        if project.exists() and project.is_dir():
+            return project
+
+        # Move up one directory
+        parent = current.parent
+        if parent == current:  # Reached root
+            break
+        current = parent
+
+    # 4. Common relative locations from script directory
+    relative_locations = [
+        script_dir / 'logs' / 'project',
+        script_dir / 'log' / 'project',
+        script_dir / 'TASKER' / 'log' / 'project',
+        script_dir / 'TASKER' / 'project',
+        script_dir / 'project',
     ]
 
-    for dir_path in possible_dirs:
-        if dir_path.exists() and dir_path.is_dir():
-            return dir_path
+    for location in relative_locations:
+        checked_paths.append(("relative location", location))
+        if location.exists() and location.is_dir():
+            return location
 
-    # Fallback: current directory
-    return Path.cwd()
+    # No valid directory found - provide helpful error message
+    print("ERROR: Could not find project summary directory", file=sys.stderr)
+    print("\nSearched the following locations:", file=sys.stderr)
+    for source, path in checked_paths:
+        exists_marker = "[EXISTS]" if path.exists() else "[NOT FOUND]"
+        is_dir_marker = "[DIR]" if path.is_dir() else "[NOT DIR]" if path.exists() else ""
+        print(f"  {exists_marker} {is_dir_marker} {source}: {path}", file=sys.stderr)
+
+    print("\nTo specify a custom directory:", file=sys.stderr)
+    print("  vtps --dir /path/to/project/directory", file=sys.stderr)
+    print("  export VTPS_PROJECT_DIR=/path/to/project/directory", file=sys.stderr)
+    sys.exit(1)
 
 
 def format_tsv_aligned(file_path):
@@ -128,31 +209,48 @@ def find_matching_files(project_dir, pattern):
 
 def main():
     """Main entry point."""
-    # Parse arguments
-    args = sys.argv[1:]
+    # Parse arguments with argparse for better CLI handling
+    parser = argparse.ArgumentParser(
+        description='TASKER Project Summary Viewer - View and analyze project summary files',
+        epilog='Examples:\n'
+               '  vtps                        List last 10 summary files\n'
+               '  vtps test_resume            List/view files matching "test_resume"\n'
+               '  vtps -n 20                  List last 20 files\n'
+               '  vtps --dir /custom/path     Use custom project directory\n'
+               '  vtps path/to/file.summary   View specific file',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
 
-    # Get project directory
-    project_dir = get_project_dir()
+    parser.add_argument(
+        'pattern',
+        nargs='?',
+        help='Pattern to match summary files, or path to specific file'
+    )
+    parser.add_argument(
+        '-n', '--count',
+        type=int,
+        default=10,
+        metavar='N',
+        help='Number of files to list (default: 10)'
+    )
+    parser.add_argument(
+        '--dir',
+        dest='project_dir',
+        metavar='PATH',
+        help='Project directory path (overrides auto-discovery and VTPS_PROJECT_DIR)'
+    )
 
-    # Handle -n flag for listing count
-    list_count = 10
-    if args and args[0] == '-n':
-        if len(args) < 2:
-            print("Error: -n requires a number", file=sys.stderr)
-            sys.exit(1)
-        try:
-            list_count = int(args[1])
-            args = args[2:]  # Remove -n and count from args
-        except ValueError:
-            print(f"Error: Invalid number: {args[1]}", file=sys.stderr)
-            sys.exit(1)
+    args = parser.parse_args()
 
-    # No arguments: list last N files
-    if not args:
-        list_summary_files(project_dir, list_count)
+    # Discover project directory with override support
+    project_dir = discover_project_dir(override_dir=args.project_dir)
+
+    # No pattern: list last N files
+    if not args.pattern:
+        list_summary_files(project_dir, args.count)
         return
 
-    pattern_or_path = args[0]
+    pattern_or_path = args.pattern
 
     # Check if it's a file path
     file_path = Path(pattern_or_path)

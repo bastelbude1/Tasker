@@ -34,9 +34,14 @@ RECOVERY_DIR="$HOME/TASKER/recovery"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export PATH="${SCRIPT_DIR}:${PATH}"
 
-# Cleanup any existing recovery files
-echo "=== Recovery Test Wrapper: Cleaning up existing recovery files ==="
+# Derive TEST_ID from task file basename (for state file cleanup)
+TEST_ID=$(basename "$TASK_FILE" .txt)
+STATE_FILE="/tmp/recovery_test_${TEST_ID}.state"
+
+# Cleanup any existing recovery files and state files
+echo "=== Recovery Test Wrapper: Cleaning up existing recovery and state files ==="
 rm -f "$RECOVERY_DIR"/*.recovery.json 2>/dev/null || true
+rm -f "$STATE_FILE" 2>/dev/null || true
 
 # First run - expect failure and recovery file creation
 echo "=== Recovery Test Wrapper: First run (expect failure) ==="

@@ -305,8 +305,9 @@ class TaskExecutor:
         # Only add minimal warning for shared summary files
         if self.project:
             # Check if summary file is currently locked by another process
-            summary_file_path = os.path.join(self.log_dir, f"{self.project}.summary")
-        
+            # Use the actual summary_log_path (which includes project/ subdirectory)
+            summary_file_path = getattr(self, "summary_log_path", None) or os.path.join(self.log_dir, "project", f"{self.project}.summary")
+
             if os.path.exists(summary_file_path):
                 try:
                     # Quick non-blocking test if file is locked

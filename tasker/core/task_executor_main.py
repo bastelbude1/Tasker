@@ -26,9 +26,10 @@ import socket
 import shutil
 import fcntl  # Linux Only
 import threading
-import errno 
-import signal 
+import errno
+import signal
 import tempfile
+import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Import from our library package
@@ -92,7 +93,8 @@ class TaskExecutor:
                  exec_type=None, timeout=30, connection_test=False, project=None,
                  start_from_task=None, skip_task_validation=False,
                  skip_host_validation=False, skip_security_validation=False,
-                 show_plan=False, validate_only=False, fire_and_forget=False):
+                 show_plan=False, validate_only=False, fire_and_forget=False,
+                 no_task_backup=False):
         """
         Initialize a TaskExecutor instance and prepare environment, logging, state, and modular components for task orchestration.
 
@@ -136,6 +138,7 @@ class TaskExecutor:
         self.show_plan = show_plan
         self.validate_only = validate_only
         self.fire_and_forget = fire_and_forget  # Continue on failure even without routing
+        self.no_task_backup = no_task_backup  # Skip task file backup creation
 
         # Configurable timeouts for cleanup and summary operations
         self.summary_lock_timeout = 20  # Seconds for summary file locking (longer for shared files)
@@ -205,17 +208,52 @@ class TaskExecutor:
             self.log_file_path = os.path.join(self.log_dir, f"{sanitized_prefix}_{timestamp}.{log_appendix}")
             self.log_file = open(self.log_file_path, 'w')
 
-            # Copy the task file to the tasks directory as backup (only if file exists)
-            if os.path.exists(task_file):
+            # Smart task file backup: skip if disabled, dry-run, or file unchanged
+            if not self.no_task_backup and os.path.exists(task_file):
                 try:
+                    # Create backup subdirectory
+                    backup_dir = os.path.join(self.log_dir, 'backup')
+                    os.makedirs(backup_dir, exist_ok=True)
+
+                    # Calculate MD5 hash of current task file
+                    with open(task_file, 'rb') as f:
+                        current_hash = hashlib.md5(f.read()).hexdigest()
+
+                    # Check if we already have a backup with the same hash
                     task_filename = os.path.basename(task_file)
-                    task_copy_path = os.path.join(self.log_dir, f"{task_filename}_{timestamp}")
-                    shutil.copy2(task_file, task_copy_path)
-                    self.log_debug(f"Created task file copy: {task_copy_path}")
+                    backup_needed = True
+
+                    # Look for existing backups of this task file
+                    existing_backups = [
+                        f for f in os.listdir(backup_dir)
+                        if f.startswith(task_filename + '_')
+                    ]
+
+                    # Check if any existing backup matches current hash
+                    for backup_file in existing_backups:
+                        backup_path = os.path.join(backup_dir, backup_file)
+                        try:
+                            with open(backup_path, 'rb') as f:
+                                backup_hash = hashlib.md5(f.read()).hexdigest()
+                            if backup_hash == current_hash:
+                                backup_needed = False
+                                self.log_debug(f"Task file unchanged - skipping backup (matches {backup_file})")
+                                break
+                        except:
+                            pass  # Ignore errors reading old backups
+
+                    # Create backup only if file has changed
+                    if backup_needed:
+                        task_copy_path = os.path.join(backup_dir, f"{task_filename}_{timestamp}")
+                        shutil.copy2(task_file, task_copy_path)
+                        self.log_debug(f"Created task file backup: backup/{task_filename}_{timestamp}")
+
                 except Exception as e:
-                    self.log_warn(f"Could not copy task file to tasks directory: {str(e)}")
-            else:
-                self.log_debug(f"Skipping task file copy - file does not exist: {task_file}")
+                    self.log_warn(f"Could not create task file backup: {str(e)}")
+            elif self.no_task_backup:
+                self.log_debug(f"Task file backup disabled by --no-task-backup flag")
+            elif not os.path.exists(task_file):
+                self.log_debug(f"Skipping task file backup - file does not exist: {task_file}")
 
         # Set up project summary logging if project is specified
         if self.project:

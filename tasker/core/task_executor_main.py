@@ -261,7 +261,11 @@ class TaskExecutor:
 
         # Set up project summary logging if project is specified
         if self.project:
-            self.summary_log_path = os.path.join(self.log_dir, f"{self.project}.summary")
+            # Create project subdirectory for organized project summary storage
+            project_subdir = os.path.join(self.log_dir, 'project')
+            os.makedirs(project_subdir, exist_ok=True)
+
+            self.summary_log_path = os.path.join(project_subdir, f"{self.project}.summary")
 
             # Check if file exists to determine if we need to write headers
             file_exists = os.path.exists(self.summary_log_path)

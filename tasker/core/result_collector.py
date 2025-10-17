@@ -151,8 +151,9 @@ class ResultCollector:
         if not hasattr(summary_log_file, 'write'):
             raise ValueError("summary_log_file must have a write method")
 
-        if not log_file_path or not isinstance(log_file_path, str):
-            raise ValueError("log_file_path must be a non-empty string")
+        # Allow None for dry-run; writer will fall back to 'unknown.log'
+        if log_file_path is not None and not isinstance(log_file_path, str):
+            raise ValueError("log_file_path must be a string or None")
 
         # Test write capability
         try:

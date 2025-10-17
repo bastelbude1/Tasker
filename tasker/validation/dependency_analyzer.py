@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 TASKER Dependency Analyzer
 ---------------------------
@@ -24,9 +23,6 @@ class DependencyAnalyzer:
 
     # Pattern for task output references: @N_field@ where N is a number
     TASK_REFERENCE_PATTERN = re.compile(r'@(\d+)_\w+@')
-
-    # Pattern for any variable reference: @ANYTHING@
-    VARIABLE_PATTERN = re.compile(r'@([^@]+)@')
 
     def __init__(self, tasks: List[Dict[str, Any]], global_vars: Dict[str, str]):
         """

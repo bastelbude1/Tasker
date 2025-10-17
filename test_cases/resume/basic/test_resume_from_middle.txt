@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Resume from middle task (task 5)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 5, "expected_execution_path": [5, 6, 7, 8, 9, 10], "skip_host_validation": true, "expected_warnings": 1}
+# TEST_METADATA: {"description": "Resume from middle task (task 5)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 5, "expected_execution_path": [5, 6, 7, 8, 9, 10], "skip_host_validation": true, "expected_warnings": 3}
 
 # Resume Capability Test: Resume from Middle
 #

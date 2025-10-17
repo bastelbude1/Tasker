@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Resume from non-existent task (negative test)", "test_type": "negative", "expected_exit_code": 21, "expected_success": false, "start_from_task": 99, "skip_host_validation": true, "expected_warnings": 1}
+# TEST_METADATA: {"description": "Resume from non-existent task (negative test)", "test_type": "negative", "expected_exit_code": 12, "expected_success": false, "start_from_task": 99, "skip_host_validation": true, "expected_warnings": 1}
 
 # Resume Capability Test: Resume from Non-Existent Task (Negative)
 #
@@ -11,10 +11,10 @@
 # 4. Error message should indicate task 99 not found
 #
 # Expected Behavior:
-# - Error log: "Start task 99 not found in task definitions"
-# - Error log: "Available task IDs: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"
+# - Error log: "Start task 99 not found"
+# - Error log shows available task IDs
 # - No tasks execute
-# - Exit code: 21 (task dependency failed)
+# - Exit code: 12 (resume validation failed)
 
 task=0
 hostname=localhost

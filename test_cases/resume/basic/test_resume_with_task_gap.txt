@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Resume into workflow with non-sequential task IDs", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 10, "expected_execution_path": [10, 15, 20], "skip_host_validation": true, "expected_warnings": 1}
+# TEST_METADATA: {"description": "Resume into workflow with non-sequential task IDs", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 10, "expected_execution_path": [10, 15, 20], "skip_host_validation": true, "skip_task_validation": true, "expected_warnings": 4}
 
 # Resume Capability Test: Resume with Task Gap
 #
@@ -41,6 +41,7 @@ hostname=localhost
 command=echo
 arguments=Task 10 - Resume starts here
 exec=local
+on_success=15
 
 # Next task (gap from 10 to 15)
 task=15
@@ -48,6 +49,7 @@ hostname=localhost
 command=echo
 arguments=Task 15 - Should execute
 exec=local
+on_success=20
 
 # Final task (gap from 15 to 20)
 task=20

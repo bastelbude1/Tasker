@@ -1,5 +1,10 @@
 # TEST_METADATA: {"description": "Recovery with global variables preservation", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_auto_recovery": true, "note": "Tests that global variables are preserved across recovery"}
 # Recovery with global variables test
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
 # Global variables
 APP_NAME=MyApplication
 APP_VERSION=1.0.0

@@ -1,5 +1,10 @@
 # TEST_METADATA: {"description": "Recovery file cleanup on successful completion", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_auto_recovery": true, "recovery_file_should_be_deleted": true, "note": "Verifies recovery file is deleted after successful workflow completion"}
 # Recovery cleanup test - recovery file should be deleted on success
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
 # Global variables
 HOST_PREFIX=localhost
 TARGET_HOST=@HOST_PREFIX@

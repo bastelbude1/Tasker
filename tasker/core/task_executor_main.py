@@ -189,11 +189,12 @@ class TaskExecutor:
         self.final_hostname = None
         self.final_command = None
 
-        # Generate timestamps
+        # Capture timestamp once for consistency across formats
+        now = datetime.now()
         # Use numeric, locale-agnostic, microsecond-resolution timestamp for filenames
-        file_ts = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        file_ts = now.strftime('%Y%m%d_%H%M%S_%f')
         # Use human-readable timestamp for log display messages
-        display_ts = datetime.now().strftime('%d%b%y_%H%M%S')
+        display_ts = now.strftime('%d%b%y_%H%M%S')
 
         # Skip log file creation for dry runs (simulations don't need logs)
         if self.dry_run:

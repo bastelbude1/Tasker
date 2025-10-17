@@ -212,56 +212,7 @@ class TaskExecutor:
             self.log_file = open(self.log_file_path, 'w')
 
             # Smart task file backup: skip if disabled, dry-run, or file unchanged
-            if not self.no_task_backup and os.path.exists(task_file):
-                try:
-                    # Create backup subdirectory
-                    backup_dir = os.path.join(self.log_dir, 'backup')
-                    os.makedirs(backup_dir, exist_ok=True)
-
-                    # Calculate SHA-256 hash of current task file for deduplication
-                    with open(task_file, 'rb') as f:
-                        current_hash = hashlib.sha256(f.read()).hexdigest()
-
-                    # Check if we already have a backup with the same hash
-                    task_filename = os.path.basename(task_file)
-                    backup_needed = True
-
-                    # Look for existing backups of this task file
-                    existing_backups = [
-                        f for f in os.listdir(backup_dir)
-                        if f.startswith(task_filename + '_')
-                    ]
-
-                    # Check if any existing backup matches current hash
-                    for backup_file in existing_backups:
-                        backup_path = os.path.join(backup_dir, backup_file)
-                        try:
-                            with open(backup_path, 'rb') as f:
-                                backup_hash = hashlib.sha256(f.read()).hexdigest()
-                            if backup_hash == current_hash:
-                                backup_needed = False
-                                self.log_debug(f"Task file unchanged - skipping backup (matches {backup_file})")
-                                break
-                        except Exception as e:
-                            # Log the error but continue checking other backups
-                            # This handles corruption, permission errors, I/O failures gracefully
-                            self.log_debug(f"Could not read backup file '{backup_file}': {type(e).__name__}: {e}")
-
-                    # Create backup only if file has changed
-                    if backup_needed:
-                        try:
-                            task_copy_path = os.path.join(backup_dir, f"{task_filename}_{timestamp}")
-                            shutil.copy2(task_file, task_copy_path)
-                            self.log_debug(f"Created task file backup: backup/{task_filename}_{timestamp}")
-                        except Exception as e:
-                            self.log_warn(f"Could not create new task file backup: {str(e)}")
-
-                except Exception as e:
-                    self.log_warn(f"Task file backup preparation failed: {str(e)}")
-            elif self.no_task_backup:
-                self.log_debug("Task file backup disabled by --no-task-backup flag")
-            elif not os.path.exists(task_file):
-                self.log_debug(f"Skipping task file backup - file does not exist: {task_file}")
+            self._create_task_backup_if_needed(task_file, self.log_dir, timestamp)
 
         # Set up project summary logging if project is specified
         if self.project:
@@ -394,6 +345,72 @@ class TaskExecutor:
 
         # ===== BACKWARD COMPATIBILITY PROPERTIES =====
         # Create property wrappers for seamless transition to new architecture
+
+    # ===== HELPER METHODS =====
+
+    def _create_task_backup_if_needed(self, task_file, log_dir, timestamp):
+        """
+        Create deduplicated backup of task file if content has changed.
+
+        Args:
+            task_file: Path to task file to backup
+            log_dir: Base log directory where backup subdirectory should be created
+            timestamp: Timestamp string to use for backup filename
+
+        The method:
+        - Skips backup if disabled via --no-task-backup flag
+        - Skips backup if task file doesn't exist
+        - Uses SHA-256 hashing to avoid duplicate backups
+        - Creates backup only if file content has changed
+        """
+        if self.no_task_backup:
+            self.log_debug("Task file backup disabled by --no-task-backup flag")
+            return
+
+        if not os.path.exists(task_file):
+            self.log_debug(f"Skipping task file backup - file does not exist: {task_file}")
+            return
+
+        try:
+            # Create backup subdirectory
+            backup_dir = os.path.join(log_dir, 'backup')
+            os.makedirs(backup_dir, exist_ok=True)
+
+            # Calculate SHA-256 hash of current task file for deduplication
+            with open(task_file, 'rb') as f:
+                current_hash = hashlib.sha256(f.read()).hexdigest()
+
+            # Check if we already have a backup with the same hash
+            task_filename = os.path.basename(task_file)
+            existing_backups = [
+                f for f in os.listdir(backup_dir)
+                if f.startswith(task_filename + '_')
+            ]
+
+            # Check if any existing backup matches current hash
+            for backup_file in existing_backups:
+                backup_path = os.path.join(backup_dir, backup_file)
+                try:
+                    with open(backup_path, 'rb') as f:
+                        backup_hash = hashlib.sha256(f.read()).hexdigest()
+                    if backup_hash == current_hash:
+                        self.log_debug(f"Task file unchanged - skipping backup (matches {backup_file})")
+                        return
+                except Exception as e:
+                    # Log the error but continue checking other backups
+                    # This handles corruption, permission errors, I/O failures gracefully
+                    self.log_debug(f"Could not read backup file '{backup_file}': {type(e).__name__}: {e}")
+
+            # Create backup only if file has changed
+            try:
+                task_copy_path = os.path.join(backup_dir, f"{task_filename}_{timestamp}")
+                shutil.copy2(task_file, task_copy_path)
+                self.log_debug(f"Created task file backup: backup/{task_filename}_{timestamp}")
+            except Exception as e:
+                self.log_warn(f"Could not create new task file backup: {e}")
+
+        except Exception as e:
+            self.log_warn(f"Task file backup preparation failed: {e}")
 
     # State management properties for backward compatibility
     @property

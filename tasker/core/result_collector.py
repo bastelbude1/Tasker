@@ -281,7 +281,7 @@ class ResultCollector:
             sanitize_for_tsv(self.final_task_id),
             sanitize_for_tsv(self.final_hostname),
             sanitize_for_tsv(self.final_command),
-            log_file
+            sanitize_for_tsv(log_file)
         ]
         message = '\t'.join(fields)
 

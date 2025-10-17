@@ -1,0 +1,44 @@
+# TEST_METADATA: {"description": "Resume directly into on_success target", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 10, "expected_execution_path": [10, 11], "skip_host_validation": true, "expected_warnings": 1}
+
+# Resume Capability Test: Resume Into Success Branch
+#
+# Purpose: Validate resume can start directly at a routing target
+#
+# Test Scenario:
+# 1. Task 0-5: Skipped (before resume point)
+# 2. Task 10: Resume point (was on_success target of task 5)
+# 3. Task 11: Next sequential task
+#
+# Expected Behavior:
+# - Resume from task 10 (bypassing the routing logic)
+# - Task 10 executes successfully
+# - Task 11 executes (normal sequential flow)
+# - Exit code: 0 (success)
+
+# Tasks before resume point (will be skipped)
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0 - Should be skipped
+exec=local
+
+task=5
+hostname=localhost
+command=echo
+arguments=Task 5 - Should be skipped (with routing)
+exec=local
+on_success=10
+
+# Resume point - task 10 (on_success target)
+task=10
+hostname=localhost
+command=echo
+arguments=Task 10 - Resume starts here (was success target)
+exec=local
+
+# Next sequential task
+task=11
+hostname=localhost
+command=echo
+arguments=Task 11 - Sequential continuation
+exec=local

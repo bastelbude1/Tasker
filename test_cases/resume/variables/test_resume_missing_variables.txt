@@ -1,0 +1,40 @@
+# TEST_METADATA: {"description": "Resume with missing task variables (negative)", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "start_from_task": 5, "skip_host_validation": true, "expected_warnings": 1}
+
+# Resume Capability Test: Resume with Missing Variables (Negative)
+#
+# Purpose: Validate error handling when resumed task depends on skipped task output
+#
+# Test Scenario:
+# 1. Task 1: Produces output (will be skipped)
+# 2. Task 5: Resume point - depends on @1_stdout@ (missing variable)
+# 3. TASKER should detect undefined variable and fail
+#
+# Expected Behavior:
+# - Resume from task 5
+# - Task 5 tries to use @1_stdout@ but it's undefined
+# - Variable resolution fails or produces empty/error value
+# - Exit code: 1 (execution failure) OR task completes with empty variable
+#
+# Note: This test documents current behavior - resume doesn't preserve
+# task results from previous runs
+
+# Task that produces output (will be skipped)
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1 output - important data
+exec=local
+
+# Tasks before resume point
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2
+exec=local
+
+# Resume point - depends on skipped task output
+task=5
+hostname=localhost
+command=echo
+arguments=Task 5 - Using data from task 1: @1_stdout@
+exec=local

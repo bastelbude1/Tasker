@@ -675,6 +675,11 @@ class TaskerTestExecutor:
         if metadata.get("fire_and_forget", False):
             cmd_args.append("--fire-and-forget")
 
+        # Add --start-from flag from metadata (resume capability)
+        if "start_from_task" in metadata:
+            start_task = metadata["start_from_task"]
+            cmd_args.append(f"--start-from={start_task}")
+
         # Set environment for supporting scripts
         env = os.environ.copy()
 

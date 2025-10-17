@@ -1,0 +1,57 @@
+# TEST_METADATA: {"description": "Resume into workflow with non-sequential task IDs", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 10, "expected_execution_path": [10, 15, 20], "skip_host_validation": true, "expected_warnings": 1}
+
+# Resume Capability Test: Resume with Task Gap
+#
+# Purpose: Validate resume works with non-sequential task IDs
+#
+# Test Scenario:
+# 1. Workflow has non-sequential tasks: 0, 1, 2, 10, 15, 20
+# 2. Use --start-from=10 to resume from task 10
+# 3. Tasks 0, 1, 2 should be skipped
+# 4. Tasks 10, 15, 20 should execute
+#
+# Expected Behavior:
+# - Resume mode logs "Resume mode: Starting from Task 10"
+# - Tasks 0, 1, 2 are skipped (before resume point)
+# - Tasks 10, 15, 20 execute in order
+# - Exit code: 0 (success)
+
+# Tasks before resume point (will be skipped)
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0 - Should be skipped
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1 - Should be skipped
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2 - Should be skipped
+exec=local
+
+# Resume point - task 10 (gap from 2 to 10)
+task=10
+hostname=localhost
+command=echo
+arguments=Task 10 - Resume starts here
+exec=local
+
+# Next task (gap from 10 to 15)
+task=15
+hostname=localhost
+command=echo
+arguments=Task 15 - Should execute
+exec=local
+
+# Final task (gap from 15 to 20)
+task=20
+hostname=localhost
+command=echo
+arguments=Task 20 - Final task
+exec=local

@@ -242,8 +242,10 @@ class TaskExecutor:
                                 backup_needed = False
                                 self.log_debug(f"Task file unchanged - skipping backup (matches {backup_file})")
                                 break
-                        except:
-                            pass  # Ignore errors reading old backups
+                        except Exception as e:
+                            # Log the error but continue checking other backups
+                            # This handles corruption, permission errors, I/O failures gracefully
+                            self.log_debug(f"Could not read backup file '{backup_file}': {type(e).__name__}: {e}")
 
                     # Create backup only if file has changed
                     if backup_needed:

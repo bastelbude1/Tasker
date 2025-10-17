@@ -1,0 +1,67 @@
+# TEST_METADATA: {"description": "Resume with global variables", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 5, "expected_execution_path": [5, 6], "skip_host_validation": true, "expected_warnings": 3}
+
+# Resume Capability Test: Resume with Global Variables
+#
+# Purpose: Validate resume works correctly with global variables
+#
+# Test Scenario:
+# 1. Global variables: TEST_VAR, APP_VERSION defined
+# 2. Task 0-2: Skipped (before resume point)
+# 3. Task 5: Resume point - uses global variables
+# 4. Task 6: Also uses global variables
+#
+# Expected Behavior:
+# - Resume from task 5
+# - Global variables are available to all resumed tasks
+# - Task 5 and 6 execute successfully with global variable substitution
+# - Exit code: 0 (success)
+
+# Global variables (available throughout execution)
+TEST_VAR=production
+APP_VERSION=2.5.1
+ENVIRONMENT=staging
+
+# Tasks before resume point (will be skipped)
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0 - Should be skipped
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1 - Should be skipped
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2 - Should be skipped
+exec=local
+
+task=3
+hostname=localhost
+command=echo
+arguments=Task 3 - Should be skipped
+exec=local
+
+task=4
+hostname=localhost
+command=echo
+arguments=Task 4 - Should be skipped
+exec=local
+
+# Resume point - uses global variables
+task=5
+hostname=localhost
+command=echo
+arguments=Task 5 - Environment: @ENVIRONMENT@, Version: @APP_VERSION@
+exec=local
+
+# Next task - also uses globals
+task=6
+hostname=localhost
+command=echo
+arguments=Task 6 - Config: @TEST_VAR@, Version: @APP_VERSION@
+exec=local

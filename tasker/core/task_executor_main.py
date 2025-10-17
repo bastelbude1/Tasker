@@ -1045,6 +1045,11 @@ class TaskExecutor:
             if not line or line.startswith('#'):
                 continue
 
+            # Skip file-defined arguments (lines starting with - or --)
+            # These are processed by tasker.py CLI parser, not part of task file content
+            if line.startswith(('-', '--')):
+                continue
+
             # STOP at first task definition - everything after is task fields, not globals
             # Use regex to handle variations with spaces like 'task = 0' or ' task=0'
             task_match = re.match(r'^\s*task\s*=\s*(.*)', line)

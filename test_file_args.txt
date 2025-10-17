@@ -1,0 +1,14 @@
+# Test file for file-defined arguments
+--auto-recovery
+--skip-host-validation
+--log-level=DEBUG
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Tasks
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Testing file-defined arguments

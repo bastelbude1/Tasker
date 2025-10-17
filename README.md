@@ -91,6 +91,7 @@ TASKER 2.1 is a next-generation task automation framework that reads task defini
 - **Multiple Execution Types**: Direct subprocess (`local`), shell execution (`shell`), enterprise tools (`pbrun`, `p7s`, `wwrs`)
 - **Advanced Flow Control**: Complex conditions, loops, branching, and error handling
 - **Variable System**: Dynamic substitution and data flow between tasks
+- **File-Defined Arguments**: Task files can define their own command-line arguments for automation
 - **Context-Aware Security**: Different validation rules for shell vs direct execution
 - **Enterprise Scaling**: Support for 1-1000+ servers with robust timeout management
 - **Professional Logging**: Structured output with debug capabilities and project tracking
@@ -3359,6 +3360,64 @@ tasker -r --start-from=10 --skip-task-validation tasks.txt
 tasker -r --start-from=15 --skip-validation tasks.txt
 ```
 
+### File-Defined Arguments
+
+**NEW:** Task files can now define TASKER command-line arguments directly in the file header, making workflows self-documenting and reducing operator error.
+
+```bash
+# recovery_workflow.txt - Arguments defined at file start
+--auto-recovery
+--skip-host-validation
+--log-level=DEBUG
+
+# Global variables
+DEPLOY_ENV=production
+
+# Tasks
+task=0
+hostname=app-server
+command=deploy.sh
+arguments=@DEPLOY_ENV@
+```
+
+**Execute with file-defined arguments:**
+```bash
+# Uses file-defined args automatically (--auto-recovery, --skip-host-validation, --log-level=DEBUG)
+tasker -r recovery_workflow.txt
+
+# CLI can override file-defined args (log-level changes from DEBUG to WARN)
+tasker -r recovery_workflow.txt --log-level=WARN
+
+# Debug: Show effective merged arguments
+tasker recovery_workflow.txt --show-effective-args
+```
+
+**Key Features:**
+- **Position:** Arguments must appear at file start (before globals and tasks)
+- **Syntax:** Use 1:1 CLI format (`--flag` or `--option=value`)
+- **Precedence:** File args provide baseline, CLI args override/add
+- **Boolean Flags:** Additive (file OR cli)
+- **Value Options:** CLI overrides file defaults
+- **Security:** Blocks dangerous flags (`--help`, `--version`), warns about security-sensitive flags
+
+**Benefits:**
+- **Automation-Friendly:** Simpler CI/CD scripts (`tasker workflow.txt` vs `tasker workflow.txt --auto-recovery --skip-host-validation`)
+- **Self-Documenting:** Task files show required flags
+- **Error Prevention:** Operators can't forget critical flags
+- **Consistent:** Reuses existing argparse validation
+
+**Security Controls:**
+```bash
+# ❌ NOT ALLOWED: CLI-only flags
+--help        # Reserved for CLI only
+--version     # Reserved for CLI only
+
+# ⚠️ WARNS: Security-sensitive flags (allowed but generates warning)
+--skip-security-validation
+--skip-validation
+--fire-and-forget
+```
+
 ### Command Line Options
 
 #### Execution Control
@@ -3377,6 +3436,7 @@ tasker -r --start-from=15 --skip-validation tasks.txt
 |--------|-------------|---------|
 | `--show-plan` | Display execution plan and ask for confirmation | `tasker --show-plan -r tasks.txt` |
 | `--validate-only` | Perform complete validation (task + host + command + security) and exit | `tasker --validate-only tasks.txt` |
+| `--show-effective-args` | Display effective arguments (file + CLI merged) and exit - useful for debugging file-defined arguments | `tasker --show-effective-args tasks.txt` |
 | `-c, --connection-test` | Enable host connectivity testing | `tasker -r -c tasks.txt` |
 | `--skip-task-validation` | Skip task file and dependency validation (use for faster resume) | `tasker -r --skip-task-validation tasks.txt` |
 | `--skip-host-validation` | Skip host validation - use hostnames as-is (WARNING: may cause connection failures) | `tasker -r --skip-host-validation tasks.txt` |

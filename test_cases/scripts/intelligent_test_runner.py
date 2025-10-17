@@ -19,6 +19,7 @@ import argparse
 import threading
 import time
 import shutil
+import shlex
 from datetime import datetime
 from pathlib import Path
 
@@ -681,8 +682,20 @@ class TaskerTestExecutor:
         # Build wrapper command with test file and optional args
         cmd_args = [str(wrapper_path), test_file_abs]
         if wrapper_args:
-            # Split wrapper_args into list (space-separated)
-            cmd_args.extend(wrapper_args.split())
+            # Use shlex.split() for proper shell-style quoting (handles arguments with spaces)
+            try:
+                cmd_args.extend(shlex.split(wrapper_args))
+            except ValueError as e:
+                # Handle malformed quoting
+                return {
+                    "exit_code": -1,
+                    "stdout": "",
+                    "stderr": f"Malformed wrapper_args quoting: {e}",
+                    "execution_time": 0,
+                    "timed_out": False,
+                    "error": f"Malformed wrapper_args quoting: {e}",
+                    "execution_path": {"executed_tasks": [], "skipped_tasks": [], "final_task": None}
+                }
 
         # Execute wrapper test
         start_time = datetime.now()

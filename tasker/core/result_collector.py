@@ -274,12 +274,12 @@ class ResultCollector:
 
         fields = [
             timestamp,
+            status,
+            sanitize_for_tsv(str(self.final_exit_code)),
             sanitize_for_tsv(os.path.basename(self.task_file)),
             sanitize_for_tsv(str(self.final_task_id)),
             sanitize_for_tsv(self.final_hostname),
             sanitize_for_tsv(self.final_command),
-            sanitize_for_tsv(str(self.final_exit_code)),
-            status,
             log_file
         ]
         message = '\t'.join(fields)

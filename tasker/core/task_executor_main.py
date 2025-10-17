@@ -277,7 +277,7 @@ class TaskExecutor:
                 # Write headers directly with locking
                 try:
                     fcntl.flock(self.summary_log.fileno(), fcntl.LOCK_EX)
-                    self.summary_log.write(f"#Timestamp\tTask File\tTask ID\tHostname\tCommand\tExit Code\tStatus\tLog File\n")
+                    self.summary_log.write(f"#Timestamp\tStatus\tExit_Code\tTask_File\tTask_ID\tHostname\tCommand\tLog_File\n")
                 finally:
                     fcntl.flock(self.summary_log.fileno(), fcntl.LOCK_UN)
         else:

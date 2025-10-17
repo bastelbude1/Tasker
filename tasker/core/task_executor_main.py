@@ -1957,7 +1957,7 @@ class TaskExecutor:
                 if self.summary_log and self.final_task_id is not None:
                     try:
                         self._result_collector.write_final_summary()
-                    except (TimeoutError, ValueError, IOError) as e:
+                    except (TimeoutError, IOError, OSError, ValueError) as e:
                         self.log_warn(f"Failed to write final summary: {e}")
                 ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Next condition not met", False)
 
@@ -1982,7 +1982,7 @@ class TaskExecutor:
                         if self.summary_log and self.final_task_id is not None:
                             try:
                                 self._result_collector.write_final_summary()
-                            except (TimeoutError, ValueError, IOError) as e:
+                            except (TimeoutError, IOError, OSError, ValueError) as e:
                                 self.log_warn(f"Failed to write final summary: {e}")
                         ExitHandler.exit_with_code(self.final_exit_code if self.final_exit_code != 0 else 1, "Last task failed", False)
                     # This is a successful completion - we reached the end of the task sequence
@@ -1994,7 +1994,7 @@ class TaskExecutor:
                     if self.summary_log and self.final_task_id is not None:
                         try:
                             self._result_collector.write_final_summary()
-                        except (TimeoutError, ValueError, IOError) as e:
+                        except (TimeoutError, IOError, OSError, ValueError) as e:
                             self.log_warn(f"Failed to write final summary: {e}")
                     ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "No tasks executed", False)
             else:
@@ -2007,7 +2007,7 @@ class TaskExecutor:
                     if self.summary_log and self.final_task_id is not None:
                         try:
                             self._result_collector.write_final_summary()
-                        except (TimeoutError, ValueError, IOError) as e:
+                        except (TimeoutError, IOError, OSError, ValueError) as e:
                             self.log_warn(f"Failed to write final summary: {e}")
                     ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "No tasks executed", False)
 
@@ -2015,7 +2015,7 @@ class TaskExecutor:
             if self.summary_log and self.final_task_id is not None:
                 try:
                     self._result_collector.write_final_summary()
-                except (TimeoutError, ValueError, IOError) as e:
+                except (TimeoutError, IOError, OSError, ValueError) as e:
                     self.log_warn(f"Failed to write final summary: {e}")
             ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully", False)
         elif next_task_id not in self.tasks:  # Changed condition
@@ -2036,7 +2036,7 @@ class TaskExecutor:
                 if self.summary_log and self.final_task_id is not None:
                     try:
                         self._result_collector.write_final_summary()
-                    except (TimeoutError, ValueError, IOError) as e:
+                    except (TimeoutError, IOError, OSError, ValueError) as e:
                         self.log_warn(f"Failed to write final summary: {e}")
                 ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully", False)
         else:
@@ -2046,6 +2046,6 @@ class TaskExecutor:
             if self.summary_log and self.final_task_id is not None:
                 try:
                     self._result_collector.write_final_summary()
-                except (TimeoutError, ValueError, IOError) as e:
+                except (TimeoutError, IOError, OSError, ValueError) as e:
                     self.log_warn(f"Failed to write final summary: {e}")
             ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for unknown reason", False)

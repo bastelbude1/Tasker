@@ -249,12 +249,15 @@ class TaskExecutor:
 
                     # Create backup only if file has changed
                     if backup_needed:
-                        task_copy_path = os.path.join(backup_dir, f"{task_filename}_{timestamp}")
-                        shutil.copy2(task_file, task_copy_path)
-                        self.log_debug(f"Created task file backup: backup/{task_filename}_{timestamp}")
+                        try:
+                            task_copy_path = os.path.join(backup_dir, f"{task_filename}_{timestamp}")
+                            shutil.copy2(task_file, task_copy_path)
+                            self.log_debug(f"Created task file backup: backup/{task_filename}_{timestamp}")
+                        except Exception as e:
+                            self.log_warn(f"Could not create new task file backup: {str(e)}")
 
                 except Exception as e:
-                    self.log_warn(f"Could not create task file backup: {str(e)}")
+                    self.log_warn(f"Task file backup preparation failed: {str(e)}")
             elif self.no_task_backup:
                 self.log_debug("Task file backup disabled by --no-task-backup flag")
             elif not os.path.exists(task_file):

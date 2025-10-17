@@ -337,7 +337,7 @@ def main():
             print(f"  {f.name:40s}  {mtime.strftime('%Y-%m-%d %H:%M:%S')}  {size:>6d} bytes  {line_count_str:>4s} entries")
 
         print()
-        print(f"To view a file: vtps <filename>")
+        print("To view a file: vtps <filename>")
 
 
 if __name__ == '__main__':

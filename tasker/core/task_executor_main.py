@@ -671,11 +671,11 @@ class TaskExecutor:
         if hasattr(self, 'summary_log'):
             try:
                 # Step 1: TIMEOUT-GESCHueTZTER final summary write
-                if (self.summary_log and not self.summary_log.closed and 
+                if (self.summary_log and not self.summary_log.closed and
                     self.final_task_id is not None):
                     try:
-                        # Delegate to ResultCollector to avoid duplicate flock/timeout logic
-                        self._result_collector.write_final_summary_with_timeout(self.summary_lock_timeout)
+                        # Delegate to ResultCollector (timeout handled internally via summary_lock_timeout)
+                        self._result_collector.write_final_summary()
                     
                     except TimeoutError as timeout_error:
                         cleanup_errors.append(f"TIMEOUT: Summary write timed out: {timeout_error}")

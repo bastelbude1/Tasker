@@ -15,8 +15,16 @@ Usage:
 import os
 import sys
 import argparse
+import logging
 from pathlib import Path
 from datetime import datetime
+
+# Configure logging for error tracking
+logging.basicConfig(
+    level=logging.WARNING,
+    format='%(levelname)s: %(message)s',
+    stream=sys.stderr
+)
 
 
 def discover_project_dir(override_dir=None):
@@ -194,8 +202,21 @@ def list_summary_files(project_dir, limit=10):
             with open(f, 'r') as file:
                 line_count = sum(1 for line in file if not line.startswith('#'))
                 line_count_str = str(line_count)
-        except (IOError, OSError, PermissionError, UnicodeDecodeError):
-            # File read errors - display '?' for line count but continue listing
+        except (IOError, OSError) as e:
+            # I/O errors - log for debugging but continue listing with '?'
+            logging.warning(f"I/O error reading {f.name}: {type(e).__name__}: {e}")
+            line_count_str = '?'
+        except PermissionError as e:
+            # Permission errors - log for debugging but continue listing with '?'
+            logging.warning(f"Permission denied reading {f.name}: {e}")
+            line_count_str = '?'
+        except UnicodeDecodeError as e:
+            # Encoding errors - log for debugging but continue listing with '?'
+            logging.warning(f"Encoding error reading {f.name}: {e}")
+            line_count_str = '?'
+        except Exception as e:
+            # Unexpected errors - log with traceback for debugging
+            logging.error(f"Unexpected error reading {f.name}: {type(e).__name__}: {e}", exc_info=True)
             line_count_str = '?'
 
         print(f"  {f.name:40s}  {mtime.strftime('%Y-%m-%d %H:%M:%S')}  {size:>6d} bytes  {line_count_str:>4s} entries")
@@ -296,8 +317,21 @@ def main():
                 with open(f, 'r') as file:
                     line_count = sum(1 for line in file if not line.startswith('#'))
                     line_count_str = str(line_count)
-            except (IOError, OSError, PermissionError, UnicodeDecodeError):
-                # File read errors - display '?' for line count but continue listing
+            except (IOError, OSError) as e:
+                # I/O errors - log for debugging but continue listing with '?'
+                logging.warning(f"I/O error reading {f.name}: {type(e).__name__}: {e}")
+                line_count_str = '?'
+            except PermissionError as e:
+                # Permission errors - log for debugging but continue listing with '?'
+                logging.warning(f"Permission denied reading {f.name}: {e}")
+                line_count_str = '?'
+            except UnicodeDecodeError as e:
+                # Encoding errors - log for debugging but continue listing with '?'
+                logging.warning(f"Encoding error reading {f.name}: {e}")
+                line_count_str = '?'
+            except Exception as e:
+                # Unexpected errors - log with traceback for debugging
+                logging.error(f"Unexpected error reading {f.name}: {type(e).__name__}: {e}", exc_info=True)
                 line_count_str = '?'
 
             print(f"  {f.name:40s}  {mtime.strftime('%Y-%m-%d %H:%M:%S')}  {size:>6d} bytes  {line_count_str:>4s} entries")

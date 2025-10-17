@@ -188,7 +188,6 @@ class TaskExecutor:
         self.final_success = None
         self.final_hostname = None
         self.final_command = None
-        self._summary_written = False  # Track if summary has been written
 
         # Generate timestamp for both log file and task copy 
         timestamp = datetime.now().strftime('%d%b%y_%H%M%S')
@@ -921,117 +920,6 @@ class TaskExecutor:
         except Exception:
             # Any other error - safe fallback
             return None, False
-
-    def write_final_summary_with_timeout(self, timeout_seconds=5):
-        """
-        Thread-based timeout for cleanup() - avoids signal conflicts.
-        Minimal, robust solution for production environment.
-        """
-        import threading
-    
-        result = {'completed': False, 'error': None}
-    
-        def write_worker():
-            try:
-                self.write_final_summary()
-                result['completed'] = True
-            except Exception as e:
-                result['error'] = e
-    
-        # Start write operation in separate thread
-        worker_thread = threading.Thread(target=write_worker, daemon=True)
-        worker_thread.start()
-        
-        # Wait with timeout
-        worker_thread.join(timeout=timeout_seconds)
-        
-        if worker_thread.is_alive():
-            # Thread still running - timeout reached
-            raise TimeoutError(f"write_final_summary timeout after {timeout_seconds}s")
-        
-        if result['error']:
-            # Exception in worker thread
-            raise result['error']
-        
-        if not result['completed']:
-            # Unexpected state
-            raise RuntimeError("write_final_summary completed unexpectedly")
-
-    def write_final_summary(self):
-        """
-        Race-condition-free summary write with retry logic.
-        """
-        # Quick validation and exit
-        if (not hasattr(self, 'summary_log') or not self.summary_log or
-            self.final_task_id is None):
-            return
-
-        # Prevent duplicate writes
-        if getattr(self, '_summary_written', False):
-            return
-        self._summary_written = True
-    
-        # Atomic lock acquisition and write with retry
-        with self.log_lock:
-            # Snapshot final_* fields under lock to avoid torn reads
-            final_task_id_snapshot = self.final_task_id
-            final_hostname_snapshot = self.final_hostname
-            final_command_snapshot = self.final_command
-            final_exit_code_snapshot = self.final_exit_code
-            final_success_snapshot = self.final_success
-
-            # Message preparation with snapshotted values
-            timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
-            status = "SUCCESS" if final_success_snapshot else "FAILURE"
-            log_file = os.path.basename(getattr(self, 'log_file_path', 'unknown.log'))
-
-            fields = [
-                timestamp,
-                sanitize_for_tsv(os.path.basename(self.task_file)),
-                sanitize_for_tsv(final_task_id_snapshot),
-                sanitize_for_tsv(final_hostname_snapshot),
-                sanitize_for_tsv(final_command_snapshot),
-                sanitize_for_tsv(final_exit_code_snapshot),
-                status,
-                log_file
-            ]
-            message = '\t'.join(fields)
-            # Use configurable timeout
-            timeout_seconds = getattr(self, 'summary_lock_timeout', 20)
-            file_no, lock_acquired = self._acquire_file_lock_atomically(timeout_seconds)
-            
-            if not lock_acquired:
-                # Detailed error message
-                project_name = getattr(self, 'project', 'unknown')
-                raise TimeoutError(
-                    f"Could not acquire lock on shared summary file '{project_name}.summary' "
-                    f"within {timeout_seconds} seconds. Another tasker instance "
-                    f"is currently writing to the summary file."
-                )
-            
-            try:
-                # Final validation after lock (defense in depth)
-                if self.summary_log.closed:
-                    raise ValueError("Summary log unexpectedly closed after lock acquisition")
-                
-                # Atomic write operations
-                self.summary_log.seek(0, 2)  # End of file
-                self.summary_log.write(f"{message}\n")
-                self.summary_log.flush()
-                
-                # Verification
-                current_pos = self.summary_log.tell()
-                if current_pos == 0:
-                    raise IOError("Write verification failed - file position is 0")
-                
-            finally:
-                # Guaranteed lock release
-                if file_no is not None:
-                    try:
-                        fcntl.flock(file_no, fcntl.LOCK_UN)
-                    except Exception:
-                        # Lock will be automatically released on process exit
-                        pass
 
     # ===== 3. VALIDATION & SETUP =====
     
@@ -2025,7 +1913,7 @@ class TaskExecutor:
                 # Write summary before exiting
                 if self.summary_log and self.final_task_id is not None:
                     try:
-                        self.write_final_summary()
+                        self._result_collector.write_final_summary()
                     except Exception as e:
                         self.log_warn(f"Failed to write final summary: {e}")
                 ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Next condition not met", False)
@@ -2050,7 +1938,7 @@ class TaskExecutor:
                         # Write summary before exiting
                         if self.summary_log and self.final_task_id is not None:
                             try:
-                                self.write_final_summary()
+                                self._result_collector.write_final_summary()
                             except Exception as e:
                                 self.log_warn(f"Failed to write final summary: {e}")
                         ExitHandler.exit_with_code(self.final_exit_code if self.final_exit_code != 0 else 1, "Last task failed", False)
@@ -2062,7 +1950,7 @@ class TaskExecutor:
                     # Write summary before exiting
                     if self.summary_log and self.final_task_id is not None:
                         try:
-                            self.write_final_summary()
+                            self._result_collector.write_final_summary()
                         except Exception as e:
                             self.log_warn(f"Failed to write final summary: {e}")
                     ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "No tasks executed", False)
@@ -2075,7 +1963,7 @@ class TaskExecutor:
                     # Write summary before exiting
                     if self.summary_log and self.final_task_id is not None:
                         try:
-                            self.write_final_summary()
+                            self._result_collector.write_final_summary()
                         except Exception as e:
                             self.log_warn(f"Failed to write final summary: {e}")
                     ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "No tasks executed", False)
@@ -2083,7 +1971,7 @@ class TaskExecutor:
             # Write summary before exiting (for success cases)
             if self.summary_log and self.final_task_id is not None:
                 try:
-                    self.write_final_summary()
+                    self._result_collector.write_final_summary()
                 except Exception as e:
                     self.log_warn(f"Failed to write final summary: {e}")
             ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully", False)
@@ -2104,7 +1992,7 @@ class TaskExecutor:
                 # Write summary before exiting
                 if self.summary_log and self.final_task_id is not None:
                     try:
-                        self.write_final_summary()
+                        self._result_collector.write_final_summary()
                     except Exception as e:
                         self.log_warn(f"Failed to write final summary: {e}")
                 ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully", False)
@@ -2114,7 +2002,7 @@ class TaskExecutor:
             # Write summary before exiting
             if self.summary_log and self.final_task_id is not None:
                 try:
-                    self.write_final_summary()
+                    self._result_collector.write_final_summary()
                 except Exception as e:
                     self.log_warn(f"Failed to write final summary: {e}")
             ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for unknown reason", False)

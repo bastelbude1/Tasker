@@ -1,1 +1,9 @@
-view_tasker_project_summary.py
+#!/usr/bin/env python3
+"""
+vtps - TASKER Project Summary Viewer wrapper
+Minimal executable entry point for view_tasker_project_summary module.
+"""
+
+if __name__ == '__main__':
+    from view_tasker_project_summary import main
+    main()

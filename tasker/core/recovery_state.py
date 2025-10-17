@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 TASKER Recovery State Management
 ---------------------------------
@@ -38,6 +37,7 @@ class RecoveryStateManager:
         self.task_file = os.path.abspath(task_file)
         self.log_dir = log_dir
         self.recovery_file = self._get_recovery_file_path()
+        self._task_file_hash_cache = None
 
     def _get_recovery_file_path(self) -> str:
         """
@@ -73,14 +73,17 @@ class RecoveryStateManager:
         Returns:
             Hex digest of file content hash
         """
+        if self._task_file_hash_cache:
+            return self._task_file_hash_cache
         sha256_hash = hashlib.sha256()
         try:
             with open(self.task_file, 'rb') as f:
                 for byte_block in iter(lambda: f.read(4096), b""):
                     sha256_hash.update(byte_block)
-            return sha256_hash.hexdigest()
+            self._task_file_hash_cache = sha256_hash.hexdigest()
+            return self._task_file_hash_cache
         except (IOError, OSError) as e:
-            raise RuntimeError("Failed to calculate task file hash: {}".format(e))
+            raise RuntimeError("Failed to calculate task file hash: {}".format(e)) from e
 
     def recovery_file_exists(self) -> bool:
         """
@@ -145,12 +148,16 @@ class RecoveryStateManager:
             except (IOError, json.JSONDecodeError):
                 pass  # Use new timestamp if can't read existing file
 
-        # Write recovery state to file
+        # Write recovery state to file atomically
         try:
-            with open(self.recovery_file, 'w') as f:
-                json.dump(recovery_data, f, indent=2)
+            tmp_path = self.recovery_file + ".tmp"
+            with open(tmp_path, 'w') as f:
+                json.dump(recovery_data, f, indent=2, ensure_ascii=True)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_path, self.recovery_file)
         except (IOError, OSError) as e:
-            raise RuntimeError("Failed to save recovery state: {}".format(e))
+            raise RuntimeError("Failed to save recovery state: {}".format(e)) from e
 
     def load_state(self) -> Optional[Dict[str, Any]]:
         """
@@ -243,6 +250,7 @@ class RecoveryStateManager:
             'log_file': recovery_data.get('log_file'),
             'execution_path': recovery_data.get('execution_path', []),
             'last_successful_task': recovery_data.get('last_successful_task'),
+            'current_task': recovery_data.get('current_task'),
             'failure_info': recovery_data.get('failure_info')
         }
 

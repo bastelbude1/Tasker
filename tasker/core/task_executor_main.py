@@ -1814,6 +1814,8 @@ class TaskExecutor:
                         self.log_info(f"Execution path: {recovery_info['execution_path']}")
                     if recovery_info.get('last_successful_task') is not None:
                         self.log_info(f"Last successful task: {recovery_info['last_successful_task']}")
+                    if recovery_info.get('current_task') is not None:
+                        self.log_info(f"Current task: {recovery_info['current_task']}")
                     if recovery_info.get('failure_info'):
                         failure = recovery_info['failure_info']
                         self.log_info(f"Failure info: Task {failure.get('task_id')} failed with exit code {failure.get('exit_code')}")

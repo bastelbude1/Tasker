@@ -26,10 +26,9 @@ import socket
 import shutil
 import fcntl  # Linux Only
 import threading
-import errno
-import signal
+import errno 
+import signal 
 import tempfile
-import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Import from our library package
@@ -93,8 +92,7 @@ class TaskExecutor:
                  exec_type=None, timeout=30, connection_test=False, project=None,
                  start_from_task=None, skip_task_validation=False,
                  skip_host_validation=False, skip_security_validation=False,
-                 show_plan=False, validate_only=False, fire_and_forget=False,
-                 no_task_backup=False):
+                 show_plan=False, validate_only=False, fire_and_forget=False):
         """
         Initialize a TaskExecutor instance and prepare environment, logging, state, and modular components for task orchestration.
 
@@ -138,7 +136,6 @@ class TaskExecutor:
         self.show_plan = show_plan
         self.validate_only = validate_only
         self.fire_and_forget = fire_and_forget  # Continue on failure even without routing
-        self.no_task_backup = no_task_backup  # Skip task file backup creation
 
         # Configurable timeouts for cleanup and summary operations
         self.summary_lock_timeout = 20  # Seconds for summary file locking (longer for shared files)
@@ -188,41 +185,37 @@ class TaskExecutor:
         self.final_success = None
         self.final_hostname = None
         self.final_command = None
+        self._summary_written = False  # Track if summary has been written
 
-        # Generate timestamps
-        # Use numeric, locale-agnostic, microsecond-resolution timestamp for filenames
-        file_ts = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-        # Use human-readable timestamp for log display messages
-        display_ts = datetime.now().strftime('%d%b%y_%H%M%S')
+        # Generate timestamp for both log file and task copy 
+        timestamp = datetime.now().strftime('%d%b%y_%H%M%S')
 
-        # Skip log file creation for dry runs (simulations don't need logs)
-        if self.dry_run:
-            self.log_file = None
-            self.log_file_path = None
+        # Create log directory if it doesn't exist
+        os.makedirs(self.log_dir, exist_ok=True)
+        
+        # Set up logging with sanitized task filename as prefix
+        sanitized_prefix = sanitize_filename(task_file) 
+        timestamp = datetime.now().strftime('%d%b%y_%H%M%S')
+        log_appendix = 'log'
+        if self.dry_run: log_appendix = 'dryrun'
+        self.log_file_path = os.path.join(self.log_dir, f"{sanitized_prefix}_{timestamp}.{log_appendix}")
+        self.log_file = open(self.log_file_path, 'w')
+
+        # Copy the task file to the tasks directory as backup (only if file exists)
+        if os.path.exists(task_file):
+            try:
+                task_filename = os.path.basename(task_file)
+                task_copy_path = os.path.join(self.log_dir, f"{task_filename}_{timestamp}")
+                shutil.copy2(task_file, task_copy_path)
+                self.log_debug(f"Created task file copy: {task_copy_path}")
+            except Exception as e:
+                self.log_warn(f"Could not copy task file to tasks directory: {str(e)}")
         else:
-            # Create log directory if it doesn't exist
-            os.makedirs(self.log_dir, exist_ok=True)
-
-            # Create log subdirectory for organized log file storage
-            log_subdir = os.path.join(self.log_dir, 'log')
-            os.makedirs(log_subdir, exist_ok=True)
-
-            # Set up logging with sanitized task filename as prefix
-            sanitized_prefix = sanitize_filename(task_file)
-            log_appendix = 'log'
-            self.log_file_path = os.path.join(log_subdir, f"{sanitized_prefix}_{file_ts}.{log_appendix}")
-            self.log_file = open(self.log_file_path, 'w')
-
-            # Smart task file backup: skip if disabled, dry-run, or file unchanged
-            self._create_task_backup_if_needed(task_file, self.log_dir, file_ts)
+            self.log_debug(f"Skipping task file copy - file does not exist: {task_file}")
 
         # Set up project summary logging if project is specified
         if self.project:
-            # Create project subdirectory for organized project summary storage
-            project_subdir = os.path.join(self.log_dir, 'project')
-            os.makedirs(project_subdir, exist_ok=True)
-
-            self.summary_log_path = os.path.join(project_subdir, f"{self.project}.summary")
+            self.summary_log_path = os.path.join(self.log_dir, f"{self.project}.summary")
 
             # Check if file exists to determine if we need to write headers
             file_exists = os.path.exists(self.summary_log_path)
@@ -235,14 +228,14 @@ class TaskExecutor:
                 # Write headers directly with locking
                 try:
                     fcntl.flock(self.summary_log.fileno(), fcntl.LOCK_EX)
-                    self.summary_log.write("#Timestamp\tStatus\tExit_Code\tTask_File\tTask_ID\tHostname\tCommand\tLog_File\n")
+                    self.summary_log.write(f"#Timestamp\tTask File\tTask ID\tHostname\tCommand\tExit Code\tStatus\tLog File\n")
                 finally:
                     fcntl.flock(self.summary_log.fileno(), fcntl.LOCK_UN)
         else:
             self.summary_log = None
 
         # Start logging task execution
-        self.log_info(f"=== Task Execution Start: {display_ts} ===")
+        self.log_info(f"=== Task Execution Start: {timestamp} ===")
         self.log_info(f"# Task file: {task_file}")
         self.log_info(f"# Log level: {self.log_level}")
 
@@ -263,9 +256,8 @@ class TaskExecutor:
         # Only add minimal warning for shared summary files
         if self.project:
             # Check if summary file is currently locked by another process
-            # Use the actual summary_log_path (which includes project/ subdirectory)
-            summary_file_path = getattr(self, "summary_log_path", None) or os.path.join(self.log_dir, "project", f"{self.project}.summary")
-
+            summary_file_path = os.path.join(self.log_dir, f"{self.project}.summary")
+        
             if os.path.exists(summary_file_path):
                 try:
                     # Quick non-blocking test if file is locked
@@ -278,9 +270,8 @@ class TaskExecutor:
                             # File is currently locked by another process
                             self.log_info(f"Info: Summary file '{self.project}.summary' is currently in use by another tasker instance.")
                             self.log_info("Summary writes will wait for the other instance to complete.")
-                except (OSError, IOError) as e:
-                    # Log I/O errors but don't fail initialization
-                    self.log_debug(f"Skipping summary lock probe due to I/O error: {type(e).__name__}: {e}")
+                except Exception:
+                    pass  # Ignore test errors
 
         # ===== NEW MODULAR ARCHITECTURE INITIALIZATION =====
         # Initialize the new modular components while maintaining backward compatibility
@@ -348,89 +339,6 @@ class TaskExecutor:
 
         # ===== BACKWARD COMPATIBILITY PROPERTIES =====
         # Create property wrappers for seamless transition to new architecture
-
-    # ===== HELPER METHODS =====
-
-    def _create_task_backup_if_needed(self, task_file, log_dir, timestamp):
-        """
-        Create deduplicated backup of task file if content has changed.
-
-        Args:
-            task_file: Path to task file to backup
-            log_dir: Base log directory where backup subdirectory should be created
-            timestamp: Timestamp string to use for backup filename
-
-        The method:
-        - Skips backup if disabled via --no-task-backup flag
-        - Skips backup if task file doesn't exist
-        - Uses SHA-256 hashing to avoid duplicate backups
-        - Creates backup only if file content has changed
-        """
-        if self.no_task_backup:
-            self.log_debug("Task file backup disabled by --no-task-backup flag")
-            return
-
-        if not os.path.exists(task_file):
-            self.log_debug(f"Skipping task file backup - file does not exist: {task_file}")
-            return
-
-        try:
-            # Create backup subdirectory
-            backup_dir = os.path.join(log_dir, 'backup')
-            os.makedirs(backup_dir, exist_ok=True)
-
-            # Calculate SHA-256 hash of current task file for deduplication
-            # Use streaming to avoid loading large files into memory
-            hasher = hashlib.sha256()
-            with open(task_file, 'rb') as f:
-                for chunk in iter(lambda: f.read(1024 * 1024), b''):
-                    hasher.update(chunk)
-            current_hash = hasher.hexdigest()
-
-            # Check if we already have a backup with the same hash
-            task_filename = os.path.basename(task_file)
-            existing_backups = [
-                f for f in os.listdir(backup_dir)
-                if f.startswith(task_filename + '_')
-            ]
-
-            # Check if any existing backup matches current hash
-            for backup_file in existing_backups:
-                backup_path = os.path.join(backup_dir, backup_file)
-                try:
-                    # Stream hash computation for existing backups too
-                    hasher2 = hashlib.sha256()
-                    with open(backup_path, 'rb') as f:
-                        for chunk in iter(lambda: f.read(1024 * 1024), b''):
-                            hasher2.update(chunk)
-                    backup_hash = hasher2.hexdigest()
-                    if backup_hash == current_hash:
-                        self.log_debug(f"Task file unchanged - skipping backup (matches {backup_file})")
-                        return
-                except (OSError, IOError) as e:
-                    # Log the error but continue checking other backups
-                    # This handles corruption, permission errors, I/O failures gracefully
-                    self.log_debug(f"Could not read backup file '{backup_file}': {type(e).__name__}: {e}")
-
-            # Create backup only if file has changed
-            try:
-                task_copy_path = os.path.join(backup_dir, f"{task_filename}_{timestamp}")
-
-                # Best-effort: if path exists due to race condition, append a counter
-                suffix = 0
-                base_path = task_copy_path
-                while os.path.exists(task_copy_path):
-                    suffix += 1
-                    task_copy_path = f"{base_path}.{suffix}"
-
-                shutil.copy2(task_file, task_copy_path)
-                backup_filename = os.path.basename(task_copy_path)
-                self.log_debug(f"Created task file backup: backup/{backup_filename}")
-            except (OSError, IOError, shutil.Error) as e:
-                self.log_warn(f"Could not create new task file backup: {e}")
-
-        except (OSError, IOError) as e:
-            self.log_warn(f"Task file backup preparation failed: {e}")
 
     # State management properties for backward compatibility
     @property
@@ -671,11 +579,11 @@ class TaskExecutor:
         if hasattr(self, 'summary_log'):
             try:
                 # Step 1: TIMEOUT-GESCHueTZTER final summary write
-                if (self.summary_log and not self.summary_log.closed and
+                if (self.summary_log and not self.summary_log.closed and 
                     self.final_task_id is not None):
                     try:
-                        # Delegate to ResultCollector (timeout handled internally via summary_lock_timeout)
-                        self._result_collector.write_final_summary()
+                        # Delegate to ResultCollector to avoid duplicate flock/timeout logic
+                        self._result_collector.write_final_summary_with_timeout(self.summary_lock_timeout)
                     
                     except TimeoutError as timeout_error:
                         cleanup_errors.append(f"TIMEOUT: Summary write timed out: {timeout_error}")
@@ -963,6 +871,117 @@ class TaskExecutor:
         except Exception:
             # Any other error - safe fallback
             return None, False
+
+    def write_final_summary_with_timeout(self, timeout_seconds=5):
+        """
+        Thread-based timeout for cleanup() - avoids signal conflicts.
+        Minimal, robust solution for production environment.
+        """
+        import threading
+    
+        result = {'completed': False, 'error': None}
+    
+        def write_worker():
+            try:
+                self.write_final_summary()
+                result['completed'] = True
+            except Exception as e:
+                result['error'] = e
+    
+        # Start write operation in separate thread
+        worker_thread = threading.Thread(target=write_worker, daemon=True)
+        worker_thread.start()
+        
+        # Wait with timeout
+        worker_thread.join(timeout=timeout_seconds)
+        
+        if worker_thread.is_alive():
+            # Thread still running - timeout reached
+            raise TimeoutError(f"write_final_summary timeout after {timeout_seconds}s")
+        
+        if result['error']:
+            # Exception in worker thread
+            raise result['error']
+        
+        if not result['completed']:
+            # Unexpected state
+            raise RuntimeError("write_final_summary completed unexpectedly")
+
+    def write_final_summary(self):
+        """
+        Race-condition-free summary write with retry logic.
+        """
+        # Quick validation and exit
+        if (not hasattr(self, 'summary_log') or not self.summary_log or
+            self.final_task_id is None):
+            return
+
+        # Prevent duplicate writes
+        if getattr(self, '_summary_written', False):
+            return
+        self._summary_written = True
+    
+        # Atomic lock acquisition and write with retry
+        with self.log_lock:
+            # Snapshot final_* fields under lock to avoid torn reads
+            final_task_id_snapshot = self.final_task_id
+            final_hostname_snapshot = self.final_hostname
+            final_command_snapshot = self.final_command
+            final_exit_code_snapshot = self.final_exit_code
+            final_success_snapshot = self.final_success
+
+            # Message preparation with snapshotted values
+            timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
+            status = "SUCCESS" if final_success_snapshot else "FAILURE"
+            log_file = os.path.basename(getattr(self, 'log_file_path', 'unknown.log'))
+
+            fields = [
+                timestamp,
+                sanitize_for_tsv(os.path.basename(self.task_file)),
+                sanitize_for_tsv(final_task_id_snapshot),
+                sanitize_for_tsv(final_hostname_snapshot),
+                sanitize_for_tsv(final_command_snapshot),
+                sanitize_for_tsv(final_exit_code_snapshot),
+                status,
+                log_file
+            ]
+            message = '\t'.join(fields)
+            # Use configurable timeout
+            timeout_seconds = getattr(self, 'summary_lock_timeout', 20)
+            file_no, lock_acquired = self._acquire_file_lock_atomically(timeout_seconds)
+            
+            if not lock_acquired:
+                # Detailed error message
+                project_name = getattr(self, 'project', 'unknown')
+                raise TimeoutError(
+                    f"Could not acquire lock on shared summary file '{project_name}.summary' "
+                    f"within {timeout_seconds} seconds. Another tasker instance "
+                    f"is currently writing to the summary file."
+                )
+            
+            try:
+                # Final validation after lock (defense in depth)
+                if self.summary_log.closed:
+                    raise ValueError("Summary log unexpectedly closed after lock acquisition")
+                
+                # Atomic write operations
+                self.summary_log.seek(0, 2)  # End of file
+                self.summary_log.write(f"{message}\n")
+                self.summary_log.flush()
+                
+                # Verification
+                current_pos = self.summary_log.tell()
+                if current_pos == 0:
+                    raise IOError("Write verification failed - file position is 0")
+                
+            finally:
+                # Guaranteed lock release
+                if file_no is not None:
+                    try:
+                        fcntl.flock(file_no, fcntl.LOCK_UN)
+                    except Exception:
+                        # Lock will be automatically released on process exit
+                        pass
 
     # ===== 3. VALIDATION & SETUP =====
     
@@ -1956,8 +1975,8 @@ class TaskExecutor:
                 # Write summary before exiting
                 if self.summary_log and self.final_task_id is not None:
                     try:
-                        self._result_collector.write_final_summary()
-                    except (TimeoutError, IOError, OSError, ValueError) as e:
+                        self.write_final_summary()
+                    except Exception as e:
                         self.log_warn(f"Failed to write final summary: {e}")
                 ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Next condition not met", False)
 
@@ -1981,8 +2000,8 @@ class TaskExecutor:
                         # Write summary before exiting
                         if self.summary_log and self.final_task_id is not None:
                             try:
-                                self._result_collector.write_final_summary()
-                            except (TimeoutError, IOError, OSError, ValueError) as e:
+                                self.write_final_summary()
+                            except Exception as e:
                                 self.log_warn(f"Failed to write final summary: {e}")
                         ExitHandler.exit_with_code(self.final_exit_code if self.final_exit_code != 0 else 1, "Last task failed", False)
                     # This is a successful completion - we reached the end of the task sequence
@@ -1993,8 +2012,8 @@ class TaskExecutor:
                     # Write summary before exiting
                     if self.summary_log and self.final_task_id is not None:
                         try:
-                            self._result_collector.write_final_summary()
-                        except (TimeoutError, IOError, OSError, ValueError) as e:
+                            self.write_final_summary()
+                        except Exception as e:
                             self.log_warn(f"Failed to write final summary: {e}")
                     ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "No tasks executed", False)
             else:
@@ -2006,16 +2025,16 @@ class TaskExecutor:
                     # Write summary before exiting
                     if self.summary_log and self.final_task_id is not None:
                         try:
-                            self._result_collector.write_final_summary()
-                        except (TimeoutError, IOError, OSError, ValueError) as e:
+                            self.write_final_summary()
+                        except Exception as e:
                             self.log_warn(f"Failed to write final summary: {e}")
                     ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "No tasks executed", False)
 
             # Write summary before exiting (for success cases)
             if self.summary_log and self.final_task_id is not None:
                 try:
-                    self._result_collector.write_final_summary()
-                except (TimeoutError, IOError, OSError, ValueError) as e:
+                    self.write_final_summary()
+                except Exception as e:
                     self.log_warn(f"Failed to write final summary: {e}")
             ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully", False)
         elif next_task_id not in self.tasks:  # Changed condition
@@ -2035,8 +2054,8 @@ class TaskExecutor:
                 # Write summary before exiting
                 if self.summary_log and self.final_task_id is not None:
                     try:
-                        self._result_collector.write_final_summary()
-                    except (TimeoutError, IOError, OSError, ValueError) as e:
+                        self.write_final_summary()
+                    except Exception as e:
                         self.log_warn(f"Failed to write final summary: {e}")
                 ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Task execution completed successfully", False)
         else:
@@ -2045,7 +2064,7 @@ class TaskExecutor:
             # Write summary before exiting
             if self.summary_log and self.final_task_id is not None:
                 try:
-                    self._result_collector.write_final_summary()
-                except (TimeoutError, IOError, OSError, ValueError) as e:
+                    self.write_final_summary()
+                except Exception as e:
                     self.log_warn(f"Failed to write final summary: {e}")
             ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "Task execution stopped for unknown reason", False)

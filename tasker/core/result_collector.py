@@ -151,9 +151,8 @@ class ResultCollector:
         if not hasattr(summary_log_file, 'write'):
             raise ValueError("summary_log_file must have a write method")
 
-        # Allow None for dry-run; writer will fall back to 'unknown.log'
-        if log_file_path is not None and not isinstance(log_file_path, str):
-            raise ValueError("log_file_path must be a string or None")
+        if not log_file_path or not isinstance(log_file_path, str):
+            raise ValueError("log_file_path must be a non-empty string")
 
         # Test write capability
         try:
@@ -269,19 +268,19 @@ class ResultCollector:
             return
 
         # Message preparation outside critical section
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
         status = "SUCCESS" if self.final_success else "FAILURE"
         log_file = os.path.basename(self.log_file_path) if self.log_file_path else 'unknown.log'
 
         fields = [
             timestamp,
-            status,
-            sanitize_for_tsv(self.final_exit_code),
             sanitize_for_tsv(os.path.basename(self.task_file)),
-            sanitize_for_tsv(self.final_task_id),
+            sanitize_for_tsv(str(self.final_task_id)),
             sanitize_for_tsv(self.final_hostname),
             sanitize_for_tsv(self.final_command),
-            sanitize_for_tsv(log_file)
+            sanitize_for_tsv(str(self.final_exit_code)),
+            status,
+            log_file
         ]
         message = '\t'.join(fields)
 

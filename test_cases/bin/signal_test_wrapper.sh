@@ -92,7 +92,7 @@ echo "=========================================="
 
 # Start TASKER in background
 echo "[$(date +%H:%M:%S)] Starting TASKER..."
-"$TASKER_BIN" "$TASK_FILE" -r --skip-host-validation --no-task-backup > "$TASKER_OUTPUT_FILE" 2> "$TASKER_ERRORS_FILE" &
+"$TASKER_BIN" "$TASK_FILE" -r --skip-host-validation > "$TASKER_OUTPUT_FILE" 2> "$TASKER_ERRORS_FILE" &
 TASKER_PID=$!
 
 echo "$TASKER_PID" > "$TASKER_PID_FILE"

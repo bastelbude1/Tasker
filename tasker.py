@@ -89,8 +89,6 @@ Examples:
     # Execution behavior
     parser.add_argument('--fire-and-forget', action='store_true',
                        help='Continue workflow execution even when tasks fail (no routing parameters). WARNING: Failed tasks will not stop execution - use for non-critical workflows only')
-    parser.add_argument('--no-task-backup', action='store_true',
-                       help='Disable task file backup creation (reduces file clutter, useful for testing)')
 
     # Execution planning
     parser.add_argument('--show-plan', action='store_true',
@@ -153,8 +151,7 @@ Examples:
         skip_security_validation=skip_security_validation,
         show_plan=args.show_plan,
         validate_only=args.validate_only,
-        fire_and_forget=args.fire_and_forget,
-        no_task_backup=args.no_task_backup
+        fire_and_forget=args.fire_and_forget
     ) as executor:
         executor.run()
 

@@ -653,9 +653,6 @@ class TaskerTestExecutor:
         # Prepare command arguments based on test type
         cmd_args = [self.tasker_path, test_file]
 
-        # Disable task backups for test runs (reduce clutter)
-        cmd_args.append("--no-task-backup")
-
         # Respect both explicit flag and test_type="validation_only"
         if (metadata.get("test_type") == "validation_only") or metadata.get("validation_only", False):
             cmd_args.append("--validate-only")

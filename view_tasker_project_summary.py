@@ -154,8 +154,17 @@ def format_tsv_aligned(file_path):
     except FileNotFoundError:
         print(f"Error: File not found: {file_path}", file=sys.stderr)
         sys.exit(1)
-    except Exception as e:
-        print(f"Error reading file: {e}", file=sys.stderr)
+    except PermissionError as e:
+        print(f"Error: Permission denied reading file: {file_path}", file=sys.stderr)
+        print(f"  {e}", file=sys.stderr)
+        sys.exit(1)
+    except (IOError, OSError) as e:
+        print(f"Error: I/O error reading file: {file_path}", file=sys.stderr)
+        print(f"  {type(e).__name__}: {e}", file=sys.stderr)
+        sys.exit(1)
+    except UnicodeDecodeError as e:
+        print(f"Error: File encoding error: {file_path}", file=sys.stderr)
+        print(f"  {e}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -185,7 +194,8 @@ def list_summary_files(project_dir, limit=10):
             with open(f, 'r') as file:
                 line_count = sum(1 for line in file if not line.startswith('#'))
                 line_count_str = str(line_count)
-        except:
+        except (IOError, OSError, PermissionError, UnicodeDecodeError):
+            # File read errors - display '?' for line count but continue listing
             line_count_str = '?'
 
         print(f"  {f.name:40s}  {mtime.strftime('%Y-%m-%d %H:%M:%S')}  {size:>6d} bytes  {line_count_str:>4s} entries")
@@ -286,7 +296,8 @@ def main():
                 with open(f, 'r') as file:
                     line_count = sum(1 for line in file if not line.startswith('#'))
                     line_count_str = str(line_count)
-            except:
+            except (IOError, OSError, PermissionError, UnicodeDecodeError):
+                # File read errors - display '?' for line count but continue listing
                 line_count_str = '?'
 
             print(f"  {f.name:40s}  {mtime.strftime('%Y-%m-%d %H:%M:%S')}  {size:>6d} bytes  {line_count_str:>4s} entries")

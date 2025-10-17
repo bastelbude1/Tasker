@@ -260,9 +260,9 @@ class TaskExecutor:
             self.log_debug(f"# Execution type from environment: {exec_type}")
         else:
             exec_type = self.default_exec_type
-            self.log_debug(f"# Execution type (Default): {exec_type} (if not overriden by task)")
+            self.log_debug(f"# Execution type (Default): {exec_type} (if not overridden by task)")
 
-        if dry_run:
+        if self.dry_run:
             self.log_info("# Dry run mode")
         self.log_debug(f"# Default timeout: {timeout} [s]")
     
@@ -294,14 +294,15 @@ class TaskExecutor:
         # Initialize StateManager with existing state
         self._state_manager = StateManager()
 
-        # Initialize RecoveryStateManager if auto-recovery is enabled
-        if self.auto_recovery:
+        # Initialize RecoveryStateManager if auto-recovery or recovery-info is requested
+        if self.auto_recovery or self.show_recovery_info:
             from .recovery_state import RecoveryStateManager
             self.recovery_manager = RecoveryStateManager(self.task_file, self.log_dir)
-            if self.recovery_manager.recovery_file_exists():
-                self.log_info(f"# Auto-recovery enabled: Found recovery file for this task")
-            else:
-                self.log_info(f"# Auto-recovery enabled: Will create recovery state during execution")
+            if self.auto_recovery:
+                if self.recovery_manager.recovery_file_exists():
+                    self.log_info("# Auto-recovery enabled: Found recovery file for this task")
+                else:
+                    self.log_info("# Auto-recovery enabled: Will create recovery state during execution")
 
         # Transfer fallback values to StateManager
         if hasattr(self, '_global_vars_fallback'):
@@ -2080,16 +2081,24 @@ class TaskExecutor:
                 try:
                     # Get current log file path
                     log_file = self.log_file_path if hasattr(self, 'log_file_path') else None
-
+                    # Optionally include last failure result of this task, if any
+                    last = self._state_manager.get_task_result(int(task_id))
+                    failure_info = None
+                    if last and not last.get('success'):
+                        failure_info = {
+                            'task_id': int(task_id),
+                            'exit_code': last.get('exit_code'),
+                            'error': (last.get('stderr') or '')[:512]
+                        }
                     # Save recovery state after each task
                     # execution_path will be calculated automatically from successful tasks
                     self.recovery_manager.save_state(
                         execution_path=None,  # Will be calculated from task_results
                         state_manager=self._state_manager,
                         log_file=log_file,
-                        failure_info=None
+                        failure_info=failure_info
                     )
-                except Exception as e:
+                except (RuntimeError, OSError, IOError, ValueError) as e:
                     self.log_warn(f"Failed to save recovery state: {e}")
 
             # handle the special LOOP case
@@ -2173,7 +2182,7 @@ class TaskExecutor:
                 try:
                     self.recovery_manager.delete_recovery_file()
                     self.log_info("# Auto-recovery: Deleted recovery file (workflow completed successfully)")
-                except Exception as e:
+                except (OSError, IOError) as e:
                     self.log_warn(f"Failed to delete recovery file: {e}")
 
             # Write summary before exiting (for success cases)
@@ -2202,7 +2211,7 @@ class TaskExecutor:
                     try:
                         self.recovery_manager.delete_recovery_file()
                         self.log_info("# Auto-recovery: Deleted recovery file (workflow completed successfully)")
-                    except Exception as e:
+                    except (OSError, IOError) as e:
                         self.log_warn(f"Failed to delete recovery file: {e}")
                 # Write summary before exiting
                 if self.summary_log and self.final_task_id is not None:

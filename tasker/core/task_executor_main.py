@@ -278,8 +278,9 @@ class TaskExecutor:
                             # File is currently locked by another process
                             self.log_info(f"Info: Summary file '{self.project}.summary' is currently in use by another tasker instance.")
                             self.log_info("Summary writes will wait for the other instance to complete.")
-                except Exception:
-                    pass  # Ignore test errors
+                except (OSError, IOError) as e:
+                    # Log I/O errors but don't fail initialization
+                    self.log_debug(f"Skipping summary lock probe due to I/O error: {type(e).__name__}: {e}")
 
         # ===== NEW MODULAR ARCHITECTURE INITIALIZATION =====
         # Initialize the new modular components while maintaining backward compatibility

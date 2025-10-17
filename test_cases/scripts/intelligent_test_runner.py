@@ -775,6 +775,10 @@ class TaskerTestExecutor:
         if metadata.get("fire_and_forget", False):
             cmd_args.append("--fire-and-forget")
 
+        # Add --auto-recovery flag from metadata (automatic error recovery)
+        if metadata.get("requires_auto_recovery", False):
+            cmd_args.append("--auto-recovery")
+
         # Add --start-from flag from metadata (resume capability)
         if "start_from_task" in metadata:
             start_task = metadata["start_from_task"]

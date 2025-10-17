@@ -1,0 +1,33 @@
+# TEST_METADATA: {"description": "Basic recovery - task failure creates recovery file", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "requires_auto_recovery": true, "creates_recovery_file": true}
+# Basic recovery test - intentional failure to create recovery file
+# Global variables
+HOST_PREFIX=localhost
+TARGET_HOST=@HOST_PREFIX@
+
+# Task 0: Success
+task=0
+hostname=@TARGET_HOST@
+exec=local
+command=echo
+arguments=Task 0 success
+
+# Task 1: Success
+task=1
+hostname=@TARGET_HOST@
+exec=local
+command=echo
+arguments=Task 1 success
+
+# Task 2: Intentional failure
+task=2
+hostname=@TARGET_HOST@
+exec=local
+command=false
+arguments=
+
+# Task 3: Should not execute
+task=3
+hostname=@TARGET_HOST@
+exec=local
+command=echo
+arguments=Task 3 should not execute

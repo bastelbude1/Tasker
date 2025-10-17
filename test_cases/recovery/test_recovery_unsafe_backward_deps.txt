@@ -1,0 +1,33 @@
+# TEST_METADATA: {"description": "Unsafe recovery - backward dependencies detected", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "requires_auto_recovery": true, "note": "Manual two-run test - Currently fails at task 2 (exit 1) instead of dependency check (exit 15) due to dependency analyzer limitation. Task 3 references @0_stdout@ which isn't persisted across recovery."}
+# Unsafe recovery test - backward dependencies should prevent resume
+# Global variables
+HOST_PREFIX=localhost
+TARGET_HOST=@HOST_PREFIX@
+
+# Task 0: Success - produces output
+task=0
+hostname=@TARGET_HOST@
+exec=local
+command=echo
+arguments=important_data
+
+# Task 1: Success
+task=1
+hostname=@TARGET_HOST@
+exec=local
+command=echo
+arguments=Task 1 success
+
+# Task 2: Intentional failure
+task=2
+hostname=@TARGET_HOST@
+exec=local
+command=false
+arguments=
+
+# Task 3: Depends on task 0 output (backward dependency)
+task=3
+hostname=@TARGET_HOST@
+exec=local
+command=echo
+arguments=Using data from task 0: @0_stdout@

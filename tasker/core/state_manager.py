@@ -35,6 +35,7 @@ class StateManager:
         self._loop_counter = {}  # Track remaining loop iterations
         self._loop_iterations = {}  # Track current iteration number
         self._global_vars = {}   # Store global variables
+        self._execution_path = []  # Track task execution order for recovery
 
         # Additional state tracking
         self._tasks = {}  # Task definitions storage
@@ -227,6 +228,39 @@ class StateManager:
         with self._lock:
             return self._global_vars.get(key, default)
 
+    # ===== EXECUTION PATH TRACKING =====
+
+    def append_to_execution_path(self, task_id: int) -> None:
+        """
+        Append task ID to execution path.
+
+        Args:
+            task_id: Task identifier to append
+        """
+        with self._lock:
+            if task_id not in self._execution_path:
+                self._execution_path.append(task_id)
+
+    def get_execution_path(self):
+        """
+        Get execution path (list of executed task IDs).
+
+        Returns:
+            Copy of execution path list
+        """
+        with self._lock:
+            return self._execution_path.copy()
+
+    def set_execution_path(self, path):
+        """
+        Set execution path (used for recovery state restoration).
+
+        Args:
+            path: List of task IDs
+        """
+        with self._lock:
+            self._execution_path = list(path)
+
     # ===== TASK DEFINITIONS =====
 
     def set_tasks(self, tasks: Dict[int, Dict[str, Any]]) -> None:
@@ -272,6 +306,7 @@ class StateManager:
             self._loop_counter.clear()
             self._loop_iterations.clear()
             self._global_vars.clear()
+            self._execution_path.clear()
             self._tasks.clear()
             self.workflow_failed_due_to_condition = False
 

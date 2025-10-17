@@ -1,0 +1,33 @@
+# TEST_METADATA: {"description": "Safe recovery resume - no backward dependencies", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_auto_recovery": true, "requires_recovery_file": true, "note": "Run test_recovery_basic_failure.txt first to create recovery file"}
+# Safe recovery resume test - no backward dependencies
+# Global variables
+HOST_PREFIX=localhost
+TARGET_HOST=@HOST_PREFIX@
+
+# Task 0: Success (will be skipped due to recovery)
+task=0
+hostname=@TARGET_HOST@
+exec=local
+command=echo
+arguments=Task 0 success
+
+# Task 1: Success (will be skipped due to recovery)
+task=1
+hostname=@TARGET_HOST@
+exec=local
+command=echo
+arguments=Task 1 success
+
+# Task 2: Now succeeds (recovery resumes here)
+task=2
+hostname=@TARGET_HOST@
+exec=local
+command=echo
+arguments=Task 2 now succeeds
+
+# Task 3: Should execute
+task=3
+hostname=@TARGET_HOST@
+exec=local
+command=echo
+arguments=Task 3 completed successfully

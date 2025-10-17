@@ -637,7 +637,7 @@ class TaskerTestExecutor:
                     "execution_path": execution_path_data
                 }
 
-        except Exception as e:
+        except (OSError, subprocess.SubprocessError) as e:
             execution_time = (datetime.now() - start_time).total_seconds()
             return {
                 "exit_code": -1,
@@ -742,7 +742,7 @@ class TaskerTestExecutor:
                     "execution_path": execution_path_data
                 }
 
-        except Exception as e:
+        except (OSError, subprocess.SubprocessError) as e:
             execution_time = (datetime.now() - start_time).total_seconds()
             return {
                 "exit_code": -1,

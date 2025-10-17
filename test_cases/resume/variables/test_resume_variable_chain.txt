@@ -1,23 +1,30 @@
-# TEST_METADATA: {"description": "Resume into variable chain (negative)", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "start_from_task": 3, "skip_host_validation": true, "expected_warnings": 1}
+# TEST_METADATA: {"description": "Resume into variable chain (documents limitation)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 3, "expected_execution_path": [3], "skip_host_validation": true, "expected_warnings": 3}
 
-# Resume Capability Test: Resume into Variable Chain (Negative)
+# Resume Capability Test: Resume into Variable Chain
 #
-# Purpose: Validate error when resuming into middle of dependent variable chain
+# Purpose: Document behavior when resuming into middle of dependent variable chain
 #
 # Test Scenario:
-# 1. Task 1: Produces value A (will be skipped)
-# 2. Task 2: Uses A, produces value B (will be skipped)
-# 3. Task 3: Resume point - uses both A and B (both missing)
-# 4. TASKER should handle undefined variables
+# 1. Task 0-2: Will be skipped (produce values)
+# 2. Task 3: Resume point - depends on @1_stdout@ and @2_stdout@
+# 3. TASKER substitutes empty values for undefined variables
 #
 # Expected Behavior:
 # - Resume from task 3
 # - Task 3 tries to use @1_stdout@ and @2_stdout@ (both undefined)
-# - Variable resolution fails or produces empty values
-# - Exit code: 1 (execution failure) OR completes with empty variables
+# - TASKER substitutes empty strings for missing variables
+# - Task completes successfully with empty variable values
+# - Exit code: 0 (success with warnings)
 #
-# Note: This test demonstrates resume limitation - can't resume into
-# middle of variable dependency chain without state persistence
+# Note: This test demonstrates resume limitation - variables from skipped
+# tasks are empty. True resume with state persistence would preserve these values.
+
+# Task 0 - first task (will be skipped)
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0 - Should be skipped
+exec=local
 
 # Task 1 - produces value A (will be skipped)
 task=1

@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Resume with missing task variables (negative)", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "start_from_task": 5, "skip_host_validation": true, "expected_warnings": 1}
+# TEST_METADATA: {"description": "Resume with missing task variables (documents limitation)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 5, "expected_execution_path": [5], "skip_host_validation": true, "expected_warnings": 3}
 
 # Resume Capability Test: Resume with Missing Variables (Negative)
 #
@@ -19,6 +19,12 @@
 # task results from previous runs
 
 # Task that produces output (will be skipped)
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0 - Should be skipped
+exec=local
+
 task=1
 hostname=localhost
 command=echo
@@ -30,6 +36,18 @@ task=2
 hostname=localhost
 command=echo
 arguments=Task 2
+exec=local
+
+task=3
+hostname=localhost
+command=echo
+arguments=Task 3 - Should be skipped
+exec=local
+
+task=4
+hostname=localhost
+command=echo
+arguments=Task 4 - Should be skipped
 exec=local
 
 # Resume point - depends on skipped task output

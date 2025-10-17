@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Resume from task with retry configuration", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 5, "expected_execution_path": [5, 6], "skip_host_validation": true, "expected_warnings": 1}
+# TEST_METADATA: {"description": "Resume from task with retry configuration", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 5, "expected_execution_path": [5, 6], "skip_host_validation": true, "expected_warnings": 3}
 
 # Resume Capability Test: Resume with Retry
 #
@@ -26,6 +26,24 @@ task=1
 hostname=localhost
 command=echo
 arguments=Task 1 - Should be skipped
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2 - Should be skipped
+exec=local
+
+task=3
+hostname=localhost
+command=echo
+arguments=Task 3 - Should be skipped
+exec=local
+
+task=4
+hostname=localhost
+command=echo
+arguments=Task 4 - Should be skipped
 exec=local
 
 # Resume point - task with retry configuration

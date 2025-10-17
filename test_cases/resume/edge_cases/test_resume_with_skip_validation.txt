@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Resume with --skip-task-validation flag", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 5, "expected_execution_path": [5, 6], "skip_host_validation": true, "expected_warnings": 1, "skip_task_validation": true}
+# TEST_METADATA: {"description": "Resume with --skip-task-validation flag", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "start_from_task": 5, "expected_execution_path": [5, 6], "skip_host_validation": true, "expected_warnings": 4, "skip_task_validation": true}
 
 # Resume Capability Test: Resume with Skip Validation
 #

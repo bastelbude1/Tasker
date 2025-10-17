@@ -377,8 +377,12 @@ class TaskExecutor:
             os.makedirs(backup_dir, exist_ok=True)
 
             # Calculate SHA-256 hash of current task file for deduplication
+            # Use streaming to avoid loading large files into memory
+            hasher = hashlib.sha256()
             with open(task_file, 'rb') as f:
-                current_hash = hashlib.sha256(f.read()).hexdigest()
+                for chunk in iter(lambda: f.read(1024 * 1024), b''):
+                    hasher.update(chunk)
+            current_hash = hasher.hexdigest()
 
             # Check if we already have a backup with the same hash
             task_filename = os.path.basename(task_file)
@@ -391,12 +395,16 @@ class TaskExecutor:
             for backup_file in existing_backups:
                 backup_path = os.path.join(backup_dir, backup_file)
                 try:
+                    # Stream hash computation for existing backups too
+                    hasher2 = hashlib.sha256()
                     with open(backup_path, 'rb') as f:
-                        backup_hash = hashlib.sha256(f.read()).hexdigest()
+                        for chunk in iter(lambda: f.read(1024 * 1024), b''):
+                            hasher2.update(chunk)
+                    backup_hash = hasher2.hexdigest()
                     if backup_hash == current_hash:
                         self.log_debug(f"Task file unchanged - skipping backup (matches {backup_file})")
                         return
-                except Exception as e:
+                except (OSError, IOError) as e:
                     # Log the error but continue checking other backups
                     # This handles corruption, permission errors, I/O failures gracefully
                     self.log_debug(f"Could not read backup file '{backup_file}': {type(e).__name__}: {e}")
@@ -404,12 +412,21 @@ class TaskExecutor:
             # Create backup only if file has changed
             try:
                 task_copy_path = os.path.join(backup_dir, f"{task_filename}_{timestamp}")
+
+                # Best-effort: if path exists due to race condition, append a counter
+                suffix = 0
+                base_path = task_copy_path
+                while os.path.exists(task_copy_path):
+                    suffix += 1
+                    task_copy_path = f"{base_path}.{suffix}"
+
                 shutil.copy2(task_file, task_copy_path)
-                self.log_debug(f"Created task file backup: backup/{task_filename}_{timestamp}")
-            except Exception as e:
+                backup_filename = os.path.basename(task_copy_path)
+                self.log_debug(f"Created task file backup: backup/{backup_filename}")
+            except (OSError, IOError, shutil.Error) as e:
                 self.log_warn(f"Could not create new task file backup: {e}")
 
-        except Exception as e:
+        except (OSError, IOError) as e:
             self.log_warn(f"Task file backup preparation failed: {e}")
 
     # State management properties for backward compatibility

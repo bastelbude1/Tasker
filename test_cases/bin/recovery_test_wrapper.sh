@@ -46,7 +46,7 @@ rm -f "$STATE_FILE" 2>/dev/null || true
 # First run - expect failure and recovery file creation
 echo "=== Recovery Test Wrapper: First run (expect failure) ==="
 set +e
-python3 tasker.py "$TASK_FILE" -r --auto-recovery $OPTIONS
+tasker "$TASK_FILE" -r --auto-recovery $OPTIONS
 FIRST_EXIT=$?
 set -e
 
@@ -64,7 +64,7 @@ echo "=== Recovery Test Wrapper: Recovery file created: ${RECOVERY_FILES[0]} ===
 # Second run - expect success with recovery
 echo "=== Recovery Test Wrapper: Second run (expect recovery and success) ==="
 set +e
-python3 tasker.py "$TASK_FILE" -r --auto-recovery $OPTIONS
+tasker "$TASK_FILE" -r --auto-recovery $OPTIONS
 SECOND_EXIT=$?
 set -e
 

@@ -1,5 +1,10 @@
 # TEST_METADATA: {"description": "Unsafe recovery - backward dependencies detected", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "requires_auto_recovery": true, "note": "Manual two-run test - Currently fails at task 2 (exit 1) instead of dependency check (exit 15) due to dependency analyzer limitation. Task 3 references @0_stdout@ which isn't persisted across recovery."}
 # Unsafe recovery test - backward dependencies should prevent resume
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
 # Global variables
 HOST_PREFIX=localhost
 TARGET_HOST=@HOST_PREFIX@

@@ -1,6 +1,11 @@
 # TEST_METADATA: {"description": "Automatic recovery - verify cleanup on success", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Validates recovery file is deleted after successful completion"}
 # Automated recovery cleanup test
 # Tests that recovery file is properly deleted after workflow completion
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
 # Global variables
 HOST_PREFIX=localhost
 TARGET_HOST=@HOST_PREFIX@

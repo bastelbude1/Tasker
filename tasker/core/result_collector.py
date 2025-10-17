@@ -268,7 +268,7 @@ class ResultCollector:
             return
 
         # Message preparation outside critical section
-        timestamp = datetime.now().strftime('%d%b%y %H:%M:%S')
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         status = "SUCCESS" if self.final_success else "FAILURE"
         log_file = os.path.basename(self.log_file_path) if self.log_file_path else 'unknown.log'
 

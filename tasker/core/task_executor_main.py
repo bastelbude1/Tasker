@@ -218,9 +218,9 @@ class TaskExecutor:
                     backup_dir = os.path.join(self.log_dir, 'backup')
                     os.makedirs(backup_dir, exist_ok=True)
 
-                    # Calculate MD5 hash of current task file
+                    # Calculate SHA-256 hash of current task file for deduplication
                     with open(task_file, 'rb') as f:
-                        current_hash = hashlib.md5(f.read()).hexdigest()
+                        current_hash = hashlib.sha256(f.read()).hexdigest()
 
                     # Check if we already have a backup with the same hash
                     task_filename = os.path.basename(task_file)
@@ -237,7 +237,7 @@ class TaskExecutor:
                         backup_path = os.path.join(backup_dir, backup_file)
                         try:
                             with open(backup_path, 'rb') as f:
-                                backup_hash = hashlib.md5(f.read()).hexdigest()
+                                backup_hash = hashlib.sha256(f.read()).hexdigest()
                             if backup_hash == current_hash:
                                 backup_needed = False
                                 self.log_debug(f"Task file unchanged - skipping backup (matches {backup_file})")

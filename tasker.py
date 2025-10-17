@@ -59,7 +59,7 @@ Examples:
                        help='Directory to store log files')
     parser.add_argument('--log-level', choices=['ERROR', 'WARN', 'INFO', 'DEBUG'], 
                        default='INFO', help='Set logging level (default: INFO)')
-    parser.add_argument('-t', '--type', choices=['pbrun', 'p7s', 'local', 'wwrs'], 
+    parser.add_argument('-t', '--type', choices=['pbrun', 'p7s', 'local', 'wwrs', 'shell'],
                        help='Execution type (overridden by task-specific settings)')
     parser.add_argument('-o', '--timeout', type=int, default=30, 
                        help='Default command timeout in seconds (5-1000, default: 30)')

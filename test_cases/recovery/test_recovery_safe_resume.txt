@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Safe recovery resume - no backward dependencies", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_auto_recovery": true, "requires_recovery_file": true, "note": "Run test_recovery_basic_failure.txt first to create recovery file"}
+# TEST_METADATA: {"description": "Safe recovery resume - no backward dependencies", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true}
 # Safe recovery resume test - no backward dependencies
 
 # File-defined arguments
@@ -9,28 +9,28 @@
 HOST_PREFIX=localhost
 TARGET_HOST=@HOST_PREFIX@
 
-# Task 0: Success (will be skipped due to recovery)
+# Task 0: Success
 task=0
 hostname=@TARGET_HOST@
 exec=local
 command=echo
 arguments=Task 0 success
 
-# Task 1: Success (will be skipped due to recovery)
+# Task 1: Success
 task=1
 hostname=@TARGET_HOST@
 exec=local
 command=echo
 arguments=Task 1 success
 
-# Task 2: Now succeeds (recovery resumes here)
+# Task 2: Stateful task - fails first run, succeeds second run
 task=2
 hostname=@TARGET_HOST@
 exec=local
-command=echo
-arguments=Task 2 now succeeds
+command=recovery_helper.sh
+arguments=test_recovery_safe_resume
 
-# Task 3: Should execute
+# Task 3: Should execute only on second run (after recovery)
 task=3
 hostname=@TARGET_HOST@
 exec=local

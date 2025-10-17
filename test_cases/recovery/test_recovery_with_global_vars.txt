@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Recovery with global variables preservation", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_auto_recovery": true, "note": "Tests that global variables are preserved across recovery"}
+# TEST_METADATA: {"description": "Recovery with global variables preservation", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Tests that global variables are preserved across recovery"}
 # Recovery with global variables test
 
 # File-defined arguments
@@ -25,16 +25,16 @@ exec=local
 command=echo
 arguments=Target host: @TARGET_HOST@
 
-# Task 2: Success
+# Task 2: Stateful task - fails first run, succeeds second run
 task=2
 hostname=localhost
 exec=local
-command=echo
-arguments=Task 2 using @APP_NAME@
+command=recovery_helper.sh
+arguments=test_recovery_with_global_vars
 
-# Task 3: Success
+# Task 3: Validates global variables still work after recovery
 task=3
 hostname=localhost
 exec=local
 command=echo
-arguments=Completed deployment of @APP_NAME@ @APP_VERSION@
+arguments=Completed deployment of @APP_NAME@ @APP_VERSION@ to @TARGET_HOST@

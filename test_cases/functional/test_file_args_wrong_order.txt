@@ -1,0 +1,18 @@
+# TEST_METADATA: {"description": "File-defined arguments - wrong order (globals before args)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "note": "Parsing stops at first global (HOST_PREFIX=), so --auto-recovery is ignored. Test validates this behavior."}
+
+# Test file-defined arguments appearing after global variables (invalid order)
+# Arguments should appear BEFORE globals, but parser stops at first '=' so args are ignored
+
+# Global variables (appears first - breaks args block)
+HOST_PREFIX=localhost
+
+# File-defined arguments (these will be IGNORED - parsing stopped)
+--auto-recovery
+--skip-host-validation
+
+# Tasks
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Testing wrong order - args ignored

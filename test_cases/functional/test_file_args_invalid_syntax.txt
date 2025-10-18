@@ -1,0 +1,18 @@
+# TEST_METADATA: {"description": "File-defined arguments - invalid single-dash long names", "test_type": "negative", "expected_exit_code": 2, "expected_success": false, "note": "Single dash with long name (-auto-recovery) is invalid syntax. Argparse should reject with exit code 2."}
+
+# Test file-defined arguments with invalid syntax (single dash + long name)
+# This should be rejected by argparse - long options require double dash
+
+# File-defined arguments (INVALID SYNTAX)
+-auto-recovery
+-skip-host-validation
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Tasks
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=This should not execute

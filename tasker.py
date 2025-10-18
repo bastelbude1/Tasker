@@ -255,16 +255,21 @@ Examples:
     parser.add_argument('--show-effective-args', action='store_true',
                        help='Display effective arguments (file + CLI merged) and exit')
 
-    # First, get task file path from CLI to parse file-defined arguments
-    # We need to extract it before full parsing to handle file args
+    # First, robustly extract task file path using argparse so option values are not mistaken for the positional.
     task_file_path = None
-    for i, arg in enumerate(sys.argv[1:]):
-        # Skip flag arguments and their values
-        if arg.startswith('-'):
-            continue
-        # First non-flag argument should be the task file
-        task_file_path = arg
-        break
+    task_file_action = None
+    for action in parser._actions:
+        if action.dest == 'task_file':
+            task_file_action = action
+            break
+    if task_file_action:
+        # Temporarily make positional optional to allow pre-parse without errors
+        task_file_action.required = False
+        try:
+            pre_args, _unknown = parser.parse_known_args(sys.argv[1:])
+            task_file_path = getattr(pre_args, 'task_file', None)
+        finally:
+            task_file_action.required = True
 
     if not task_file_path:
         # No task file provided, let argparse handle the error

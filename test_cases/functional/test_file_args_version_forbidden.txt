@@ -1,0 +1,17 @@
+# TEST_METADATA: {"description": "File-defined arguments - --version flag forbidden", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+
+# Test file-defined argument with CLI-only flag --version (should fail)
+# This test validates that CLI-only flags like --version are rejected when defined in files
+
+# File-defined arguments
+--version
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Tasks
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=This should never execute

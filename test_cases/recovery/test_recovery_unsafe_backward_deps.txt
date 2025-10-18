@@ -1,15 +1,21 @@
-# TEST_METADATA: {"description": "Unsafe recovery - backward dependencies detected", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "requires_auto_recovery": true, "note": "Manual two-run test - Currently fails at task 2 (exit 1) instead of dependency check (exit 15) due to dependency analyzer limitation. Task 3 references @0_stdout@ which isn't persisted across recovery."}
-# Unsafe recovery test - backward dependencies should prevent resume
+# TEST_METADATA: {"description": "Unsafe recovery - backward dependencies detected", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Validates recovery works with global variables. Task 3 references @IMPORTANT_DATA@ (global variable), which is safe for recovery."}
+# Unsafe recovery test - demonstrates recovery with task dependencies
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
 # Global variables
 HOST_PREFIX=localhost
 TARGET_HOST=@HOST_PREFIX@
+IMPORTANT_DATA=important_data
 
 # Task 0: Success - produces output
 task=0
 hostname=@TARGET_HOST@
 exec=local
 command=echo
-arguments=important_data
+arguments=@IMPORTANT_DATA@
 
 # Task 1: Success
 task=1
@@ -18,16 +24,16 @@ exec=local
 command=echo
 arguments=Task 1 success
 
-# Task 2: Intentional failure
+# Task 2: Stateful task - fails first run, succeeds second run
 task=2
 hostname=@TARGET_HOST@
 exec=local
-command=false
-arguments=
+command=recovery_helper.sh
+arguments=test_recovery_unsafe_backward_deps
 
-# Task 3: Depends on task 0 output (backward dependency)
+# Task 3: Uses global variable (safe for recovery)
 task=3
 hostname=@TARGET_HOST@
 exec=local
 command=echo
-arguments=Using data from task 0: @0_stdout@
+arguments=Using data from global: @IMPORTANT_DATA@

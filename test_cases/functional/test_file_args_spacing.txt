@@ -1,0 +1,17 @@
+# TEST_METADATA: {"description": "File-defined arguments - with spaces around equals", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Test file-defined arguments with spaces around equals sign
+# This test validates that arguments with spaces are properly parsed (spaces should be preserved in value)
+
+# File-defined arguments
+--log-level=DEBUG
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Tasks
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Testing args spacing

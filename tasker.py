@@ -34,6 +34,153 @@ from tasker.core.task_executor_main import TaskExecutor
 from tasker.core.utilities import get_log_directory
 
 
+# Security: Flags that should NEVER be accepted from task files
+CLI_ONLY_FLAGS = {'--help', '-h', '--version'}
+
+# Security: Flags that should generate warnings when found in files
+SECURITY_SENSITIVE_FLAGS = {
+    '--skip-security-validation',
+    '--skip-validation',
+    '--fire-and-forget'
+}
+
+
+def parse_file_args(task_file_path):
+    """
+    Parse TASKER arguments from task file header.
+
+    Arguments must appear at the very beginning of the file, before any
+    global variables or task definitions. The args block ends at the first
+    line that contains '=' but doesn't start with '-' or '--'.
+
+    Args:
+        task_file_path: Path to the task file
+
+    Returns:
+        List of argument strings (e.g., ['--auto-recovery', '--skip-host-validation'])
+    """
+    file_args = []
+
+    try:
+        with open(task_file_path, 'r') as f:
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+
+                # Skip empty lines and comments
+                if not line or line.startswith('#'):
+                    continue
+
+                # Args block ends at first task or global variable definition
+                # (line with '=' that doesn't start with a flag)
+                if '=' in line and not line.startswith(('-', '--')):
+                    break
+
+                # Collect argument lines (start with - or --)
+                if line.startswith(('-', '--')):
+                    # Security check: reject CLI-only flags
+                    arg_name = line.split('=')[0] if '=' in line else line
+                    if arg_name in CLI_ONLY_FLAGS:
+                        print(f"ERROR: File-defined argument '{arg_name}' is not allowed (CLI-only flag)", file=sys.stderr)
+                        print(f"       Found in {task_file_path} at line {line_num}", file=sys.stderr)
+                        sys.exit(20)  # Validation failed exit code
+
+                    # Warning for security-sensitive flags
+                    if arg_name in SECURITY_SENSITIVE_FLAGS:
+                        print(f"WARNING: File defines security-sensitive flag: {arg_name}")
+                        print(f"         Found in {task_file_path} at line {line_num}")
+                        print("         This flag reduces security checks - ensure this is intentional")
+
+                    file_args.append(line)
+
+    except (IOError, OSError) as e:
+        print(f"ERROR: Failed to read task file for argument parsing: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    return file_args
+
+
+def merge_args(parser, file_args, cli_args):
+    """
+    Merge file-defined arguments with CLI arguments.
+
+    Precedence: File args provide baseline, CLI args are additive/override.
+
+    Strategy:
+    - Parse file args through argparse to get file_namespace
+    - Parse CLI args through argparse to get cli_namespace
+    - Merge: CLI args override file args for value-based options
+    - Merge: CLI args are additive to file args for boolean flags
+
+    Args:
+        parser: Configured ArgumentParser instance
+        file_args: List of argument strings from file
+        cli_args: List of argument strings from CLI (sys.argv[1:])
+
+    Returns:
+        Merged argparse.Namespace with effective arguments
+    """
+    # Parse file args (skip task_file positional arg for now)
+    if file_args:
+        # Temporarily make task_file optional for file args parsing
+        task_file_action = None
+        for action in parser._actions:
+            if action.dest == 'task_file':
+                task_file_action = action
+                action.required = False
+                break
+
+        # Parse file args with a dummy task file
+        file_namespace = parser.parse_args([*file_args, '__dummy__'])
+
+        # Restore task_file requirement
+        if task_file_action:
+            task_file_action.required = True
+    else:
+        # No file args, create empty namespace
+        file_namespace = parser.parse_args(['__dummy__'])
+        # Reset to defaults
+        for action in parser._actions:
+            if action.dest != 'task_file' and hasattr(file_namespace, action.dest):
+                setattr(file_namespace, action.dest, action.default)
+
+    # Parse CLI args normally
+    cli_namespace = parser.parse_args(cli_args)
+
+    # Merge: CLI overrides/adds to file args
+    merged = argparse.Namespace()
+
+    for action in parser._actions:
+        dest = action.dest
+
+        # Skip special argparse internals
+        if dest in ('help', 'version'):
+            continue
+
+        file_value = getattr(file_namespace, dest, action.default)
+        cli_value = getattr(cli_namespace, dest, action.default)
+
+        # For task_file, always use CLI value
+        if dest == 'task_file':
+            setattr(merged, dest, cli_value)
+            continue
+
+        # Boolean flags: combine (file OR cli) - if either is True, result is True
+        if isinstance(action, argparse._StoreTrueAction):
+            merged_value = file_value or cli_value
+            setattr(merged, dest, merged_value)
+
+        # Value options: CLI overrides file
+        else:
+            # If CLI provided a value different from default, use CLI value
+            if cli_value != action.default:
+                setattr(merged, dest, cli_value)
+            # Otherwise use file value
+            else:
+                setattr(merged, dest, file_value)
+
+    return merged
+
+
 def main():
     """Main entry point for TASKER 2.1 command-line interface."""
     parser = argparse.ArgumentParser(
@@ -101,10 +248,53 @@ Examples:
                        help='Show execution plan and require confirmation before running')
 
     # Keep -d/--debug as convenient shorthand for --log-level=DEBUG
-    parser.add_argument('-d', '--debug', action='store_true', 
+    parser.add_argument('-d', '--debug', action='store_true',
                        help='Enable debug logging (shorthand for --log-level=DEBUG)')
 
-    args = parser.parse_args()
+    # Debug flag to show effective arguments after merging
+    parser.add_argument('--show-effective-args', action='store_true',
+                       help='Display effective arguments (file + CLI merged) and exit')
+
+    # First, robustly extract task file path using argparse so option values are not mistaken for the positional.
+    task_file_path = None
+    task_file_action = None
+    for action in parser._actions:
+        if action.dest == 'task_file':
+            task_file_action = action
+            break
+    if task_file_action:
+        # Temporarily make positional optional to allow pre-parse without errors
+        task_file_action.required = False
+        try:
+            pre_args, _unknown = parser.parse_known_args(sys.argv[1:])
+            task_file_path = getattr(pre_args, 'task_file', None)
+        finally:
+            task_file_action.required = True
+
+    if not task_file_path:
+        # No task file provided, let argparse handle the error
+        args = parser.parse_args()
+    else:
+        # Parse file-defined arguments
+        file_args = parse_file_args(task_file_path)
+
+        # Merge file args with CLI args
+        args = merge_args(parser, file_args, sys.argv[1:])
+
+        # Display effective args if requested
+        if args.show_effective_args:
+            print("Effective TASKER arguments (file + CLI merged):")
+            print("=" * 60)
+            if file_args:
+                print(f"File-defined arguments from {task_file_path}:")
+                for arg in file_args:
+                    print(f"  {arg}")
+                print()
+            print("Final effective arguments:")
+            for key, value in sorted(vars(args).items()):
+                if key != 'task_file' and value not in (None, False, [], ''):
+                    print(f"  --{key.replace('_', '-')}: {value}")
+            sys.exit(0)
 
     # Handle debug flag as shorthand
     if args.debug:

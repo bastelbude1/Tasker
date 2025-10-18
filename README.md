@@ -91,6 +91,7 @@ TASKER 2.1 is a next-generation task automation framework that reads task defini
 - **Multiple Execution Types**: Direct subprocess (`local`), shell execution (`shell`), enterprise tools (`pbrun`, `p7s`, `wwrs`)
 - **Advanced Flow Control**: Complex conditions, loops, branching, and error handling
 - **Variable System**: Dynamic substitution and data flow between tasks
+- **File-Defined Arguments**: Task files can define their own command-line arguments for automation
 - **Context-Aware Security**: Different validation rules for shell vs direct execution
 - **Enterprise Scaling**: Support for 1-1000+ servers with robust timeout management
 - **Professional Logging**: Structured output with debug capabilities and project tracking
@@ -459,6 +460,378 @@ For detailed parameter specifications and valid ranges, see the [Complete Parame
 - [Parallel Execution Parameters](#parallel-execution-parameters) - Concurrent task execution
 - [Conditional Execution Parameters](#conditional-execution-parameters) - Branch-based execution
 - [Output Processing Parameters](#output-processing-parameters-all-standard-tasks) - Text extraction utilities
+
+## File-Defined Arguments
+
+**Self-documenting workflows** - Define TASKER command-line arguments directly in your task files, making workflows self-contained and reducing operator error.
+
+### What Are File-Defined Arguments?
+
+File-defined arguments allow you to embed TASKER command-line options directly in task files. Instead of remembering which flags to use when running a workflow, the task file itself declares its requirements.
+
+**Benefits:**
+- ✅ **Self-documenting**: Requirements visible directly in task files
+- ✅ **Automation-friendly**: No need to remember or manage flags externally
+- ✅ **Reduces errors**: Operators can't forget required flags
+- ✅ **Version controlled**: Arguments tracked alongside workflow logic
+- ✅ **CLI override**: Command-line arguments can still override file settings
+
+### Basic Example
+
+```bash
+# File-defined arguments (must be at the very top)
+--auto-recovery
+--skip-host-validation
+--log-level=DEBUG
+
+# Global variables come after file-defined arguments
+ENVIRONMENT=production
+TARGET_HOST=prod-server-01
+
+# Tasks come last
+task=0
+hostname=@TARGET_HOST@
+command=deploy
+```
+
+**Execute with:**
+```bash
+# File-defined arguments are automatically applied
+python3 tasker.py workflow.txt -r
+
+# CLI args can override file args
+python3 tasker.py workflow.txt -r --log-level=INFO  # Overrides DEBUG
+```
+
+### How File-Defined Arguments Work
+
+**1. Argument Placement Rules**
+
+File-defined arguments **MUST** appear at the **very beginning** of the task file:
+
+```bash
+# ✅ CORRECT ORDER
+# File-defined arguments (first!)
+--auto-recovery
+--skip-host-validation
+
+# Global variables (second)
+ENVIRONMENT=production
+
+# Tasks (last)
+task=0
+...
+```
+
+```bash
+# ❌ WRONG ORDER - Arguments will be IGNORED
+# Global variables appear first
+ENVIRONMENT=production
+
+# File-defined arguments (TOO LATE - will be ignored!)
+--auto-recovery
+--skip-host-validation
+
+# Tasks
+task=0
+...
+```
+
+**Parser stopping rule**: The parser stops reading file-defined arguments at the **first line containing `=` that doesn't start with `-` or `--`**.
+
+**2. Valid Argument Syntax**
+
+File-defined arguments use **identical syntax** to command-line arguments:
+
+```bash
+# ✅ CORRECT - Boolean flags
+--auto-recovery
+--skip-host-validation
+--run
+-r
+-d
+
+# ✅ CORRECT - Value options
+--log-level=DEBUG
+--timeout=60
+--start-from=5
+
+# ❌ WRONG - Single dash with long names (invalid argparse syntax)
+-auto-recovery      # Must be --auto-recovery
+-skip-validation    # Must be --skip-validation
+
+# ❌ WRONG - Spaces around equals
+--log-level = DEBUG  # Must be --log-level=DEBUG
+```
+
+**3. Argument Precedence**
+
+When both file and CLI arguments are present:
+
+| Argument Type | Behavior | Example |
+|--------------|----------|---------|
+| **Boolean flags** | File OR CLI (additive) | File: `--skip-host-validation` + CLI: `-r` → Both active |
+| **Value options** | CLI overrides file | File: `--log-level=DEBUG` + CLI: `--log-level=INFO` → INFO wins |
+| **task_file** | Always from CLI | File args cannot override task file path |
+
+```bash
+# workflow.txt contains:
+# --auto-recovery
+# --log-level=DEBUG
+# --timeout=30
+
+# Command line overrides
+python3 tasker.py workflow.txt -r --log-level=INFO --timeout=60
+
+# Effective arguments:
+# --auto-recovery    (from file)
+# --run              (from CLI)
+# --log-level=INFO   (CLI overrides file)
+# --timeout=60       (CLI overrides file)
+```
+
+### Where Arguments Are Ignored
+
+**Parser stops at first non-argument line:**
+
+**Case 1: Arguments after global variables**
+```bash
+# Global variables appear first - parser stops here
+ENVIRONMENT=production
+
+# ❌ IGNORED - These arguments come too late
+--auto-recovery
+--skip-host-validation
+
+task=0
+...
+```
+
+**Case 2: Arguments mid-file**
+```bash
+# Proper file-defined arguments
+--auto-recovery
+
+# Global variables
+ENVIRONMENT=production
+
+# Tasks start
+task=0
+...
+
+# ❌ IGNORED - Parser already stopped at task=0
+--skip-host-validation
+
+task=1
+...
+```
+
+**Case 3: Arguments after task definitions**
+```bash
+# Tasks come first
+task=0
+hostname=server1
+command=deploy
+
+# ❌ IGNORED - Parser stopped at task=0
+--auto-recovery
+--skip-host-validation
+```
+
+**Why?** The parser stops reading file-defined arguments as soon as it encounters a line with `=` that doesn't start with `-` or `--`. This prevents task parameters from being misinterpreted as arguments.
+
+### Security Controls
+
+**CLI-Only Flags (Hard Blocked)**
+
+These flags are **forbidden** in file-defined arguments and will cause immediate failure:
+
+```bash
+# ❌ BLOCKED - Exit code 20
+--help
+--version
+-h
+
+# Error message:
+# ERROR: File-defined argument '--help' is not allowed (CLI-only flag)
+```
+
+**Security-Sensitive Flags (Warning)**
+
+These flags generate warnings but are allowed:
+
+```bash
+# ⚠️ WARNING - Allowed but warned
+--skip-security-validation
+--skip-validation
+--fire-and-forget
+
+# Warning message:
+# WARNING: File defines security-sensitive flag: --skip-security-validation
+#          This flag reduces security checks - ensure this is intentional
+```
+
+### Complete Syntax Reference
+
+**Supported in File-Defined Arguments:**
+
+| Argument | Type | Example |
+|----------|------|---------|
+| `--run` / `-r` | Boolean | `--run` or `-r` |
+| `--debug` / `-d` | Boolean | `--debug` or `-d` |
+| `--log-level=LEVEL` | Value | `--log-level=DEBUG` |
+| `--timeout=N` | Value | `--timeout=60` |
+| `--start-from=N` | Value | `--start-from=5` |
+| `--auto-recovery` | Boolean | `--auto-recovery` |
+| `--skip-host-validation` | Boolean | `--skip-host-validation` |
+| `--skip-task-validation` | Boolean | `--skip-task-validation` |
+| `--skip-command-validation` | Boolean | `--skip-command-validation` |
+| `--skip-security-validation` | Boolean | `--skip-security-validation` (warns) |
+| `--skip-validation` | Boolean | `--skip-validation` (warns) |
+| `--fire-and-forget` | Boolean | `--fire-and-forget` (warns) |
+| `--show-plan` | Boolean | `--show-plan` |
+| `--validate-only` | Boolean | `--validate-only` |
+| `--no-task-backup` | Boolean | `--no-task-backup` |
+
+**NOT Supported (CLI Only):**
+
+| Argument | Reason |
+|----------|--------|
+| `--help` / `-h` | Must be interactive |
+| `--version` | Must be interactive |
+| `task_file` | Always from CLI |
+
+### Debugging File-Defined Arguments
+
+Use `--show-effective-args` to see which arguments are active:
+
+```bash
+python3 tasker.py workflow.txt --show-effective-args
+```
+
+**Output:**
+```
+Effective TASKER arguments (file + CLI merged):
+============================================================
+File-defined arguments from workflow.txt:
+  --auto-recovery
+  --skip-host-validation
+  --log-level=DEBUG
+
+Final effective arguments:
+  --auto-recovery: True
+  --log-level: DEBUG
+  --run: False
+  --skip-host-validation: True
+```
+
+### Common Patterns
+
+**Pattern 1: Recovery Workflows**
+```bash
+# Workflow with automatic recovery enabled
+--auto-recovery
+--skip-host-validation
+
+# Tasks
+task=0
+...
+```
+
+**Pattern 2: Development Testing**
+```bash
+# Development workflow with debug logging
+--log-level=DEBUG
+--skip-host-validation
+--no-task-backup
+
+# Tasks for testing
+task=0
+...
+```
+
+**Pattern 3: Production Deployment**
+```bash
+# Production deployment with resume capability
+--auto-recovery
+--log-level=INFO
+--show-plan
+
+# Global variables
+ENVIRONMENT=production
+
+# Deployment tasks
+task=0
+...
+```
+
+**Pattern 4: Validation-Only Workflows**
+```bash
+# Workflow that only validates syntax
+--validate-only
+--log-level=DEBUG
+
+# Tasks to validate
+task=0
+...
+```
+
+### Best Practices
+
+**1. Keep arguments at the top:**
+```bash
+# ✅ GOOD
+# File-defined arguments (line 1)
+--auto-recovery
+--skip-host-validation
+
+# Global variables (after arguments)
+ENVIRONMENT=production
+
+# Tasks (last)
+task=0
+...
+```
+
+**2. Comment your argument choices:**
+```bash
+# ✅ GOOD - Explain why flags are needed
+# File-defined arguments
+
+# Auto-recovery: Long-running deployment workflow
+--auto-recovery
+
+# Skip host validation: Using localhost for local testing
+--skip-host-validation
+
+# Debug logging: Detailed output for troubleshooting
+--log-level=DEBUG
+```
+
+**3. Don't duplicate CLI and file args:**
+```bash
+# ❌ BAD - Redundant
+# workflow.txt contains --auto-recovery
+python3 tasker.py workflow.txt -r --auto-recovery  # Redundant
+
+# ✅ GOOD - File defines baseline, CLI runs it
+# workflow.txt contains --auto-recovery
+python3 tasker.py workflow.txt -r  # Simpler
+```
+
+**4. Use file args for workflow requirements:**
+```bash
+# ✅ GOOD - Workflow needs these to function correctly
+--auto-recovery        # Required for recovery
+--skip-host-validation # Required for localhost execution
+```
+
+**5. Use CLI args for runtime decisions:**
+```bash
+# ✅ GOOD - Override at runtime
+python3 tasker.py workflow.txt -r --log-level=DEBUG  # Debug run
+python3 tasker.py workflow.txt -r --log-level=INFO   # Normal run
+```
 
 ## Global Variables
 
@@ -3359,6 +3732,64 @@ tasker -r --start-from=10 --skip-task-validation tasks.txt
 tasker -r --start-from=15 --skip-validation tasks.txt
 ```
 
+### File-Defined Arguments
+
+**NEW:** Task files can now define TASKER command-line arguments directly in the file header, making workflows self-documenting and reducing operator error.
+
+```bash
+# recovery_workflow.txt - Arguments defined at file start
+--auto-recovery
+--skip-host-validation
+--log-level=DEBUG
+
+# Global variables
+DEPLOY_ENV=production
+
+# Tasks
+task=0
+hostname=app-server
+command=deploy.sh
+arguments=@DEPLOY_ENV@
+```
+
+**Execute with file-defined arguments:**
+```bash
+# Uses file-defined args automatically (--auto-recovery, --skip-host-validation, --log-level=DEBUG)
+tasker -r recovery_workflow.txt
+
+# CLI can override file-defined args (log-level changes from DEBUG to WARN)
+tasker -r recovery_workflow.txt --log-level=WARN
+
+# Debug: Show effective merged arguments
+tasker recovery_workflow.txt --show-effective-args
+```
+
+**Key Features:**
+- **Position:** Arguments must appear at file start (before globals and tasks)
+- **Syntax:** Use 1:1 CLI format (`--flag` or `--option=value`)
+- **Precedence:** File args provide baseline, CLI args override/add
+- **Boolean Flags:** Additive (file OR cli)
+- **Value Options:** CLI overrides file defaults
+- **Security:** Blocks dangerous flags (`--help`, `--version`), warns about security-sensitive flags
+
+**Benefits:**
+- **Automation-Friendly:** Simpler CI/CD scripts (`tasker workflow.txt` vs `tasker workflow.txt --auto-recovery --skip-host-validation`)
+- **Self-Documenting:** Task files show required flags
+- **Error Prevention:** Operators can't forget critical flags
+- **Consistent:** Reuses existing argparse validation
+
+**Security Controls:**
+```bash
+# ❌ NOT ALLOWED: CLI-only flags
+--help        # Reserved for CLI only
+--version     # Reserved for CLI only
+
+# ⚠️ WARNS: Security-sensitive flags (allowed but generates warning)
+--skip-security-validation
+--skip-validation
+--fire-and-forget
+```
+
 ### Command Line Options
 
 #### Execution Control
@@ -3377,6 +3808,7 @@ tasker -r --start-from=15 --skip-validation tasks.txt
 |--------|-------------|---------|
 | `--show-plan` | Display execution plan and ask for confirmation | `tasker --show-plan -r tasks.txt` |
 | `--validate-only` | Perform complete validation (task + host + command + security) and exit | `tasker --validate-only tasks.txt` |
+| `--show-effective-args` | Display effective arguments (file + CLI merged) and exit - useful for debugging file-defined arguments | `tasker --show-effective-args tasks.txt` |
 | `-c, --connection-test` | Enable host connectivity testing | `tasker -r -c tasks.txt` |
 | `--skip-task-validation` | Skip task file and dependency validation (use for faster resume) | `tasker -r --skip-task-validation tasks.txt` |
 | `--skip-host-validation` | Skip host validation - use hostnames as-is (WARNING: may cause connection failures) | `tasker -r --skip-host-validation tasks.txt` |

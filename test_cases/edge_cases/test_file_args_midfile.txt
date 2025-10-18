@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "File-defined arguments - appearing mid-file after tasks", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "note": "Parsing stops at first task definition, so mid-file args are ignored. Test validates this behavior."}
+
+# Test file-defined arguments appearing mid-file after tasks started
+# Parser stops at first 'task=' so mid-file arguments are completely ignored
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Tasks
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Testing mid-file args ignored
+
+# File-defined arguments appearing mid-file (these will be IGNORED)
+--auto-recovery
+--skip-host-validation
+
+# More tasks
+task=1
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Task 1 completes

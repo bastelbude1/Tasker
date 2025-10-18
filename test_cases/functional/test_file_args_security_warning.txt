@@ -1,0 +1,18 @@
+# TEST_METADATA: {"description": "File-defined arguments - security-sensitive flag warning", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Test file-defined argument with security-sensitive flag (should warn but allow)
+# This test validates that security-sensitive flags generate warnings but are allowed
+
+# File-defined arguments
+--skip-security-validation
+--skip-host-validation
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Tasks
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Testing security warning

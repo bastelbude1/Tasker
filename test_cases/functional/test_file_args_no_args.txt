@@ -1,0 +1,14 @@
+# TEST_METADATA: {"description": "File-defined arguments - no args (backward compatibility)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Test file without file-defined arguments (backward compatibility)
+# This test validates that task files without file-defined arguments still work correctly
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Tasks
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Testing backward compatibility

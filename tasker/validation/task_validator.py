@@ -337,6 +337,11 @@ class TaskValidator:
             if not line or line.startswith('#'):
                 continue
 
+            # Skip file-defined arguments (lines starting with - or --)
+            # These are processed by tasker.py CLI parser, not part of task file content
+            if line.startswith(('-', '--')):
+                continue
+
             # STOP at first task definition - everything after is task fields, not globals
             if line.startswith('task='):
                 # Before stopping, validate that the task ID is a valid integer
@@ -421,11 +426,16 @@ class TaskValidator:
         for line in lines:
             line_number += 1
             line = line.strip()
-            
+
             # Skip empty lines and comments
             if not line or line.startswith('#'):
                 continue
-            
+
+            # Skip file-defined arguments (lines starting with - or --)
+            # These are processed by tasker.py CLI parser, not part of task file content
+            if line.startswith(('-', '--')):
+                continue
+
             # Parse key=value pairs
             if '=' in line:
                 try:

@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Basic test for file-defined arguments feature", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
 # Test file for file-defined arguments
 --auto-recovery
 --skip-host-validation

@@ -80,8 +80,8 @@ def parse_file_args(task_file_path):
                     # Security check: reject CLI-only flags
                     arg_name = line.split('=')[0] if '=' in line else line
                     if arg_name in CLI_ONLY_FLAGS:
-                        print(f"ERROR: File-defined argument '{arg_name}' is not allowed (CLI-only flag)")
-                        print(f"       Found in {task_file_path} at line {line_num}")
+                        print(f"ERROR: File-defined argument '{arg_name}' is not allowed (CLI-only flag)", file=sys.stderr)
+                        print(f"       Found in {task_file_path} at line {line_num}", file=sys.stderr)
                         sys.exit(20)  # Validation failed exit code
 
                     # Warning for security-sensitive flags
@@ -93,7 +93,7 @@ def parse_file_args(task_file_path):
                     file_args.append(line)
 
     except (IOError, OSError) as e:
-        print(f"ERROR: Failed to read task file for argument parsing: {e}")
+        print(f"ERROR: Failed to read task file for argument parsing: {e}", file=sys.stderr)
         sys.exit(1)
 
     return file_args
@@ -130,7 +130,7 @@ def merge_args(parser, file_args, cli_args):
                 break
 
         # Parse file args with a dummy task file
-        file_namespace = parser.parse_args(file_args + ['__dummy__'])
+        file_namespace = parser.parse_args([*file_args, '__dummy__'])
 
         # Restore task_file requirement
         if task_file_action:

@@ -771,7 +771,120 @@ exec=pbrun               # Override default exec type
 </tr>
 </table>
 
-## 14. Global Variable Definition Block
+## 14. File-Defined Arguments Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[FILE-DEFINED ARGUMENTS]
+
+    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| CLI argument | String | ✅ Yes | Any valid TASKER CLI argument |
+
+### Examples
+```bash
+# File-defined arguments (must be first!)
+--auto-recovery
+--skip-host-validation
+--log-level=DEBUG
+--timeout=60
+```
+
+### Entry Point
+**MUST be at the very beginning of the task file** - before global variables and tasks
+
+### Behavior
+- Defines TASKER command-line arguments directly in task files
+- Self-documenting workflows - requirements visible in file
+- Parser stops at first line with `=` not starting with `-` or `--`
+- Arguments appear BEFORE global variables and tasks
+- Use exact CLI syntax: `--flag` or `--option=value`
+- Boolean flags: additive (file OR cli)
+- Value options: CLI overrides file defaults
+- Security controls: CLI-only flags blocked (`--help`, `--version`)
+- Security warnings: Sensitive flags warned (`--skip-security-validation`)
+
+### Placement Rules
+```bash
+# ✅ CORRECT ORDER
+# File-defined arguments (FIRST!)
+--auto-recovery
+
+# Global variables (SECOND)
+ENVIRONMENT=production
+
+# Tasks (LAST)
+task=0
+```
+
+```bash
+# ❌ WRONG - Arguments IGNORED
+# Global variables first
+ENVIRONMENT=production
+
+# Arguments come too late - IGNORED!
+--auto-recovery
+```
+
+### Supported Arguments
+| Argument | Type | Notes |
+|----------|------|-------|
+| `--run` / `-r` | Boolean | Execute tasks |
+| `--debug` / `-d` | Boolean | Debug logging |
+| `--log-level=LEVEL` | Value | Set log level |
+| `--timeout=N` | Value | Set timeout |
+| `--start-from=N` | Value | Resume from task |
+| `--auto-recovery` | Boolean | Enable recovery |
+| `--skip-host-validation` | Boolean | Skip host checks |
+| `--skip-task-validation` | Boolean | Skip task validation |
+| `--skip-command-validation` | Boolean | Skip command checks |
+| `--skip-security-validation` | Boolean | Skip security (⚠️ warns) |
+| `--skip-validation` | Boolean | Skip all validation (⚠️ warns) |
+| `--fire-and-forget` | Boolean | Continue on failure (⚠️ warns) |
+| `--show-plan` | Boolean | Show execution plan |
+| `--validate-only` | Boolean | Validate only |
+| `--no-task-backup` | Boolean | Disable backups |
+
+### CLI-Only Flags (Blocked)
+| Argument | Reason |
+|----------|--------|
+| `--help` / `-h` | Interactive only |
+| `--version` | Interactive only |
+
+### Common Patterns
+```bash
+# Recovery workflow
+--auto-recovery
+--skip-host-validation
+
+# Development testing
+--log-level=DEBUG
+--skip-host-validation
+--no-task-backup
+
+# Production deployment
+--auto-recovery
+--log-level=INFO
+--show-plan
+```
+
+</td>
+</tr>
+</table>
+
+## 15. Global Variable Definition Block
 
 <table>
 <tr>
@@ -816,7 +929,7 @@ Must be at the beginning of workflow file
 </tr>
 </table>
 
-## 15. Output Processing Block
+## 16. Output Processing Block
 
 <table>
 <tr>

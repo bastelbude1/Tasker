@@ -1,0 +1,18 @@
+# TEST_METADATA: {"description": "File-defined arguments - short options with single dash", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Test file-defined arguments using short options (single dash)
+# Validates that short options like -r and -d are correctly parsed
+
+# File-defined arguments
+-r
+-d
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Tasks
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Testing short options

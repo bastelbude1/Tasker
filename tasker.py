@@ -88,7 +88,7 @@ def parse_file_args(task_file_path):
                     if arg_name in SECURITY_SENSITIVE_FLAGS:
                         print(f"WARNING: File defines security-sensitive flag: {arg_name}")
                         print(f"         Found in {task_file_path} at line {line_num}")
-                        print(f"         This flag reduces security checks - ensure this is intentional")
+                        print("         This flag reduces security checks - ensure this is intentional")
 
                     file_args.append(line)
 

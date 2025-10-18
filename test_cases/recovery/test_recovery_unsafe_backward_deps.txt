@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Unsafe recovery - backward dependencies detected", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Validates recovery works. Task 3 references @0_stdout@ but this is from globals/fixed value, not runtime variable."}
+# TEST_METADATA: {"description": "Unsafe recovery - backward dependencies detected", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Validates recovery works with global variables. Task 3 references @IMPORTANT_DATA@ (global variable), which is safe for recovery."}
 # Unsafe recovery test - demonstrates recovery with task dependencies
 
 # File-defined arguments

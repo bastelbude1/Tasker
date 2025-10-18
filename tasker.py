@@ -92,10 +92,6 @@ def parse_file_args(task_file_path):
 
                     file_args.append(line)
 
-                # Stop parsing if we hit a task definition (without '=')
-                elif line.startswith('task='):
-                    break
-
     except (IOError, OSError) as e:
         print(f"ERROR: Failed to read task file for argument parsing: {e}")
         sys.exit(1)

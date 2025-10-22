@@ -166,3 +166,28 @@ else
     echo "⚠ Warning: Python version is $PYTHON3_VERSION"
     echo "  This script is intended for Python 3.6.8 environments"
 fi
+
+echo ""
+echo "==================================="
+echo "PATH CONFIGURATION"
+echo "==================================="
+echo ""
+echo "Add these directories to your PATH for proper operation:"
+echo ""
+
+# Get absolute paths
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BIN_DIR="${SCRIPT_DIR}/bin"
+TEST_BIN_DIR="${SCRIPT_DIR}/test_cases/bin"
+
+echo "# Add to your .bashrc or .profile:"
+echo "export PATH=\"${BIN_DIR}:${TEST_BIN_DIR}:\${PATH}\""
+echo ""
+echo "# Or run this command now:"
+echo "export PATH=\"${BIN_DIR}:${TEST_BIN_DIR}:\${PATH}\""
+echo ""
+echo "This will make available:"
+echo "  - tasker (from ${BIN_DIR})"
+echo "  - Mock test commands (from ${TEST_BIN_DIR})"
+echo ""
+echo "==================================="

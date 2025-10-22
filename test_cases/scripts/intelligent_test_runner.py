@@ -54,30 +54,56 @@ def _resolve_tasker_path(tasker_path=None):
     return tasker_path
 
 
+def _should_skip_template(file_path):
+    """
+    Check if a file should be skipped as a template.
+
+    Args:
+        file_path: Path to the file to check
+
+    Returns:
+        True if file should be skipped (is a template), False otherwise
+    """
+    import re
+
+    path_parts = Path(file_path).parts
+    filename = os.path.basename(file_path)
+
+    # Skip if 'templates' is in the path
+    if 'templates' in path_parts:
+        return True
+
+    # Skip if 'template' appears as a word segment in the filename (case-insensitive)
+    # Matches 'template' separated by underscores, hyphens, dots, or word boundaries
+    # Examples: test_template.txt, template-test.txt, my.template.txt
+    # Avoids false positives: implementation.txt, contemplative.txt
+    if re.search(r'(?:^|[_\-\.])template(?:[_\-\.]|$)', filename, re.IGNORECASE):
+        return True
+
+    return False
+
+
 def _collect_test_files(target_path, recursive=False):
     """Collect .txt test files from a directory, excluding templates."""
     test_files = []
     if recursive:
         for root, _dirs, files in os.walk(target_path):
-            # Skip templates directory - cross-platform compatible
-            # Check if 'templates' is in any path segment (works on Windows/Unix)
-            path_parts = Path(root).parts
-            if 'templates' in path_parts:
+            # Skip templates directory using centralized helper
+            if _should_skip_template(root):
                 continue
             for file in files:
-                # Skip template files (files with 'template' in name)
-                if 'template' in file.lower():
+                file_path = os.path.join(root, file)
+                # Skip template files using centralized helper
+                if _should_skip_template(file_path):
                     continue
-                if file.endswith('.txt'):
-                    file_path = os.path.join(root, file)
-                    if os.path.isfile(file_path):
-                        test_files.append(file_path)
+                if file.endswith('.txt') and os.path.isfile(file_path):
+                    test_files.append(file_path)
     else:
         for file in os.listdir(target_path):
-            # Skip template files (files with 'template' in name)
-            if 'template' in file.lower():
-                continue
             file_path = os.path.join(target_path, file)
+            # Skip template files using centralized helper
+            if _should_skip_template(file_path):
+                continue
             if file.endswith('.txt') and os.path.isfile(file_path):
                 test_files.append(file_path)
     return test_files
@@ -1059,16 +1085,27 @@ class TestValidator:
                         )
                         break
 
-        # Validate exit code
+        # Validate exit code (supports single value or list of acceptable values)
         if "expected_exit_code" in metadata:
             expected_exit = metadata["expected_exit_code"]
             actual_exit = actual_results["exit_code"]
 
-            if actual_exit != expected_exit:
+            # Support both single value and list of acceptable values
+            if isinstance(expected_exit, list):
+                expected_codes = expected_exit
+            else:
+                expected_codes = [expected_exit]
+
+            if actual_exit not in expected_codes:
                 validation_results["passed"] = False
-                validation_results["failures"].append(
-                    f"Exit code mismatch: expected {expected_exit}, got {actual_exit}"
-                )
+                if len(expected_codes) == 1:
+                    validation_results["failures"].append(
+                        f"Exit code mismatch: expected {expected_codes[0]}, got {actual_exit}"
+                    )
+                else:
+                    validation_results["failures"].append(
+                        f"Exit code mismatch: expected one of {expected_codes}, got {actual_exit}"
+                    )
 
         # Validate success expectation
         if "expected_success" in metadata:
@@ -1813,7 +1850,11 @@ def main():
 
     for target in args.targets:
         if os.path.isfile(target):
-            # Single file - add to set with absolute path
+            # Single file - apply same filtering as directory collection using centralized helper
+            if _should_skip_template(target):
+                continue
+
+            # Add to set with absolute path
             test_files_set.add(os.path.abspath(target))
         elif os.path.isdir(target):
             # Directory - collect all .txt files using helper

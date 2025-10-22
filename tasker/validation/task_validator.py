@@ -98,8 +98,8 @@ class TaskValidator:
         # Valid task types - NEW: Added 'conditional'
         self.valid_task_types = ['parallel', 'conditional']
         
-        # Known split delimiters
-        self.known_delimiters = ['space', 'tab', 'semi', 'comma', 'pipe']
+        # Known split delimiters (aligned with evaluator)
+        self.known_delimiters = ['space', 'tab', 'semi', 'semicolon', 'comma', 'pipe', 'newline', 'colon']
         
         # Enhanced operator support
         self.valid_operators = ['!=', '!~', '<=', '>=', '=', '~', '<', '>']
@@ -952,15 +952,11 @@ class TaskValidator:
             if isinstance(field_value, str) and '@' in field_value:
 
                 # Find all potential global variable references
+                # Note: global_var_pattern already excludes @X_output@ patterns since it requires
+                # the variable name to start with a letter or underscore, not a digit
                 global_matches = re.findall(global_var_pattern, field_value)
 
                 for var_name in global_matches:
-                    # Skip if this is actually a task result variable pattern
-                    # CASE INSENSITIVE: Accept @0_STDOUT@, @0_stdout@, etc.
-                    task_var_pattern = r'\d+_(stdout|stderr|success|exit)$'
-                    if re.match(task_var_pattern, var_name, re.IGNORECASE):
-                        continue
-                    
                     # Track usage of this global variable
                     self.referenced_global_vars.add(var_name)
                     
@@ -973,7 +969,7 @@ class TaskValidator:
                         )
                         
                 # Also validate that task result references are properly formatted
-                task_result_matches = re.findall(task_result_pattern, field_value)
+                task_result_matches = re.findall(task_result_pattern, field_value, re.IGNORECASE)
                 for task_num, output_type in task_result_matches:
                     try:
                         ref_task = int(task_num)
@@ -1578,28 +1574,28 @@ class TaskValidator:
         valid_patterns = [
             r'^exit_\d+$',                           # exit_0, exit_1, etc.
             r'^exit_not_0$',                         # exit_not_0
-            r'^(?i)stdout~',                         # stdout pattern matching (case-insensitive)
-            r'^(?i)stdout!~',                        # stdout pattern not matching (case-insensitive)
-            r'^(?i)stdout(=|!=)',                    # stdout equality/inequality (case-insensitive)
-            r'^(?i)stdout(<|<=|>|>=)',               # stdout numeric comparison (case-insensitive)
-            r'^(?i)stdout_count[=<>]',               # stdout_count with operators (case-insensitive)
-            r'^(?i)stderr~',                         # stderr pattern matching (case-insensitive)
-            r'^(?i)stderr!~',                        # stderr pattern not matching (case-insensitive)
-            r'^(?i)stderr(=|!=)',                    # stderr equality/inequality (case-insensitive)
-            r'^(?i)stderr(<|<=|>|>=)',               # stderr numeric comparison (case-insensitive)
-            r'^(?i)stderr_count[=<>]',               # stderr_count with operators (case-insensitive)
+            r'^stdout~',                             # stdout pattern matching
+            r'^stdout!~',                            # stdout pattern not matching
+            r'^stdout(=|!=)',                        # stdout equality/inequality
+            r'^stdout(<|<=|>|>=)',                   # stdout numeric comparison
+            r'^stdout_count[=<>]',                   # stdout_count with operators
+            r'^stderr~',                             # stderr pattern matching
+            r'^stderr!~',                            # stderr pattern not matching
+            r'^stderr(=|!=)',                        # stderr equality/inequality
+            r'^stderr(<|<=|>|>=)',                   # stderr numeric comparison
+            r'^stderr_count[=<>]',                   # stderr_count with operators
             r'^(true|false)$',                       # boolean literals
-            r'^(?i)success$',                        # success keyword (case-insensitive)
+            r'^success$',                            # success keyword
             r'^[a-zA-Z_]\w*[=!<>~]',                # variable comparisons
             r'^exit[=!<>]',                          # exit comparisons (current task)
-            r'^@\d+_(?i)(stdout|stderr|success|exit)@$',  # standalone task result placeholders (case-insensitive)
-            r'^@\d+_(?i)(stdout|stderr|success|exit)@[=!<>~]',  # task result comparisons (case-insensitive)
+            r'^@\d+_(stdout|stderr|success|exit)@$',  # standalone task result placeholders
+            r'^@\d+_(stdout|stderr|success|exit)@[=!<>~]',  # task result comparisons
             r'^contains:',                           # legacy contains
             r'^not_contains:',                       # legacy not_contains
         ]
 
-        # Check if condition matches any valid pattern
-        is_valid = any(re.match(pattern, condition) for pattern in valid_patterns)
+        # Check if condition matches any valid pattern (case-insensitive)
+        is_valid = any(re.match(pattern, condition, re.IGNORECASE) for pattern in valid_patterns)
 
         if not is_valid:
             # Provide helpful error message
@@ -1668,7 +1664,7 @@ class TaskValidator:
         # Check for @X_stdout@, @X_stderr@, @X_success@, or @X_exit@ references
         for _, value in task.items():
             if isinstance(value, str):
-                for match in re.finditer(r'@(\d+)_(stdout|stderr|success|exit)@', value):
+                for match in re.finditer(r'@(\d+)_(stdout|stderr|success|exit)@', value, re.IGNORECASE):
                     try:
                         ref_task = int(match.group(1))
                         referenced_tasks.add(ref_task)

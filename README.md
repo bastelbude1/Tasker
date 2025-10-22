@@ -1615,7 +1615,21 @@ command=deploy_to_staging
 
 ### Success Criteria
 
-Define custom success conditions beyond just exit codes:
+Define custom success conditions beyond just exit codes.
+
+**🎉 NEW: Case-Insensitive Support (v2.1)**
+TASKER now supports case-insensitive conditions! Use uppercase, lowercase, or mixed case as you prefer:
+- ✅ `success=stdout~complete` (lowercase)
+- ✅ `success=STDOUT~COMPLETE` (uppercase)
+- ✅ `success=StdOut~Complete` (mixed case)
+- ✅ `@0_STDOUT@`, `@0_EXIT@`, `@0_SUCCESS@` (uppercase placeholders)
+
+All work identically! This applies to:
+- `stdout`, `stderr`, `exit`, `success` keywords
+- Variable placeholders like `@task_stdout@`
+- All condition contexts: `success=`, `condition=`, `failure=`
+
+**Define custom success conditions:**
 
 ```
 task=0

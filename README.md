@@ -3800,7 +3800,7 @@ tasker recovery_workflow.txt --show-effective-args
 | `-l, --log-dir` | Custom log directory (default: ~/TASKER/) | `tasker -r -l /custom/logs tasks.txt` |
 | `--log-level` | Logging level (ERROR/WARN/INFO/DEBUG) | `tasker -r --log-level=DEBUG tasks.txt` |
 | `-d, --debug` | Shorthand for --log-level=DEBUG | `tasker -r -d tasks.txt` |
-| `-t, --type` | Default execution type (pbrun/p7s/local/wwrs) | `tasker -r -t pbrun tasks.txt` |
+| `-t, --type` | Default execution type (pbrun/p7s/local/wwrs/shell) | `tasker -r -t local tasks.txt` |
 | `-o, --timeout` | Default timeout in seconds (5-1000, default: 30) | `tasker -r -o 60 tasks.txt` |
 
 #### Planning and Validation
@@ -3820,16 +3820,25 @@ tasker recovery_workflow.txt --show-effective-args
 | Option | Description | Example |
 |--------|-------------|---------|
 | `--start-from` | Resume execution from specific task ID | `tasker -r --start-from=5 tasks.txt` |
+| `--auto-recovery` | Enable automatic error recovery - saves state after each task and auto-resumes on failure | `tasker -r --auto-recovery tasks.txt` |
+| `--show-recovery-info` | Display recovery state information and exit without execution | `tasker --show-recovery-info tasks.txt` |
+
+#### Execution Behavior
+| Option | Description | Example |
+|--------|-------------|---------|
+| `--fire-and-forget` | Continue workflow execution even when tasks fail (WARNING: Failed tasks will not stop execution) | `tasker -r --fire-and-forget tasks.txt` |
+| `--no-task-backup` | Disable task file backup creation - reduces file clutter, useful for testing | `tasker -r --no-task-backup tasks.txt` |
 
 ### Complete Usage Reference
 
-```
+```text
 usage: tasker [-h] [-r] [-l LOG_DIR] [--log-level {ERROR,WARN,INFO,DEBUG}]
-              [-t {pbrun,p7s,local,wwrs}] [-o TIMEOUT] [-c] [-p PROJECT]
-              [--start-from TASK_ID] [--skip-task-validation]
-              [--skip-host-validation] [--skip-command-validation]
-              [--skip-security-validation] [--skip-validation]
-              [--validate-only] [--show-plan] [-d]
+              [-t {pbrun,p7s,local,wwrs,shell}] [-o TIMEOUT] [-c] [-p PROJECT]
+              [--start-from TASK_ID] [--auto-recovery] [--show-recovery-info]
+              [--skip-task-validation] [--skip-host-validation]
+              [--skip-command-validation] [--skip-security-validation]
+              [--skip-validation] [--validate-only] [--fire-and-forget]
+              [--no-task-backup] [--show-plan] [-d] [--show-effective-args]
               task_file
 
 TASKER 2.1 - Execute tasks on remote servers with comprehensive flow control.
@@ -3844,7 +3853,7 @@ optional arguments:
                         Directory to store log files
   --log-level {ERROR,WARN,INFO,DEBUG}
                         Set logging level (default: INFO)
-  -t {pbrun,p7s,local,wwrs}, --type {pbrun,p7s,local,wwrs}
+  -t {pbrun,p7s,local,wwrs,shell}, --type {pbrun,p7s,local,wwrs,shell}
                         Execution type (overridden by task-specific settings)
   -o TIMEOUT, --timeout TIMEOUT
                         Default command timeout in seconds (5-1000, default: 30)
@@ -3853,6 +3862,9 @@ optional arguments:
   -p PROJECT, --project PROJECT
                         Project name for summary logging
   --start-from TASK_ID  Start execution from specific task ID (resume capability)
+  --auto-recovery       Enable automatic error recovery (saves state after each task,
+                        auto-resumes on failure)
+  --show-recovery-info  Display recovery state information and exit
   --skip-task-validation
                         Skip task file and dependency validation (use for faster resume)
   --skip-host-validation
@@ -3869,8 +3881,13 @@ optional arguments:
                         --skip-security-validation)
   --validate-only       Perform complete validation (task + host + command + security)
                         and exit without task execution
+  --fire-and-forget     Continue workflow execution even when tasks fail (no routing
+                        parameters). WARNING: Failed tasks will not stop execution
+  --no-task-backup      Disable task file backup creation (reduces file clutter,
+                        useful for testing)
   --show-plan           Show execution plan and require confirmation before running
   -d, --debug           Enable debug logging (shorthand for --log-level=DEBUG)
+  --show-effective-args Display effective arguments (file + CLI merged) and exit
 
 Examples:
   tasker tasks.txt -r                    # Execute tasks (real run)
@@ -3878,6 +3895,9 @@ Examples:
   tasker tasks.txt --show-plan           # Show execution plan first
   tasker tasks.txt --start-from=5        # Resume from task 5
   tasker tasks.txt --validate-only       # Only validate, don't execute
+  tasker tasks.txt --auto-recovery       # Enable automatic recovery
+  tasker tasks.txt --show-recovery-info  # Display recovery state
+  tasker tasks.txt --show-effective-args # Display merged arguments
 ```
 
 ## Log Directory Structure

@@ -23,6 +23,11 @@ import shlex
 from datetime import datetime
 from pathlib import Path
 
+# Add /app/COOL/lib to path if it exists (for psutil module)
+COOL_LIB_PATH = '/app/COOL/lib'
+if os.path.exists(COOL_LIB_PATH) and COOL_LIB_PATH not in sys.path:
+    sys.path.insert(0, COOL_LIB_PATH)
+
 # Optional dependency: psutil for performance monitoring
 # If not available, performance tests will show 0.0MB/0.0% CPU (graceful degradation)
 try:

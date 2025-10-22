@@ -54,30 +54,51 @@ def _resolve_tasker_path(tasker_path=None):
     return tasker_path
 
 
+def _should_skip_template(file_path):
+    """
+    Check if a file should be skipped as a template.
+
+    Args:
+        file_path: Path to the file to check
+
+    Returns:
+        True if file should be skipped (is a template), False otherwise
+    """
+    path_parts = Path(file_path).parts
+    filename = os.path.basename(file_path)
+
+    # Skip if 'templates' is in the path
+    if 'templates' in path_parts:
+        return True
+
+    # Skip if 'template' is in the filename (case-insensitive)
+    if 'template' in filename.lower():
+        return True
+
+    return False
+
+
 def _collect_test_files(target_path, recursive=False):
     """Collect .txt test files from a directory, excluding templates."""
     test_files = []
     if recursive:
         for root, _dirs, files in os.walk(target_path):
-            # Skip templates directory - cross-platform compatible
-            # Check if 'templates' is in any path segment (works on Windows/Unix)
-            path_parts = Path(root).parts
-            if 'templates' in path_parts:
+            # Skip templates directory using centralized helper
+            if _should_skip_template(root):
                 continue
             for file in files:
-                # Skip template files (files with 'template' in name)
-                if 'template' in file.lower():
+                file_path = os.path.join(root, file)
+                # Skip template files using centralized helper
+                if _should_skip_template(file_path):
                     continue
-                if file.endswith('.txt'):
-                    file_path = os.path.join(root, file)
-                    if os.path.isfile(file_path):
-                        test_files.append(file_path)
+                if file.endswith('.txt') and os.path.isfile(file_path):
+                    test_files.append(file_path)
     else:
         for file in os.listdir(target_path):
-            # Skip template files (files with 'template' in name)
-            if 'template' in file.lower():
-                continue
             file_path = os.path.join(target_path, file)
+            # Skip template files using centralized helper
+            if _should_skip_template(file_path):
+                continue
             if file.endswith('.txt') and os.path.isfile(file_path):
                 test_files.append(file_path)
     return test_files
@@ -1824,17 +1845,8 @@ def main():
 
     for target in args.targets:
         if os.path.isfile(target):
-            # Single file - apply same filtering as directory collection
-            # Skip template files (same logic as _collect_test_files)
-            path_parts = Path(target).parts
-            filename = os.path.basename(target)
-
-            # Skip if 'templates' is in the path
-            if 'templates' in path_parts:
-                continue
-
-            # Skip if 'template' is in the filename (case-insensitive)
-            if 'template' in filename.lower():
+            # Single file - apply same filtering as directory collection using centralized helper
+            if _should_skip_template(target):
                 continue
 
             # Add to set with absolute path

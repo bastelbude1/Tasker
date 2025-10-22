@@ -1813,7 +1813,20 @@ def main():
 
     for target in args.targets:
         if os.path.isfile(target):
-            # Single file - add to set with absolute path
+            # Single file - apply same filtering as directory collection
+            # Skip template files (same logic as _collect_test_files)
+            path_parts = Path(target).parts
+            filename = os.path.basename(target)
+
+            # Skip if 'templates' is in the path
+            if 'templates' in path_parts:
+                continue
+
+            # Skip if 'template' is in the filename (case-insensitive)
+            if 'template' in filename.lower():
+                continue
+
+            # Add to set with absolute path
             test_files_set.add(os.path.abspath(target))
         elif os.path.isdir(target):
             # Directory - collect all .txt files using helper

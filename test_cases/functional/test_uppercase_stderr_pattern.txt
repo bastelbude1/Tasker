@@ -1,0 +1,18 @@
+# TEST_METADATA: {"description": "Uppercase STDERR pattern matching test", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1]}
+# Test case for uppercase STDERR in success= parameter
+# Verify case-insensitive STDERR pattern matching works
+
+task=0
+hostname=localhost
+command=bash
+arguments=-c "echo 'ERROR: something failed' >&2 && exit 0"
+exec=local
+success=STDERR~ERROR
+
+task=1
+hostname=localhost
+command=echo
+arguments=Test completed - STDERR pattern matched
+exec=local
+condition=@0_success@=True
+next=never

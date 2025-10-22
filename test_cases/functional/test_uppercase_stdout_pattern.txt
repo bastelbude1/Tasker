@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Uppercase STDOUT pattern matching test", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2]}
+# Test case for uppercase STDOUT~pattern syntax
+# Bug: STDOUT~DEFAULT was evaluating to False even when DEFAULT was in stdout
+# Root cause: Case sensitivity - code expects lowercase 'stdout' but condition uses 'STDOUT'
+
+task=0
+hostname=localhost
+command=echo
+arguments=Output contains DEFAULT keyword
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=SUCCESS: Pattern matched
+exec=local
+condition=@0_stdout@~DEFAULT
+on_success=2
+
+task=2
+hostname=localhost
+command=echo
+arguments=Test completed successfully
+exec=local
+next=never

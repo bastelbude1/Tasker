@@ -321,21 +321,23 @@ class ConditionEvaluator:
         # Note: General patterns with =, !=, <, <=, >, >= (but not _count patterns) are handled by evaluate_operator_comparison below
         # IMPORTANT: _count patterns use operators as part of their syntax (e.g., stdout_count=3, stdout_count<5)
         # so we must check for _count BEFORE blocking based on operators
-        if condition.startswith('stdout') and ('_count' in condition or not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>='])):
+        # CASE INSENSITIVE: Accept both 'stdout' and 'STDOUT' for user convenience
+        if condition.lower().startswith('stdout') and ('_count' in condition.lower() or not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>='])):
             stdout_stripped = stdout.rstrip('\n')
-            if condition == 'stdout~':
+            condition_lower = condition.lower()
+            if condition_lower == 'stdout~':
                 result = stdout.strip() == ''
                 if debug_callback:
                     debug_callback(f"Stdout empty check: '{stdout.strip()}' is {'empty' if result else 'not empty'}")
                 return result
-            elif condition == 'stdout!~':
+            elif condition_lower == 'stdout!~':
                 result = stdout.strip() != ''
                 if debug_callback:
                     debug_callback(f"Stdout not empty check: '{stdout.strip()}' is {'not empty' if result else 'empty'}")
                 return result
             elif '~' in condition:
                 pattern = condition.split('~', 1)[1]
-                if condition.startswith('stdout!~'):
+                if condition_lower.startswith('stdout!~'):
                     result = pattern not in stdout
                     if debug_callback:
                         debug_callback(f"Stdout pattern not match: '{pattern}' is {'absent' if result else 'present'} in '{stdout_stripped}'")
@@ -380,21 +382,23 @@ class ConditionEvaluator:
         # Note: General patterns with =, !=, <, <=, >, >= (but not _count patterns) are handled by evaluate_operator_comparison below
         # IMPORTANT: _count patterns use operators as part of their syntax (e.g., stderr_count=0, stderr_count<5)
         # so we must check for _count BEFORE blocking based on operators
-        if condition.startswith('stderr') and ('_count' in condition or not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>='])):
+        # CASE INSENSITIVE: Accept both 'stderr' and 'STDERR' for user convenience
+        if condition.lower().startswith('stderr') and ('_count' in condition.lower() or not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>='])):
             stderr_stripped = stderr.rstrip('\n')
-            if condition == 'stderr~':
+            condition_lower = condition.lower()
+            if condition_lower == 'stderr~':
                 result = stderr.strip() == ''
                 if debug_callback:
                     debug_callback(f"Stderr empty check: '{stderr.strip()}' is {'empty' if result else 'not empty'}")
                 return result
-            elif condition == 'stderr!~':
+            elif condition_lower == 'stderr!~':
                 result = stderr.strip() != ''
                 if debug_callback:
                     debug_callback(f"Stderr not empty check: '{stderr.strip()}' is {'not empty' if result else 'empty'}")
                 return result
             elif '~' in condition:
                 pattern = condition.split('~', 1)[1]
-                if condition.startswith('stderr!~'):
+                if condition_lower.startswith('stderr!~'):
                     result = pattern not in stderr
                     if debug_callback:
                         debug_callback(f"Stderr pattern not match: '{pattern}' is {'absent' if result else 'present'} in '{stderr_stripped}'")
@@ -494,18 +498,20 @@ class ConditionEvaluator:
             return False
         
         # Handle output splitting in left operand
-        if ':' in left and left not in ['stdout', 'stderr']:
+        # CASE INSENSITIVE: Accept both 'stdout'/'STDOUT' and 'stderr'/'STDERR'
+        left_lower = left.lower()
+        if ':' in left and left_lower not in ['stdout', 'stderr']:
             split_parts = left.split(':', 1)
-            if split_parts[0] in ['stdout', 'stderr']:
-                base_output = stdout if split_parts[0] == 'stdout' else stderr
+            if split_parts[0].lower() in ['stdout', 'stderr']:
+                base_output = stdout if split_parts[0].lower() == 'stdout' else stderr
                 left_val = ConditionEvaluator.split_output(base_output, split_parts[1])
             else:
                 left_val = convert_value(left)
-        elif left == 'exit':
+        elif left_lower == 'exit':
             left_val = exit_code
-        elif left == 'stdout':
+        elif left_lower == 'stdout':
             left_val = stdout.rstrip('\n')
-        elif left == 'stderr':
+        elif left_lower == 'stderr':
             left_val = stderr.rstrip('\n')
         else:
             left_val = convert_value(left)

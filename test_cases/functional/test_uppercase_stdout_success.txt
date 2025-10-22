@@ -1,0 +1,19 @@
+# TEST_METADATA: {"description": "Uppercase STDOUT in success parameter test", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1]}
+# Test case for uppercase STDOUT in success= parameter
+# Bug: success=STDOUT~DEFAULT evaluates to False even when DEFAULT is in stdout
+# Root cause: Case sensitivity - code expects lowercase 'stdout' but success condition uses 'STDOUT'
+
+task=0
+hostname=localhost
+command=echo
+arguments=Output contains DEFAULT keyword
+exec=local
+success=STDOUT~DEFAULT
+
+task=1
+hostname=localhost
+command=echo
+arguments=Test completed successfully
+exec=local
+condition=@0_success@=True
+next=never

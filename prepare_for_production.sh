@@ -1,13 +1,17 @@
 #!/bin/bash
-# Script to update shebang from python to python3 for Python 3.6.8 environments
-# This is needed on servers where 'python' doesn't point to Python 3.6.8
+# TASKER Production Deployment Preparation Script
+# Prepares TASKER for deployment on Linux production servers
+# Ensures compatibility with real production environments for testing
 
 echo "==================================="
-echo "TASKER Shebang Update Script"
+echo "TASKER Production Environment Preparation"
 echo "==================================="
 echo ""
-echo "This script updates shebang lines from 'python' to 'python3'"
-echo "for servers where Python 3.6.8 is accessed via 'python3' command."
+echo "This script prepares TASKER for deployment on Linux production servers:"
+echo "  • Updates Python shebangs for correct interpreter"
+echo "  • Renames mock test commands to avoid conflicts with real commands"
+echo "  • Creates bin directory structure for easy PATH integration"
+echo "  • Configures environment for production testing"
 echo ""
 
 # Files to update

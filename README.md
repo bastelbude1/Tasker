@@ -3831,7 +3831,7 @@ tasker recovery_workflow.txt --show-effective-args
 
 ### Complete Usage Reference
 
-```
+```text
 usage: tasker [-h] [-r] [-l LOG_DIR] [--log-level {ERROR,WARN,INFO,DEBUG}]
               [-t {pbrun,p7s,local,wwrs,shell}] [-o TIMEOUT] [-c] [-p PROJECT]
               [--start-from TASK_ID] [--auto-recovery] [--show-recovery-info]

@@ -1,0 +1,76 @@
+# TEST_METADATA: {"description": "Comprehensive case-insensitive test for all placeholder variations", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3, 4, 5, 6, 7, 8]}
+# Comprehensive test for case-insensitive variable placeholders
+# Tests: @X_STDOUT@, @X_STDERR@, @X_EXIT@, @X_SUCCESS@ and mixed case
+# Tests in contexts: success=, condition=, arguments=
+
+# Task 0: Generate stdout for testing (lowercase placeholder reference)
+task=0
+hostname=localhost
+command=echo
+arguments=TEST_OUTPUT_DEFAULT
+exec=local
+success=exit_0
+
+# Task 1: Test uppercase STDOUT placeholder in arguments
+task=1
+hostname=localhost
+command=echo
+arguments=Uppercase STDOUT: @0_STDOUT@
+exec=local
+success=exit_0
+
+# Task 2: Test uppercase EXIT placeholder in condition
+task=2
+hostname=localhost
+command=echo
+arguments=Testing EXIT placeholder
+exec=local
+condition=@0_EXIT@=0
+
+# Task 3: Test uppercase SUCCESS placeholder in condition
+task=3
+hostname=localhost
+command=echo
+arguments=Testing SUCCESS placeholder
+exec=local
+condition=@0_SUCCESS@=True
+
+# Task 4: Test mixed case StdOut placeholder in arguments
+task=4
+hostname=localhost
+command=echo
+arguments=Mixed case: @0_StdOut@
+exec=local
+success=exit_0
+
+# Task 5: Generate stderr for testing
+task=5
+hostname=localhost
+command=bash
+arguments=-c "echo 'ERROR_MESSAGE' >&2 && exit 0"
+exec=local
+success=exit_0
+
+# Task 6: Test uppercase STDERR placeholder in arguments
+task=6
+hostname=localhost
+command=echo
+arguments=Uppercase STDERR: @5_STDERR@
+exec=local
+success=exit_0
+
+# Task 7: Test uppercase STDERR placeholder in condition
+task=7
+hostname=localhost
+command=echo
+arguments=Testing STDERR condition
+exec=local
+condition=@5_STDERR@~ERROR
+
+# Task 8: Test all uppercase placeholders in arguments
+task=8
+hostname=localhost
+command=echo
+arguments=All: STDOUT=@0_STDOUT@ EXIT=@0_EXIT@ SUCCESS=@0_SUCCESS@ STDERR=@5_STDERR@
+exec=local
+next=never

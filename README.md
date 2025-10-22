@@ -1,6 +1,24 @@
 # TASK ExecutoR - TASKER 2.1
 
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Copyright](https://img.shields.io/badge/Copyright-2024--2025%20Bastelbude-green.svg)](COPYRIGHT)
+[![Protected by AGPL](https://img.shields.io/badge/Protected%20by-AGPL--3.0-red.svg)](LICENSE)
+
 **No-Code Workflow Automation** - Transform complex operations into simple configuration files
+
+## 📜 License & Copyright
+
+**Copyright (C) 2024-2025 Bastelbude and Contributors**
+
+TASKER is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. This strong copyleft license ensures the software remains free while preventing unauthorized commercial exploitation.
+
+- ✅ **Free to use** internally in your organization
+- ✅ **Free to modify** for your needs
+- ⚠️ **Network use requires source disclosure** - SaaS/cloud deployments must share source
+- ⚠️ **Commercial use must comply** with AGPL-3.0 requirements
+- 📝 **Attribution required** - Must credit "TASKER by Bastelbude"
+
+See [LICENSE](LICENSE), [COPYRIGHT](COPYRIGHT), and [NOTICE](NOTICE) files for full details.
 
 ## Your First Workflow: Service Health Check
 

@@ -1,6 +1,30 @@
 #!/usr/bin/env python
-
+# -*- coding: utf-8 -*-
 """
+TASKER 2.1 - Professional Task Automation System
+Copyright (C) 2024-2025 Bastelbude and Contributors
+
+This file is part of TASKER.
+
+TASKER is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+TASKER is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with TASKER. If not, see <https://www.gnu.org/licenses/>.
+
+IMPORTANT NOTICE:
+Any use of this software in a network/server environment requires
+making the complete source code available to all users under AGPL-3.0.
+Commercial use must comply with all AGPL-3.0 requirements.
+
+-----------------------------------
 TASKER 2.1 - Command Line Interface
 -----------------------------------
 Clean CLI wrapper for the TASKER 2.1 task execution system.

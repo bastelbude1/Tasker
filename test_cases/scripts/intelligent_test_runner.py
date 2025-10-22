@@ -1059,16 +1059,27 @@ class TestValidator:
                         )
                         break
 
-        # Validate exit code
+        # Validate exit code (supports single value or list of acceptable values)
         if "expected_exit_code" in metadata:
             expected_exit = metadata["expected_exit_code"]
             actual_exit = actual_results["exit_code"]
 
-            if actual_exit != expected_exit:
+            # Support both single value and list of acceptable values
+            if isinstance(expected_exit, list):
+                expected_codes = expected_exit
+            else:
+                expected_codes = [expected_exit]
+
+            if actual_exit not in expected_codes:
                 validation_results["passed"] = False
-                validation_results["failures"].append(
-                    f"Exit code mismatch: expected {expected_exit}, got {actual_exit}"
-                )
+                if len(expected_codes) == 1:
+                    validation_results["failures"].append(
+                        f"Exit code mismatch: expected {expected_codes[0]}, got {actual_exit}"
+                    )
+                else:
+                    validation_results["failures"].append(
+                        f"Exit code mismatch: expected one of {expected_codes}, got {actual_exit}"
+                    )
 
         # Validate success expectation
         if "expected_success" in metadata:

@@ -177,8 +177,9 @@ class TaskValidator:
         def replace_var(match):
             var_name = match.group(1)
             # Skip task result variables (e.g., @0_stdout@, @0_exit@)
+            # CASE INSENSITIVE: Accept @0_STDOUT@, @0_stdout@, etc.
             task_var_pattern = r'\d+_(stdout|stderr|success|exit)$'
-            if re.match(task_var_pattern, var_name):
+            if re.match(task_var_pattern, var_name, re.IGNORECASE):
                 return match.group(0)  # Return unchanged
             # Replace with global variable value if defined
             if var_name in self.global_vars:
@@ -942,6 +943,7 @@ class TaskValidator:
         """Validate that all global variable references (@VARIABLE@) are defined and track usage."""
         
         # Pattern to match @VARIABLE@ but exclude @X_stdout@, @X_stderr@, @X_success@
+        # CASE INSENSITIVE: Accept @0_STDOUT@, @0_stdout@, etc.
         global_var_pattern = r'@([a-zA-Z_][a-zA-Z0-9_]*)@'
         task_result_pattern = r'@(\d+)_(stdout|stderr|success|exit)@'
 
@@ -954,8 +956,9 @@ class TaskValidator:
 
                 for var_name in global_matches:
                     # Skip if this is actually a task result variable pattern
+                    # CASE INSENSITIVE: Accept @0_STDOUT@, @0_stdout@, etc.
                     task_var_pattern = r'\d+_(stdout|stderr|success|exit)$'
-                    if re.match(task_var_pattern, var_name):
+                    if re.match(task_var_pattern, var_name, re.IGNORECASE):
                         continue
                     
                     # Track usage of this global variable
@@ -1469,8 +1472,9 @@ class TaskValidator:
 
         for var_name in global_matches:
             # Skip task result variables
+            # CASE INSENSITIVE: Accept @0_STDOUT@, @0_stdout@, etc.
             task_var_pattern = r'\d+_(stdout|stderr|success|exit)$'
-            if re.match(task_var_pattern, var_name):
+            if re.match(task_var_pattern, var_name, re.IGNORECASE):
                 continue
 
             # Track usage
@@ -1570,25 +1574,26 @@ class TaskValidator:
             return
 
         # Valid patterns
+        # CASE INSENSITIVE: Accept both @0_stdout@ and @0_STDOUT@, stdout~ and STDOUT~, etc.
         valid_patterns = [
             r'^exit_\d+$',                           # exit_0, exit_1, etc.
             r'^exit_not_0$',                         # exit_not_0
-            r'^stdout~',                             # stdout pattern matching (contains/empty)
-            r'^stdout!~',                            # stdout pattern not matching
-            r'^stdout(=|!=)',                        # stdout equality/inequality
-            r'^stdout(<|<=|>|>=)',                   # stdout numeric comparison
-            r'^stdout_count[=<>]',                   # stdout_count with operators
-            r'^stderr~',                             # stderr pattern matching (contains/empty)
-            r'^stderr!~',                            # stderr pattern not matching
-            r'^stderr(=|!=)',                        # stderr equality/inequality
-            r'^stderr(<|<=|>|>=)',                   # stderr numeric comparison
-            r'^stderr_count[=<>]',                   # stderr_count with operators
+            r'^(?i)stdout~',                         # stdout pattern matching (case-insensitive)
+            r'^(?i)stdout!~',                        # stdout pattern not matching (case-insensitive)
+            r'^(?i)stdout(=|!=)',                    # stdout equality/inequality (case-insensitive)
+            r'^(?i)stdout(<|<=|>|>=)',               # stdout numeric comparison (case-insensitive)
+            r'^(?i)stdout_count[=<>]',               # stdout_count with operators (case-insensitive)
+            r'^(?i)stderr~',                         # stderr pattern matching (case-insensitive)
+            r'^(?i)stderr!~',                        # stderr pattern not matching (case-insensitive)
+            r'^(?i)stderr(=|!=)',                    # stderr equality/inequality (case-insensitive)
+            r'^(?i)stderr(<|<=|>|>=)',               # stderr numeric comparison (case-insensitive)
+            r'^(?i)stderr_count[=<>]',               # stderr_count with operators (case-insensitive)
             r'^(true|false)$',                       # boolean literals
-            r'^success$',                            # success keyword
+            r'^(?i)success$',                        # success keyword (case-insensitive)
             r'^[a-zA-Z_]\w*[=!<>~]',                # variable comparisons
             r'^exit[=!<>]',                          # exit comparisons (current task)
-            r'^@\d+_(stdout|stderr|success|exit)@$',  # standalone task result placeholders (e.g., @0_success@, @0_exit@)
-            r'^@\d+_(stdout|stderr|success|exit)@[=!<>~]',  # task result comparisons (e.g., @0_exit@=0)
+            r'^@\d+_(?i)(stdout|stderr|success|exit)@$',  # standalone task result placeholders (case-insensitive)
+            r'^@\d+_(?i)(stdout|stderr|success|exit)@[=!<>~]',  # task result comparisons (case-insensitive)
             r'^contains:',                           # legacy contains
             r'^not_contains:',                       # legacy not_contains
         ]

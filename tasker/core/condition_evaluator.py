@@ -47,31 +47,35 @@ class ConditionEvaluator:
             return text, True  # Return text and resolution status
 
         # Enhanced pattern to match both task result variables and global variables
+        # CASE INSENSITIVE: Accept @0_stdout@, @0_STDOUT@, @0_StdOut@, etc.
         task_result_pattern = r'@(\d+)_(stdout|stderr|success|exit)@'
         global_var_pattern = r'@([a-zA-Z_][a-zA-Z0-9_]*)@'
-        
+
         replaced_text = text
         unresolved_variables = []
         original_text = text
-        
+
         # First, handle task result variables (@X_stdout@, etc.) - THREAD SAFE
-        task_matches = re.findall(task_result_pattern, text)
+        # Use case-insensitive matching
+        task_matches = re.findall(task_result_pattern, text, re.IGNORECASE)
         for task_num, output_type in task_matches:
             task_num = int(task_num)
-            
+            output_type_lower = output_type.lower()
+
             # CRITICAL: Thread-safe access to task_results
             task_result = task_results.get(task_num)
             if task_result is not None:
-                if output_type == 'stdout':
+                if output_type_lower == 'stdout':
                     value = task_result.get('stdout', '').rstrip('\n')
-                elif output_type == 'stderr':
+                elif output_type_lower == 'stderr':
                     value = task_result.get('stderr', '').rstrip('\n')
-                elif output_type == 'success':
+                elif output_type_lower == 'success':
                     value = str(task_result.get('success', False))
-                elif output_type == 'exit':
+                elif output_type_lower == 'exit':
                     value = str(task_result.get('exit_code', ''))
                 else:
                     value = ''
+                # Use original case from the text for replacement
                 pattern_replace = f"@{task_num}_{output_type}@"
                 replaced_text = replaced_text.replace(pattern_replace, value)
                 if debug_callback:
@@ -83,7 +87,8 @@ class ConditionEvaluator:
         global_matches = re.findall(global_var_pattern, replaced_text)
         for var_name in global_matches:
             # Skip if this is a task result variable (already handled above)
-            if re.match(r'\d+_(stdout|stderr|success|exit)$', var_name):
+            # CASE INSENSITIVE: Check with case-insensitive regex
+            if re.match(r'\d+_(stdout|stderr|success|exit)$', var_name, re.IGNORECASE):
                 continue
                 
             # Check if it's a defined global variable
@@ -111,7 +116,8 @@ class ConditionEvaluator:
             
             for var_name in nested_matches:
                 # Skip task result variables
-                if re.match(r'\d+_(stdout|stderr|success|exit)$', var_name):
+                # CASE INSENSITIVE: Check with case-insensitive regex
+                if re.match(r'\d+_(stdout|stderr|success|exit)$', var_name, re.IGNORECASE):
                     continue
                     
                 if var_name in global_vars:
@@ -132,7 +138,8 @@ class ConditionEvaluator:
         # Final check for any remaining unresolved variables
         final_matches = re.findall(global_var_pattern, replaced_text)
         for var_name in final_matches:
-            if not re.match(r'\d+_(stdout|stderr|success|exit)$', var_name):
+            # CASE INSENSITIVE: Check with case-insensitive regex
+            if not re.match(r'\d+_(stdout|stderr|success|exit)$', var_name, re.IGNORECASE):
                 if var_name not in global_vars:
                     unresolved_variables.append(f"@{var_name}@")
                 

@@ -112,7 +112,10 @@ sleep "$SIGNAL_DELAY"
 echo "[$(date +%H:%M:%S)] Sending $SIGNAL_TYPE to PID $TASKER_PID..."
 if ! kill -s "$SIGNAL_TYPE" "$TASKER_PID" 2>/dev/null; then
     echo "WARNING: Process already exited or not found"
-    TASKER_EXIT_CODE=1
+    # Capture actual exit code from background process
+    echo "[$(date +%H:%M:%S)] Capturing actual exit code from background process..."
+    wait "$TASKER_PID" 2>/dev/null || TASKER_EXIT_CODE=$?
+    echo "[$(date +%H:%M:%S)] TASKER already exited with code: $TASKER_EXIT_CODE"
 else
     # If second signal requested, send it after additional delay
     if [ "$SECOND_SIGNAL_DELAY" != "0" ]; then

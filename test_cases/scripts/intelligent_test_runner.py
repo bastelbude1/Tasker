@@ -64,6 +64,8 @@ def _should_skip_template(file_path):
     Returns:
         True if file should be skipped (is a template), False otherwise
     """
+    import re
+
     path_parts = Path(file_path).parts
     filename = os.path.basename(file_path)
 
@@ -71,8 +73,11 @@ def _should_skip_template(file_path):
     if 'templates' in path_parts:
         return True
 
-    # Skip if 'template' is in the filename (case-insensitive)
-    if 'template' in filename.lower():
+    # Skip if 'template' appears as a word segment in the filename (case-insensitive)
+    # Matches 'template' separated by underscores, hyphens, dots, or word boundaries
+    # Examples: test_template.txt, template-test.txt, my.template.txt
+    # Avoids false positives: implementation.txt, contemplative.txt
+    if re.search(r'(?:^|[_\-\.])template(?:[_\-\.]|$)', filename, re.IGNORECASE):
         return True
 
     return False

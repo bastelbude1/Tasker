@@ -8,16 +8,19 @@ This directory contains a comprehensive test suite for TASKER organized by funct
 
 ```
 test_cases/
-├── functional/          # Core functionality tests (137 tests)
-├── edge_cases/         # Boundary conditions and edge cases (68 tests)
+├── functional/          # Core functionality tests (150 tests)
+├── edge_cases/         # Boundary conditions and edge cases (80 tests)
 ├── security/          # Security validation tests (27 tests)
 ├── integration/       # Multi-component integration tests (33 tests)
 ├── performance/       # Performance and timing tests (10 tests)
+├── recovery/          # Auto-recovery and state persistence tests (8 tests)
+├── resume/            # Resume from specific task tests (16 tests)
 ├── scripts/           # Testing infrastructure and utilities
 ├── templates/         # Test file templates
+├── bin/              # Mock executables for testing
 └── README.md          # This documentation
 
-Total: 275 tests with TEST_METADATA
+Total: 324 tests with TEST_METADATA
 ```
 
 ## 🎯 Test Categories
@@ -103,24 +106,82 @@ Negative testing to ensure TASKER properly rejects malicious or dangerous inputs
 - **Memory Limits**: Large memory allocations, memory leaks
 - **File System**: Disk space exhaustion, file descriptor limits
 
-### 4. Integration Tests (`integration/`)
+### 4. Recovery Tests (`recovery/`)
+
+Tests that validate auto-recovery and state persistence functionality:
+
+#### 4.1 Auto-Recovery Features
+- **Basic Recovery**: Automatic state saving and recovery after failures
+- **Global Variables**: Recovery with global variable preservation
+- **Cleanup**: Proper cleanup of recovery files on success
+
+#### 4.2 Recovery Scenarios
+- **Safe Resume**: Recovery from safe resume points
+- **Unsafe Dependencies**: Handling backward dependencies during recovery
+- **Basic Failure**: Recovery after task failures
+
+### 5. Resume Tests (`resume/`)
+
+Tests that validate the `--start-from` resume capability:
+
+#### 5.1 Basic Resume
+- **From Start**: Resume from task 0 (baseline)
+- **From Middle**: Resume from middle of workflow
+- **From Last**: Resume from final task only
+- **Explicit Zero**: Explicit `--start-from=0`
+
+#### 5.2 Flow Control Resume
+- **Before Branch**: Resume with on_success/on_failure routing
+- **Into Success Branch**: Resume directly into routing target
+- **Into Parallel Block**: Resume from parallel coordinator
+- **Into Conditional Block**: Resume from conditional coordinator
+
+#### 5.3 Variable Handling
+- **Missing Variables**: Handling missing task variables
+- **With Globals**: Resume with global variables
+- **Variable Chain**: Variable dependency chains
+
+#### 5.4 Edge Cases
+- **Nonexistent Task**: Error handling for invalid task IDs
+- **With Skip Validation**: Resume with `--skip-task-validation`
+- **With Retry**: Resume with retry configuration
+- **With Timeout**: Resume with timeout parameters
+
+### 6. Integration Tests (`integration/`)
 
 Tests that validate interaction between multiple TASKER components:
 
-#### 4.1 Complex Workflows
+#### 6.1 Complex Workflows
 - **Multi-Stage Pipelines**: Sequential task chains with dependencies
 - **Branching Logic**: Complex conditional workflows with multiple paths
 - **Parallel Coordination**: Coordinated parallel task execution
 
-#### 4.2 Component Integration
+#### 6.2 Component Integration
 - **Validation + Execution**: Input validation with actual task execution
 - **Logging + Output**: Log generation with output processing
 - **Host + Security**: Host validation with security checks
 
-#### 4.3 Real-World Scenarios
+#### 6.3 Real-World Scenarios
 - **Deployment Workflows**: Application deployment simulation
 - **Health Checks**: System monitoring and alerting patterns
 - **Data Processing**: ETL-style data transformation workflows
+
+### 7. Performance Tests (`performance/`)
+
+Tests that validate performance characteristics and timing behavior:
+
+#### 7.1 Sleep Tests
+- **Basic Sleep**: Simple sleep parameter validation
+- **Float Sleep**: Decimal sleep values (0.5, 1.5 seconds)
+- **Sleep Range**: Various sleep durations
+- **Variable Sleep**: Sleep duration from variables
+
+#### 7.2 Performance Scenarios
+- **Parallel Sleep**: Sleep behavior in parallel tasks
+- **Conditional Sleep**: Sleep in conditional branches
+- **Loop with Sleep**: Sleep inside loop iterations
+- **Basic Performance**: General performance benchmarks
+- **Stress Testing**: High-load performance testing
 
 ## 📋 TEST_METADATA Specification
 
@@ -232,7 +293,7 @@ Performance timing requirements.
 ```bash
 # Run all test categories with metadata validation
 cd test_cases/
-python3 scripts/intelligent_test_runner.py functional/ edge_cases/ integration/ security/
+python3 scripts/intelligent_test_runner.py functional/ edge_cases/ integration/ security/ performance/ recovery/ resume/
 
 # Run specific category
 python3 scripts/intelligent_test_runner.py functional/
@@ -263,7 +324,7 @@ python3 scripts/intelligent_test_runner.py functional/test_global_variables_*.tx
 
 ```bash
 cd test_cases/
-python3 scripts/intelligent_test_runner.py functional/ edge_cases/ integration/ security/
+python3 scripts/intelligent_test_runner.py functional/ edge_cases/ integration/ security/ performance/ recovery/ resume/
 ```
 
 **Success criteria:**
@@ -413,6 +474,7 @@ The `functional/` directory includes **17 comprehensive global variable tests**:
 
 ---
 
-*Last updated: October 2025*
+*Last updated: October 22, 2025*
 *TASKER Version: 2.1*
+*Total Tests: 324 test cases with TEST_METADATA*
 *Test Framework: Metadata-driven with intelligent_test_runner.py*

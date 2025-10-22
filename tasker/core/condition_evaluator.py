@@ -312,7 +312,7 @@ class ConditionEvaluator:
                 return False
         
         # Check for success condition - use the current task success value
-        if condition == "success":
+        if condition.lower() == "success":
             if current_task_success is not None:
                 if debug_callback:
                     debug_callback(f"Success condition: {current_task_success}")

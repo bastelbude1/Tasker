@@ -1,0 +1,80 @@
+=========================================================================
+                      TASKER COPYRIGHT INFORMATION
+=========================================================================
+
+TASKER - Professional Task Automation System for Enterprise Environments
+Copyright (C) 2024-2025 Bastelbude and Contributors
+All Rights Reserved (except as granted by the AGPL-3.0 license)
+
+=========================================================================
+                         PRIMARY COPYRIGHT HOLDERS
+=========================================================================
+
+Bastelbude (bastelbude1)
+- Original creator and lead developer
+- GitHub: https://github.com/bastelbude1
+- Copyright Years: 2024-2025
+
+=========================================================================
+                            CONTRIBUTORS
+=========================================================================
+
+The following individuals and organizations have contributed to TASKER:
+
+Claude (Anthropic AI Assistant)
+- Substantial contributions to code architecture and implementation
+- Modular refactoring and enhancement features
+- Test suite development and documentation
+- Copyright assigned to Bastelbude per collaboration agreement
+
+[Additional contributors will be listed here as they contribute]
+
+=========================================================================
+                         COPYRIGHT NOTICES
+=========================================================================
+
+1. All source code files are Copyright (C) 2024-2025 Bastelbude
+2. Documentation is Copyright (C) 2024-2025 Bastelbude
+3. Test cases are Copyright (C) 2024-2025 Bastelbude
+4. The TASKER name and logo are trademarks of Bastelbude
+
+=========================================================================
+                       INTELLECTUAL PROPERTY NOTICE
+=========================================================================
+
+This software represents significant intellectual property including:
+
+- Novel task automation architecture
+- Unique workflow control mechanisms
+- Comprehensive validation system
+- Enterprise-grade security features
+- Modular execution framework
+- Intelligent retry and recovery mechanisms
+- Parallel and conditional task execution
+- Advanced variable substitution system
+
+All intellectual property rights not explicitly granted by the AGPL-3.0
+license are reserved by the copyright holders.
+
+=========================================================================
+                         DERIVATIVE WORKS NOTICE
+=========================================================================
+
+Any derivative work based on TASKER must:
+1. Maintain this COPYRIGHT file intact
+2. Add new contributors to the contributors list
+3. Clearly mark modifications with dates and authors
+4. Preserve all existing copyright notices
+5. Include prominent attribution to TASKER
+
+=========================================================================
+                           LEGAL ENFORCEMENT
+=========================================================================
+
+The copyright holders reserve the right to enforce these copyrights
+to the fullest extent permitted by law. Violations of the AGPL-3.0
+license terms may result in legal action.
+
+For licensing inquiries: https://github.com/bastelbude1/Tasker
+
+=========================================================================

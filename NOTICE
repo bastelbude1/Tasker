@@ -1,0 +1,82 @@
+=========================================================================
+                            IMPORTANT NOTICE
+=========================================================================
+
+TASKER - Professional Task Automation System for Enterprise Environments
+Copyright (C) 2024-2025 Bastelbude and Contributors
+
+This software is licensed under the GNU Affero General Public License v3.0
+(AGPL-3.0), which is a strong copyleft license designed to protect the
+freedom of this software and prevent unauthorized commercial exploitation.
+
+=========================================================================
+                         WHAT THIS MEANS FOR YOU
+=========================================================================
+
+1. **FOR PERSONAL/INTERNAL USE:**
+   - You can freely use TASKER within your organization
+   - You can modify it for your needs
+   - You can run it on your servers
+
+2. **FOR COMMERCIAL USE:**
+   - You CAN use TASKER commercially, BUT:
+   - You MUST make the complete source code available to all users
+   - You MUST include all your modifications
+   - You MUST use the same AGPL-3.0 license
+   - You CANNOT hide the source code behind a service
+
+3. **FOR NETWORK/SaaS USE:**
+   - If you provide TASKER as a service (SaaS, cloud, etc.)
+   - ALL users accessing it MUST be able to download the source
+   - This includes ALL your modifications and improvements
+
+4. **ATTRIBUTION REQUIRED:**
+   All uses must clearly display:
+   "Based on TASKER by Bastelbude (https://github.com/bastelbude1/Tasker)"
+
+=========================================================================
+                           WHY AGPL-3.0?
+=========================================================================
+
+The AGPL-3.0 license ensures:
+- The software remains free and open
+- Commercial entities cannot exploit it without contributing back
+- Network/cloud deployments must share source code
+- The community benefits from all improvements
+- Original authors receive proper attribution
+
+=========================================================================
+                          LEGAL PROTECTION
+=========================================================================
+
+This license provides strong protection of intellectual property while
+maintaining open-source principles. Key protections include:
+
+1. **Copyright Protection**: All code is copyrighted
+2. **Patent Grant**: Contributors grant patent rights for their contributions
+3. **Network Clause**: Prevents SaaS loophole exploitation
+4. **Copyleft**: All derivatives must use the same license
+5. **Attribution**: Original work must be credited
+
+=========================================================================
+                         COMMERCIAL LICENSING
+=========================================================================
+
+For organizations requiring different licensing terms (proprietary use,
+closed-source modifications, etc.), please contact the maintainers for
+alternative commercial licensing arrangements.
+
+Contact: https://github.com/bastelbude1/Tasker
+
+=========================================================================
+                              DISCLAIMER
+=========================================================================
+
+THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+=========================================================================
+
+For full license terms, see the LICENSE file or visit:
+https://www.gnu.org/licenses/agpl-3.0.html

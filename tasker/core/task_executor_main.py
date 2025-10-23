@@ -1677,9 +1677,9 @@ class TaskExecutor:
         """Execute conditional tasks based on condition evaluation - sequential execution."""
         return ConditionalExecutor.execute_conditional_tasks(conditional_task, self)
 
-    def execute_decision_block(self, decision_task):
+    def execute_decision_block(self, decision_task, task_id):
         """Execute decision block - evaluate conditions and determine routing."""
-        return DecisionExecutor.execute_decision_block(decision_task, self.current_task_id, self)
+        return DecisionExecutor.execute_decision_block(decision_task, task_id, self)
 
     # ===== 7. SEQUENTIAL TASK EXECUTION =====
     

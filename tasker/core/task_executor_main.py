@@ -83,7 +83,7 @@ class TaskExecutor:
     KNOWN_TASK_FIELDS = (
         'task', 'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
         'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure',
-        'on_success', 'success', 'condition', 'exec', 'timeout', 'return',
+        'on_success', 'success', 'failure', 'condition', 'exec', 'timeout', 'return',
         'type', 'max_parallel', 'tasks', 'retry_failed', 'retry_count', 'retry_delay',
         'if_true_tasks', 'if_false_tasks'
     )
@@ -1195,6 +1195,9 @@ class TaskExecutor:
                 if 'success' not in task and 'failure' not in task:
                     self.log_warn(f"Decision task {task_id} has neither 'success' nor 'failure' conditions defined.")
                     continue
+                # Warn if both success and failure are present (validator will fail this later)
+                if 'success' in task and 'failure' in task:
+                    self.log_warn(f"Decision task {task_id} has both 'success' and 'failure' conditions. Only one is allowed.")
                 valid_task_count += 1
             else:
                 if 'hostname' not in task and 'return' not in task:

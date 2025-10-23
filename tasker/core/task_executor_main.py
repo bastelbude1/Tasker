@@ -1335,7 +1335,7 @@ class TaskExecutor:
                 if on_failure:
                     self.log_info(f"            -> on failure: task {on_failure}")
                 if next_task == 'never':
-                    self.log_info(f"            -> default: stop execution")
+                    self.log_info("            -> default: stop execution")
                 elif next_task:
                     self.log_info(f"            -> default: task {next_task}")
                 elif not on_success and not on_failure:

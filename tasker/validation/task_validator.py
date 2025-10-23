@@ -110,11 +110,12 @@ class TaskValidator:
                           skip_security_validation=False, skip_subtask_range_validation=False):
         """
                           Validate the task file at the given path and report parsing and validation results.
-                          
+
                           Parameters:
                               task_file (str): Path to the task file to validate.
-                              skip_security_validation (bool): If True, skip pattern-based security checks during validation; other flags control logging/debug output.
-                          
+                              skip_security_validation (bool): If True, skip pattern-based security checks.
+                              skip_subtask_range_validation (bool): If True, suppress recommended subtask ID range warnings.
+
                           Returns:
                               dict: Validation summary with keys:
                                   'success' (bool): True if no errors were found, False otherwise.
@@ -293,19 +294,17 @@ class TaskValidator:
             ref_task = next((t[0] for t in self.tasks if self._safe_task_id_from_entry(t) == ref_id), None)
             if ref_task:
                 # Check for any loop-related parameters
+                # Note: next=loop is handled by _check_routing_in_subtasks to avoid duplicate errors
                 has_loop = 'loop' in ref_task
                 has_loop_break = 'loop_break' in ref_task
-                has_loop_next = ref_task.get('next') == 'loop'
 
-                if has_loop or has_loop_break or has_loop_next:
+                if has_loop or has_loop_break:
                     # Build list of detected loop parameters
                     loop_params = []
                     if has_loop:
                         loop_params.append(f"loop={ref_task['loop']}")
                     if has_loop_break:
                         loop_params.append(f"loop_break={ref_task['loop_break']}")
-                    if has_loop_next:
-                        loop_params.append("next=loop")
 
                     params_str = ", ".join(loop_params)
 
@@ -1467,7 +1466,7 @@ class TaskValidator:
 
         # Special case for local execution (doesn't need hostname)
         exec_resolved = self.resolve_global_variables_for_validation(task.get('exec', ''))
-        is_local_exec = self.clean_field_value(exec_resolved) == 'local'
+        is_local_exec = (self.clean_field_value(exec_resolved) or '').lower() == 'local'
 
         valid_task = (has_return or is_parallel or is_conditional or is_decision or (has_command and (has_hostname or is_local_exec)))  # NEW: Include decision
 

@@ -1,0 +1,34 @@
+# TEST_METADATA: {"description": "Decision block with retry fields - generates warning but still executes", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# Test that decision blocks with retry fields generate warnings (retry doesn't make sense for decision blocks)
+
+# Task 0: Setup task
+task=0
+hostname=localhost
+command=echo
+arguments=test
+exec=local
+
+# Task 1: Decision block with retry fields (should generate warning)
+task=1
+type=decision
+success=@0_exit@=0
+on_success=2
+on_failure=3
+retry_failed=true
+retry_count=3
+
+# Task 2: Success path
+task=2
+hostname=localhost
+command=echo
+arguments=Success path
+exec=local
+next=never
+
+# Task 3: Failure path
+task=3
+hostname=localhost
+command=echo
+arguments=Failure path
+exec=local
+next=never

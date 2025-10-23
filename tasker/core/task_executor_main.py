@@ -48,6 +48,7 @@ from ..validation.task_validator import TaskValidator
 from ..executors.sequential_executor import SequentialExecutor
 from ..executors.parallel_executor import ParallelExecutor
 from ..executors.conditional_executor import ConditionalExecutor
+from ..executors.decision_executor import DecisionExecutor
 
 # Import new modular components
 from .state_manager import StateManager
@@ -82,7 +83,7 @@ class TaskExecutor:
     KNOWN_TASK_FIELDS = (
         'task', 'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
         'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure',
-        'on_success', 'success', 'condition', 'exec', 'timeout', 'return',
+        'on_success', 'success', 'failure', 'condition', 'exec', 'timeout', 'return',
         'type', 'max_parallel', 'tasks', 'retry_failed', 'retry_count', 'retry_delay',
         'if_true_tasks', 'if_false_tasks'
     )
@@ -1190,6 +1191,14 @@ class TaskExecutor:
                     self.log_warn(f"Conditional task {task_id} has no task branches defined.")
                     continue
                 valid_task_count += 1
+            elif task.get('type') == 'decision':
+                if 'success' not in task and 'failure' not in task:
+                    self.log_warn(f"Decision task {task_id} has neither 'success' nor 'failure' conditions defined.")
+                    continue
+                # Warn if both success and failure are present (validator will fail this later)
+                if 'success' in task and 'failure' in task:
+                    self.log_warn(f"Decision task {task_id} has both 'success' and 'failure' conditions. Only one is allowed.")
+                valid_task_count += 1
             else:
                 if 'hostname' not in task and 'return' not in task:
                     self.log_warn(f"Task {task_id} is missing required 'hostname' field.")
@@ -1311,6 +1320,30 @@ class TaskExecutor:
                         self.log_info(f"            -> on failure: task {on_failure}")
                 else:
                     self.log_info(f"            -> then continue to task {task_id + 1}")
+            elif task_type == 'decision':
+                success_cond = task.get('success', '')
+                failure_cond = task.get('failure', '')
+                on_success = task.get('on_success', '')
+                on_failure = task.get('on_failure', '')
+                next_task = task.get('next', '')
+
+                self.log_info(f"  Task {task_id}: DECISION")
+                if success_cond:
+                    self.log_info(f"            -> success: {success_cond}")
+                if failure_cond:
+                    self.log_info(f"            -> failure: {failure_cond}")
+
+                if on_success:
+                    self.log_info(f"            -> on success: task {on_success}")
+                if on_failure:
+                    self.log_info(f"            -> on failure: task {on_failure}")
+                # Always show default routing for clarity
+                if next_task == 'never':
+                    self.log_info("            -> default: stop execution")
+                elif next_task:
+                    self.log_info(f"            -> default: task {next_task}")
+                else:
+                    self.log_info(f"            -> default: continue to task {task_id + 1}")
             elif 'return' in task:
                 return_code = task.get('return', 'N/A')
                 self.log_info(f"  Task {task_id}: RETURN {return_code}")
@@ -1644,6 +1677,10 @@ class TaskExecutor:
     def execute_conditional_tasks(self, conditional_task):
         """Execute conditional tasks based on condition evaluation - sequential execution."""
         return ConditionalExecutor.execute_conditional_tasks(conditional_task, self)
+
+    def execute_decision_block(self, decision_task, task_id):
+        """Execute decision block - evaluate conditions and determine routing."""
+        return DecisionExecutor.execute_decision_block(decision_task, task_id, self)
 
     # ===== 7. SEQUENTIAL TASK EXECUTION =====
     

@@ -494,10 +494,11 @@ class TaskerTestExecutor:
                     task_id = match.group(1)
                     executed_subtasks.append(task_id)
 
-            # Look for task execution patterns (regular tasks, parallel, conditional)
+            # Look for task execution patterns (regular tasks, parallel, conditional, decision)
             elif re.search(r'Task \d+: Executing', line) or \
                re.search(r'Task \d+: Starting parallel execution', line) or \
-               re.search(r'Task \d+: Executing (TRUE|FALSE) branch', line):
+               re.search(r'Task \d+: Executing (TRUE|FALSE) branch', line) or \
+               re.search(r'Task \d+: DECISION - Evaluating conditions', line):
                 match = re.search(r'Task (\d+):', line)
                 if match:
                     task_id = int(match.group(1))

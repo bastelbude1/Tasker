@@ -1,0 +1,84 @@
+# TASKER Educational Example: Port Check with Curl and Continuation
+# Demonstrates efficient port checking (80/443) with curl execution
+# Minimal example showing path convergence for continued processing
+# TEST_METADATA: {"description": "Port check and curl with continuation", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Global variables
+SERVER=localhost
+TIMEOUT=10
+
+# ===================================
+# Task 0: Check Port 80
+# ===================================
+task=0
+hostname=@SERVER@
+command=obb_portcheck_ubsmc_80
+timeout=@TIMEOUT@
+# If port 80 is open, use HTTP
+on_success=1
+# If port 80 is closed, try port 443
+on_failure=2
+
+# ===================================
+# Task 1: Curl via HTTP (Port 80 open)
+# ===================================
+task=1
+hostname=@SERVER@
+command=obb_curl_rOBBin_tarball_80
+arguments=--connect-timeout 30
+# Continue to processing
+on_success=10
+on_failure=98
+
+# ===================================
+# Task 2: Check Port 443 (Port 80 failed)
+# ===================================
+task=2
+hostname=@SERVER@
+command=obb_portcheck_ubsmc_443
+timeout=@TIMEOUT@
+# If port 443 is open, use HTTPS
+on_success=3
+# If both ports failed, error
+on_failure=99
+
+# ===================================
+# Task 3: Curl via HTTPS (Port 443 open)
+# ===================================
+task=3
+hostname=@SERVER@
+command=obb_curl_rOBBin_tarball_443
+arguments=--connect-timeout 30
+# Continue to processing (same as HTTP)
+on_success=10
+on_failure=98
+
+# ===================================
+# Task 10: Process Downloaded File
+# ===================================
+# CONVERGENCE POINT: Both paths meet here
+task=10
+hostname=@SERVER@
+command=echo
+arguments=Processing downloaded tarball from @SERVER@
+next=never
+
+# ===================================
+# Error Handlers
+# ===================================
+
+# Task 98: Curl Failed
+task=98
+hostname=@SERVER@
+command=echo
+arguments=ERROR: Curl download failed
+return=2
+next=never
+
+# Task 99: No Ports Available
+task=99
+hostname=@SERVER@
+command=echo
+arguments=ERROR: Neither port 80 nor 443 accessible on @SERVER@
+return=1
+next=never

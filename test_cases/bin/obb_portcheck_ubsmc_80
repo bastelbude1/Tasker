@@ -1,0 +1,15 @@
+#!/bin/bash
+# Mock command for port 80 checking
+# Returns 0 if port 80 is "open", 1 if "closed"
+
+# Simulate based on hostname
+if [[ "$1" == "localhost" ]]; then
+    echo "Port 80 is open on localhost"
+    exit 0
+elif [[ "$1" == "blocked-server" ]]; then
+    echo "Port 80 is blocked on blocked-server"
+    exit 1
+else
+    echo "Port 80 check on $1"
+    exit 0
+fi

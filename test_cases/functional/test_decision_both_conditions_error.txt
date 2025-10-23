@@ -1,0 +1,31 @@
+# TEST_METADATA: {"description": "Decision block with both success and failure - validation error", "test_type": "validation_only", "expected_exit_code": 20, "expected_success": false, "expected_warnings": 1}
+# Test that decision blocks cannot have both success and failure conditions
+
+# Task 0: Setup task
+task=0
+hostname=localhost
+command=echo
+arguments=test
+exec=local
+
+# Task 1: Invalid decision block - has both success AND failure conditions
+task=1
+type=decision
+success=@0_exit@=0
+failure=@0_exit@!=0
+on_success=2
+on_failure=3
+
+# Task 2: Success path (should not execute due to validation error)
+task=2
+hostname=localhost
+command=echo
+arguments=Success path
+exec=local
+
+# Task 3: Failure path (should not execute due to validation error)
+task=3
+hostname=localhost
+command=echo
+arguments=Failure path
+exec=local

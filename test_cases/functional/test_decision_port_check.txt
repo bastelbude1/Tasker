@@ -1,0 +1,75 @@
+# TEST_METADATA: {"description": "Port check workflow using decision blocks", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3, 4, 10]}
+# Real-world example: Port checking workflow with decision blocks
+
+# Global variables
+SERVER=localhost
+TIMEOUT=10
+
+# Task 0: Check Port 80
+task=0
+hostname=@SERVER@
+command=test
+arguments=-e /tmp
+exec=local
+# Simulate port 80 being open (exit code 0)
+
+# Task 1: Check Port 443
+task=1
+hostname=@SERVER@
+command=test
+arguments=-e /usr
+exec=local
+# Simulate port 443 being open (exit code 0)
+
+# Task 2: Decision - are any ports available?
+task=2
+type=decision
+# Success if at least one port is open
+success=@0_exit@=0|@1_exit@=0
+# At least one port open, proceed
+on_success=3
+# No ports available, error
+on_failure=99
+
+# Task 3: Decision - which port to use?
+task=3
+type=decision
+# Is port 80 open?
+success=@0_exit@=0
+# Use HTTP
+on_success=4
+# Use HTTPS (we know 443 is open from task 2)
+on_failure=5
+
+# Task 4: HTTP curl
+task=4
+hostname=@SERVER@
+command=echo
+arguments=Downloading via HTTP (port 80)
+exec=local
+on_success=10
+
+# Task 5: HTTPS curl
+task=5
+hostname=@SERVER@
+command=echo
+arguments=Downloading via HTTPS (port 443)
+exec=local
+on_success=10
+
+# Task 10: Process downloaded file
+task=10
+hostname=@SERVER@
+command=echo
+arguments=Processing downloaded file
+exec=local
+next=never
+
+# Task 99: Error - no ports available
+task=99
+hostname=@SERVER@
+command=echo
+arguments=ERROR: No ports available on @SERVER@
+exec=local
+return=1
+next=never

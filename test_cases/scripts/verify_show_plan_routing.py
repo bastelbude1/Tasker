@@ -44,15 +44,23 @@ def parse_task_file(filepath):
 
 def extract_plan_output(filepath):
     """Run --show-plan and extract the routing information."""
-    cmd = ['python3', 'tasker.py', filepath, '--show-plan', '--validate-only']
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    cmd = ['python3', 'tasker.py', filepath, '--show-plan', '--skip-host-validation']
+
+    # Python 3.6.8 compatible subprocess call
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+    stdout_bytes, stderr_bytes = proc.communicate(input=b'n\n')
+    stdout = stdout_bytes.decode('utf-8')
+    stderr = stderr_bytes.decode('utf-8')
+
+    # Note: returncode will be non-zero when user cancels, which is expected
+    # We just need the plan output, so don't raise an error
 
     # Parse the execution plan output
     plan_tasks = {}
     current_task = None
     in_plan = False
 
-    for line in result.stdout.split('\n'):
+    for line in stdout.split('\n'):
         if '=== EXECUTION PLAN ===' in line:
             in_plan = True
             continue
@@ -61,8 +69,8 @@ def extract_plan_output(filepath):
         if not in_plan:
             continue
 
-        # Match task line
-        task_match = re.match(r'\s*Task (\d+):\s*(.*)', line)
+        # Match task line (with optional timestamp prefix)
+        task_match = re.match(r'(?:\[\d+\w+\d+ \d+:\d+:\d+\])?\s*Task (\d+):\s*(.*)', line)
         if task_match:
             current_task = int(task_match.group(1))
             plan_tasks[current_task] = {
@@ -73,11 +81,11 @@ def extract_plan_output(filepath):
             }
             continue
 
-        # Match routing lines
+        # Match routing lines (with optional timestamp prefix)
         if current_task is not None:
-            success_match = re.match(r'\s*-> on success:\s*task\s*(\d+)', line)
-            failure_match = re.match(r'\s*-> on failure:\s*task\s*(\d+)', line)
-            default_match = re.match(r'\s*-> default:\s*(.*)', line)
+            success_match = re.match(r'(?:\[\d+\w+\d+ \d+:\d+:\d+\])?\s*-> on success:\s*task\s*(\d+)', line)
+            failure_match = re.match(r'(?:\[\d+\w+\d+ \d+:\d+:\d+\])?\s*-> on failure:\s*task\s*(\d+)', line)
+            default_match = re.match(r'(?:\[\d+\w+\d+ \d+:\d+:\d+\])?\s*-> default:\s*(.*)', line)
 
             if success_match:
                 plan_tasks[current_task]['on_success'] = int(success_match.group(1))
@@ -88,7 +96,7 @@ def extract_plan_output(filepath):
 
     return plan_tasks
 
-def verify_routing(task_def, plan_output):
+def verify_routing(task_def, plan_output, task_id):
     """Verify that the plan output matches the task definition."""
     errors = []
 
@@ -145,7 +153,7 @@ def main():
             continue
 
         plan_output = plan[task_id]
-        errors = verify_routing(task_def, plan_output)
+        errors = verify_routing(task_def, plan_output, task_id)
 
         if errors:
             print(f"Task {task_id}: FAILED")
@@ -172,7 +180,4 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    # Need to set task_id for loop verification
-    global task_id
-    task_id = None
     main()

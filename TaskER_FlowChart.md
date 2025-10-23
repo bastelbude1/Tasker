@@ -718,12 +718,12 @@ flowchart TD
 | `task` | Integer | ✅ Yes | Unique task identifier |
 | `type` | String | ✅ Yes | Must be "conditional" |
 | `condition` | String | ✅ Yes | Boolean expression to evaluate |
-| `if_true_tasks` | String | ✅ Yes* | Task IDs for TRUE branch |
-| `if_false_tasks` | String | ✅ Yes* | Task IDs for FALSE branch |
+| `if_true_tasks` | String | ✅ Yes | Task IDs for TRUE branch (non-empty) |
+| `if_false_tasks` | String | ✅ Yes | Task IDs for FALSE branch (non-empty) |
 | `retry_count` | Integer | ❌ Optional | Number of retry attempts (1-1000, default: 1, enables retry) |
 | `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
 
-*At least one of `if_true_tasks` or `if_false_tasks` must be specified.
+**Both branches are required and must be non-empty** (validation error otherwise).
 
 ### Example
 ```bash

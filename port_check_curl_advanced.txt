@@ -1,5 +1,5 @@
 # TASKER Educational Example: Optimized Port Check with Conditional Execution
-# Demonstrates efficient port checking with early exit decision
+# Demonstrates efficient port-checking with early exit decision
 # Shows how to combine decision blocks with conditional execution
 # TEST_METADATA: {"description": "Optimized port check and curl with conditional execution", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
 
@@ -92,7 +92,7 @@ next=never
 # ===================================
 # OPTIMIZATION NOTES
 # ===================================
-# This workflow demonstrates efficient port checking patterns using
+# This workflow demonstrates efficient port-checking patterns using
 # decision blocks and task-level conditional execution (NOT conditional blocks).
 #
 # IMPORTANT: Tasks 3-4 are REGULAR TASKS with condition= parameter,

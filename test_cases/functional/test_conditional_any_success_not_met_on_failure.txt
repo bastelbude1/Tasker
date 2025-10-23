@@ -17,7 +17,7 @@ task=1
 type=conditional
 condition=@TEST_MODE@=true
 if_true_tasks=10,11,12
-if_false_tasks=99
+if_false_tasks=98
 success=any_success
 on_success=2
 on_failure=99
@@ -48,10 +48,17 @@ hostname=localhost
 command=/usr/bin/false
 exec=local
 
+# Task 98: False branch placeholder (should NOT execute - condition is true)
+task=98
+hostname=localhost
+command=/usr/bin/echo
+arguments=ERROR: Should not reach false branch
+exec=local
+return=1
+
 # Task 99: on_failure handler (SHOULD execute - no tasks succeeded)
 task=99
 hostname=localhost
 command=/usr/bin/echo
 arguments=SUCCESS: on_failure handler - any_success not met (0/3 succeeded)
 exec=local
-next=never

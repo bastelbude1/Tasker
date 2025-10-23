@@ -20,6 +20,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -28,7 +29,7 @@ flowchart TD
 | `arguments` | String | ❌ Optional | Command arguments |
 
 ### Example
-```
+```bash
 task=0
 hostname=server01
 command=ls
@@ -62,13 +63,14 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `success` | String | ❌ Optional | Custom success criteria |
 | `next` | String | ❌ Optional | Flow control (never, return=X, task ID) |
 
 ### Example
-```
+```bash
 # Applied to existing task:
 success=exit_0&stdout~running
 next=success
@@ -109,6 +111,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `success` | String | ❌ Optional | Custom success criteria |
@@ -116,7 +119,7 @@ flowchart TD
 | `on_failure` | Integer | ❌ Optional | Task ID to jump to on failure |
 
 ### Example
-```
+```bash
 # Applied to existing task:
 success=exit_0&stdout~running
 on_success=20
@@ -149,7 +152,7 @@ flowchart TD
     B --> C[Continue]
 
     style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style B fill:#e0f7fa,stroke:#00acc1,stroke-width:3px
     style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
 ```
 
@@ -157,12 +160,13 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `sleep` | Integer | ❌ Optional | Sleep duration (0-300 seconds) |
 
 ### Example
-```
+```bash
 # Applied to existing task:
 sleep=5
 ```
@@ -203,18 +207,19 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
 | `type` | String | ✅ Yes | Must be "conditional" |
 | `condition` | String | ✅ Yes | Boolean expression to evaluate |
-| `if_true_tasks` | String | ✅ Yes* | Task IDs for TRUE branch |
-| `if_false_tasks` | String | ✅ Yes* | Task IDs for FALSE branch |
+| `if_true_tasks` | String | ✅ Yes | Task IDs for TRUE branch (non-empty) |
+| `if_false_tasks` | String | ✅ Yes | Task IDs for FALSE branch (non-empty) |
 
-*At least one of `if_true_tasks` or `if_false_tasks` must be specified.
+**Both branches are required and must be non-empty** (validation error otherwise).
 
 ### Example
-```
+```bash
 task=2
 type=conditional
 condition=@0_stdout@=OPEN
@@ -232,6 +237,19 @@ Can be entry point or follow any block
 - Tasks execute sequentially in specified order (10,11,12)
 - Results feed into Multi-Task Success Evaluation Block (see # 11.1)
 
+**CRITICAL Routing Restrictions:**
+- **Subtasks CANNOT have routing parameters** (`on_success`, `on_failure`, `next=never/loop`)
+- Control MUST return to conditional block for Multi-Task Success Evaluation
+- Validation will **FAIL** if subtasks contain routing parameters
+- **Use Decision Blocks** instead if individual task routing is needed
+
+**Subtask ID Range Convention (Recommended):**
+- Use distinct ID ranges to clearly separate subtasks from main workflow
+- Recommended: Task N subtasks in range `[N*100, (N+1)*100-1]`
+- Example: Task 2 subtasks → 200-299 (calculation: 2×100=200 to 3×100-1=299)
+- Example: Task 1 subtasks → 100-199, Task 5 subtasks → 500-599
+- Use `--skip-subtask-range-validation` to suppress warnings
+
 ### Next Block
 → Multi-Task Success Evaluation Block (# 11.1)
 
@@ -241,61 +259,132 @@ Can be entry point or follow any block
 
 ## 6. Decision Block
 
+Decision blocks provide lightweight conditional routing without command execution. Two routing patterns available:
+
+### 6.1 Decision Block with next Parameter
+
 <table>
 <tr>
 <td width="40%">
 
 ```mermaid
-graph TB
-    %% Decision Block
-    Start([Start]) --> D{Decision<br/>Evaluate<br/>Condition}
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Decision Block<br/>Evaluate Condition] --> B{SUCCESS}
+    B -->|next condition met| C[Continue to Next Task]
+    B -->|next condition not met| D((END))
 
-    %% Routing paths
-    D -->|TRUE| OS[on_success<br/>Task ID]
-    D -->|FALSE| OF[on_failure<br/>Task ID]
-    D -->|No Match| Next[Continue to<br/>Next Task]
-
-    %% Style
-    style D fill:#FFE4E1
-    style OS fill:#90EE90
-    style OF fill:#FFB6C1
-    style Next fill:#E6E6FA
+    style A fill:#FFE4E1,stroke:#DC143C,stroke-width:3px
+    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
 ```
 
 </td>
 <td width="60%">
 
 ### Purpose
-Lightweight conditional routing without command execution
+Simple pass/fail gate using `next` parameter for routing
 
 ### Required Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
 | `type` | String | ✅ Yes | Must be "decision" |
 | `success` | String | ✅ Yes* | Success condition to evaluate |
-| `failure` | String | ✅ Yes* | Failure condition to evaluate |
+| `next` | String | ⚠️ Optional | Routing: always, never, success (default) |
 
-*Either `success` OR `failure` is required (not both).
+*Either `success` OR `failure` is required.
 
 ### Example
-```
+```bash
+# Early exit if both ports failed
 task=2
 type=decision
 success=@0_exit@=0|@1_exit@=0
-on_success=10
-on_failure=99
+next=success
+# If TRUE → continue (next=success evaluates TRUE)
+# If FALSE → stop (next=success evaluates FALSE)
 ```
 
-### Entry Point
-Can be entry point or follow any block
+### Behavior
+**Default behavior (`next=success` if missing):**
+- Condition TRUE → Continue to next task
+- Condition FALSE → **Workflow STOPS**
+
+**Other `next` values:**
+- `next=always` → Always continue regardless
+- `next=never` → Always stop regardless
+
+### Use Case
+Perfect for early exit scenarios where you want to stop if a condition fails.
+
+</td>
+</tr>
+</table>
+
+### 6.2 Decision Block with on_success/on_failure
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Decision Block<br/>Evaluate Condition] --> B{SUCCESS}
+    B -->|Success| C[Jump to on_success Task]
+    B -->|Failure| D[Jump to on_failure Task]
+
+    style A fill:#FFE4E1,stroke:#DC143C,stroke-width:3px
+    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Purpose
+Explicit routing to different task paths based on condition result
+
+### Required Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `type` | String | ✅ Yes | Must be "decision" |
+| `success` | String | ✅ Yes* | Success condition to evaluate |
+| `on_success` | Integer | ⚠️ Optional** | Task ID for TRUE path |
+| `on_failure` | Integer | ⚠️ Optional** | Task ID for FALSE path |
+
+*Either `success` OR `failure` is required.
+**At least one routing parameter recommended.
+
+### Example
+```bash
+# Route based on port availability
+task=2
+type=decision
+success=@0_exit@=0|@1_exit@=0
+on_success=3
+on_failure=99
+# If TRUE → jump to task 3 (try downloads)
+# If FALSE → jump to task 99 (error handler)
+```
 
 ### Behavior
-- Evaluates condition without executing commands
-- Uses same syntax as regular task `success`/`failure` fields
-- If condition TRUE → Jump to `on_success` task
-- If condition FALSE → Jump to `on_failure` task
-- If no routing specified → Continue to next sequential task
+**Routing Priority:**
+1. Check `on_success` or `on_failure` based on condition result
+2. If not defined, falls back to `next` parameter logic
+
+### Use Case
+Perfect for branching workflows where different paths handle success vs failure differently.
+
+</td>
+</tr>
+</table>
 
 ### Key Differences from Conditional Block
 - No command execution (no `hostname`, `command`, `arguments`)
@@ -304,7 +393,88 @@ Can be entry point or follow any block
 - Uses familiar success/failure condition syntax
 
 ### Next Block
-→ Jump to specified task ID or continue sequentially
+→ Jump to specified task ID or continue/stop based on routing
+
+## 7. Task-Level Conditional Execution
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+graph TB
+    %% Task with condition parameter
+    Start([Start]) --> C{Evaluate<br/>condition<br/>parameter}
+
+    %% Conditional skip paths
+    C -->|FALSE| Skip[Task Skipped<br/>exit_code=-1<br/>Continue to next task]
+    C -->|TRUE| Exec[Execute Task<br/>command + arguments]
+
+    Exec --> Success[Store Results<br/>Apply routing]
+    Skip --> Next[Next Sequential Task]
+    Success --> Routing{Routing?}
+    Routing -->|on_success| OS[Jump to<br/>on_success task]
+    Routing -->|on_failure| OF[Jump to<br/>on_failure task]
+    Routing -->|next| Seq[Continue<br/>Sequentially]
+
+    %% Style
+    style C fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px
+    style Skip fill:#E0E0E0
+    style Exec fill:#E1F5FE
+    style Success fill:#C8E6C9
+    style Routing fill:#FFE4E1
+    style OS fill:#90EE90
+    style OF fill:#FFB6C1
+    style Seq fill:#E6E6FA
+```
+
+</td>
+<td width="60%">
+
+### Purpose
+Skip individual tasks based on runtime conditions (regular task parameter)
+
+### Required Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `condition` | String | ✅ Yes | Condition to evaluate before execution |
+| `command` | String | ✅ Yes | Command to execute if condition TRUE |
+| `hostname` | String | ✅ Yes | Target host |
+
+### Example
+```bash
+task=1
+hostname=web-server
+command=restart_service
+# Skip if previous task failed
+condition=@0_exit@=0
+on_success=10
+on_failure=99
+```
+
+### Entry Point
+Can be entry point or follow any block
+
+### Behavior
+- Evaluates `condition` **before** executing task
+- If `condition` FALSE → Task **skipped**, continue to next sequential task
+- If `condition` TRUE → Task executes normally
+- Skipped tasks store: `exit_code=-1`, `stderr='Task skipped due to condition'`
+- Can be combined with routing (`on_success`, `on_failure`, `next`)
+
+**Key Distinctions:**
+
+| Mechanism | Skip Logic | Routing | Use Case |
+|-----------|------------|---------|----------|
+| Task Condition | Individual task | ✅ Allowed | Skip specific tasks in sequence |
+| Decision Block | No execution | ✅ Purpose | Pure routing based on data |
+| Conditional Block | Task groups | ❌ Not allowed | Execute groups of tasks |
+
+### Next Block
+- If skipped → Continue to next sequential task
+- If executed → Apply routing (`on_success`, `on_failure`) or continue sequentially
 
 </td>
 </tr>
@@ -324,7 +494,7 @@ flowchart TD
     B -->|Counter >= Max OR Break Condition True| C[Continue Workflow]
 
     style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style B fill:#fff8e1,stroke:#f57c00,stroke-width:3px
     style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
 ```
 
@@ -332,6 +502,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `loop` | Integer | ✅ Yes | Number of iterations to execute (1-1000) |
@@ -339,7 +510,7 @@ flowchart TD
 | `loop_break` | String | ❌ Optional | Condition to break out of loop early |
 
 ### Example
-```
+```bash
 task=0
 hostname=localhost
 command=conditional_exit.sh
@@ -367,7 +538,7 @@ Applied to any Execution Block
 </tr>
 </table>
 
-## 7. Parallel Block
+## 9. Parallel Block
 
 <table>
 <tr>
@@ -383,7 +554,7 @@ flowchart TD
     C --> E
     D --> E
 
-    style A fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
+    style A fill:#e0f2f1,stroke:#00897b,stroke-width:3px
     style B fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
@@ -394,6 +565,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -402,7 +574,7 @@ flowchart TD
 | `max_parallel` | Integer | ❌ Optional | Max concurrent tasks (1-50, default: all) |
 
 ### Example
-```
+```bash
 task=8
 type=parallel
 tasks=10,11,12
@@ -417,6 +589,19 @@ Can be entry point or follow any block
 - Results feed into Multi-Task Success Evaluation Block (see #10)
 - Faster execution than sequential processing
 
+**CRITICAL Routing Restrictions:**
+- **Subtasks CANNOT have routing parameters** (`on_success`, `on_failure`, `next=never/loop`)
+- Control MUST return to parallel block for Multi-Task Success Evaluation
+- Validation will **FAIL** if subtasks contain routing parameters
+- **Use Decision Blocks** instead if individual task routing is needed
+
+**Subtask ID Range Convention (Recommended):**
+- Use distinct ID ranges to clearly separate subtasks from main workflow
+- Recommended: Task N subtasks in range `[N*100, (N+1)*100-1]`
+- Example: Task 2 subtasks → 200-299 (calculation: 2×100=200 to 3×100-1=299)
+- Example: Task 1 subtasks → 100-199, Task 5 subtasks → 500-599
+- Use `--skip-subtask-range-validation` to suppress warnings
+
 ### Next Block
 → Multi-Task Success Evaluation Block (#10)
 
@@ -424,7 +609,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 8. Parallel Block with Retry
+## 10. Parallel Block with Retry
 
 <table>
 <tr>
@@ -446,7 +631,7 @@ flowchart TD
     G -->|Failed & Retries Left| D
     G -->|Success OR Retries Exhausted| H
 
-    style A fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
+    style A fill:#e0f2f1,stroke:#00897b,stroke-width:3px
     style B fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
@@ -460,6 +645,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -470,7 +656,7 @@ flowchart TD
 | `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
 
 ### Example
-```
+```bash
 task=8
 type=parallel
 tasks=10,11,12
@@ -526,20 +712,21 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
 | `type` | String | ✅ Yes | Must be "conditional" |
 | `condition` | String | ✅ Yes | Boolean expression to evaluate |
-| `if_true_tasks` | String | ✅ Yes* | Task IDs for TRUE branch |
-| `if_false_tasks` | String | ✅ Yes* | Task IDs for FALSE branch |
+| `if_true_tasks` | String | ✅ Yes | Task IDs for TRUE branch (non-empty) |
+| `if_false_tasks` | String | ✅ Yes | Task IDs for FALSE branch (non-empty) |
 | `retry_count` | Integer | ❌ Optional | Number of retry attempts (1-1000, default: 1, enables retry) |
 | `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
 
-*At least one of `if_true_tasks` or `if_false_tasks` must be specified.
+**Both branches are required and must be non-empty** (validation error otherwise).
 
 ### Example
-```
+```bash
 task=2
 type=conditional
 condition=@0_stdout@=OPEN
@@ -568,7 +755,7 @@ Can be entry point or follow any block
 </table>
 
 
-## 11.1. Multi-Task Success Evaluation Block (next)
+## 12. Multi-Task Success Evaluation Block (next)
 
 <table>
 <tr>
@@ -582,7 +769,7 @@ flowchart TD
     B -->|Condition Not Met| D((END WORKFLOW))
 
     style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style B fill:#ffe0b2,stroke:#f57f17,stroke-width:3px
     style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
     style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
 ```
@@ -591,6 +778,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `next` | String | ✅ Yes | Success evaluation condition |
@@ -605,7 +793,7 @@ flowchart TD
 | `majority_success` | success_count > total_tasks/2 | `majority_success` |
 
 ### Example
-```
+```bash
 next=min_success=3
 ```
 
@@ -621,7 +809,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-## 11.2. Multi-Task Success Evaluation Block (on_success/on_failure)
+## 13. Multi-Task Success Evaluation Block (on_success/on_failure)
 
 <table>
 <tr>
@@ -635,7 +823,7 @@ flowchart TD
     B -->|Condition Not Met| D[Jump to on_failure Task]
 
     style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style B fill:#ffe0b2,stroke:#f57f17,stroke-width:3px
     style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
     style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
 ```
@@ -644,6 +832,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `on_success` | Integer | ❌ Optional | Task ID if condition met |
@@ -654,7 +843,7 @@ flowchart TD
 - **`on_failure`** → Any failure triggers this path
 
 ### Example
-```
+```bash
 on_success=20
 on_failure=99
 ```
@@ -672,7 +861,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-## 11. End Success Block
+## 14. End Success Block
 
 <table>
 <tr>
@@ -690,6 +879,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -699,13 +889,13 @@ flowchart TD
 ### Examples
 
 **Stop workflow successfully:**
-```
+```bash
 task=99
 next=never
 ```
 
 **Explicit success with exit code:**
-```
+```bash
 task=100
 return=0
 ```
@@ -722,7 +912,7 @@ Terminal block - workflow ends successfully
 </tr>
 </table>
 
-## 12. End Failure Block
+## 15. End Failure Block
 
 <table>
 <tr>
@@ -740,6 +930,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -749,19 +940,19 @@ flowchart TD
 ### Examples
 
 **Stop workflow with failure:**
-```
+```bash
 task=98
 return=1
 ```
 
 **Stop with specific error code:**
-```
+```bash
 task=97
 return=14
 ```
 
 **Explicit failure with never:**
-```
+```bash
 task=96
 next=never
 return=1
@@ -779,7 +970,7 @@ Terminal block - workflow ends with failure
 </tr>
 </table>
 
-## 13. Configuration Definition Block
+## 16. Configuration Definition Block
 
 <table>
 <tr>
@@ -790,20 +981,21 @@ Terminal block - workflow ends with failure
 flowchart TD
     A[CONFIGURATION PARAMETERS]
 
-    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style A fill:#f5f5f5,stroke:#757575,stroke-width:3px
 ```
 
 </td>
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `timeout` | Integer | ❌ Optional | Override default timeout for this specific task (5-3600 seconds) |
 | `exec` | String | ❌ Optional | Override default execution type for this specific task (pbrun, p7s, local, wwrs) |
 
 ### Examples
-```
+```bash
 # Configuration parameters within a task
 task=0
 hostname=server1
@@ -829,7 +1021,7 @@ Applied to individual tasks to override TASKER defaults
 - **Key Distinction**: Global variables are standalone KEY=VALUE, these are task parameters
 
 ### Task-Level Override Example
-```
+```bash
 # Task with configuration overrides
 task=1
 hostname=server1
@@ -842,7 +1034,7 @@ exec=pbrun               # Override default exec type
 </tr>
 </table>
 
-## 14. File-Defined Arguments Block
+## 17. File-Defined Arguments Block
 
 <table>
 <tr>
@@ -853,13 +1045,14 @@ exec=pbrun               # Override default exec type
 flowchart TD
     A[FILE-DEFINED ARGUMENTS]
 
-    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style A fill:#eeeeee,stroke:#616161,stroke-width:3px
 ```
 
 </td>
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | CLI argument | String | ✅ Yes | Any valid TASKER CLI argument |
@@ -955,7 +1148,7 @@ ENVIRONMENT=production
 </tr>
 </table>
 
-## 15. Global Variable Definition Block
+## 18. Global Variable Definition Block
 
 <table>
 <tr>
@@ -966,20 +1159,21 @@ ENVIRONMENT=production
 flowchart TD
     A[GLOBAL VARIABLES]
 
-    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style A fill:#e8e8e8,stroke:#616161,stroke-width:3px
 ```
 
 </td>
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `VARIABLE_NAME` | String | ✅ Yes | Any uppercase variable name |
 | `value` | String | ✅ Yes | Variable value or expression |
 
 ### Examples
-```
+```bash
 ENVIRONMENT=production
 DATABASE_HOST=db.company.com
 RETRY_COUNT=3
@@ -1000,7 +1194,7 @@ Must be at the beginning of workflow file
 </tr>
 </table>
 
-## 16. Output Processing Block
+## 19. Output Processing Block
 
 <table>
 <tr>
@@ -1013,16 +1207,17 @@ flowchart TD
     B --> C[REPLACE Original Output]
     C --> D[Continue Workflow]
 
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
-    style C fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
-    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style A fill:#f0f0f0,stroke:#757575,stroke-width:3px
+    style B fill:#f0f0f0,stroke:#757575,stroke-width:3px
+    style C fill:#f0f0f0,stroke:#757575,stroke-width:3px
+    style D fill:#f0f0f0,stroke:#757575,stroke-width:3px
 ```
 
 </td>
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description | Format |
 |-----------|------|----------|-------------|--------|
 | `stdout_split` | String | ❌ Optional | Split stdout by delimiter and select element at index | `DELIMITER,INDEX` |
@@ -1046,7 +1241,7 @@ flowchart TD
 - The split operation occurs AFTER command execution but BEFORE placeholder storage
 
 ### Example
-```
+```bash
 # Applied to existing task:
 stdout_split=comma,1    # Split by comma, get 2nd element (0-indexed)
 stderr_split=space,0    # Split by spaces, get 1st element

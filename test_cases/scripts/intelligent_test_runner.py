@@ -835,6 +835,17 @@ class TaskerTestExecutor:
             start_task = metadata["start_from_task"]
             cmd_args.append(f"--start-from={start_task}")
 
+        # Add --log-level flag from metadata (control warning visibility)
+        if "log_level" in metadata:
+            log_level = metadata["log_level"]
+            # Validate log level (warn but continue - tasker will validate too)
+            valid_levels = ["ERROR", "WARN", "INFO", "DEBUG"]
+            if log_level.upper() not in valid_levels:
+                print(f"⚠️  WARNING: Unknown log_level '{log_level}' in {test_file} metadata")
+                print(f"    Valid levels: {', '.join(valid_levels)}")
+                print(f"    TASKER will validate and may reject this value.")
+            cmd_args.append(f"--log-level={log_level}")
+
         # Set environment for supporting scripts
         env = os.environ.copy()
 
@@ -1437,10 +1448,10 @@ class TestValidator:
                         )
 
         # Validate warning count and detect unexpected warnings
-        # Only count actual TASKER warnings with timestamp format: [DDMmmYY HH:MM:SS] WARN:
+        # Only count actual TASKER warnings with timestamp format: [DDMmmYY HH:MM:SS] WARN: or DEBUG: # WARNING:
         # This excludes task output that happens to contain "WARNING:" text
-        # Pattern: [08Oct25 23:46:06] WARN: or [08Oct25 23:46:06] WARNING:
-        warning_pattern = re.compile(r'^\[\d{2}\w{3}\d{2} \d{2}:\d{2}:\d{2}\] (WARN:|WARNING:)')
+        # Pattern: [08Oct25 23:46:06] WARN: or [08Oct25 23:46:06] WARNING: or [08Oct25 23:46:06] DEBUG: # WARNING:
+        warning_pattern = re.compile(r'^\[\d{2}\w{3}\d{2} \d{2}:\d{2}:\d{2}\] (WARN:|WARNING:|DEBUG: # WARNING:)')
         warning_lines = [line for line in actual_results["stdout"].split('\n')
                        if warning_pattern.match(line)]
 

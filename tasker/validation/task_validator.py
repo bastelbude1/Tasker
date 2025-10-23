@@ -744,10 +744,15 @@ class TaskValidator:
             for warning in structure_result['warnings']:
                 self.warnings.append(f"Line {line_number}: Task {task_id} structure warning - {warning}")
 
-        # Check for duplicate task IDs
-        duplicate_ids = [id for id in task_ids if list(t[0].get('task') for t in self.tasks).count(str(id)) > 1]
-        for id in duplicate_ids:
-            self.errors.append(f"Task ID {id} is defined multiple times.")
+        # Check for duplicate task IDs (robust detection with normalized IDs)
+        id_counts = {}
+        for t in self.tasks:
+            sid = self._safe_task_id_from_entry(t)
+            if sid is not None:
+                id_counts[sid] = id_counts.get(sid, 0) + 1
+        for id_val, count in id_counts.items():
+            if count > 1:
+                self.errors.append(f"Task ID {id_val} is defined multiple times.")
 
         # Smart gap validation with hybrid approach
         sorted_task_ids = sorted(task_ids)

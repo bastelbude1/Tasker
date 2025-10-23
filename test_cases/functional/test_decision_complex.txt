@@ -28,7 +28,7 @@ on_failure=99
 task=3
 hostname=localhost
 command=echo
-arguments=Success condition met - value was less than 10
+arguments=Success condition met - value was less than or equal to 20
 exec=local
 
 # Task 4: Final task

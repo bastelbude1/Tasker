@@ -46,8 +46,8 @@ class ParallelExecutor(BaseExecutor):
             removed_params.append(f"on_failure={sanitized_task['on_failure']}")
             del sanitized_task['on_failure']
 
-        # Remove next=never and next=loop (but keep next=always as it just continues within branch)
-        if 'next' in sanitized_task and sanitized_task['next'] in ['never', 'loop']:
+        # Remove ANY next parameter - subtasks must always return to parallel block
+        if 'next' in sanitized_task:
             removed_params.append(f"next={sanitized_task['next']}")
             del sanitized_task['next']
 

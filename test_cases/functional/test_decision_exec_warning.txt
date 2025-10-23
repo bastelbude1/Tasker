@@ -1,0 +1,35 @@
+# TEST_METADATA: {"description": "Decision block with exec/output fields - generates warnings", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# Test that decision blocks generate warnings for exec and output processing fields
+
+# Task 0: Setup task
+task=0
+hostname=localhost
+command=echo
+arguments=test
+exec=local
+
+# Task 1: Decision block with exec and output fields (should generate warnings but still work)
+task=1
+type=decision
+success=@0_exit@=0
+exec=local
+stdout_split=comma,0
+stderr_count=lines
+on_success=2
+on_failure=3
+
+# Task 2: Success path
+task=2
+hostname=localhost
+command=echo
+arguments=Success path
+exec=local
+next=never
+
+# Task 3: Failure path
+task=3
+hostname=localhost
+command=echo
+arguments=Failure path
+exec=local
+next=never

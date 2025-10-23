@@ -1,0 +1,49 @@
+# TEST_METADATA: {"description": "Decision block with complex condition", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3, 4]}
+# Test decision block with complex success condition
+
+# Task 0: Set up first value
+task=0
+hostname=localhost
+command=echo
+arguments=5
+exec=local
+
+# Task 1: Set up second value
+task=1
+hostname=localhost
+command=echo
+arguments=10
+exec=local
+
+# Task 2: Decision block using success condition
+task=2
+type=decision
+# Using success condition: succeed if second value is less than or equal to 20
+# Since @1_stdout@ is 10, this will be true, so decision succeeds
+success=@1_stdout@<=20
+on_success=3
+on_failure=99
+
+# Task 3: Success path
+task=3
+hostname=localhost
+command=echo
+arguments=Success condition met - value was less than or equal to 20
+exec=local
+
+# Task 4: Final task
+task=4
+hostname=localhost
+command=echo
+arguments=Workflow complete
+exec=local
+next=never
+
+# Task 99: Failure path (should not execute)
+task=99
+hostname=localhost
+command=echo
+arguments=Failure condition met
+exec=local
+return=1
+next=never

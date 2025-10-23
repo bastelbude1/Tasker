@@ -319,6 +319,62 @@ on_success=10
 - Individual task `success` criteria IS RESPECTED for determining success/retry
 - Retry applies to individual tasks within the branch, not the condition evaluation
 
+### Decision Blocks
+
+**Lightweight conditional routing** - Evaluate conditions without executing commands:
+
+```
+task=2
+# Required
+type=decision
+# Condition to evaluate (using success OR failure, not both)
+success=@0_exit@=0|@1_exit@=0
+# Route if condition is TRUE
+on_success=10
+# Route if condition is FALSE
+on_failure=99
+```
+
+**Parameters:** See [Decision Block Parameters](#decision-block-parameters) table below
+
+**Key Decision Block Features:**
+- Pure routing logic - no command execution
+- Uses familiar `success=` or `failure=` syntax (same as regular tasks)
+- Standard flow control with `on_success`, `on_failure`, and `next`
+- Lightweight alternative to conditional blocks when you only need branching
+
+**Example - Port availability check:**
+```
+# Task 0: Check port 80
+task=0
+hostname=server1
+command=nc
+arguments=-zv server1 80
+exec=local
+
+# Task 1: Check port 443
+task=1
+hostname=server1
+command=nc
+arguments=-zv server1 443
+exec=local
+
+# Task 2: Decision - which port to use?
+task=2
+type=decision
+# At least one port must be available
+success=@0_exit@=0|@1_exit@=0
+on_success=3   # Continue with connection
+on_failure=99  # No ports available
+
+# Task 3: Next decision - prefer HTTP or HTTPS?
+task=3
+type=decision
+success=@0_exit@=0  # Is port 80 available?
+on_success=10       # Use HTTP
+on_failure=20       # Use HTTPS
+```
+
 ### Enhanced Loop Control
 
 Advanced loop control with break conditions:
@@ -2281,6 +2337,27 @@ Parameters for branching based on runtime conditions:
 *At least one of `if_true_tasks` or `if_false_tasks` must be specified.
 
 **Conditional `next` Conditions:** See [Multi-Task Success Evaluation Conditions](#multi-task-success-evaluation-conditions) below.
+
+### Decision Block Parameters
+
+Parameters for lightweight conditional routing without command execution:
+
+| Parameter | Type | Required | Description | Example |
+|-----------|------|----------|-------------|----------|
+| `type` | String | **Yes** | Must be "decision" | `decision` |
+| `success` | String | No* | Success condition to evaluate | `@0_exit@=0\|@1_exit@=0` |
+| `failure` | String | No* | Failure condition to evaluate | `@ENV@!=production` |
+| `on_success` | Int | No | Task to jump to if condition is TRUE | `10` |
+| `on_failure` | Int | No | Task to jump to if condition is FALSE | `99` |
+| `next` | String | No | Default routing if no conditions match | `never`, `end`, or conditional |
+
+*Either `success` OR `failure` is required (not both)
+
+**Key Differences from Conditional Blocks:**
+- No `if_true_tasks` or `if_false_tasks` - decision blocks don't execute tasks
+- No `hostname` or `command` - purely evaluates conditions
+- Lighter weight - ideal for simple branching decisions
+- Uses same condition syntax as regular task `success`/`failure` fields
 
 **Default Conditional Behavior (no `next` condition specified):**
 - Uses `all_success` logic (same as parallel execution)

@@ -1,0 +1,40 @@
+# TEST_METADATA: {"description": "Basic decision block test - success path", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3]}
+# Test basic decision block functionality
+
+# Task 0: Set up success condition
+task=0
+hostname=localhost
+command=echo
+arguments=Setting up for decision
+exec=local
+
+# Task 1: Decision block - should pass
+task=1
+type=decision
+success=@0_exit@=0
+on_success=2
+on_failure=99
+
+# Task 2: Success path executed
+task=2
+hostname=localhost
+command=echo
+arguments=Decision passed - success path
+exec=local
+
+# Task 3: Complete workflow
+task=3
+hostname=localhost
+command=echo
+arguments=Workflow complete
+exec=local
+next=never
+
+# Task 99: Error path (should not execute)
+task=99
+hostname=localhost
+command=echo
+arguments=Decision failed - error path
+exec=local
+return=1
+next=never

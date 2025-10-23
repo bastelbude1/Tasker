@@ -1,0 +1,15 @@
+# TEST_METADATA: {"description": "Test task=14 with return=0 and next=never as success block", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 14]}
+# Verify that task=14 with return=0 and next=never is a success block
+
+# Task 0: Regular task that leads to task 14
+task=0
+hostname=localhost
+command=echo
+arguments=Going to task 14
+exec=local
+on_success=14
+
+# Task 14: Success block - return 0 with next=never
+task=14
+return=0
+next=never

@@ -963,6 +963,13 @@ class TaskValidator:
         if not has_success and not has_failure:
             self.errors.append(f"Line {line_number}: Task {task_id} is a decision block but has neither 'success' nor 'failure' conditions defined. At least one is required.")
 
+        # Validate mutual exclusion: success and failure cannot coexist (consistent with other blocks)
+        if has_success and has_failure:
+            self.errors.append(
+                f"Line {line_number}: Task {task_id} cannot use 'success' and 'failure' together. "
+                "Use either 'success' for positive conditions OR 'failure' for inverse conditions, not both."
+            )
+
         # Validate success condition if present
         if has_success:
             self.validate_condition_expression(task['success'], 'success', task_id, line_number)
@@ -1267,28 +1274,30 @@ class TaskValidator:
                     f"Line {line_number}: Task {task_id} has invalid 'on_failure' value: '{task['on_failure']}'"
                 )
 
-        # Validate 'success' field
-        if 'success' in task:
-            success_value = task['success']
-            # For parallel/conditional blocks, validate as multi-task condition
-            if task.get('type') in ['parallel', 'conditional']:
-                # Check if it's a valid multi-task evaluation condition
-                self.validate_direct_modifier_condition(success_value, task_id, line_number, field_name='success')
-            else:
-                # For regular tasks, validate as condition expression
-                self.validate_condition_expression(success_value, 'success', task_id, line_number)
+        # Skip success/failure validation for decision blocks (handled in validate_decision_task)
+        if task.get('type') != 'decision':
+            # Validate 'success' field
+            if 'success' in task:
+                success_value = task['success']
+                # For parallel/conditional blocks, validate as multi-task condition
+                if task.get('type') in ['parallel', 'conditional']:
+                    # Check if it's a valid multi-task evaluation condition
+                    self.validate_direct_modifier_condition(success_value, task_id, line_number, field_name='success')
+                else:
+                    # For regular tasks, validate as condition expression
+                    self.validate_condition_expression(success_value, 'success', task_id, line_number)
 
-        # Validate 'failure' field
-        if 'failure' in task:
-            failure_value = task['failure']
-            self.validate_condition_expression(failure_value, 'failure', task_id, line_number)
+            # Validate 'failure' field
+            if 'failure' in task:
+                failure_value = task['failure']
+                self.validate_condition_expression(failure_value, 'failure', task_id, line_number)
 
-        # Validate mutual exclusion: success and failure cannot coexist
-        if 'success' in task and 'failure' in task:
-            self.errors.append(
-                f"Line {line_number}: Task {task_id} cannot use 'success' and 'failure' together. "
-                "Use either 'success' for positive conditions OR 'failure' for inverse conditions, not both."
-            )
+            # Validate mutual exclusion: success and failure cannot coexist
+            if 'success' in task and 'failure' in task:
+                self.errors.append(
+                    f"Line {line_number}: Task {task_id} cannot use 'success' and 'failure' together. "
+                    "Use either 'success' for positive conditions OR 'failure' for inverse conditions, not both."
+                )
 
         # Validate 'condition' field
         if 'condition' in task:

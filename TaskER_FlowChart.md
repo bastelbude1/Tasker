@@ -20,6 +20,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -62,6 +63,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `success` | String | ❌ Optional | Custom success criteria |
@@ -109,6 +111,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `success` | String | ❌ Optional | Custom success criteria |
@@ -157,6 +160,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `sleep` | Integer | ❌ Optional | Sleep duration (0-300 seconds) |
@@ -203,6 +207,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -241,7 +246,8 @@ Can be entry point or follow any block
 **Subtask ID Range Convention (Recommended):**
 - Use distinct ID ranges to clearly separate subtasks from main workflow
 - Recommended: Task N subtasks in range `[N*100, (N+1)*100-1]`
-- Example: Task 1 subtasks → 100-199, Task 2 subtasks → 200-299
+- Example: Task 2 subtasks → 200-299 (calculation: 2×100=200 to 3×100-1=299)
+- Example: Task 1 subtasks → 100-199, Task 5 subtasks → 500-599
 - Use `--skip-subtask-range-validation` to suppress warnings
 
 ### Next Block
@@ -281,6 +287,7 @@ flowchart TD
 Simple pass/fail gate using `next` parameter for routing
 
 ### Required Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -343,6 +350,7 @@ flowchart TD
 Explicit routing to different task paths based on condition result
 
 ### Required Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -427,6 +435,7 @@ graph TB
 Skip individual tasks based on runtime conditions (regular task parameter)
 
 ### Required Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -493,6 +502,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `loop` | Integer | ✅ Yes | Number of iterations to execute (1-1000) |
@@ -555,6 +565,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -587,7 +598,8 @@ Can be entry point or follow any block
 **Subtask ID Range Convention (Recommended):**
 - Use distinct ID ranges to clearly separate subtasks from main workflow
 - Recommended: Task N subtasks in range `[N*100, (N+1)*100-1]`
-- Example: Task 1 subtasks → 100-199, Task 2 subtasks → 200-299
+- Example: Task 2 subtasks → 200-299 (calculation: 2×100=200 to 3×100-1=299)
+- Example: Task 1 subtasks → 100-199, Task 5 subtasks → 500-599
 - Use `--skip-subtask-range-validation` to suppress warnings
 
 ### Next Block
@@ -633,6 +645,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -699,6 +712,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -764,6 +778,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `next` | String | ✅ Yes | Success evaluation condition |
@@ -817,6 +832,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `on_success` | Integer | ❌ Optional | Task ID if condition met |
@@ -863,6 +879,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -913,6 +930,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `task` | Integer | ✅ Yes | Unique task identifier |
@@ -970,6 +988,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `timeout` | Integer | ❌ Optional | Override default timeout for this specific task (5-3600 seconds) |
@@ -1033,6 +1052,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | CLI argument | String | ✅ Yes | Any valid TASKER CLI argument |
@@ -1146,6 +1166,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `VARIABLE_NAME` | String | ✅ Yes | Any uppercase variable name |
@@ -1196,6 +1217,7 @@ flowchart TD
 <td width="60%">
 
 ### Parameters
+
 | Parameter | Type | Required | Description | Format |
 |-----------|------|----------|-------------|--------|
 | `stdout_split` | String | ❌ Optional | Split stdout by delimiter and select element at index | `DELIMITER,INDEX` |

@@ -7,8 +7,8 @@ echo "======================================"
 # Test file
 TEST_FILE="test_cases/functional/test_show_plan_routing_verification.txt"
 
-# Run show-plan and capture output
-echo "n" | python3 tasker.py "$TEST_FILE" --show-plan 2>&1 > /tmp/plan_output.txt
+# Run show-plan and capture output (both stdout and stderr)
+echo "n" | python3 tasker.py "$TEST_FILE" --show-plan > /tmp/plan_output.txt 2>&1
 
 # Function to check if a pattern exists in the output
 check_routing() {

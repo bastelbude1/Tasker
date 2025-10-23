@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Test partial routing with only on_success", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# Test to show default routing when only on_success is set
+
+# Task 0: Regular task with only on_success
+task=0
+hostname=localhost
+command=true
+exec=local
+on_success=10
+# No on_failure, so failures use default routing
+
+# Task 1: This would be next by default if task 0 fails
+task=1
+hostname=localhost
+command=echo
+arguments=Default path taken
+exec=local
+
+# Task 10: Success path
+task=10
+hostname=localhost
+command=echo
+arguments=Success path taken
+exec=local
+next=never

@@ -400,6 +400,15 @@ class TaskValidator:
         recommended_min = parent_task_id * 100
         recommended_max = (parent_task_id + 1) * 100 - 1
 
+        # Skip range validation if it would exceed conventional task ID limits
+        if recommended_max > 999:
+            self.debug_log(
+                f"Task {parent_task_id}: Skipping subtask ID range validation "
+                f"(recommended range {recommended_min}-{recommended_max} exceeds conventional limit of 999). "
+                f"Consider using lower parent task IDs for blocks with subtasks."
+            )
+            return
+
         # Check if all subtasks are in recommended range
         out_of_range_tasks = []
         for ref_id in referenced_task_ids:

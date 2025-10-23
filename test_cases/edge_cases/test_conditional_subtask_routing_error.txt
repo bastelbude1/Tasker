@@ -1,0 +1,57 @@
+# TEST_METADATA: {"description": "Conditional subtask routing error - should fail validation", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+# This test demonstrates that subtasks in conditional blocks CANNOT have routing parameters
+# Expected: Validation ERROR - subtasks with on_success/on_failure are not allowed
+
+TEST_MODE=true
+
+# Task 0: Setup task
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting conditional with routing subtasks
+exec=local
+
+# Task 1: Conditional block
+task=1
+type=conditional
+condition=@TEST_MODE@=true
+if_true_tasks=100,101
+if_false_tasks=200
+
+# Task 100: Subtask with on_success (SHOULD CAUSE VALIDATION ERROR)
+task=100
+hostname=localhost
+command=/usr/bin/true
+exec=local
+on_success=300
+
+# Task 101: Subtask with on_failure (SHOULD CAUSE VALIDATION ERROR)
+task=101
+hostname=localhost
+command=/usr/bin/false
+exec=local
+on_failure=400
+
+# Task 200: False branch task with next=never (SHOULD CAUSE VALIDATION ERROR)
+task=200
+hostname=localhost
+command=/usr/bin/echo
+arguments=False branch
+exec=local
+next=never
+
+# Task 300: on_success target (should never execute due to validation error)
+task=300
+hostname=localhost
+command=/usr/bin/echo
+arguments=ERROR: Should not reach here - validation should fail
+exec=local
+return=1
+
+# Task 400: on_failure target (should never execute due to validation error)
+task=400
+hostname=localhost
+command=/usr/bin/echo
+arguments=ERROR: Should not reach here - validation should fail
+exec=local
+return=1

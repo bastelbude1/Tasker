@@ -288,7 +288,20 @@ on_failure=99
 
 **Parameters:** See [Parallel Execution Parameters](#parallel-execution-parameters) table below
 
-**Note:** Referenced tasks use their individual parameters but flow control is ignored
+**Important Parallel Execution Behavior:**
+- **CRITICAL:** Individual task routing (`on_success`, `on_failure`, `next`) is **NOT ALLOWED** in subtasks
+  - Subtasks cannot have routing parameters - control must return to the parallel block
+  - Validation will **FAIL** if subtasks have routing parameters
+  - The parallel block aggregates all results for Multi-Task Success Evaluation
+- Individual task `success` criteria IS RESPECTED for determining success/retry
+- Retry applies to individual tasks within the parallel group
+
+**Subtask ID Range Convention (Recommended):**
+- Use distinct ID ranges to clearly separate subtasks from main workflow
+- Recommended: Task N subtasks in range `[N*100, (N+1)*100-1]`
+- Example: Task 1 subtasks should be 100-199, Task 2 subtasks should be 200-299
+- Improves readability and debugging
+- Warning generated if convention not followed (use `--skip-subtask-range-validation` to suppress)
 
 ### Conditional Execution
 
@@ -315,9 +328,19 @@ on_success=10
 
 **Important Conditional Execution Behavior:**
 - Tasks in branches execute in the exact order listed (e.g., `100,300,150` executes in that order)
-- Individual task flow control (`on_success`, `on_failure`, `next`) is IGNORED
+- **CRITICAL:** Individual task routing (`on_success`, `on_failure`, `next`) is **NOT ALLOWED** in subtasks
+  - Subtasks cannot have routing parameters - control must return to the conditional block
+  - Validation will **FAIL** if subtasks have routing parameters
+  - Use **Decision Blocks** instead if individual task routing is needed
 - Individual task `success` criteria IS RESPECTED for determining success/retry
 - Retry applies to individual tasks within the branch, not the condition evaluation
+
+**Subtask ID Range Convention (Recommended):**
+- Use distinct ID ranges to clearly separate subtasks from main workflow
+- Recommended: Task N subtasks in range `[N*100, (N+1)*100-1]`
+- Example: Task 1 subtasks should be 100-199, Task 2 subtasks should be 200-299
+- Improves readability and debugging
+- Warning generated if convention not followed (use `--skip-subtask-range-validation` to suppress)
 
 ### Decision Blocks
 
@@ -342,6 +365,17 @@ on_failure=99
 - Uses familiar `success=` or `failure=` syntax (same as regular tasks)
 - Standard flow control with `on_success`, `on_failure`, and `next`
 - Lightweight alternative to conditional blocks when you only need branching
+
+**When to Use Conditional vs Decision Blocks:**
+
+| Feature | Conditional Blocks | Decision Blocks |
+|---------|-------------------|-----------------|
+| Execute multiple tasks | ✅ Yes (if_true_tasks, if_false_tasks) | ❌ No (routing only) |
+| Multi-Task Success Evaluation | ✅ Yes (all_success, min_success, etc.) | ❌ No |
+| Subtask routing allowed | ❌ **NO** - Validation error | ✅ Yes (this is the whole point) |
+| Retry support | ✅ Yes (for branch tasks) | ❌ No |
+| Use case | Execute groups of tasks based on condition | Route based on previous task results |
+| Example | Deploy to prod/staging environments | Fallback logic (try port 80, else try 443) |
 
 **Example - Port availability check:**
 ```
@@ -1533,7 +1567,9 @@ Control when and how tasks execute using conditions and flow control parameters.
 
 ### Task Skipping with Conditions
 
-Use `condition` parameter to skip tasks when certain conditions aren't met:
+### Task-Level Conditional Execution
+
+Use `condition` parameter on **regular tasks** to skip individual tasks when conditions aren't met:
 
 ```bash
 task=0
@@ -1554,6 +1590,30 @@ condition=@0_exit@!=0
 command=send_alert
 arguments=Service check failed
 ```
+
+**How Task-Level Conditions Work:**
+- If `condition` evaluates to **FALSE** → task is **skipped**, execution continues to next sequential task
+- If `condition` evaluates to **TRUE** → task executes normally
+- Skipped tasks store `exit_code=-1` and `stderr='Task skipped due to condition'`
+- Can be combined with `on_success`, `on_failure`, and routing parameters
+
+**Important Distinctions:**
+
+| Mechanism | Type | Purpose | Routing Allowed |
+|-----------|------|---------|-----------------|
+| **Task Condition** | Regular task parameter | Skip individual tasks | ✅ Yes |
+| **Conditional Block** | `type=conditional` | Execute task groups | ❌ No (subtasks) |
+| **Decision Block** | `type=decision` | Pure routing logic | ✅ Yes (the purpose) |
+
+**When to Use Task Conditions:**
+- ✅ Skip individual tasks based on previous results
+- ✅ Simple sequential workflows with conditional steps
+- ✅ When you need both execution and routing on same task
+
+**When NOT to Use Task Conditions:**
+- ❌ Pure routing logic → Use **Decision Blocks** instead (clearer intent)
+- ❌ Executing groups of tasks → Use **Conditional Blocks** instead
+- ❌ Complex branching → Use **Decision Blocks** for better maintainability
 
 **Note:** `condition` determines whether a task runs or is skipped. For controlling workflow flow (stop/continue/jump), use `next`, `on_success`, and `on_failure`.
 
@@ -3635,7 +3695,18 @@ tasker -r deployment.txt
 
 # Skip validation for faster resume (use with caution)
 tasker -r --skip-validation emergency_fix.txt
+
+# Skip subtask ID range warnings (when using non-standard ID ranges)
+tasker --validate-only --skip-subtask-range-validation workflow.txt
 ```
+
+**Available Validation Skip Flags:**
+- `--skip-task-validation` - Skip task file parsing and structure validation
+- `--skip-host-validation` - Skip hostname FQDN and connectivity checks
+- `--skip-command-validation` - Skip local command existence checks
+- `--skip-security-validation` - Skip security pattern validation
+- `--skip-subtask-range-validation` - Skip subtask ID range convention warnings
+- `--skip-validation` - Skip ALL validation checks (combination of all above)
 
 ### Host Connectivity Testing
 
@@ -3661,129 +3732,183 @@ tasker -r -p PRODUCTION_DEPLOY production_deployment.txt
 
 **Real-world scenario**: Download a file via HTTP(80) or HTTPS(443) based on which ports are available.
 
-**Why conditional execution is perfect here**: We need to make decisions based on port scan results, not task outcomes.
+**Optimized pattern**: Check both ports upfront, use early exit decision, leverage conditional execution.
 
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
 flowchart TD
-    Start([🌐 Smart File Download<br/>Sequential Port Testing]) --> T0[Task 0: Check Port 443<br/>nmap -p 443]
-    T0 --> C1{Condition Check:<br/>@0_stdout@~OPEN}
+    Start([🌐 Smart File Download<br/>Optimized Pattern]) --> T0[Task 0: Check Port 443<br/>portcheck HTTPS]
+    T0 --> T1[Task 1: Check Port 80<br/>portcheck HTTP]
 
-    C1 -->|TRUE: Port 443 OPEN| T1[Task 1: HTTPS Download<br/>curl --ssl-reqd]
-    C1 -->|FALSE: Port 443 CLOSED| Skip1[Task 1: Skipped]
+    T1 --> D2{Task 2: Decision<br/>ANY port open?}
 
-    T1 --> S1{SUCCESS?}
-    S1 -->|Success| Success[Task 100: Success<br/>Download complete]
-    S1 -->|Failure<br/>on_failure=2| T2[Task 2: Check Port 80<br/>nmap -p 80]
+    D2 -->|FALSE: on_failure=99| Failed[Task 99: Error<br/>No ports available]
+    D2 -->|TRUE: continues| T3[Task 3: HTTPS Download<br/>condition=@0_exit@=0<br/>curl --ssl-reqd]
 
-    Skip1 --> T2
-    T2 --> C2{Condition Check:<br/>@2_stdout@~OPEN}
+    T3 -->|SUCCESS<br/>on_success=10| Success[Task 10: Process File<br/>Download complete]
+    T3 -->|FAILURE<br/>continues| T4[Task 4: HTTP Download<br/>condition=@1_exit@=0<br/>curl]
+    T3 -.-|SKIPPED<br/>port closed| T4
 
-    C2 -->|TRUE: Port 80 OPEN| T3[Task 3: HTTP Download<br/>curl]
-    C2 -->|FALSE: Port 80 CLOSED| Skip3[Task 3: Skipped]
-
-    T3 --> S3{SUCCESS?}
-    S3 -->|Success| Success
-    S3 -->|Failure<br/>on_failure=99| Failed[Task 99: Error<br/>No ports available]
-
-    Skip3 --> Failed
+    T4 -->|SUCCESS<br/>on_success=10| Success
+    T4 -->|FAILURE<br/>on_failure=98| Failed2[Task 98: Error<br/>Download failed]
 
     Success --> Complete((END SUCCESS))
     Failed --> Stop((END FAILURE))
+    Failed2 --> Stop
 
     style Start fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style T0 fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style T1 fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style T2 fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style T3 fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style C1 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
-    style C2 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
-    style S1 fill:#ffecb3,stroke:#f57f17,stroke-width:3px
-    style S3 fill:#ffecb3,stroke:#f57f17,stroke-width:3px
-    style Skip1 fill:#e0e0e0,stroke:#616161,stroke-width:3px
-    style Skip3 fill:#e0e0e0,stroke:#616161,stroke-width:3px
+    style T3 fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style T4 fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    style D2 fill:#FFE4E1,stroke:#DC143C,stroke-width:3px
     style Success fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
     style Failed fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+    style Failed2 fill:#ffcdd2,stroke:#c62828,stroke-width:3px
     style Complete fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
     style Stop fill:#ffcdd2,stroke:#c62828,stroke-width:3px
 ```
 
-**Configuration file**:
-```
-# smart_download.txt - Demonstrates conditional execution superiority
+**Configuration file** (optimized pattern):
+```bash
+# smart_download.txt - Optimized port checking with early exit and conditional execution
 # Global configuration
+SERVER=localhost
 TARGET_HOST=download.example.com
 FILENAME=installer.zip
 DOWNLOAD_PATH=/tmp/downloads
+TIMEOUT=10
 
-# Task 0: Check HTTPS port 443 first (preferred)
+# ===================================
+# PHASE 1: Check Both Ports Upfront
+# ===================================
+
+# Task 0: Check Port 443 (HTTPS - preferred)
 task=0
-hostname=localhost
-command=nmap
-arguments=-p 443 --open @TARGET_HOST@
-timeout=15
+hostname=@SERVER@
+command=obb_portcheck
+arguments=@TARGET_HOST@ 443
+timeout=@TIMEOUT@
 exec=local
 
-# Task 1: Check if HTTPS is available
+# Task 1: Check Port 80 (HTTP - fallback)
 task=1
-condition=@0_stdout@~OPEN
-hostname=localhost
-command=curl
-arguments=--ssl-reqd -o @DOWNLOAD_PATH@/@FILENAME@ https://@TARGET_HOST@/@FILENAME@
-timeout=300
-success=exit_0
+hostname=@SERVER@
+command=obb_portcheck
+arguments=@TARGET_HOST@ 80
+timeout=@TIMEOUT@
 exec=local
-on_success=100
-on_failure=2
 
-# Task 2: Check HTTP port 80 (fallback)
+# ===================================
+# PHASE 2: Early Exit Decision
+# ===================================
+
+# Task 2: Decision - Early Exit if Both Ports Failed
 task=2
-hostname=localhost
-command=nmap
-arguments=-p 80 --open @TARGET_HOST@
-timeout=15
-exec=local
-
-# Task 3: Check if HTTP is available
-task=3
-condition=@2_stdout@~OPEN
-hostname=localhost
-command=curl
-arguments=-o @DOWNLOAD_PATH@/@FILENAME@ http://@TARGET_HOST@/@FILENAME@
-timeout=300
-success=exit_0
-exec=local
-on_success=100
+type=decision
+# If at least one port is available, try downloads (continues to task 3)
+# If both ports failed, jump to error handler
+success=@0_exit@=0|@1_exit@=0
 on_failure=99
 
-# === SUCCESS NOTIFICATION (Same for all protocols) ===
-task=100
-hostname=localhost
+# ===================================
+# PHASE 3: Conditional Downloads
+# ===================================
+
+# Task 3: HTTPS Download (Conditional - only if port 443 open)
+task=3
+hostname=@SERVER@
+command=curl
+arguments=--ssl-reqd -o @DOWNLOAD_PATH@/@FILENAME@ https://@TARGET_HOST@/@FILENAME@ --connect-timeout 30
+timeout=300
+exec=local
+# Skip if port 443 was closed
+condition=@0_exit@=0
+on_success=10
+
+# Task 4: HTTP Download (Conditional - only if port 80 open)
+task=4
+hostname=@SERVER@
+command=curl
+arguments=-o @DOWNLOAD_PATH@/@FILENAME@ http://@TARGET_HOST@/@FILENAME@ --connect-timeout 30
+timeout=300
+exec=local
+# Skip if port 80 was closed
+condition=@1_exit@=0
+on_success=10
+on_failure=98
+
+# ===================================
+# CONVERGENCE POINT
+# ===================================
+
+# Task 10: Process Downloaded File
+task=10
+hostname=@SERVER@
 command=echo
 arguments=SUCCESS: Downloaded @FILENAME@ from @TARGET_HOST@ - check @DOWNLOAD_PATH@/@FILENAME@
 exec=local
 next=never
 
-# === FAILURE HANDLER ===
-task=99
-hostname=localhost
+# ===================================
+# Error Handlers
+# ===================================
+
+# Task 98: Curl Failed
+task=98
+hostname=@SERVER@
 command=echo
-arguments=ERROR: No ports (80,443) are open on @TARGET_HOST@ - download impossible
+arguments=ERROR: Curl download failed
+exec=local
+return=2
+
+# Task 99: No Ports Available
+task=99
+hostname=@SERVER@
+command=echo
+arguments=ERROR: No accessible ports (80,443) on @TARGET_HOST@ - download impossible
 exec=local
 return=1
-
-# === FIREWALL ===
-task=98
-return=0
 ```
 
-**Why this example demonstrates conditional execution superiority:**
+**Why this optimized pattern is superior:**
 
-1. **Multiple Decision Points**: Three different branches based on port scan results
-2. **Data-Driven Logic**: Decisions made on scan output, not task success/failure
-3. **Complex Conditions**: `@0_stdout@~80/tcp&@0_stdout@!~443/tcp` (HTTP only)
-4. **Impossible with Sequential**: Can't achieve this branching with `on_success`/`on_failure`
-5. **Real-World Value**: Practical example users will encounter
+**1. Efficient Port Checking:**
+- ✅ **Check both ports first** - Could even be parallelized for faster execution
+- ✅ **Early exit decision** - Avoids unnecessary curl attempts if both ports are closed
+- ✅ **Fewer decision blocks** - Only 1 decision block instead of 2
+
+**2. Conditional Execution:**
+- ✅ **Smart task skipping** - Tasks 3 and 4 use `condition=` to skip if port is closed
+- ✅ **Clean fallback** - HTTPS preferred, HTTP fallback, clear error handling
+- ✅ **No wasted resources** - Skipped tasks don't consume time or resources
+
+**3. Clear Workflow Phases:**
+- ✅ **Phase 1: Check** - Gather port availability data
+- ✅ **Phase 2: Decide** - Early exit if no ports available
+- ✅ **Phase 3: Execute** - Conditional downloads based on port status
+
+**4. Optimization Benefits:**
+```
+BEFORE: Check port 443 → Decide → Download → Check port 80 → Decide → Download
+AFTER:  Check both ports → Decide (early exit) → Try downloads with conditions
+
+Benefits:
+- Fewer decision blocks (1 instead of 2)
+- Early exit avoids wasted work
+- Conditional execution = cleaner logic
+- Easy to extend (add more ports/protocols)
+```
+
+**Pattern Comparison:**
+
+| Aspect | Old Pattern | Optimized Pattern |
+|--------|-------------|-------------------|
+| Port Checks | Sequential, interleaved | Upfront, parallelizable |
+| Decision Blocks | 2 (one per port) | 1 (early exit) |
+| Download Logic | Decision-based routing | Condition-based execution |
+| Extensibility | Add more decision blocks | Add more conditional tasks |
+| Early Exit | No | Yes (avoids wasted work) |
 
 ---
 

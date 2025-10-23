@@ -107,7 +107,7 @@ class TaskValidator:
 
     @staticmethod
     def validate_task_file(task_file, debug=False, log_callback=None, debug_callback=None,
-                          skip_security_validation=False):
+                          skip_security_validation=False, skip_subtask_range_validation=False):
         """
                           Validate the task file at the given path and report parsing and validation results.
                           
@@ -129,6 +129,7 @@ class TaskValidator:
         validator._log_callback = log_callback
         validator._debug_callback = debug_callback
         validator.skip_security_validation = skip_security_validation
+        validator.skip_subtask_range_validation = skip_subtask_range_validation
 
         # Parse and validate
         parse_success = validator.parse_file()
@@ -313,6 +314,118 @@ class TaskValidator:
                     self.errors.append(
                         f"Line {line_number}: Task {parent_task_id} ({parent_type}) references {details}. Loop control is only available for sequential tasks."
                     )
+
+    def _check_routing_in_subtasks(self, referenced_task_ids, line_number, parent_task_id, parent_type):
+        """
+        Check if any referenced subtasks have routing parameters (NOT SUPPORTED).
+
+        Routing control (on_success, on_failure, next) is NOT available for subtasks in
+        parallel or conditional blocks. These blocks must maintain control flow to aggregate
+        results and perform Multi-Task Success Evaluation.
+
+        Args:
+            referenced_task_ids: List of task IDs being referenced
+            line_number: Line number in task file for error reporting
+            parent_task_id: ID of the parent task (parallel/conditional)
+            parent_type: Type of parent task ('parallel' or 'conditional')
+
+        Side effects:
+            Appends errors to self.errors if routing parameters are detected in subtasks
+            Calls self.debug_log with detailed information in DEBUG mode
+        """
+        for ref_id in referenced_task_ids:
+            # Find the referenced task in our parsed tasks
+            ref_task = next((t[0] for t in self.tasks if self._safe_task_id_from_entry(t) == ref_id), None)
+            if ref_task:
+                # Check for routing parameters
+                has_on_success = 'on_success' in ref_task
+                has_on_failure = 'on_failure' in ref_task
+                has_next_never = ref_task.get('next') == 'never'
+                has_next_loop = ref_task.get('next') == 'loop'
+                # Note: next=always is allowed as it just continues within the branch
+
+                if has_on_success or has_on_failure or has_next_never or has_next_loop:
+                    # Build list of detected routing parameters
+                    routing_params = []
+                    if has_on_success:
+                        routing_params.append(f"on_success={ref_task['on_success']}")
+                    if has_on_failure:
+                        routing_params.append(f"on_failure={ref_task['on_failure']}")
+                    if has_next_never:
+                        routing_params.append("next=never")
+                    if has_next_loop:
+                        routing_params.append("next=loop")
+
+                    params_str = ", ".join(routing_params)
+
+                    # Self-contained error with subtask ID and parameters
+                    details = f"subtask {ref_id} ({params_str})"
+                    self.errors.append(
+                        f"Line {line_number}: Task {parent_task_id} ({parent_type}) references {details}. "
+                        f"Subtasks cannot have routing parameters - control must return to the {parent_type} block for Multi-Task Success Evaluation. "
+                        f"Use decision blocks if individual task routing is needed."
+                    )
+
+                    # Provide additional guidance in debug mode
+                    self.debug_log(
+                        f"Task {ref_id}: Routing parameters break {parent_type} block control flow. "
+                        f"The {parent_type} block needs to aggregate all subtask results and evaluate success conditions. "
+                        f"If you need individual task routing, use decision blocks instead of {parent_type} blocks."
+                    )
+
+    def _check_subtask_id_ranges(self, referenced_task_ids, line_number, parent_task_id, parent_type):
+        """
+        Check if referenced subtasks follow recommended ID range conventions.
+
+        RECOMMENDATION (not error): Subtasks should be in a distinct ID range to clearly
+        separate them from the main sequential workflow. This improves readability and debugging.
+
+        Recommended convention for task N:
+        - Subtasks in range [N*100, (N+1)*100-1]
+        - Example: Task 1 subtasks should be 100-199
+        - Example: Task 2 subtasks should be 200-299
+
+        Alternative: Subtasks should have clear separation (gap of at least 10) from main flow.
+
+        Args:
+            referenced_task_ids: List of task IDs being referenced
+            line_number: Line number in task file for error reporting
+            parent_task_id: ID of the parent task (parallel/conditional)
+            parent_type: Type of parent task ('parallel' or 'conditional')
+
+        Side effects:
+            Appends warnings to self.warnings if ID ranges don't follow convention
+            Can be skipped with --skip-subtask-range-validation flag
+        """
+        # Skip if validation is disabled
+        if hasattr(self, 'skip_subtask_range_validation') and self.skip_subtask_range_validation:
+            return
+
+        # Calculate recommended range for this parent task
+        recommended_min = parent_task_id * 100
+        recommended_max = (parent_task_id + 1) * 100 - 1
+
+        # Check if all subtasks are in recommended range
+        out_of_range_tasks = []
+        for ref_id in referenced_task_ids:
+            if not (recommended_min <= ref_id <= recommended_max):
+                out_of_range_tasks.append(ref_id)
+
+        if out_of_range_tasks:
+            # Build helpful warning message
+            self.warnings.append(
+                f"Line {line_number}: Task {parent_task_id} ({parent_type}) references subtasks {out_of_range_tasks} "
+                f"outside recommended range [{recommended_min}-{recommended_max}]. "
+                f"Consider using distinct ID ranges to clearly separate subtasks from main workflow. "
+                f"Use --skip-subtask-range-validation to suppress this warning."
+            )
+
+            # Provide additional guidance in debug mode
+            self.debug_log(
+                f"Task {parent_task_id}: Subtask ID convention helps distinguish main flow from {parent_type} subtasks. "
+                f"Recommended: Task N subtasks in range [N*100, (N+1)*100-1]. "
+                f"This makes workflows more readable and easier to debug."
+            )
 
     def parse_file(self):
         """Parse the task file into global variables and individual tasks."""
@@ -844,6 +957,12 @@ class TaskValidator:
                     # CRITICAL: Check for loop parameters in subtasks (NOT SUPPORTED)
                     self._check_loop_in_subtasks(referenced_task_ids, line_number, task_id, 'parallel')
 
+                    # CRITICAL: Check for routing parameters in subtasks (NOT SUPPORTED)
+                    self._check_routing_in_subtasks(referenced_task_ids, line_number, task_id, 'parallel')
+
+                    # RECOMMENDATION: Check subtask ID ranges follow convention
+                    self._check_subtask_id_ranges(referenced_task_ids, line_number, task_id, 'parallel')
+
                     # Check max_parallel vs number of tasks
                     if 'max_parallel' in task:
                         max_parallel = int(task['max_parallel'])
@@ -943,6 +1062,12 @@ class TaskValidator:
 
             # CRITICAL: Check for loop parameters in subtasks (NOT SUPPORTED)
             self._check_loop_in_subtasks(referenced_task_ids, line_number, task_id, 'conditional')
+
+            # CRITICAL: Check for routing parameters in subtasks (NOT SUPPORTED)
+            self._check_routing_in_subtasks(referenced_task_ids, line_number, task_id, 'conditional')
+
+            # RECOMMENDATION: Check subtask ID ranges follow convention
+            self._check_subtask_id_ranges(referenced_task_ids, line_number, task_id, 'conditional')
 
         except ValueError as e:
             self.errors.append(f"Line {line_number}: Task {task_id} has invalid task reference in {field_name} field: {str(e)}")

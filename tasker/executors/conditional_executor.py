@@ -14,7 +14,52 @@ from ..utils.non_blocking_sleep import sleep_async
 
 class ConditionalExecutor(BaseExecutor):
     """Conditional task executor for branch-based execution."""
-    
+
+    @staticmethod
+    def sanitize_subtask(task, parent_task_id, executor_instance):
+        """
+        Remove routing parameters from subtask to ensure control returns to conditional block.
+
+        Subtasks in conditional blocks cannot have their own routing (on_success, on_failure, next)
+        because the conditional block needs to aggregate results and perform Multi-Task Success Evaluation.
+
+        Args:
+            task: Task dictionary to sanitize
+            parent_task_id: ID of the parent conditional block
+            executor_instance: Executor instance for logging
+
+        Returns:
+            Sanitized copy of the task with routing parameters removed
+        """
+        sanitized_task = task.copy()
+        removed_params = []
+
+        # Check and remove routing parameters
+        if 'on_success' in sanitized_task:
+            removed_params.append(f"on_success={sanitized_task['on_success']}")
+            del sanitized_task['on_success']
+
+        if 'on_failure' in sanitized_task:
+            removed_params.append(f"on_failure={sanitized_task['on_failure']}")
+            del sanitized_task['on_failure']
+
+        # Remove next=never and next=loop (but keep next=always as it just continues within branch)
+        if 'next' in sanitized_task and sanitized_task['next'] in ['never', 'loop']:
+            removed_params.append(f"next={sanitized_task['next']}")
+            del sanitized_task['next']
+
+        # Log warning if routing was stripped
+        if removed_params:
+            task_id = task.get('task', 'unknown')
+            params_str = ", ".join(removed_params)
+            executor_instance.log_warn(
+                f"Task {parent_task_id}: Stripped routing parameters from subtask {task_id} ({params_str}). "
+                f"Subtasks cannot have routing - control must return to conditional block. "
+                f"Fix your task file to remove these parameters."
+            )
+
+        return sanitized_task
+
     @staticmethod
     def execute_single_task_for_conditional(task, master_timeout=None, executor_instance=None):
         """Execute a single task as part of conditional execution (sequential)."""
@@ -122,12 +167,16 @@ class ConditionalExecutor(BaseExecutor):
             # Check for shutdown before each conditional task
             executor_instance._check_shutdown()
 
+            # CRITICAL: Sanitize subtask to remove any routing parameters
+            # This ensures control returns to the conditional block for Multi-Task Success Evaluation
+            sanitized_task = ConditionalExecutor.sanitize_subtask(task, task_id, executor_instance)
+
             # Execute task with retry logic if enabled
             # NOTE: Pass None for task_timeout to let each task use its own timeout
             if retry_config:
-                result = ConditionalExecutor.execute_single_task_with_retry_conditional(task, None, retry_config, executor_instance=executor_instance)
+                result = ConditionalExecutor.execute_single_task_with_retry_conditional(sanitized_task, None, retry_config, executor_instance=executor_instance)
             else:
-                result = ConditionalExecutor.execute_single_task_for_conditional(task, None, executor_instance=executor_instance)
+                result = ConditionalExecutor.execute_single_task_for_conditional(sanitized_task, None, executor_instance=executor_instance)
 
             results.append(result)
 

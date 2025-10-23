@@ -17,7 +17,52 @@ from ..utils.non_blocking_sleep import sleep_async, get_sleep_manager
 
 class ParallelExecutor(BaseExecutor):
     """Parallel task executor with threading and retry support."""
-    
+
+    @staticmethod
+    def sanitize_subtask(task, parent_task_id, executor_instance):
+        """
+        Remove routing parameters from subtask to ensure control returns to parallel block.
+
+        Subtasks in parallel blocks cannot have their own routing (on_success, on_failure, next)
+        because the parallel block needs to aggregate results and perform Multi-Task Success Evaluation.
+
+        Args:
+            task: Task dictionary to sanitize
+            parent_task_id: ID of the parent parallel block
+            executor_instance: Executor instance for logging
+
+        Returns:
+            Sanitized copy of the task with routing parameters removed
+        """
+        sanitized_task = task.copy()
+        removed_params = []
+
+        # Check and remove routing parameters
+        if 'on_success' in sanitized_task:
+            removed_params.append(f"on_success={sanitized_task['on_success']}")
+            del sanitized_task['on_success']
+
+        if 'on_failure' in sanitized_task:
+            removed_params.append(f"on_failure={sanitized_task['on_failure']}")
+            del sanitized_task['on_failure']
+
+        # Remove next=never and next=loop (but keep next=always as it just continues within branch)
+        if 'next' in sanitized_task and sanitized_task['next'] in ['never', 'loop']:
+            removed_params.append(f"next={sanitized_task['next']}")
+            del sanitized_task['next']
+
+        # Log warning if routing was stripped
+        if removed_params:
+            task_id = task.get('task', 'unknown')
+            params_str = ", ".join(removed_params)
+            executor_instance.log_warn(
+                f"Task {parent_task_id}: Stripped routing parameters from subtask {task_id} ({params_str}). "
+                f"Subtasks cannot have routing - control must return to parallel block. "
+                f"Fix your task file to remove these parameters."
+            )
+
+        return sanitized_task
+
     @staticmethod
     def execute_single_task_for_parallel(task, master_timeout=None, retry_display="", executor_instance=None):
         """Execute a single task as part of parallel execution with enhanced retry display support."""
@@ -373,14 +418,18 @@ class ParallelExecutor(BaseExecutor):
                         thread_executor.shutdown(wait=False)
                         executor_instance._check_shutdown()
 
+                    # CRITICAL: Sanitize subtask to remove any routing parameters
+                    # This ensures control returns to the parallel block for Multi-Task Success Evaluation
+                    sanitized_task = ParallelExecutor.sanitize_subtask(task, task_id, executor_instance)
+
                     if retry_config:
                         # With retry config -> .1, .2, etc.
                         # NOTE: Pass None for task_timeout to let each task use its own timeout
-                        future = thread_executor.submit(ParallelExecutor.execute_single_task_with_retry, task, None, retry_config, executor_instance=executor_instance)
+                        future = thread_executor.submit(ParallelExecutor.execute_single_task_with_retry, sanitized_task, None, retry_config, executor_instance=executor_instance)
                     else:
                         # Without retry config -> no number
                         # NOTE: Pass None for task_timeout to let each task use its own timeout
-                        future = thread_executor.submit(ParallelExecutor.execute_single_task_for_parallel, task, None, "", executor_instance=executor_instance)
+                        future = thread_executor.submit(ParallelExecutor.execute_single_task_for_parallel, sanitized_task, None, "", executor_instance=executor_instance)
                     future_to_task[future] = task
                 
                 # Phase 1: Collect all task results and start sleeps in parallel

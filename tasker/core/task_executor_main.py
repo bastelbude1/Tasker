@@ -94,6 +94,7 @@ class TaskExecutor:
                  exec_type=None, timeout=30, connection_test=False, project=None,
                  start_from_task=None, skip_task_validation=False,
                  skip_host_validation=False, skip_security_validation=False,
+                 skip_subtask_range_validation=False,
                  show_plan=False, validate_only=False, fire_and_forget=False,
                  no_task_backup=False, auto_recovery=False, show_recovery_info=False):
         """
@@ -114,6 +115,7 @@ class TaskExecutor:
             skip_task_validation: If true, task file validation is skipped (useful in resume scenarios).
             skip_host_validation: If true, host validation is skipped (hostname checks will be bypassed).
             skip_security_validation: If true, security-specific validation steps are skipped during task validation.
+            skip_subtask_range_validation: If true, subtask ID range convention warnings are suppressed.
             show_plan: If true, the executor may display an execution plan before running tasks.
             validate_only: If true, the executor performs parsing/validation and exits without running tasks.
         """
@@ -172,6 +174,7 @@ class TaskExecutor:
         self.skip_task_validation = skip_task_validation
         self.skip_host_validation = skip_host_validation
         self.skip_security_validation = skip_security_validation
+        self.skip_subtask_range_validation = skip_subtask_range_validation
 
         # Auto-recovery parameters
         self.auto_recovery = auto_recovery
@@ -1003,7 +1006,8 @@ class TaskExecutor:
                 debug=(self.log_level == 'DEBUG'),
                 log_callback=self.log_info,
                 debug_callback=self.log_debug if self.log_level == 'DEBUG' else None,
-                skip_security_validation=self.skip_security_validation
+                skip_security_validation=self.skip_security_validation,
+                skip_subtask_range_validation=self.skip_subtask_range_validation
             )
             
             if not result['success']:

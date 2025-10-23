@@ -6,6 +6,7 @@ task=0
 hostname=localhost
 command=false
 exec=local
+on_failure=1
 
 # Task 1: Decision block - should fail
 task=1

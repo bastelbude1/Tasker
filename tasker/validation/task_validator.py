@@ -60,7 +60,8 @@ class TaskValidator:
             'normal': ['hostname', 'command'],
             'return': ['return'],
             'parallel': ['type', 'tasks'],  # Parallel tasks need type and tasks
-            'conditional': ['type', 'condition']  # NEW: Conditional tasks need type and condition
+            'conditional': ['type', 'condition'],  # NEW: Conditional tasks need type and condition
+            'decision': ['type']  # Decision blocks only need type (success/failure checked separately)
         }
         self.optional_fields = [
             'arguments', 'next', 'stdout_split', 'stderr_split',
@@ -592,6 +593,7 @@ class TaskValidator:
             all_known_fields = set(self.required_fields + self.conditional_fields['normal'] +
                                   self.conditional_fields['return'] + self.conditional_fields['parallel'] +
                                   self.conditional_fields['conditional'] +  # NEW: Add conditional fields
+                                  self.conditional_fields['decision'] +  # Add decision fields
                                   self.optional_fields + self.parallel_conditional_specific_fields +
                                   ['line_start', 'field_lines'])
             for field in task:
@@ -729,11 +731,11 @@ class TaskValidator:
             if field in task:
                 retry_fields_found.append(field)
         
-        if retry_fields_found and task_type not in ['parallel', 'conditional']:  # NEW: Allow conditional tasks
+        if retry_fields_found and task_type not in ['parallel', 'conditional', 'decision']:  # Allow parallel, conditional, and decision tasks
             fields_str = ', '.join(retry_fields_found)
             self.warnings.append(
-                f"Line {line_number}: Task {task_id} uses retry field(s) '{fields_str}' but is not a parallel or conditional task. "
-                f"Retry logic only applies to parallel and conditional tasks."
+                f"Line {line_number}: Task {task_id} uses retry field(s) '{fields_str}' but is not a parallel, conditional, or decision task. "
+                f"Retry logic only applies to parallel, conditional, and decision tasks."
             )
 
     def validate_retry_configuration(self, task, task_id, line_number):
@@ -979,17 +981,11 @@ class TaskValidator:
         if 'arguments' in task:
             self.errors.append(f"Line {line_number}: Task {task_id} is a decision block and should not have an 'arguments' field.")
 
-        # Validate flow control parameters
-        if 'on_success' in task:
-            self.validate_task_reference(task['on_success'], 'on_success', task_id, line_number)
-
-        if 'on_failure' in task:
-            self.validate_task_reference(task['on_failure'], 'on_failure', task_id, line_number)
-
-        if 'next' in task:
-            next_value = task['next']
-            if next_value != 'never':
-                self.validate_task_reference(next_value, 'next', task_id, line_number)
+        # Flow control validation is handled by validate_field_values
+        # Just check that at least one flow control field is present
+        has_flow_control = any(field in task for field in ['on_success', 'on_failure', 'next'])
+        if not has_flow_control:
+            self.warnings.append(f"Line {line_number}: Task {task_id} is a decision block without explicit flow control (on_success, on_failure, or next). Will continue to next sequential task.")
 
     def validate_global_variable_references(self, task, task_id, line_number):
         """Validate that all global variable references (@VARIABLE@) are defined and track usage."""

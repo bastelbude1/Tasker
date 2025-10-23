@@ -3681,7 +3681,7 @@ TASKER provides comprehensive validation to catch errors before execution.
 **Task Validation**: Validates task file syntax, structure, and dependencies.
 **Host Validation**: Validates hostname resolution, connectivity, and execution type compatibility.
 
-### Validation Commands
+### Validation Commands (Basic Usage)
 
 ```bash
 # Full validation without execution
@@ -3934,7 +3934,7 @@ tasker -r -p PROJECT_NAME tasks.txt
 tasker -r --log-level=DEBUG tasks.txt
 ```
 
-### Validation Commands
+### Validation Commands (Advanced)
 
 ```bash
 # Full validation without execution (task + host + command + security)

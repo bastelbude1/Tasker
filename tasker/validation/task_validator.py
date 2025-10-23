@@ -731,11 +731,11 @@ class TaskValidator:
             if field in task:
                 retry_fields_found.append(field)
         
-        if retry_fields_found and task_type not in ['parallel', 'conditional', 'decision']:  # Allow parallel, conditional, and decision tasks
+        if retry_fields_found and task_type not in ['parallel', 'conditional']:  # Allow parallel and conditional tasks only
             fields_str = ', '.join(retry_fields_found)
             self.warnings.append(
-                f"Line {line_number}: Task {task_id} uses retry field(s) '{fields_str}' but is not a parallel, conditional, or decision task. "
-                f"Retry logic only applies to parallel, conditional, and decision tasks."
+                f"Line {line_number}: Task {task_id} uses retry field(s) '{fields_str}' but is not a parallel or conditional task. "
+                f"Retry logic only applies to parallel and conditional tasks."
             )
 
     def validate_retry_configuration(self, task, task_id, line_number):

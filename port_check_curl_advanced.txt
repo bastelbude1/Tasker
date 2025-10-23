@@ -92,33 +92,58 @@ next=never
 # ===================================
 # OPTIMIZATION NOTES
 # ===================================
-# This workflow demonstrates efficient port checking patterns:
+# This workflow demonstrates efficient port checking patterns using
+# decision blocks and task-level conditional execution (NOT conditional blocks).
 #
-# 1. CHECK BOTH PORTS FIRST (Tasks 0-1)
-#    - Checks port 443 (HTTPS) and 80 (HTTP) sequentially
-#    - Could be parallelized with type=parallel for faster execution
+# IMPORTANT: Tasks 3-4 are REGULAR TASKS with condition= parameter,
+# NOT subtasks of a conditional block. They have routing (on_success/on_failure)
+# which would violate conditional block architecture.
 #
-# 2. EARLY EXIT DECISION (Task 2)
-#    - Decision block checks if ANY port is available
-#    - Exits immediately to error handler if both failed
-#    - Avoids unnecessary curl attempts
+# ┌─────────────────────────────────────────────────────────────────┐
+# │ WORKFLOW PHASES                                                 │
+# ├─────────────────────────────────────────────────────────────────┤
+# │ 1. CHECK BOTH PORTS FIRST (Tasks 0-1)                          │
+# │    • Checks port 443 (HTTPS) and 80 (HTTP) sequentially        │
+# │    • Could be parallelized with type=parallel for speed        │
+# │                                                                 │
+# │ 2. EARLY EXIT DECISION (Task 2)                                │
+# │    • Decision block checks if ANY port is available            │
+# │    • Exits immediately to error handler if both failed         │
+# │    • Avoids unnecessary curl attempts                          │
+# │                                                                 │
+# │ 3. CONDITIONAL EXECUTION (Tasks 3-4)                           │
+# │    • Task 3: HTTPS download IF port 443 open                   │
+# │      condition=@0_exit@=0 → Skip if port closed                │
+# │    • Task 4: HTTP download IF port 80 open                     │
+# │      condition=@1_exit@=0 → Skip if port closed                │
+# │    • Skipped tasks don't waste resources                       │
+# │                                                                 │
+# │ 4. GRACEFUL FALLBACK                                           │
+# │    • HTTPS preferred (checked first, attempted first)          │
+# │    • HTTP fallback if HTTPS download fails                     │
+# │    • Clear error handling for all failure scenarios            │
+# └─────────────────────────────────────────────────────────────────┘
 #
-# 3. CONDITIONAL EXECUTION (Tasks 3-4)
-#    - Task 3: Only attempts HTTPS if port 443 was open (condition=@0_exit@=0)
-#    - Task 4: Only attempts HTTP if port 80 was open (condition=@1_exit@=0)
-#    - Skipped tasks don't waste resources
+# ┌─────────────────────────────────────────────────────────────────┐
+# │ PATTERN COMPARISON                                              │
+# ├─────────────────────────────────────────────────────────────────┤
+# │ OLD PATTERN (Sequential with multiple decision blocks):        │
+# │   Check port 443 → Decide → Download OR                        │
+# │   Check port 80  → Decide → Download OR Error                  │
+# │                                                                 │
+# │ NEW PATTERN (Optimized with early exit):                       │
+# │   Check port 443 → Check port 80 →                             │
+# │   Decide (early exit if both failed) →                         │
+# │   Try HTTPS (conditional) → Try HTTP (conditional)             │
+# └─────────────────────────────────────────────────────────────────┘
 #
-# 4. GRACEFUL FALLBACK
-#    - HTTPS preferred (checked first, attempted first)
-#    - HTTP fallback if HTTPS download fails
-#    - Clear error handling for all failure scenarios
-#
-# PATTERN COMPARISON:
-# Before: Check port → Decide → Download → Check next port → Decide → Download
-# After:  Check all ports → Decide (early exit) → Try downloads with conditions
-#
-# BENEFITS:
-# - Fewer decision blocks (1 instead of 2)
-# - Early exit avoids wasted work
-# - Conditional execution = cleaner logic
-# - Easy to extend (add more ports/protocols)
+# ┌─────────────────────────────────────────────────────────────────┐
+# │ KEY IMPROVEMENTS                                                │
+# ├─────────────────────────────────────────────────────────────────┤
+# │ ✓ Cognitive Complexity: 1 decision block vs 2                  │
+# │ ✓ Early Exit: Stops immediately if no ports available          │
+# │ ✓ Task-Level Conditions: Cleaner than nested decision blocks   │
+# │ ✓ Resource Efficiency: Skipped tasks consume no resources      │
+# │ ✓ Extensibility: Easy to add more ports/protocols              │
+# │ ✓ Maintainability: Clear separation of concerns                │
+# └─────────────────────────────────────────────────────────────────┘

@@ -1348,9 +1348,33 @@ class TaskExecutor:
                 return_code = task.get('return', 'N/A')
                 self.log_info(f"  Task {task_id}: RETURN {return_code}")
             else:
+                # Regular task - show command and routing
                 hostname = task.get('hostname', 'N/A')
                 command = task.get('command', 'N/A')
+                on_success = task.get('on_success', '')
+                on_failure = task.get('on_failure', '')
+                next_task = task.get('next', '')
+
                 self.log_info(f"  Task {task_id}: {hostname} -> {command}")
+
+                # Show routing details for regular tasks too
+                if on_success or on_failure or next_task:
+                    if on_success:
+                        self.log_info(f"            -> on success: task {on_success}")
+                    if on_failure:
+                        self.log_info(f"            -> on failure: task {on_failure}")
+
+                    # Show default routing
+                    if next_task == 'never':
+                        self.log_info("            -> default: stop execution")
+                    elif next_task == 'always':
+                        self.log_info("            -> default: always continue to next task")
+                    elif next_task == 'loop':
+                        self.log_info(f"            -> default: loop back to task {task_id}")
+                    elif next_task:
+                        self.log_info(f"            -> default: task {next_task}")
+                    else:
+                        self.log_info(f"            -> default: continue to task {task_id + 1}")
     
         self.log_info(f"# Total: {task_count} tasks to execute")
         self.log_info("=" * 50)

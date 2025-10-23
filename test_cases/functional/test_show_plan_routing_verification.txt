@@ -1,0 +1,99 @@
+# TEST_METADATA: {"description": "Comprehensive test for --show-plan routing display", "test_type": "validation_only", "expected_exit_code": 0, "expected_success": true}
+# Test every routing configuration to verify --show-plan displays them correctly
+
+# Task 0: No routing specified (default behavior)
+task=0
+hostname=server1
+command=cmd_default
+exec=local
+
+# Task 1: Only on_success specified
+task=1
+hostname=server2
+command=cmd_success_only
+exec=local
+on_success=10
+
+# Task 2: Only on_failure specified
+task=2
+hostname=server3
+command=cmd_failure_only
+exec=local
+on_failure=20
+
+# Task 3: Both on_success and on_failure
+task=3
+hostname=server4
+command=cmd_both_routing
+exec=local
+on_success=30
+on_failure=40
+
+# Task 4: next=never
+task=4
+hostname=server5
+command=cmd_never
+exec=local
+next=never
+
+# Task 5: next=always
+task=5
+hostname=server6
+command=cmd_always
+exec=local
+next=always
+
+# Task 6: next=loop with loop count
+task=6
+hostname=server7
+command=cmd_loop
+exec=local
+loop=3
+next=loop
+
+# Task 7: Only on_success (different target)
+task=7
+hostname=server8
+command=cmd_success_diff
+exec=local
+on_success=50
+
+# Task 8: Only on_failure (different target)
+task=8
+hostname=server9
+command=cmd_failure_diff
+exec=local
+on_failure=60
+
+# Task 9: Both success and failure (no next)
+task=9
+hostname=server10
+command=cmd_both_no_next
+exec=local
+on_success=70
+on_failure=80
+
+# Success/Failure target tasks
+task=10
+return=0
+
+task=20
+return=1
+
+task=30
+return=0
+
+task=40
+return=1
+
+task=50
+return=0
+
+task=60
+return=1
+
+task=70
+return=0
+
+task=80
+return=1

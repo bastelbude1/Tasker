@@ -1,0 +1,58 @@
+# TEST_METADATA: {"description": "Test complex routing display", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# Test to demonstrate enhanced --show-plan with various routing configurations
+
+# Task 0: Task with both success and failure routing
+task=0
+hostname=localhost
+command=test_command
+exec=local
+on_success=10
+on_failure=20
+
+# Task 1: Task with next=always
+task=1
+hostname=localhost
+command=echo
+arguments=Always continues
+exec=local
+next=always
+
+# Task 2: Task with loop
+task=2
+hostname=localhost
+command=echo
+arguments=Loop task
+exec=local
+loop=3
+next=loop
+
+# Task 3: Task with next=never
+task=3
+hostname=localhost
+command=echo
+arguments=Stop after this
+exec=local
+next=never
+
+# Task 5: Regular task without routing
+task=5
+hostname=localhost
+command=echo
+arguments=Simple task
+exec=local
+
+# Task 10: Success handler
+task=10
+hostname=localhost
+command=echo
+arguments=Success path
+exec=local
+next=never
+
+# Task 20: Failure handler
+task=20
+hostname=localhost
+command=echo
+arguments=Failure path
+exec=local
+return=1

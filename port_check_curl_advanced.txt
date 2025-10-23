@@ -147,3 +147,27 @@ next=never
 # │ ✓ Extensibility: Easy to add more ports/protocols              │
 # │ ✓ Maintainability: Clear separation of concerns                │
 # └─────────────────────────────────────────────────────────────────┘
+#
+# ┌─────────────────────────────────────────────────────────────────┐
+# │ CRITICAL ARCHITECTURAL DISTINCTION                              │
+# ├─────────────────────────────────────────────────────────────────┤
+# │ **Task-Level Conditional Execution vs Conditional Blocks:**    │
+# │                                                                 │
+# │ ✅ TASK-LEVEL CONDITIONS (used in this example):               │
+# │    • Regular tasks with condition= parameter (Tasks 3-4)       │
+# │    • CAN use routing: on_success, on_failure, next             │
+# │    • Execute independently based on condition evaluation       │
+# │    • Example: condition=@0_exit@=0 on_success=10               │
+# │                                                                 │
+# │ ❌ CONDITIONAL BLOCK SUBTASKS (NOT used here):                 │
+# │    • Subtasks within if_true_tasks/if_false_tasks arrays       │
+# │    • CANNOT use routing (enforced by validation)               │
+# │    • Control returns to parent block for evaluation            │
+# │    • Parent block handles routing via Multi-Task Success Eval  │
+# │                                                                 │
+# │ **Why This Matters:**                                           │
+# │ Tasks 3-4 are REGULAR TASKS, not conditional block subtasks.   │
+# │ They can safely use routing parameters without violating       │
+# │ conditional block architecture restrictions introduced in      │
+# │ TASKER's subtask routing validation (PR #xxx).                 │
+# └─────────────────────────────────────────────────────────────────┘

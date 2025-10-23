@@ -213,10 +213,10 @@ flowchart TD
 | `task` | Integer | ✅ Yes | Unique task identifier |
 | `type` | String | ✅ Yes | Must be "conditional" |
 | `condition` | String | ✅ Yes | Boolean expression to evaluate |
-| `if_true_tasks` | String | ✅ Yes* | Task IDs for TRUE branch |
-| `if_false_tasks` | String | ✅ Yes* | Task IDs for FALSE branch |
+| `if_true_tasks` | String | ✅ Yes | Task IDs for TRUE branch (non-empty) |
+| `if_false_tasks` | String | ✅ Yes | Task IDs for FALSE branch (non-empty) |
 
-*At least one of `if_true_tasks` or `if_false_tasks` must be specified.
+**Both branches are required and must be non-empty** (validation error otherwise).
 
 ### Example
 ```bash

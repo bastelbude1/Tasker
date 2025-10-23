@@ -28,7 +28,7 @@ flowchart TD
 | `arguments` | String | ❌ Optional | Command arguments |
 
 ### Example
-```
+```bash
 task=0
 hostname=server01
 command=ls
@@ -68,7 +68,7 @@ flowchart TD
 | `next` | String | ❌ Optional | Flow control (never, return=X, task ID) |
 
 ### Example
-```
+```bash
 # Applied to existing task:
 success=exit_0&stdout~running
 next=success
@@ -116,7 +116,7 @@ flowchart TD
 | `on_failure` | Integer | ❌ Optional | Task ID to jump to on failure |
 
 ### Example
-```
+```bash
 # Applied to existing task:
 success=exit_0&stdout~running
 on_success=20
@@ -162,7 +162,7 @@ flowchart TD
 | `sleep` | Integer | ❌ Optional | Sleep duration (0-300 seconds) |
 
 ### Example
-```
+```bash
 # Applied to existing task:
 sleep=5
 ```
@@ -214,7 +214,7 @@ flowchart TD
 *At least one of `if_true_tasks` or `if_false_tasks` must be specified.
 
 ### Example
-```
+```bash
 task=2
 type=conditional
 condition=@0_stdout@=OPEN
@@ -435,7 +435,7 @@ Skip individual tasks based on runtime conditions (regular task parameter)
 | `hostname` | String | ✅ Yes | Target host |
 
 ### Example
-```
+```bash
 task=1
 hostname=web-server
 command=restart_service
@@ -500,7 +500,7 @@ flowchart TD
 | `loop_break` | String | ❌ Optional | Condition to break out of loop early |
 
 ### Example
-```
+```bash
 task=0
 hostname=localhost
 command=conditional_exit.sh
@@ -563,7 +563,7 @@ flowchart TD
 | `max_parallel` | Integer | ❌ Optional | Max concurrent tasks (1-50, default: all) |
 
 ### Example
-```
+```bash
 task=8
 type=parallel
 tasks=10,11,12
@@ -643,7 +643,7 @@ flowchart TD
 | `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
 
 ### Example
-```
+```bash
 task=8
 type=parallel
 tasks=10,11,12
@@ -712,7 +712,7 @@ flowchart TD
 *At least one of `if_true_tasks` or `if_false_tasks` must be specified.
 
 ### Example
-```
+```bash
 task=2
 type=conditional
 condition=@0_stdout@=OPEN
@@ -778,7 +778,7 @@ flowchart TD
 | `majority_success` | success_count > total_tasks/2 | `majority_success` |
 
 ### Example
-```
+```bash
 next=min_success=3
 ```
 
@@ -827,7 +827,7 @@ flowchart TD
 - **`on_failure`** → Any failure triggers this path
 
 ### Example
-```
+```bash
 on_success=20
 on_failure=99
 ```
@@ -872,13 +872,13 @@ flowchart TD
 ### Examples
 
 **Stop workflow successfully:**
-```
+```bash
 task=99
 next=never
 ```
 
 **Explicit success with exit code:**
-```
+```bash
 task=100
 return=0
 ```
@@ -922,19 +922,19 @@ flowchart TD
 ### Examples
 
 **Stop workflow with failure:**
-```
+```bash
 task=98
 return=1
 ```
 
 **Stop with specific error code:**
-```
+```bash
 task=97
 return=14
 ```
 
 **Explicit failure with never:**
-```
+```bash
 task=96
 next=never
 return=1
@@ -976,7 +976,7 @@ flowchart TD
 | `exec` | String | ❌ Optional | Override default execution type for this specific task (pbrun, p7s, local, wwrs) |
 
 ### Examples
-```
+```bash
 # Configuration parameters within a task
 task=0
 hostname=server1
@@ -1002,7 +1002,7 @@ Applied to individual tasks to override TASKER defaults
 - **Key Distinction**: Global variables are standalone KEY=VALUE, these are task parameters
 
 ### Task-Level Override Example
-```
+```bash
 # Task with configuration overrides
 task=1
 hostname=server1
@@ -1152,7 +1152,7 @@ flowchart TD
 | `value` | String | ✅ Yes | Variable value or expression |
 
 ### Examples
-```
+```bash
 ENVIRONMENT=production
 DATABASE_HOST=db.company.com
 RETRY_COUNT=3
@@ -1219,7 +1219,7 @@ flowchart TD
 - The split operation occurs AFTER command execution but BEFORE placeholder storage
 
 ### Example
-```
+```bash
 # Applied to existing task:
 stdout_split=comma,1    # Split by comma, get 2nd element (0-indexed)
 stderr_split=space,0    # Split by spaces, get 1st element

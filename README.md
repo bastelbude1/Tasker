@@ -3889,7 +3889,7 @@ return=1
 - ✅ **Phase 3: Execute** - Conditional downloads based on port status
 
 **4. Optimization Benefits:**
-```
+```text
 BEFORE: Check port 443 → Decide → Download → Check port 80 → Decide → Download
 AFTER:  Check both ports → Decide (early exit) → Try downloads with conditions
 

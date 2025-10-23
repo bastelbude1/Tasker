@@ -26,15 +26,20 @@ task=2
 type=decision
 # Success if at least one port is open
 success=@0_exit@=0|@1_exit@=0
-on_success=3   # At least one port open, proceed
-on_failure=99  # No ports available, error
+# At least one port open, proceed
+on_success=3
+# No ports available, error
+on_failure=99
 
 # Task 3: Decision - which port to use?
 task=3
 type=decision
-success=@0_exit@=0  # Is port 80 open?
-on_success=4   # Use HTTP
-on_failure=5   # Use HTTPS (we know 443 is open from task 2)
+# Is port 80 open?
+success=@0_exit@=0
+# Use HTTP
+on_success=4
+# Use HTTPS (we know 443 is open from task 2)
+on_failure=5
 
 # Task 4: HTTP curl
 task=4
@@ -42,7 +47,7 @@ hostname=@SERVER@
 command=echo
 arguments=Downloading via HTTP (port 80)
 exec=local
-next=10
+on_success=10
 
 # Task 5: HTTPS curl
 task=5
@@ -50,7 +55,7 @@ hostname=@SERVER@
 command=echo
 arguments=Downloading via HTTPS (port 443)
 exec=local
-next=10
+on_success=10
 
 # Task 10: Process downloaded file
 task=10

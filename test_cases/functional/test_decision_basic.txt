@@ -21,7 +21,6 @@ hostname=localhost
 command=echo
 arguments=Decision passed - success path
 exec=local
-next=3
 
 # Task 3: Complete workflow
 task=3

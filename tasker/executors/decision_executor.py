@@ -54,7 +54,7 @@ class DecisionExecutor:
         decision_result = None
         decision_type = None
 
-        # Evaluate success condition first if defined
+        # Evaluate EITHER success OR failure condition (not both)
         if success_condition:
             # Use dummy values for exit_code, stdout, stderr since decision blocks don't execute commands
             success_result = ConditionEvaluator.evaluate_condition(
@@ -67,14 +67,20 @@ class DecisionExecutor:
                 debug_callback=executor_instance.log_debug
             )
 
+            executor_instance.log(f"Task {task_id}: Decision condition '{success_condition}' evaluated to: {success_result}")
+
             if success_result:
                 decision_result = True
                 decision_type = 'success'
-                executor_instance.log(f"Task {task_id}: Decision condition '{success_condition}' evaluated to: true")
                 executor_instance.log(f"Task {task_id}: Decision PASSED")
+            else:
+                # Success condition failed
+                decision_result = False
+                decision_type = 'failure'
+                executor_instance.log(f"Task {task_id}: Decision FAILED (success condition not met)")
 
-        # If success condition was false or not defined, evaluate failure condition
-        if decision_result is None and failure_condition:
+        # Evaluate failure condition ONLY if success condition is not defined
+        elif failure_condition:
             failure_result = ConditionEvaluator.evaluate_condition(
                 failure_condition,
                 exit_code=0,  # Not applicable
@@ -85,11 +91,18 @@ class DecisionExecutor:
                 debug_callback=executor_instance.log_debug
             )
 
+            executor_instance.log(f"Task {task_id}: Failure condition '{failure_condition}' evaluated to: {failure_result}")
+
             if failure_result:
+                # Failure condition is true - decision fails
                 decision_result = False
                 decision_type = 'failure'
-                executor_instance.log(f"Task {task_id}: Decision condition '{failure_condition}' evaluated to: true")
-                executor_instance.log(f"Task {task_id}: Decision FAILED")
+                executor_instance.log(f"Task {task_id}: Decision FAILED (failure condition met)")
+            else:
+                # Failure condition is false - decision succeeds
+                decision_result = True
+                decision_type = 'success'
+                executor_instance.log(f"Task {task_id}: Decision PASSED (failure condition not met)")
 
         # If neither condition was met, log that
         if decision_result is None:

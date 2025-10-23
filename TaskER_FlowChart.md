@@ -149,7 +149,7 @@ flowchart TD
     B --> C[Continue]
 
     style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style B fill:#e0f7fa,stroke:#00acc1,stroke-width:3px
     style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
 ```
 
@@ -262,30 +262,16 @@ Decision blocks provide lightweight conditional routing without command executio
 <td width="40%">
 
 ```mermaid
-graph TB
-    %% Decision Block with next parameter
-    Start([Start]) --> D{Decision<br/>Evaluate<br/>success condition}
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Decision Block<br/>Evaluate Condition] --> B{SUCCESS}
+    B -->|next condition met| C[Continue to Next Task]
+    B -->|next condition not met| D((END))
 
-    %% Routing based on next parameter
-    D -->|TRUE| NextT{next<br/>parameter?}
-    D -->|FALSE| NextF{next<br/>parameter?}
-
-    NextT -->|next=always| ContT[Continue to<br/>next task]
-    NextT -->|next=never| StopT[END<br/>Workflow stops]
-    NextT -->|next=success<br/>DEFAULT| ContT
-
-    NextF -->|next=always| ContF[Continue to<br/>next task]
-    NextF -->|next=never| StopF[END<br/>Workflow stops]
-    NextF -->|next=success<br/>DEFAULT| StopF
-
-    %% Style
-    style D fill:#FFE4E1
-    style NextT fill:#FFF8DC
-    style NextF fill:#FFF8DC
-    style ContT fill:#90EE90
-    style ContF fill:#90EE90
-    style StopT fill:#FFB6C1
-    style StopF fill:#FFB6C1
+    style A fill:#FFE4E1,stroke:#DC143C,stroke-width:3px
+    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
 ```
 
 </td>
@@ -338,23 +324,16 @@ Perfect for early exit scenarios where you want to stop if a condition fails.
 <td width="40%">
 
 ```mermaid
-graph TB
-    %% Decision Block with explicit routing
-    Start([Start]) --> D{Decision<br/>Evaluate<br/>success condition}
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Decision Block<br/>Evaluate Condition] --> B{SUCCESS}
+    B -->|Success| C[Jump to on_success Task]
+    B -->|Failure| D[Jump to on_failure Task]
 
-    %% Explicit routing paths
-    D -->|TRUE| OS[Jump to<br/>on_success task]
-    D -->|FALSE| OF[Jump to<br/>on_failure task]
-
-    OS --> Success[Continue from<br/>success handler]
-    OF --> Failure[Continue from<br/>failure handler]
-
-    %% Style
-    style D fill:#FFE4E1
-    style OS fill:#90EE90
-    style OF fill:#FFB6C1
-    style Success fill:#C8E6C9
-    style Failure fill:#FFCDD2
+    style A fill:#FFE4E1,stroke:#DC143C,stroke-width:3px
+    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
 ```
 
 </td>
@@ -431,7 +410,7 @@ graph TB
     Routing -->|next| Seq[Continue<br/>Sequentially]
 
     %% Style
-    style C fill:#FFF8DC
+    style C fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px
     style Skip fill:#E0E0E0
     style Exec fill:#E1F5FE
     style Success fill:#C8E6C9
@@ -506,7 +485,7 @@ flowchart TD
     B -->|Counter >= Max OR Break Condition True| C[Continue Workflow]
 
     style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style B fill:#fff8e1,stroke:#f57c00,stroke-width:3px
     style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
 ```
 
@@ -549,7 +528,7 @@ Applied to any Execution Block
 </tr>
 </table>
 
-## 7. Parallel Block
+## 9. Parallel Block
 
 <table>
 <tr>
@@ -565,7 +544,7 @@ flowchart TD
     C --> E
     D --> E
 
-    style A fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
+    style A fill:#e0f2f1,stroke:#00897b,stroke-width:3px
     style B fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
@@ -618,7 +597,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 8. Parallel Block with Retry
+## 10. Parallel Block with Retry
 
 <table>
 <tr>
@@ -640,7 +619,7 @@ flowchart TD
     G -->|Failed & Retries Left| D
     G -->|Success OR Retries Exhausted| H
 
-    style A fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
+    style A fill:#e0f2f1,stroke:#00897b,stroke-width:3px
     style B fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
@@ -762,7 +741,7 @@ Can be entry point or follow any block
 </table>
 
 
-## 11.1. Multi-Task Success Evaluation Block (next)
+## 12. Multi-Task Success Evaluation Block (next)
 
 <table>
 <tr>
@@ -776,7 +755,7 @@ flowchart TD
     B -->|Condition Not Met| D((END WORKFLOW))
 
     style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style B fill:#ffe0b2,stroke:#f57f17,stroke-width:3px
     style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
     style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
 ```
@@ -815,7 +794,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-## 11.2. Multi-Task Success Evaluation Block (on_success/on_failure)
+## 13. Multi-Task Success Evaluation Block (on_success/on_failure)
 
 <table>
 <tr>
@@ -829,7 +808,7 @@ flowchart TD
     B -->|Condition Not Met| D[Jump to on_failure Task]
 
     style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style B fill:#ffe0b2,stroke:#f57f17,stroke-width:3px
     style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
     style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
 ```
@@ -866,7 +845,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-## 11. End Success Block
+## 14. End Success Block
 
 <table>
 <tr>
@@ -916,7 +895,7 @@ Terminal block - workflow ends successfully
 </tr>
 </table>
 
-## 12. End Failure Block
+## 15. End Failure Block
 
 <table>
 <tr>
@@ -973,7 +952,7 @@ Terminal block - workflow ends with failure
 </tr>
 </table>
 
-## 13. Configuration Definition Block
+## 16. Configuration Definition Block
 
 <table>
 <tr>
@@ -984,7 +963,7 @@ Terminal block - workflow ends with failure
 flowchart TD
     A[CONFIGURATION PARAMETERS]
 
-    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style A fill:#f5f5f5,stroke:#757575,stroke-width:3px
 ```
 
 </td>
@@ -1036,7 +1015,7 @@ exec=pbrun               # Override default exec type
 </tr>
 </table>
 
-## 14. File-Defined Arguments Block
+## 17. File-Defined Arguments Block
 
 <table>
 <tr>
@@ -1047,7 +1026,7 @@ exec=pbrun               # Override default exec type
 flowchart TD
     A[FILE-DEFINED ARGUMENTS]
 
-    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style A fill:#eeeeee,stroke:#616161,stroke-width:3px
 ```
 
 </td>
@@ -1149,7 +1128,7 @@ ENVIRONMENT=production
 </tr>
 </table>
 
-## 15. Global Variable Definition Block
+## 18. Global Variable Definition Block
 
 <table>
 <tr>
@@ -1160,7 +1139,7 @@ ENVIRONMENT=production
 flowchart TD
     A[GLOBAL VARIABLES]
 
-    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style A fill:#e8e8e8,stroke:#616161,stroke-width:3px
 ```
 
 </td>
@@ -1194,7 +1173,7 @@ Must be at the beginning of workflow file
 </tr>
 </table>
 
-## 16. Output Processing Block
+## 19. Output Processing Block
 
 <table>
 <tr>
@@ -1207,10 +1186,10 @@ flowchart TD
     B --> C[REPLACE Original Output]
     C --> D[Continue Workflow]
 
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
-    style C fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
-    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style A fill:#f0f0f0,stroke:#757575,stroke-width:3px
+    style B fill:#f0f0f0,stroke:#757575,stroke-width:3px
+    style C fill:#f0f0f0,stroke:#757575,stroke-width:3px
+    style D fill:#f0f0f0,stroke:#757575,stroke-width:3px
 ```
 
 </td>

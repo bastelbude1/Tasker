@@ -1333,7 +1333,7 @@ class TaskValidator:
         valid_task = (has_return or is_parallel or is_conditional or is_decision or (has_command and (has_hostname or is_local_exec)))  # NEW: Include decision
 
         if not valid_task:
-            self.errors.append(f"Line {line_number}: Task {task_id} must have either a command+hostname, a return value, or be a parallel/conditional task.")
+            self.errors.append(f"Line {line_number}: Task {task_id} must have either a command+hostname, a return value, or be a parallel/conditional/decision task.")
 
         # Validate 'return' field
         if 'return' in task:

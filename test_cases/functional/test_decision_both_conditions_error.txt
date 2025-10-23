@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Decision block with both success and failure - validation error", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+# TEST_METADATA: {"description": "Decision block with both success and failure - validation error", "test_type": "validation_only", "expected_exit_code": 20, "expected_success": false}
 # Test that decision blocks cannot have both success and failure conditions
 
 # Task 0: Setup task

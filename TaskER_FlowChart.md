@@ -230,16 +230,87 @@ Can be entry point or follow any block
 - If TRUE → Execute tasks in `if_true_tasks` list
 - If FALSE → Execute tasks in `if_false_tasks` list
 - Tasks execute sequentially in specified order (10,11,12)
-- Results feed into Multi-Task Success Evaluation Block (see #10.1)
+- Results feed into Multi-Task Success Evaluation Block (see # 11.1)
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (#10.1)
+→ Multi-Task Success Evaluation Block (# 11.1)
 
 </td>
 </tr>
 </table>
 
-## 6. Loop Block
+## 6. Decision Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+graph TB
+    %% Decision Block
+    Start([Start]) --> D{Decision<br/>Evaluate<br/>Condition}
+
+    %% Routing paths
+    D -->|TRUE| OS[on_success<br/>Task ID]
+    D -->|FALSE| OF[on_failure<br/>Task ID]
+    D -->|No Match| Next[Continue to<br/>Next Task]
+
+    %% Style
+    style D fill:#FFE4E1
+    style OS fill:#90EE90
+    style OF fill:#FFB6C1
+    style Next fill:#E6E6FA
+```
+
+</td>
+<td width="60%">
+
+### Purpose
+Lightweight conditional routing without command execution
+
+### Required Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `type` | String | ✅ Yes | Must be "decision" |
+| `success` | String | ✅ Yes* | Success condition to evaluate |
+| `failure` | String | ✅ Yes* | Failure condition to evaluate |
+
+*Either `success` OR `failure` is required (not both).
+
+### Example
+```
+task=2
+type=decision
+success=@0_exit@=0|@1_exit@=0
+on_success=10
+on_failure=99
+```
+
+### Entry Point
+Can be entry point or follow any block
+
+### Behavior
+- Evaluates condition without executing commands
+- Uses same syntax as regular task `success`/`failure` fields
+- If condition TRUE → Jump to `on_success` task
+- If condition FALSE → Jump to `on_failure` task
+- If no routing specified → Continue to next sequential task
+
+### Key Differences from Conditional Block
+- No command execution (no `hostname`, `command`, `arguments`)
+- No task branches (`if_true_tasks`, `if_false_tasks`)
+- Pure routing logic - lighter weight
+- Uses familiar success/failure condition syntax
+
+### Next Block
+→ Jump to specified task ID or continue sequentially
+
+</td>
+</tr>
+</table>
+
+## 8. Loop Block
 
 <table>
 <tr>
@@ -425,7 +496,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 9. Conditional Block with Retry
+## 11. Conditional Block with Retry
 
 <table>
 <tr>
@@ -487,17 +558,17 @@ Can be entry point or follow any block
 - If FALSE → Execute tasks in `if_false_tasks` list
 - **Retry vs Loop**: Failed tasks in chosen branch are automatically retried up to `retry_count` times. This differs from loop logic (Section 6), which executes ALL iterations regardless of success/failure.
 - Tasks execute sequentially with retry logic
-- Results feed into Multi-Task Success Evaluation Block (see #10.1)
+- Results feed into Multi-Task Success Evaluation Block (see # 11.1)
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (#10.1)
+→ Multi-Task Success Evaluation Block (# 11.1)
 
 </td>
 </tr>
 </table>
 
 
-## 10.1. Multi-Task Success Evaluation Block (next)
+## 11.1. Multi-Task Success Evaluation Block (next)
 
 <table>
 <tr>
@@ -550,7 +621,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-## 10.2. Multi-Task Success Evaluation Block (on_success/on_failure)
+## 11.2. Multi-Task Success Evaluation Block (on_success/on_failure)
 
 <table>
 <tr>

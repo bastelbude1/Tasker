@@ -988,6 +988,19 @@ class TaskValidator:
         if 'arguments' in task:
             self.errors.append(f"Line {line_number}: Task {task_id} is a decision block and should not have an 'arguments' field.")
 
+        # Decision blocks must not specify timeout (no execution occurs)
+        if 'timeout' in task:
+            self.errors.append(f"Line {line_number}: Task {task_id} is a decision block and cannot use 'timeout'.")
+
+        # Exec type is irrelevant for decision blocks; warn to avoid confusion
+        if 'exec' in task:
+            self.warnings.append(f"Line {line_number}: Task {task_id} is a decision block; 'exec' is ignored.")
+
+        # Output splitting/counting fields are meaningless on decision blocks; warn
+        for field in ['stdout_split', 'stderr_split', 'stdout_count', 'stderr_count']:
+            if field in task:
+                self.warnings.append(f"Line {line_number}: Task {task_id} is a decision block; '{field}' has no effect and will be ignored.")
+
         # Flow control validation is handled by validate_field_values
         # Just check that at least one flow control field is present
         has_flow_control = any(field in task for field in ['on_success', 'on_failure', 'next'])

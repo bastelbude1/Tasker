@@ -32,6 +32,17 @@ class SequentialExecutor(BaseExecutor):
             from .parallel_executor import ParallelExecutor
             return ParallelExecutor.execute_parallel_tasks(task, executor_instance)
 
+        # NEW: Check if this is a decision block
+        if task.get('type') == 'decision':
+            from .decision_executor import DecisionExecutor
+            next_task_id = DecisionExecutor.execute_decision_block(task, task_id, executor_instance)
+            # Decision blocks return next task ID or None
+            if next_task_id is None:
+                return False  # Stop execution
+            else:
+                # Return the next task ID to execute
+                return next_task_id
+
         # Get loop iteration display if looping
         # For tasks with loop parameter, always show iteration number starting from .1
         loop_display = ""

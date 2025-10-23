@@ -95,8 +95,8 @@ class TaskValidator:
         # Valid direct modifiers (no partial_success prefix needed)
         self.valid_direct_modifiers = ['min_success', 'max_failed', 'min_failed', 'max_success']
         
-        # Valid task types - NEW: Added 'conditional'
-        self.valid_task_types = ['parallel', 'conditional']
+        # Valid task types - NEW: Added 'conditional' and 'decision'
+        self.valid_task_types = ['parallel', 'conditional', 'decision']
         
         # Known split delimiters (aligned with evaluator)
         self.known_delimiters = ['space', 'tab', 'semi', 'semicolon', 'comma', 'pipe', 'newline', 'colon']
@@ -538,6 +538,8 @@ class TaskValidator:
                 task_type = 'parallel'
             elif 'type' in task and task['type'] == 'conditional':  # NEW: Conditional task detection
                 task_type = 'conditional'
+            elif 'type' in task and task['type'] == 'decision':  # NEW: Decision block detection
+                task_type = 'decision'
 
             # SECURITY VALIDATION: Now that all fields are parsed, validate them
             # Context-aware validation: exec_type determines validation strictness
@@ -613,6 +615,10 @@ class TaskValidator:
                 self.validate_conditional_task(task, task_id, line_number, conditional_tasks)
                 # Validate retry configuration for conditional tasks
                 self.validate_retry_configuration(task, task_id, line_number)
+
+            # Validate decision block specific fields
+            if task_type == 'decision':
+                self.validate_decision_task(task, task_id, line_number)
 
             # Validate global variable references
             self.validate_global_variable_references(task, task_id, line_number)
@@ -939,6 +945,52 @@ class TaskValidator:
         except ValueError as e:
             self.errors.append(f"Line {line_number}: Task {task_id} has invalid task reference in {field_name} field: {str(e)}")
 
+    def validate_decision_task(self, task, task_id, line_number):
+        """Validate decision block specific fields."""
+
+        # Validate 'type' field
+        if 'type' in task:
+            task_type = task['type']
+            if task_type != 'decision':
+                self.errors.append(f"Line {line_number}: Task {task_id} has invalid type '{task_type}'. Expected 'decision'.")
+
+        # Decision blocks must have at least success= OR failure= defined
+        has_success = 'success' in task and task['success'].strip()
+        has_failure = 'failure' in task and task['failure'].strip()
+
+        if not has_success and not has_failure:
+            self.errors.append(f"Line {line_number}: Task {task_id} is a decision block but has neither 'success' nor 'failure' conditions defined. At least one is required.")
+
+        # Validate success condition if present
+        if has_success:
+            self.validate_condition_expression(task['success'], 'success', task_id, line_number)
+
+        # Validate failure condition if present
+        if has_failure:
+            self.validate_condition_expression(task['failure'], 'failure', task_id, line_number)
+
+        # Decision blocks should NOT have command or hostname
+        if 'command' in task:
+            self.errors.append(f"Line {line_number}: Task {task_id} is a decision block and should not have a 'command' field.")
+
+        if 'hostname' in task:
+            self.errors.append(f"Line {line_number}: Task {task_id} is a decision block and should not have a 'hostname' field.")
+
+        if 'arguments' in task:
+            self.errors.append(f"Line {line_number}: Task {task_id} is a decision block and should not have an 'arguments' field.")
+
+        # Validate flow control parameters
+        if 'on_success' in task:
+            self.validate_task_reference(task['on_success'], 'on_success', task_id, line_number)
+
+        if 'on_failure' in task:
+            self.validate_task_reference(task['on_failure'], 'on_failure', task_id, line_number)
+
+        if 'next' in task:
+            next_value = task['next']
+            if next_value != 'never':
+                self.validate_task_reference(next_value, 'next', task_id, line_number)
+
     def validate_global_variable_references(self, task, task_id, line_number):
         """Validate that all global variable references (@VARIABLE@) are defined and track usage."""
         
@@ -1252,8 +1304,8 @@ class TaskValidator:
             loop_break_value = task['loop_break']
             self.validate_condition_expression(loop_break_value, 'loop_break', task_id, line_number)
 
-        # Validate 'command' field (skip for parallel and conditional tasks)
-        if 'command' in task and task.get('type') not in ['parallel', 'conditional']:  # NEW: Skip conditional tasks
+        # Validate 'command' field (skip for parallel, conditional, and decision tasks)
+        if 'command' in task and task.get('type') not in ['parallel', 'conditional', 'decision']:  # NEW: Skip decision tasks
             command_resolved = self.resolve_global_variables_for_validation(task['command'])
             command_clean = self.clean_field_value(command_resolved)
             if command_clean == '':
@@ -1267,12 +1319,13 @@ class TaskValidator:
         has_return = 'return' in task
         is_parallel = task.get('type') == 'parallel'
         is_conditional = task.get('type') == 'conditional'  # NEW: Check for conditional
-        
+        is_decision = task.get('type') == 'decision'  # NEW: Check for decision
+
         # Special case for local execution (doesn't need hostname)
         exec_resolved = self.resolve_global_variables_for_validation(task.get('exec', ''))
         is_local_exec = self.clean_field_value(exec_resolved) == 'local'
 
-        valid_task = (has_return or is_parallel or is_conditional or (has_command and (has_hostname or is_local_exec)))  # NEW: Include conditional
+        valid_task = (has_return or is_parallel or is_conditional or is_decision or (has_command and (has_hostname or is_local_exec)))  # NEW: Include decision
 
         if not valid_task:
             self.errors.append(f"Line {line_number}: Task {task_id} must have either a command+hostname, a return value, or be a parallel/conditional task.")
@@ -1344,11 +1397,12 @@ class TaskValidator:
 
         # Validate 'timeout' field
         if 'timeout' in task:
-            # Skip timeout validation for parallel/conditional tasks - they have their own specific validation
+            # Skip timeout validation for parallel/conditional/decision tasks - they have their own specific validation
             is_parallel = task.get('type') == 'parallel'
             is_conditional = task.get('type') == 'conditional'
+            is_decision = task.get('type') == 'decision'
 
-            if not is_parallel and not is_conditional:
+            if not is_parallel and not is_conditional and not is_decision:
                 # CRITICAL: Timeout can only be used on tasks that execute commands
                 # Tasks without commands (return) don't execute anything
                 has_command = 'command' in task

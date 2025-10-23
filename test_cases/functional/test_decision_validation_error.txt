@@ -1,0 +1,29 @@
+# TEST_METADATA: {"description": "Decision block validation error - has command", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+# Test decision block validation - should fail because decision blocks can't have commands
+
+# Task 0: Invalid decision block with command
+task=0
+type=decision
+success=@some_var@=0
+hostname=localhost
+command=echo
+arguments=This should cause validation error
+on_success=1
+on_failure=2
+
+# Task 1: Success path (won't execute due to validation error)
+task=1
+hostname=localhost
+command=echo
+arguments=Success
+exec=local
+next=never
+
+# Task 2: Failure path (won't execute due to validation error)
+task=2
+hostname=localhost
+command=echo
+arguments=Failure
+exec=local
+return=1
+next=never

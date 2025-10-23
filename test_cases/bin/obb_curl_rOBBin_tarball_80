@@ -1,0 +1,5 @@
+#!/bin/bash
+# Mock HTTP curl command for downloading via port 80
+echo "Downloading tarball via HTTP (port 80) from $1"
+echo "HTTP Download successful: mock_tarball.tar.gz"
+exit 0

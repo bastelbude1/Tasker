@@ -340,21 +340,17 @@ class TaskValidator:
                 # Check for routing parameters
                 has_on_success = 'on_success' in ref_task
                 has_on_failure = 'on_failure' in ref_task
-                has_next_never = ref_task.get('next') == 'never'
-                has_next_loop = ref_task.get('next') == 'loop'
-                # Note: next=always is allowed as it just continues within the branch
+                has_next = 'next' in ref_task
 
-                if has_on_success or has_on_failure or has_next_never or has_next_loop:
+                if has_on_success or has_on_failure or has_next:
                     # Build list of detected routing parameters
                     routing_params = []
                     if has_on_success:
                         routing_params.append(f"on_success={ref_task['on_success']}")
                     if has_on_failure:
                         routing_params.append(f"on_failure={ref_task['on_failure']}")
-                    if has_next_never:
-                        routing_params.append("next=never")
-                    if has_next_loop:
-                        routing_params.append("next=loop")
+                    if has_next:
+                        routing_params.append(f"next={ref_task['next']}")
 
                     params_str = ", ".join(routing_params)
 

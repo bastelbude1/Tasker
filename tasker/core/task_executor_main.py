@@ -1337,11 +1337,12 @@ class TaskExecutor:
                     self.log_info(f"            -> on success: task {on_success}")
                 if on_failure:
                     self.log_info(f"            -> on failure: task {on_failure}")
+                # Always show default routing for clarity
                 if next_task == 'never':
                     self.log_info("            -> default: stop execution")
                 elif next_task:
                     self.log_info(f"            -> default: task {next_task}")
-                elif not on_success and not on_failure:
+                else:
                     self.log_info(f"            -> default: continue to task {task_id + 1}")
             elif 'return' in task:
                 return_code = task.get('return', 'N/A')

@@ -1,0 +1,32 @@
+# TEST_METADATA: {"description": "Decision block test - failure path", "test_type": "positive", "expected_exit_code": 1, "expected_success": false, "expected_execution_path": [0, 1, 99]}
+# Test decision block failure path
+
+# Task 0: Set up failure condition
+task=0
+hostname=localhost
+command=false
+exec=local
+
+# Task 1: Decision block - should fail
+task=1
+type=decision
+success=@0_exit@=0
+on_success=2
+on_failure=99
+
+# Task 2: Success path (should not execute)
+task=2
+hostname=localhost
+command=echo
+arguments=Decision passed - success path
+exec=local
+next=never
+
+# Task 99: Error path (should execute)
+task=99
+hostname=localhost
+command=echo
+arguments=Decision failed - error path executed
+exec=local
+return=1
+next=never

@@ -1,0 +1,91 @@
+# TASKER Educational Example: Port Check with Conditional Block
+# Demonstrates using conditional blocks for efficient routing
+# Shows how to minimize task execution with smart branching
+# TEST_METADATA: {"description": "Conditional port check and curl", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Global variables
+SERVER=localhost
+TIMEOUT=10
+
+# ===================================
+# Task 0: Check Port 80 First
+# ===================================
+task=0
+hostname=@SERVER@
+command=obb_portcheck_ubsmc_80
+timeout=@TIMEOUT@
+# Always continue to conditional
+
+# ===================================
+# Task 1: Conditional Routing
+# ===================================
+task=1
+type=conditional
+# If port 80 open, go HTTP route
+# If port 80 closed, go HTTPS route
+condition=@0_exit@=0
+if_true_tasks=2
+if_false_tasks=3
+
+# ===================================
+# Task 2: HTTP Curl (Port 80 was open)
+# ===================================
+task=2
+hostname=@SERVER@
+command=obb_curl_rOBBin_tarball_80
+arguments=--connect-timeout 30
+# Jump to processing
+on_success=10
+on_failure=98
+
+# ===================================
+# Task 3: Check Port 443 (Port 80 was closed)
+# ===================================
+task=3
+hostname=@SERVER@
+command=obb_portcheck_ubsmc_443
+timeout=@TIMEOUT@
+on_success=4
+on_failure=99
+
+# ===================================
+# Task 4: HTTPS Curl (Port 443 open)
+# ===================================
+task=4
+hostname=@SERVER@
+command=obb_curl_rOBBin_tarball_443
+arguments=--connect-timeout 30
+# Jump to processing
+on_success=10
+on_failure=98
+
+# ===================================
+# Task 10: Process Downloaded File
+# ===================================
+# CONVERGENCE POINT: Both paths meet here
+# Can access @0_exit@ to know which port was used
+task=10
+hostname=@SERVER@
+command=echo
+arguments=Processing tarball (via @0_exit@=0:HTTP:HTTPS)
+next=never
+
+# ===================================
+# Error Handlers
+# ===================================
+
+# Task 98: Curl Failed
+task=98
+hostname=@SERVER@
+command=echo
+arguments=ERROR: Curl download failed
+return=2
+next=never
+
+# Task 99: No Ports Available
+task=99
+hostname=@SERVER@
+command=echo
+arguments=ERROR: No accessible ports on @SERVER@
+return=1
+next=never

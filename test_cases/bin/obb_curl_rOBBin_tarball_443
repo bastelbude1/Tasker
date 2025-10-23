@@ -1,0 +1,5 @@
+#!/bin/bash
+# Mock HTTPS curl command for downloading via port 443
+echo "Downloading tarball via HTTPS (port 443) from $1"
+echo "HTTPS Download successful: mock_tarball.tar.gz"
+exit 0

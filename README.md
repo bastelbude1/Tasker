@@ -2385,8 +2385,8 @@ Parameters for branching based on runtime conditions:
 |-----------|------|----------|-------------|----------|
 | `type` | String | **Yes** | Must be "conditional" | `conditional` |
 | `condition` | String | **Yes** | Boolean expression to evaluate | `@ENV@=prod&@0_success@=true` |
-| `if_true_tasks` | String | No* | Task IDs for TRUE branch | "100,300,150" (custom order) |
-| `if_false_tasks` | String | No* | Task IDs for FALSE branch | "200,205,210" (skip tasks) |
+| `if_true_tasks` | String | **Yes** | Task IDs for TRUE branch (non-empty) | "100,300,150" (custom order) |
+| `if_false_tasks` | String | **Yes** | Task IDs for FALSE branch (non-empty) | "200,205,210" (skip tasks) |
 | `next` | String | No | Success evaluation condition | Same as parallel conditions |
 | `success` | String | No | Success condition for flexible routing | Same as `next` conditions |
 | `on_success` | Integer | No | Task ID if success/next condition met | Any valid task ID |
@@ -2394,7 +2394,7 @@ Parameters for branching based on runtime conditions:
 | `retry_count` | Integer | No | Number of retry attempts (enables retry) | 1-1000 (default: 1) |
 | `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |
 
-*At least one of `if_true_tasks` or `if_false_tasks` must be specified.
+**Both branches are required and must be non-empty** (validation error otherwise).
 
 **Conditional `next` Conditions:** See [Multi-Task Success Evaluation Conditions](#multi-task-success-evaluation-conditions) below.
 

@@ -232,6 +232,18 @@ Can be entry point or follow any block
 - Tasks execute sequentially in specified order (10,11,12)
 - Results feed into Multi-Task Success Evaluation Block (see # 11.1)
 
+**CRITICAL Routing Restrictions:**
+- **Subtasks CANNOT have routing parameters** (`on_success`, `on_failure`, `next=never/loop`)
+- Control MUST return to conditional block for Multi-Task Success Evaluation
+- Validation will **FAIL** if subtasks contain routing parameters
+- **Use Decision Blocks** instead if individual task routing is needed
+
+**Subtask ID Range Convention (Recommended):**
+- Use distinct ID ranges to clearly separate subtasks from main workflow
+- Recommended: Task N subtasks in range `[N*100, (N+1)*100-1]`
+- Example: Task 1 subtasks → 100-199, Task 2 subtasks → 200-299
+- Use `--skip-subtask-range-validation` to suppress warnings
+
 ### Next Block
 → Multi-Task Success Evaluation Block (# 11.1)
 
@@ -241,32 +253,46 @@ Can be entry point or follow any block
 
 ## 6. Decision Block
 
+Decision blocks provide lightweight conditional routing without command execution. Two routing patterns available:
+
+### 6.1 Decision Block with next Parameter
+
 <table>
 <tr>
 <td width="40%">
 
 ```mermaid
 graph TB
-    %% Decision Block
-    Start([Start]) --> D{Decision<br/>Evaluate<br/>Condition}
+    %% Decision Block with next parameter
+    Start([Start]) --> D{Decision<br/>Evaluate<br/>success condition}
 
-    %% Routing paths
-    D -->|TRUE| OS[on_success<br/>Task ID]
-    D -->|FALSE| OF[on_failure<br/>Task ID]
-    D -->|No Match| Next[Continue to<br/>Next Task]
+    %% Routing based on next parameter
+    D -->|TRUE| NextT{next<br/>parameter?}
+    D -->|FALSE| NextF{next<br/>parameter?}
+
+    NextT -->|next=always| ContT[Continue to<br/>next task]
+    NextT -->|next=never| StopT[END<br/>Workflow stops]
+    NextT -->|next=success<br/>DEFAULT| ContT
+
+    NextF -->|next=always| ContF[Continue to<br/>next task]
+    NextF -->|next=never| StopF[END<br/>Workflow stops]
+    NextF -->|next=success<br/>DEFAULT| StopF
 
     %% Style
     style D fill:#FFE4E1
-    style OS fill:#90EE90
-    style OF fill:#FFB6C1
-    style Next fill:#E6E6FA
+    style NextT fill:#FFF8DC
+    style NextF fill:#FFF8DC
+    style ContT fill:#90EE90
+    style ContF fill:#90EE90
+    style StopT fill:#FFB6C1
+    style StopF fill:#FFB6C1
 ```
 
 </td>
 <td width="60%">
 
 ### Purpose
-Lightweight conditional routing without command execution
+Simple pass/fail gate using `next` parameter for routing
 
 ### Required Parameters
 | Parameter | Type | Required | Description |
@@ -274,28 +300,104 @@ Lightweight conditional routing without command execution
 | `task` | Integer | ✅ Yes | Unique task identifier |
 | `type` | String | ✅ Yes | Must be "decision" |
 | `success` | String | ✅ Yes* | Success condition to evaluate |
-| `failure` | String | ✅ Yes* | Failure condition to evaluate |
+| `next` | String | ⚠️ Optional | Routing: always, never, success (default) |
 
-*Either `success` OR `failure` is required (not both).
+*Either `success` OR `failure` is required.
 
 ### Example
-```
+```bash
+# Early exit if both ports failed
 task=2
 type=decision
 success=@0_exit@=0|@1_exit@=0
-on_success=10
-on_failure=99
+next=success
+# If TRUE → continue (next=success evaluates TRUE)
+# If FALSE → stop (next=success evaluates FALSE)
 ```
 
-### Entry Point
-Can be entry point or follow any block
+### Behavior
+**Default behavior (`next=success` if missing):**
+- Condition TRUE → Continue to next task
+- Condition FALSE → **Workflow STOPS**
+
+**Other `next` values:**
+- `next=always` → Always continue regardless
+- `next=never` → Always stop regardless
+
+### Use Case
+Perfect for early exit scenarios where you want to stop if a condition fails.
+
+</td>
+</tr>
+</table>
+
+### 6.2 Decision Block with on_success/on_failure
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+graph TB
+    %% Decision Block with explicit routing
+    Start([Start]) --> D{Decision<br/>Evaluate<br/>success condition}
+
+    %% Explicit routing paths
+    D -->|TRUE| OS[Jump to<br/>on_success task]
+    D -->|FALSE| OF[Jump to<br/>on_failure task]
+
+    OS --> Success[Continue from<br/>success handler]
+    OF --> Failure[Continue from<br/>failure handler]
+
+    %% Style
+    style D fill:#FFE4E1
+    style OS fill:#90EE90
+    style OF fill:#FFB6C1
+    style Success fill:#C8E6C9
+    style Failure fill:#FFCDD2
+```
+
+</td>
+<td width="60%">
+
+### Purpose
+Explicit routing to different task paths based on condition result
+
+### Required Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `type` | String | ✅ Yes | Must be "decision" |
+| `success` | String | ✅ Yes* | Success condition to evaluate |
+| `on_success` | Integer | ⚠️ Optional** | Task ID for TRUE path |
+| `on_failure` | Integer | ⚠️ Optional** | Task ID for FALSE path |
+
+*Either `success` OR `failure` is required.
+**At least one routing parameter recommended.
+
+### Example
+```bash
+# Route based on port availability
+task=2
+type=decision
+success=@0_exit@=0|@1_exit@=0
+on_success=3
+on_failure=99
+# If TRUE → jump to task 3 (try downloads)
+# If FALSE → jump to task 99 (error handler)
+```
 
 ### Behavior
-- Evaluates condition without executing commands
-- Uses same syntax as regular task `success`/`failure` fields
-- If condition TRUE → Jump to `on_success` task
-- If condition FALSE → Jump to `on_failure` task
-- If no routing specified → Continue to next sequential task
+**Routing Priority:**
+1. Check `on_success` or `on_failure` based on condition result
+2. If not defined, falls back to `next` parameter logic
+
+### Use Case
+Perfect for branching workflows where different paths handle success vs failure differently.
+
+</td>
+</tr>
+</table>
 
 ### Key Differences from Conditional Block
 - No command execution (no `hostname`, `command`, `arguments`)
@@ -304,7 +406,87 @@ Can be entry point or follow any block
 - Uses familiar success/failure condition syntax
 
 ### Next Block
-→ Jump to specified task ID or continue sequentially
+→ Jump to specified task ID or continue/stop based on routing
+
+## 7. Task-Level Conditional Execution
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+graph TB
+    %% Task with condition parameter
+    Start([Start]) --> C{Evaluate<br/>condition<br/>parameter}
+
+    %% Conditional skip paths
+    C -->|FALSE| Skip[Task Skipped<br/>exit_code=-1<br/>Continue to next task]
+    C -->|TRUE| Exec[Execute Task<br/>command + arguments]
+
+    Exec --> Success[Store Results<br/>Apply routing]
+    Skip --> Next[Next Sequential Task]
+    Success --> Routing{Routing?}
+    Routing -->|on_success| OS[Jump to<br/>on_success task]
+    Routing -->|on_failure| OF[Jump to<br/>on_failure task]
+    Routing -->|next| Seq[Continue<br/>Sequentially]
+
+    %% Style
+    style C fill:#FFF8DC
+    style Skip fill:#E0E0E0
+    style Exec fill:#E1F5FE
+    style Success fill:#C8E6C9
+    style Routing fill:#FFE4E1
+    style OS fill:#90EE90
+    style OF fill:#FFB6C1
+    style Seq fill:#E6E6FA
+```
+
+</td>
+<td width="60%">
+
+### Purpose
+Skip individual tasks based on runtime conditions (regular task parameter)
+
+### Required Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `condition` | String | ✅ Yes | Condition to evaluate before execution |
+| `command` | String | ✅ Yes | Command to execute if condition TRUE |
+| `hostname` | String | ✅ Yes | Target host |
+
+### Example
+```
+task=1
+hostname=web-server
+command=restart_service
+# Skip if previous task failed
+condition=@0_exit@=0
+on_success=10
+on_failure=99
+```
+
+### Entry Point
+Can be entry point or follow any block
+
+### Behavior
+- Evaluates `condition` **before** executing task
+- If `condition` FALSE → Task **skipped**, continue to next sequential task
+- If `condition` TRUE → Task executes normally
+- Skipped tasks store: `exit_code=-1`, `stderr='Task skipped due to condition'`
+- Can be combined with routing (`on_success`, `on_failure`, `next`)
+
+**Key Distinctions:**
+
+| Mechanism | Skip Logic | Routing | Use Case |
+|-----------|------------|---------|----------|
+| Task Condition | Individual task | ✅ Allowed | Skip specific tasks in sequence |
+| Decision Block | No execution | ✅ Purpose | Pure routing based on data |
+| Conditional Block | Task groups | ❌ Not allowed | Execute groups of tasks |
+
+### Next Block
+- If skipped → Continue to next sequential task
+- If executed → Apply routing (`on_success`, `on_failure`) or continue sequentially
 
 </td>
 </tr>
@@ -416,6 +598,18 @@ Can be entry point or follow any block
 - Executes multiple tasks simultaneously with threading
 - Results feed into Multi-Task Success Evaluation Block (see #10)
 - Faster execution than sequential processing
+
+**CRITICAL Routing Restrictions:**
+- **Subtasks CANNOT have routing parameters** (`on_success`, `on_failure`, `next=never/loop`)
+- Control MUST return to parallel block for Multi-Task Success Evaluation
+- Validation will **FAIL** if subtasks contain routing parameters
+- **Use Decision Blocks** instead if individual task routing is needed
+
+**Subtask ID Range Convention (Recommended):**
+- Use distinct ID ranges to clearly separate subtasks from main workflow
+- Recommended: Task N subtasks in range `[N*100, (N+1)*100-1]`
+- Example: Task 1 subtasks → 100-199, Task 2 subtasks → 200-299
+- Use `--skip-subtask-range-validation` to suppress warnings
 
 ### Next Block
 → Multi-Task Success Evaluation Block (#10)

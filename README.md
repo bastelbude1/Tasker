@@ -2942,14 +2942,14 @@ flowchart TD
     C --> E
     D --> E
 
-    style A fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
+    style A fill:#e0f2f1,stroke:#00897b,stroke-width:3px
     style B fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style E fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style E fill:#ffe0b2,stroke:#f57f17,stroke-width:3px
 ```
 
-**When to use**: Deploy to multiple servers simultaneously, or run independent tasks in parallel. See [TaskER FlowChart - Parallel Block](TaskER_FlowChart.md#7-parallel-block) for details.
+**When to use**: Deploy to multiple servers simultaneously, or run independent tasks in parallel. See [TaskER FlowChart - Parallel Block](TaskER_FlowChart.md#9-parallel-block) for details.
 
 **Example**:
 ```
@@ -3115,7 +3115,7 @@ flowchart TD
     style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
     style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
     style C fill:#ffcdd2,stroke:#c62828,stroke-width:3px
-    style D fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style D fill:#ffe0b2,stroke:#f57f17,stroke-width:3px
 ```
 
 **When to use**: Different execution paths based on environment, conditions, or runtime decisions. See [TaskER FlowChart - Conditional Block](TaskER_FlowChart.md#5-conditional-block) for details.

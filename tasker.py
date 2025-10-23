@@ -256,6 +256,8 @@ Examples:
                        help='Skip command existence validation - allows missing local commands (WARNING: may cause execution failures)')
     parser.add_argument('--skip-security-validation', action='store_true',
                        help='Skip security pattern validation - disables input sanitization checks (WARNING: allows potentially risky patterns)')
+    parser.add_argument('--skip-subtask-range-validation', action='store_true',
+                       help='Skip subtask ID range convention warnings - suppresses recommendations for distinct ID ranges')
     parser.add_argument('--skip-validation', action='store_true',
                        help='Skip ALL validation checks (same as --skip-task-validation --skip-host-validation --skip-command-validation --skip-security-validation)')
     parser.add_argument('--validate-only', action='store_true',
@@ -369,6 +371,7 @@ Examples:
         skip_task_validation=skip_task_validation,
         skip_host_validation=skip_host_validation,
         skip_security_validation=skip_security_validation,
+        skip_subtask_range_validation=args.skip_subtask_range_validation,
         show_plan=args.show_plan,
         validate_only=args.validate_only,
         fire_and_forget=args.fire_and_forget,

@@ -1,61 +1,60 @@
-# TASKER Educational Example: Port Check with Conditional Block
-# Demonstrates using conditional blocks for efficient routing
-# Shows how to minimize task execution with smart branching
-# TEST_METADATA: {"description": "Conditional port check and curl", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# TASKER Educational Example: Optimized Port Check with Conditional Execution
+# Demonstrates efficient port-checking with early exit decision
+# Shows how to combine decision blocks with conditional execution
+# TEST_METADATA: {"description": "Optimized port check and curl with conditional execution", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
 
 # Global variables
 SERVER=localhost
 TIMEOUT=10
 
 # ===================================
-# Task 0: Check Port 80 First
+# Task 0: Check Port 443 (HTTPS - preferred)
 # ===================================
 task=0
 hostname=@SERVER@
-command=obb_portcheck_ubsmc_80
-timeout=@TIMEOUT@
-# Always continue to conditional
-
-# ===================================
-# Task 1: Conditional Routing
-# ===================================
-task=1
-type=conditional
-# If port 80 open, go HTTP route
-# If port 80 closed, go HTTPS route
-condition=@0_exit@=0
-if_true_tasks=2
-if_false_tasks=3
-
-# ===================================
-# Task 2: HTTP Curl (Port 80 was open)
-# ===================================
-task=2
-hostname=@SERVER@
-command=obb_curl_rOBBin_tarball_80
-arguments=--connect-timeout 30
-# Jump to processing
-on_success=10
-on_failure=98
-
-# ===================================
-# Task 3: Check Port 443 (Port 80 was closed)
-# ===================================
-task=3
-hostname=@SERVER@
 command=obb_portcheck_ubsmc_443
 timeout=@TIMEOUT@
-on_success=4
+
+# ===================================
+# Task 1: Check Port 80 (HTTP - fallback)
+# ===================================
+task=1
+hostname=@SERVER@
+command=obb_portcheck_ubsmc_80
+timeout=@TIMEOUT@
+
+# ===================================
+# Task 2: Decision - Early Exit if Both Ports Failed
+# ===================================
+task=2
+type=decision
+# If at least one port is available, try downloads (on_success)
+# If both ports failed, jump to error handler (on_failure)
+success=@0_exit@=0|@1_exit@=0
+on_success=3
 on_failure=99
 
 # ===================================
-# Task 4: HTTPS Curl (Port 443 open)
+# Task 3: HTTPS Download (Conditional - only if port 443 open)
 # ===================================
-task=4
+task=3
 hostname=@SERVER@
 command=obb_curl_rOBBin_tarball_443
 arguments=--connect-timeout 30
-# Jump to processing
+# Skip if port 443 was closed
+condition=@0_exit@=0
+on_success=10
+on_failure=4
+
+# ===================================
+# Task 4: HTTP Download (Conditional - only if port 80 open)
+# ===================================
+task=4
+hostname=@SERVER@
+command=obb_curl_rOBBin_tarball_80
+arguments=--connect-timeout 30
+# Skip if port 80 was closed
+condition=@1_exit@=0
 on_success=10
 on_failure=98
 
@@ -89,3 +88,86 @@ command=echo
 arguments=ERROR: No accessible ports on @SERVER@
 return=1
 next=never
+
+# ===================================
+# OPTIMIZATION NOTES
+# ===================================
+# This workflow demonstrates efficient port-checking patterns using
+# decision blocks and task-level conditional execution (NOT conditional blocks).
+#
+# IMPORTANT: Tasks 3-4 are REGULAR TASKS with condition= parameter,
+# NOT subtasks of a conditional block. They have routing (on_success/on_failure)
+# which would violate conditional block architecture.
+#
+# +-----------------------------------------------------------------+
+# | WORKFLOW PHASES                                                 |
+# +-----------------------------------------------------------------+
+# | 1. CHECK BOTH PORTS FIRST (Tasks 0-1)                          |
+# |    - Checks port 443 (HTTPS) and 80 (HTTP) sequentially        |
+# |    - Could be parallelized with type=parallel for speed        |
+# |                                                                 |
+# | 2. EARLY EXIT DECISION (Task 2)                                |
+# |    - Decision block checks if ANY port is available            |
+# |    - Exits immediately to error handler if both failed         |
+# |    - Avoids unnecessary curl attempts                          |
+# |                                                                 |
+# | 3. CONDITIONAL EXECUTION (Tasks 3-4)                           |
+# |    - Task 3: HTTPS download IF port 443 open                   |
+# |      condition=@0_exit@=0 -> Skip if port closed               |
+# |    - Task 4: HTTP download IF port 80 open                     |
+# |      condition=@1_exit@=0 -> Skip if port closed               |
+# |    - Skipped tasks don't waste resources                       |
+# |                                                                 |
+# | 4. GRACEFUL FALLBACK                                           |
+# |    - HTTPS preferred (checked first, attempted first)          |
+# |    - HTTP fallback if HTTPS download fails                     |
+# |    - Clear error handling for all failure scenarios            |
+# +-----------------------------------------------------------------+
+#
+# +-----------------------------------------------------------------+
+# | PATTERN COMPARISON                                              |
+# +-----------------------------------------------------------------+
+# | OLD PATTERN (Sequential with multiple decision blocks):        |
+# |   Check port 443 -> Decide -> Download OR                      |
+# |   Check port 80  -> Decide -> Download OR Error                |
+# |                                                                 |
+# | NEW PATTERN (Optimized with early exit):                       |
+# |   Check port 443 -> Check port 80 ->                           |
+# |   Decide (early exit if both failed) ->                        |
+# |   Try HTTPS (conditional) -> Try HTTP (conditional)            |
+# +-----------------------------------------------------------------+
+#
+# +-----------------------------------------------------------------+
+# | KEY IMPROVEMENTS                                                |
+# +-----------------------------------------------------------------+
+# | + Cognitive Complexity: 1 decision block vs 2                  |
+# | + Early Exit: Stops immediately if no ports available          |
+# | + Task-Level Conditions: Cleaner than nested decision blocks   |
+# | + Resource Efficiency: Skipped tasks consume no resources      |
+# | + Extensibility: Easy to add more ports/protocols              |
+# | + Maintainability: Clear separation of concerns                |
+# +-----------------------------------------------------------------+
+#
+# +-----------------------------------------------------------------+
+# | CRITICAL ARCHITECTURAL DISTINCTION                              |
+# +-----------------------------------------------------------------+
+# | **Task-Level Conditional Execution vs Conditional Blocks:**    |
+# |                                                                 |
+# | [YES] TASK-LEVEL CONDITIONS (used in this example):            |
+# |    - Regular tasks with condition= parameter (Tasks 3-4)       |
+# |    - CAN use routing: on_success, on_failure, next             |
+# |    - Execute independently based on condition evaluation       |
+# |    - Example: condition=@0_exit@=0 on_success=10               |
+# |                                                                 |
+# | [NO] CONDITIONAL BLOCK SUBTASKS (NOT used here):               |
+# |    - Subtasks within if_true_tasks/if_false_tasks arrays       |
+# |    - CANNOT use routing (enforced by validation)               |
+# |    - Control returns to parent block for evaluation            |
+# |    - Parent block handles routing via Multi-Task Success Eval  |
+# |                                                                 |
+# | **Why This Matters:**                                           |
+# | Tasks 3-4 are REGULAR TASKS, not conditional block subtasks.   |
+# | They can safely use routing parameters without violating       |
+# | conditional block architecture restrictions introduced in      |
+# | TASKER's subtask routing validation (PR #xxx).                 |
+# +-----------------------------------------------------------------+

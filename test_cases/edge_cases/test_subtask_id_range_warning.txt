@@ -1,0 +1,73 @@
+# TEST_METADATA: {"description": "Subtask ID range warning - should generate warnings", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "log_level": "DEBUG", "expected_warnings": 8}
+# This test demonstrates the ID range convention warning for conditional/parallel blocks
+# Expected: 3 warnings for subtask ID ranges + 5 warnings for unreachable tasks = 8 total warnings
+# Uses log_level: DEBUG in metadata to make warnings visible during test execution
+
+# Task 0: Setup task
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Testing ID range conventions
+exec=local
+
+# Task 1: Conditional block with subtasks NOT in recommended range [100-199]
+# Recommended: Task 1 subtasks should be 100-199, but we use 10-12
+# This should generate a WARNING (not error)
+task=1
+type=conditional
+condition=true
+if_true_tasks=10,11,12
+if_false_tasks=20
+
+# Task 2: Parallel block with subtasks NOT in recommended range [200-299]
+# Recommended: Task 2 subtasks should be 200-299, but we use 30-32
+# This should generate a WARNING (not error)
+task=2
+type=parallel
+tasks=30,31,32
+max_parallel=3
+
+# Conditional subtasks (NOT in recommended range - should warn)
+task=10
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+task=11
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+task=12
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+task=20
+hostname=localhost
+command=/usr/bin/echo
+arguments=False branch
+exec=local
+
+# Parallel subtasks (NOT in recommended range - should warn)
+task=30
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+task=31
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+task=32
+hostname=localhost
+command=/usr/bin/true
+exec=local
+
+# Final task
+task=3
+hostname=localhost
+command=/usr/bin/echo
+arguments=All blocks completed
+exec=local

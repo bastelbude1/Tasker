@@ -1,0 +1,54 @@
+# TEST_METADATA: {"description": "Parallel subtask routing error - should fail validation", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+# This test demonstrates that subtasks in parallel blocks CANNOT have routing parameters
+# Expected: Validation ERROR - subtasks with on_success/on_failure are not allowed
+
+# Task 0: Setup task
+task=0
+hostname=localhost
+command=/usr/bin/echo
+arguments=Starting parallel with routing subtasks
+exec=local
+
+# Task 1: Parallel block
+task=1
+type=parallel
+tasks=100,101,102
+max_parallel=3
+
+# Task 100: Subtask with on_success (SHOULD CAUSE VALIDATION ERROR)
+task=100
+hostname=localhost
+command=/usr/bin/true
+exec=local
+on_success=300
+
+# Task 101: Subtask with on_failure (SHOULD CAUSE VALIDATION ERROR)
+task=101
+hostname=localhost
+command=/usr/bin/false
+exec=local
+on_failure=400
+
+# Task 102: Subtask with next=loop (SHOULD CAUSE VALIDATION ERROR)
+task=102
+hostname=localhost
+command=/usr/bin/echo
+arguments=Loop task
+exec=local
+next=loop
+
+# Task 300: on_success target (should never execute due to validation error)
+task=300
+hostname=localhost
+command=/usr/bin/echo
+arguments=ERROR: Should not reach here - validation should fail
+exec=local
+return=1
+
+# Task 400: on_failure target (should never execute due to validation error)
+task=400
+hostname=localhost
+command=/usr/bin/echo
+arguments=ERROR: Should not reach here - validation should fail
+exec=local
+return=1

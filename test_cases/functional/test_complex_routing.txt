@@ -1,10 +1,12 @@
-# TEST_METADATA: {"description": "Test complex routing display", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# TEST_METADATA: {"description": "Test complex routing display", "test_type": "validation_only", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true}
 # Test to demonstrate enhanced --show-plan with various routing configurations
+# This is a validation-only test to verify routing structure
 
 # Task 0: Task with both success and failure routing
 task=0
 hostname=localhost
-command=test_command
+command=/usr/bin/echo
+arguments=Task with routing
 exec=local
 on_success=10
 on_failure=20

@@ -838,6 +838,12 @@ class TaskerTestExecutor:
         # Add --log-level flag from metadata (control warning visibility)
         if "log_level" in metadata:
             log_level = metadata["log_level"]
+            # Validate log level (warn but continue - tasker will validate too)
+            valid_levels = ["ERROR", "WARN", "INFO", "DEBUG"]
+            if log_level.upper() not in valid_levels:
+                print(f"⚠️  WARNING: Unknown log_level '{log_level}' in {test_file} metadata")
+                print(f"    Valid levels: {', '.join(valid_levels)}")
+                print(f"    TASKER will validate and may reject this value.")
             cmd_args.append(f"--log-level={log_level}")
 
         # Set environment for supporting scripts

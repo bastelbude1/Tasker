@@ -1,7 +1,7 @@
 # TEST_METADATA: {"description": "Success/failure notifications", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1], "expected_final_task": 1}
 
 # Example 4: Error Handling
-# Deployment with success/failure notification
+# Deployment with failure/success handling
 
 task=0
 hostname=localhost

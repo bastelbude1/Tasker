@@ -4017,7 +4017,6 @@ flowchart TD
 
     T3 -->|SUCCESS<br/>on_success=10| Success[Task 10: Process File<br/>Download complete]
     T3 -->|FAILURE<br/>continues| T4[Task 4: HTTP Download<br/>condition=@1_exit@=0<br/>curl]
-    T3 -.-|SKIPPED<br/>port closed| T4
 
     T4 -->|SUCCESS<br/>on_success=10| Success
     T4 -->|FAILURE<br/>on_failure=98| Failed2[Task 98: Error<br/>Download failed]

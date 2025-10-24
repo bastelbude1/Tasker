@@ -1736,6 +1736,7 @@ exec=local
 ```
 
 **Using `condition` to skip tasks based on previous exit codes:**
+
 ```bash
 # Task 0: API health check
 task=0
@@ -1800,6 +1801,7 @@ exec=local
 ```
 
 **Selective Task Execution (using `condition`):**
+
 ```bash
 # Task 0: Detect environment
 task=0
@@ -1908,6 +1910,7 @@ exec=local
 ```
 
 **Example - Using on_failure without next:**
+
 ```bash
 # Task 0: Critical operation
 task=0
@@ -2420,6 +2423,7 @@ exec=local
 ```
 
 **Example - Explicit routing (recommended for clarity):**
+
 ```bash
 # Explicit routing for clarity
 # Task 0 has explicit next=success and routing defined

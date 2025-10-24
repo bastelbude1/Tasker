@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Basic sequential service tasks (systemctl commands)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_final_task": 2}
+# TEST_METADATA: {"description": "Basic sequential service management workflow", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_final_task": 2}
 
 # Example 1: Basic Sequential Tasks
 # Service management workflow (stop -> start -> status)

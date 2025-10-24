@@ -442,7 +442,7 @@ on_failure=20       # Use HTTPS
 
 Advanced loop control with break conditions:
 
-```
+```bash
 task=0
 hostname=localhost
 command=echo
@@ -521,7 +521,7 @@ exec=local
 
 If you need more sophisticated text processing beyond simple splits, use `exec=local` with command-line tools:
 
-```
+```bash
 # Complex Output Processing with awk/sed/perl
 # Demonstrates various text processing utilities for output manipulation
 
@@ -1800,7 +1800,7 @@ exec=local
 ```
 
 **Selective Task Execution (using `condition`):**
-```
+```bash
 # Task 0: Detect environment
 task=0
 hostname=localhost
@@ -1908,7 +1908,7 @@ exec=local
 ```
 
 **Example - Using on_failure without next:**
-```
+```bash
 # Task 0: Critical operation
 task=0
 hostname=localhost
@@ -2670,6 +2670,7 @@ exec=shell
 ```
 
 #### Example 3: Command Substitution (exec=shell)
+
 ```bash
 # exec=shell with command substitution
 # Shell mode enables command substitution using $()
@@ -3078,7 +3079,7 @@ exec=local
 
 ### Example 2: With Global Variables
 
-```
+```bash
 # Example 2: With Global Variables
 # Global variables for service management
 SERVICE=nginx
@@ -3100,7 +3101,7 @@ success=exit_0&stdout~active
 
 ### Example 3: Conditional Deployment
 
-```
+```bash
 # Example 3: Conditional Deployment
 # Approval gate workflow with conditional deployment
 ENVIRONMENT=production
@@ -3128,7 +3129,7 @@ exec=local
 
 ### Example 4: Error Handling
 
-```
+```bash
 # Example 4: Error Handling
 # Deployment with success/failure notification
 

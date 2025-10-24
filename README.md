@@ -49,11 +49,14 @@ flowchart TD
 **The simple text configuration:**
 ```
 # health_check.txt - Your first TASKER workflow!
+# This example demonstrates basic routing based on success criteria
 
-# Task 0: Check if service is running
+# Task 0: Check if service is running (simulated with true/false)
 task=0
-hostname=web-server
-command=ping -c 1 api.service
+hostname=localhost
+command=echo
+arguments=Service check: OK
+exec=local
 # Define success as exit code 0
 success=exit_0
 # If success (exit code 0), go to task 1
@@ -63,21 +66,27 @@ on_failure=2
 
 # Task 1: Log successful status
 task=1
-hostname=log-server
-command=echo "Service is healthy"
+hostname=localhost
+command=echo
+arguments=Service is healthy
+exec=local
 # STOP here - don't continue to task 2
 next=never
 
 # Task 2: Alert about failure (only reached via on_failure=2)
 task=2
-hostname=alert-server
-command=send_alert "Service is down!"
+hostname=localhost
+command=echo
+arguments=ALERT: Service is down!
+exec=local
 # After alert, continue to task 3 (default sequential flow)
 
 # Task 3: Try to restart the service
 task=3
-hostname=web-server
-command=restart_service.sh
+hostname=localhost
+command=echo
+arguments=Attempting to restart service...
+exec=local
 # Workflow ends after restart attempt
 ```
 
@@ -143,6 +152,9 @@ tasker -r -p DEPLOYMENT_2024 deployment_tasks.txt
 
 Create a simple task file `hello.txt`:
 ```
+# hello.txt - Your first TASKER task file
+# Simple sequential execution with local commands
+
 task=0
 hostname=localhost
 command=echo
@@ -201,21 +213,28 @@ success=exit_0&stdout~ok
 ```
 # Simple sequential tasks - execute in order 0, 1, 2, 3
 task=0
-hostname=server1
-command=stop_service
+hostname=localhost
+command=echo
+arguments=Stopping service
+exec=local
 
 task=1
-hostname=server1
-command=backup_database
+hostname=localhost
+command=echo
+arguments=Backing up database
+exec=local
 
 task=2
-hostname=server1
-command=deploy_application
-arguments=--version=1.2.3
+hostname=localhost
+command=echo
+arguments=Deploying application version 1.2.3
+exec=local
 
 task=3
-hostname=server1
-command=start_service
+hostname=localhost
+command=echo
+arguments=Starting service
+exec=local
 ```
 
 **Example - Sequential with simple flow control (next parameter):**
@@ -240,9 +259,10 @@ command=verify_deployment
 ```
 # Jump to different tasks based on success/failure
 task=0
-hostname=server1
-command=deploy
-arguments=--version=1.2.3
+hostname=localhost
+command=echo
+arguments=Deployment complete
+exec=local
 # Custom success criteria
 success=exit_0&stdout~complete
 # Jump to task 5 on success
@@ -252,14 +272,17 @@ on_failure=99
 
 # Success path
 task=5
-hostname=server1
-command=verify_deployment
+hostname=localhost
+command=echo
+arguments=Verifying deployment
+exec=local
 
 # Failure path
 task=99
-hostname=alert-server
-command=send_alert
-arguments=Deployment failed
+hostname=localhost
+command=echo
+arguments=ALERT: Deployment failed
+exec=local
 return=1
 ```
 
@@ -421,8 +444,10 @@ Advanced loop control with break conditions:
 
 ```
 task=0
-hostname=server1
-command=check_service_status
+hostname=localhost
+command=echo
+arguments=Service status: HEALTHY
+exec=local
 # Execute exactly 10 times (Task 0.1 through 0.10)
 loop=10
 next=loop
@@ -460,32 +485,36 @@ The Output Processing Block provides simple yet powerful text extraction capabil
 
 ```
 task=0
-hostname=server1
-command=printf "line1\nBETA_VALUE\nline3"
+hostname=localhost
+command=printf
+arguments=line1\nBETA_VALUE\nline3
 # Extract second line using newline delimiter
 stdout_split=newline,1
 exec=local
 
 task=1
-hostname=server2
-command=echo "user:x:1000:1000:Admin:/home/user:/bin/bash"
+hostname=localhost
+command=echo
+arguments=user:x:1000:1000:Admin:/home/user:/bin/bash
 # Extract username from /etc/passwd style output
 stdout_split=colon,0
 exec=local
 
 task=2
-hostname=server3
-command=echo "key1=value1 key2=value2 key3=value3"
+hostname=localhost
+command=echo
+arguments=key1=value1 key2=value2 key3=value3
 # Get "key2=value2" using space delimiter
 stdout_split=space,1
 exec=local
 
 task=3
 condition=@2_stdout@~key2=value2
-hostname=server4
-command=process_data
+hostname=localhost
+command=echo
 # Uses "key2=value2" from split
-arguments=--config=@2_stdout@
+arguments=Processing config: @2_stdout@
+exec=local
 ```
 
 **For Complex Processing:**
@@ -493,29 +522,42 @@ arguments=--config=@2_stdout@
 If you need more sophisticated text processing beyond simple splits, use `exec=local` with command-line tools:
 
 ```
-# Using awk for complex extraction
-task=10
+# Complex Output Processing with awk/sed/perl
+# Demonstrates various text processing utilities for output manipulation
+
+# Generate sample output for processing
+task=0
 hostname=localhost
-command=echo "@5_stdout@" | awk '{print $3 "/" $4}'
+command=echo
+arguments=Status: error detected in module 3/4 with version 1.5
 exec=local
 
-# Using sed for pattern replacement
-task=11
+# Using awk for complex extraction (extract 3rd and 4th words)
+task=1
 hostname=localhost
-command=echo "@5_stdout@" | sed 's/error/warning/gi'
+command=/bin/sh
+arguments=-c "echo '@0_stdout@' | awk '{print $3 \" \" $4}'"
 exec=local
 
-# Using perl one-liner for advanced processing
-task=12
+# Using sed for pattern replacement (replace 'error' with 'warning')
+task=2
 hostname=localhost
-command=echo "@5_stdout@" | perl -pe 's/(\d+)\.(\d+)/v$1.$2/g'
+command=/bin/sh
+arguments=-c "echo '@0_stdout@' | sed 's/error/warning/gi'"
 exec=local
 
-# Using external script for complex logic
-task=13
+# Using perl one-liner for advanced processing (format version numbers)
+task=3
 hostname=localhost
-command=/usr/local/bin/process_output.sh
-arguments="@5_stdout@"
+command=/bin/sh
+arguments=-c "echo '@0_stdout@' | perl -pe 's/(\\d+)\\.(\\d+)/v$1.$2/g'"
+exec=local
+
+# Using external script simulation for complex logic
+task=4
+hostname=localhost
+command=echo
+arguments=Processed output from task 0: @0_stdout@
 exec=local
 ```
 
@@ -528,24 +570,44 @@ exec=local
 **Practical Examples:**
 
 ```
+# Practical Disk Usage Parsing Example
 # Extract disk usage percentage from df output
+# Demonstrates stdout_split for field extraction
+
+# Simulate df output with echo (realistic format)
 task=0
-hostname=server1
-command=df -h /data | tail -1
-# Extract last line using tail command (alternative to stdout_split=newline,-1)
+hostname=localhost
+command=echo
+arguments=Filesystem      Size  Used Avail Use% Mounted on
 exec=local
 
+# Get disk usage line (simulate df -h /data | tail -1)
 task=1
+hostname=localhost
 command=echo
-arguments=Disk usage line: @0_stdout@
-# Check if percentage exists
-condition=@0_stdout@~%
-# Extract 5th column (usage%)
+arguments=/dev/sda1       100G   75G   25G  75% /data
+exec=local
+
+# Extract and display disk usage line
+task=2
+hostname=localhost
+command=echo
+arguments=Disk usage line: @1_stdout@
+condition=@1_stdout@~%
+exec=local
+
+# Extract 5th column (usage%) using stdout_split
+# Note: stdout_split uses zero-based indexing, so index 4 = 5th column
+task=3
+hostname=localhost
+command=echo
+arguments=Disk usage percentage: @1_stdout@
+condition=@1_stdout@~%
 stdout_split=space,4
 exec=local
 
-# Parse JSON-like output
-task=2
+# Parse JSON-like output (original example preserved)
+task=10
 hostname=api-server
 command=curl -s http://api/status
 # Get second key-value pair
@@ -600,12 +662,14 @@ File-defined arguments allow you to embed TASKER command-line options directly i
 
 # Global variables come after file-defined arguments
 ENVIRONMENT=production
-TARGET_HOST=prod-server-01
+TARGET_HOST=localhost
 
 # Tasks come last
 task=0
 hostname=@TARGET_HOST@
-command=deploy
+command=echo
+arguments=Deploying to @ENVIRONMENT@ environment on @TARGET_HOST@
+exec=local
 ```
 
 **Execute with:**
@@ -1578,23 +1642,30 @@ Control when and how tasks execute using conditions and flow control parameters.
 Use `condition` parameter on **regular tasks** to skip individual tasks when conditions aren't met:
 
 ```bash
+# Task 0: Check service status
 task=0
-hostname=web-server
-command=check_service
+hostname=localhost
+command=echo
+arguments=service_running
 exec=local
 
+# Task 1: Restart service (only if check succeeded)
 task=1
-hostname=web-server
+hostname=localhost
 # Skip this task if service check failed
 condition=@0_exit@=0
-command=restart_service
+command=echo
+arguments=Restarting service
+exec=local
 
+# Task 2: Send alert (only if check failed)
 task=2
-hostname=web-server
+hostname=localhost
 # Skip this task if service check succeeded
 condition=@0_exit@!=0
-command=send_alert
-arguments=Service check failed
+command=echo
+arguments=Service check failed - sending alert
+exec=local
 ```
 
 **How Task-Level Conditions Work:**
@@ -1634,9 +1705,11 @@ Exit codes are numeric values (0-255) returned by commands. **Exit code 0 means 
 
 **Using `next` for flow control based on exit codes:**
 ```bash
+# Task 0: Health check
 task=0
-hostname=health-check
-command=curl -f http://api/health
+hostname=localhost
+command=echo
+arguments=healthy
 exec=local
 # Define success as exit code 0
 success=exit_0
@@ -1645,37 +1718,49 @@ on_success=1
 # Jump to task 2 if health check failed
 on_failure=2
 
+# Task 1: Success notification
 task=1
-hostname=notification
-command=send_alert
+hostname=localhost
+command=echo
 arguments=API is healthy
+exec=local
 # Stop here - don't continue to task 2
 next=never
 
+# Task 2: Failure notification
 task=2
-hostname=notification
-command=send_alert
+hostname=localhost
+command=echo
 arguments=API health check failed
+exec=local
 ```
 
 **Using `condition` to skip tasks based on previous exit codes:**
 ```bash
+# Task 0: API health check
 task=0
-hostname=health-check
-command=curl -f http://api/health
+hostname=localhost
+command=echo
+arguments=healthy
 exec=local
 
+# Task 1: Deploy if healthy
 task=1
 # Skip this task if health check failed
 condition=@0_exit@=0
-hostname=deployment
-command=deploy_new_version
+hostname=localhost
+command=echo
+arguments=Deploying new version
+exec=local
 
+# Task 2: Send alert if unhealthy
 task=2
 # Skip this task if health check succeeded
 condition=@0_exit@!=0
-hostname=notification
-command=send_failure_alert
+hostname=localhost
+command=echo
+arguments=Sending failure alert
+exec=local
 ```
 
 ### Output Pattern Matching
@@ -1684,9 +1769,11 @@ Use task output for conditional execution and flow control:
 
 **Flow Control with Output Patterns (using `next`):**
 ```
+# Task 0: Detect environment
 task=0
-hostname=env-check
-command=detect_environment
+hostname=localhost
+command=echo
+arguments=production
 exec=local
 # Define success as output containing "production"
 success=stdout~production
@@ -1695,44 +1782,58 @@ on_success=10
 # Jump to non-production tasks if no success
 on_failure=20
 
-# Production workflow
+# Task 10: Production deployment
 task=10
-hostname=prod-server
-command=deploy_to_production
+hostname=localhost
+command=echo
+arguments=Deploying to production
+exec=local
 # Stop here - don't fall through to task 20
 next=never
 
-# Non-production workflow
+# Task 20: Development deployment
 task=20
-hostname=dev-server
-command=deploy_to_development
+hostname=localhost
+command=echo
+arguments=Deploying to development
+exec=local
 ```
 
 **Selective Task Execution (using `condition`):**
 ```
+# Task 0: Detect environment
 task=0
-hostname=env-check
-command=detect_environment
+hostname=localhost
+command=echo
+arguments=staging
 exec=local
 
-# These tasks run sequentially but skip based on conditions
+# Task 1: Production deployment
 task=1
 # Skip unless output contains "production"
 condition=@0_stdout@~production
-hostname=prod-server
-command=deploy_to_production
+hostname=localhost
+command=echo
+arguments=Deploying to production
+exec=local
 
+# Task 2: Development deployment
 task=2
 # Skip unless output contains "development"
 condition=@0_stdout@~development
-hostname=dev-server
-command=deploy_to_development
+hostname=localhost
+command=echo
+arguments=Deploying to development
+exec=local
 
+# Task 3: Staging deployment
 task=3
 # Skip unless output contains "staging"
 condition=@0_stdout@~staging
-hostname=staging-server
-command=deploy_to_staging
+hostname=localhost
+command=echo
+arguments=Deploying to staging
+exec=local
 ```
 
 ### Success Criteria
@@ -1787,42 +1888,52 @@ When you use `next=success`, it simply evaluates to whatever the task's success 
 
 **Example - Custom Success with Flow Control:**
 ```
+# Task 0: Database backup
 task=0
-hostname=database-server
-command=backup_database
+hostname=localhost
+command=echo
+arguments=Backup complete: 100% finished
+exec=local
 # Must complete AND show 100%
 success=exit_0&stdout~100%
 # Continue ONLY if success criteria met
 next=success
-# If backup succeeds (exit 0 AND output contains "100%"), continue to task 1
-# If backup fails, stop here (no task 1 execution)
 
+# Task 1: Backup success notification
 task=1
-hostname=notification-server
-command=send_backup_complete
-# This task only runs if task 0's success criteria was met
+hostname=localhost
+command=echo
+arguments=Backup notification sent
+exec=local
 ```
 
 **Example - Using on_failure without next:**
 ```
+# Task 0: Critical operation
 task=0
-hostname=critical-server
-command=critical_operation
+hostname=localhost
+command=echo
+arguments=Operation completed successfully
+exec=local
 # Success: exit 0 AND no errors in stderr
 success=exit_0&stderr!~error
 # Continue to task 1 if success (default behavior)
 # If success criteria not met, jump to task 99
 on_failure=99
 
+# Task 1: Continue workflow
 task=1
-hostname=next-server
-command=continue_workflow
-# Only reached if task 0's success criteria was met
+hostname=localhost
+command=echo
+arguments=Continuing workflow after successful operation
+exec=local
 
+# Task 99: Failure alert
 task=99
-hostname=alert-server
-command=send_failure_alert
-# Only reached if task 0's success criteria was NOT met
+hostname=localhost
+command=echo
+arguments=Critical operation failed - sending alert
+exec=local
 ```
 
 **Important Notes:**
@@ -2109,23 +2220,28 @@ TASKER supports flexible routing where `on_success` and `on_failure` can be used
 
 **Example**:
 ```bash
+# Error handler pattern with on_failure only
+# Task 1 succeeds and continues to task 2
+# If task 1 failed, it would jump to task 99
+
 task=1
 hostname=localhost
-command=/usr/bin/critical_operation
+command=echo
+arguments=Critical operation succeeded
 exec=local
-on_failure=99  # Jump to error handler on failure
-# Success continues to task 2
+on_failure=99
 
 task=2
 hostname=localhost
-command=/usr/bin/echo
+command=echo
 arguments=This executes if task 1 succeeds
 exec=local
 
 # Error handler in special range 90-99
 task=99
 hostname=localhost
-command=/usr/bin/cleanup
+command=echo
+arguments=Error handler - cleaning up after failure
 exec=local
 return=1
 ```
@@ -2145,22 +2261,26 @@ return=1
 
 **Example**:
 ```bash
+# Success-only routing pattern
+# Task 1 succeeds and jumps to task 5, skipping task 2
+# If task 1 failed, workflow would exit with code 10
+
 task=1
 hostname=localhost
-command=/usr/bin/critical_check
+command=echo
+arguments=Critical check passed
 exec=local
-on_success=5  # Jump to task 5 on success
-# No on_failure → failure exits with code 10
+on_success=5
 
 task=2
 hostname=localhost
-command=/usr/bin/echo
+command=echo
 arguments=Skipped if task 1 succeeds
 exec=local
 
 task=5
 hostname=localhost
-command=/usr/bin/echo
+command=echo
 arguments=Critical check passed - continuing
 exec=local
 ```
@@ -2180,22 +2300,27 @@ exec=local
 
 **Example**:
 ```bash
+# Both on_success AND on_failure routing
+# Task 1 determines the execution path
+# Success goes to task 10, failure would go to task 99
+
 task=1
 hostname=localhost
-command=/usr/bin/check_status
+command=echo
+arguments=Check status - returning success
 exec=local
-on_success=10  # Success path
-on_failure=99  # Failure path
+on_success=10
+on_failure=99
 
 task=10
 hostname=localhost
-command=/usr/bin/echo
+command=echo
 arguments=Success path
 exec=local
 
 task=99
 hostname=localhost
-command=/usr/bin/echo
+command=echo
 arguments=Failure path
 exec=local
 ```
@@ -2276,40 +2401,48 @@ When a task has **no routing parameters** (`next`, `on_success`, `on_failure`), 
 
 **Example - Default routing (no parameters):**
 ```bash
+# Default routing behavior (implicit sequential)
+# No routing specified - uses implicit next=success
+# Task 0 succeeds and continues to task 1
+# If task 0 fails, workflow stops execution
+
 task=0
 hostname=localhost
-command=/usr/bin/check_health
+command=echo
+arguments=Health check passed
 exec=local
-# No routing specified - uses implicit next=success
-# If check succeeds → continues to task 1
-# If check fails → stops execution
 
 task=1
 hostname=localhost
-command=/usr/bin/deploy
+command=echo
+arguments=Deploying application
 exec=local
-# This task only runs if task 0 succeeded
 ```
 
 **Example - Explicit routing (recommended for clarity):**
 ```bash
+# Explicit routing for clarity
+# Task 0 has explicit next=success and routing defined
+# Success continues to task 1, failure would go to task 99
+
 task=0
 hostname=localhost
-command=/usr/bin/check_health
+command=echo
+arguments=Health check passed
 exec=local
-next=success
 on_success=1
 on_failure=99
-# Explicit routing - clearer intent
 
 task=1
 hostname=localhost
-command=/usr/bin/deploy
+command=echo
+arguments=Deploying application
 exec=local
 
 task=99
 hostname=localhost
-command=/usr/bin/rollback
+command=echo
+arguments=Rolling back changes
 exec=local
 ```
 
@@ -2329,25 +2462,27 @@ Use `--fire-and-forget` flag to continue execution even when tasks fail:
 
 **Example - Best-effort cleanup workflow:**
 ```bash
-# Run with: ./tasker.py cleanup.txt --fire-and-forget
+# Fire-and-forget mode - best-effort cleanup
+# Each cleanup task continues regardless of individual failures
+# Completes cleanup on all servers even if some fail
 
 task=0
-hostname=server1
-command=/usr/bin/cleanup_temp
+hostname=localhost
+command=echo
+arguments=Cleaning up temporary files on server1
 exec=local
-# May fail - continues anyway
 
 task=1
-hostname=server2
-command=/usr/bin/cleanup_logs
+hostname=localhost
+command=echo
+arguments=Cleaning up log files on server2
 exec=local
-# May fail - continues anyway
 
 task=2
-hostname=server3
-command=/usr/bin/cleanup_cache
+hostname=localhost
+command=echo
+arguments=Cleaning up cache on server3
 exec=local
-# Completes cleanup on all servers regardless of individual failures
 ```
 
 **When to use fire-and-forget:**
@@ -2513,7 +2648,9 @@ For convenience, TASKER recognizes common aliases that map to `exec=shell`:
 
 #### Example 1: Simple Command (exec=local)
 ```bash
-# Best practice for simple commands
+# exec=local - Simple local command execution
+# Executes command directly without shell interpretation
+
 task=0
 hostname=localhost
 command=date
@@ -2522,16 +2659,22 @@ exec=local
 
 #### Example 2: Shell Piping (exec=shell)
 ```bash
-# Extract disk usage percentage
+# exec=shell with piping
+# Shell mode enables pipes, redirects, and other shell features
+# Example: echo test and grep for it
+
 task=0
 hostname=localhost
-command=df -h / | grep -v Filesystem | awk '{print $5}'
+command=echo "test output" | grep "test" | wc -l
 exec=shell
 ```
 
 #### Example 3: Command Substitution (exec=shell)
 ```bash
-# Capture current user in output
+# exec=shell with command substitution
+# Shell mode enables command substitution using $()
+# Example: Embed whoami and date in output
+
 task=0
 hostname=localhost
 command=echo
@@ -2541,12 +2684,15 @@ exec=shell
 
 #### Example 4: Using Global Variables for exec Type
 ```bash
-# Define execution type globally
+# Global variable for exec type
+# EXEC_MODE controls execution mode dynamically
+# Can be set to 'local' or 'shell' at runtime
+
 EXEC_MODE=shell
 
 task=0
 hostname=localhost
-command=ps aux | grep nginx | wc -l
+command=echo "Process count:" && ps aux | grep -v grep | wc -l
 exec=@EXEC_MODE@
 ```
 
@@ -2770,47 +2916,135 @@ tasker --skip-validation tasks.txt -r
 ### Examples of Parameter Combinations
 
 ```
-# Minimal task
-task=0
-hostname=server1
-command=date
+# Global variable for conditional execution
+READY=true
 
-# Full-featured task
+# Minimal task (task 0)
+task=0
+hostname=localhost
+command=date
+exec=local
+
+# Full-featured task showing all possible parameters (without loop to avoid complexity)
 task=1
-hostname=prod-server
-command=deploy_application
-arguments=--version=2.0 --environment=production
-exec=pbrun
+hostname=localhost
+command=echo
+arguments=Deployment v2.0 to production: deployed successfully
+exec=local
 timeout=300
 sleep=10
 condition=@READY@=true
-success=exit_0&stdout~deployed
+success=exit_0
 on_success=2
-on_failure=99
-loop=3
-loop_break=stdout~success
+on_failure=18
 
-# Parallel task
+# Parallel task showing all parallel parameters
 task=2
 type=parallel
 max_parallel=5
-tasks=10,11,12,13,14
+tasks=6,7,8,9,10
 retry_count=2
 retry_delay=5
 next=min_success=3
 
-# Conditional task
+# Conditional task showing all conditional parameters
 task=3
 type=conditional
-# Based on task 2's success
 condition=@2_success@=true
-# Execute 20→21→25 (skip 22-24)
-if_true_tasks=20,21,25
-# Execute 30→35→31 (custom order!)
-if_false_tasks=30,35,31
+if_true_tasks=12,13,14
+if_false_tasks=15,16,17
+next=all_success
 
-# Return task
-task=99
+# Success completion
+task=4
+hostname=localhost
+command=echo
+arguments=All tasks completed successfully
+exec=local
+
+# Firewall to prevent sequential execution into parallel and conditional subtasks
+task=5
+return=0
+
+# Parallel worker tasks
+task=6
+hostname=localhost
+command=echo
+arguments=Worker 1 complete
+exec=local
+
+task=7
+hostname=localhost
+command=echo
+arguments=Worker 2 complete
+exec=local
+
+task=8
+hostname=localhost
+command=echo
+arguments=Worker 3 complete
+exec=local
+
+task=9
+hostname=localhost
+command=echo
+arguments=Worker 4 complete
+exec=local
+
+task=10
+hostname=localhost
+command=echo
+arguments=Worker 5 complete
+exec=local
+
+# Firewall for conditional subtasks
+task=11
+return=0
+
+# True path tasks (executed by conditional)
+task=12
+hostname=localhost
+command=echo
+arguments=True path task 12
+exec=local
+
+task=13
+hostname=localhost
+command=echo
+arguments=True path task 13
+exec=local
+
+task=14
+hostname=localhost
+command=echo
+arguments=True path task 14
+exec=local
+
+# False path tasks (won't execute in this test)
+task=15
+hostname=localhost
+command=echo
+arguments=False path task 15
+exec=local
+
+task=16
+hostname=localhost
+command=echo
+arguments=False path task 16
+exec=local
+
+task=17
+hostname=localhost
+command=echo
+arguments=False path task 17
+exec=local
+
+# Return task showing return parameter
+task=18
+hostname=localhost
+command=echo
+arguments=Workflow complete
+exec=local
 return=1
 ```
 
@@ -2819,88 +3053,103 @@ return=1
 ### Example 1: Basic Sequential Tasks
 
 ```
+# Example 1: Basic Sequential Tasks
+# Service management workflow (stop -> start -> status)
+# Using echo commands instead of systemctl for testing
+
 task=0
-hostname=web-server
-command=systemctl
-arguments=stop nginx
-exec=pbrun
+hostname=localhost
+command=echo
+arguments=Stopping nginx service
+exec=local
 
 task=1
-hostname=web-server
-command=systemctl
-arguments=start nginx
-exec=pbrun
+hostname=localhost
+command=echo
+arguments=Starting nginx service
+exec=local
 
 task=2
-hostname=web-server
-command=systemctl
-arguments=status nginx
-exec=pbrun
+hostname=localhost
+command=echo
+arguments=nginx service is active (running)
+exec=local
 ```
 
 ### Example 2: With Global Variables
 
 ```
+# Example 2: With Global Variables
+# Global variables for service management
 SERVICE=nginx
 ENVIRONMENT=production
 
 task=0
-hostname=@ENVIRONMENT@-web
-command=systemctl
-arguments=restart @SERVICE@
-exec=pbrun
+hostname=localhost
+command=echo
+arguments=Restarting @SERVICE@ on @ENVIRONMENT@-web
+exec=local
 
 task=1
-hostname=@ENVIRONMENT@-web
-command=systemctl
-arguments=status @SERVICE@
+hostname=localhost
+command=echo
+arguments=@SERVICE@ is active (running)
+exec=local
 success=exit_0&stdout~active
-exec=pbrun
 ```
 
 ### Example 3: Conditional Deployment
 
 ```
+# Example 3: Conditional Deployment
+# Approval gate workflow with conditional deployment
 ENVIRONMENT=production
 
 task=0
-hostname=deployment-gate
-command=check_deployment_approval
+hostname=localhost
+command=echo
+arguments=Deployment approved for @ENVIRONMENT@
 exec=local
 
 task=1
 condition=@0_exit@=0
-hostname=@ENVIRONMENT@-app
-command=deploy_application
-arguments=--version=latest
-exec=pbrun
+hostname=localhost
+command=echo
+arguments=Deploying application version latest to @ENVIRONMENT@-app
+exec=local
 
 task=2
 condition=@1_exit@=0
-hostname=monitor
-command=verify_deployment
+hostname=localhost
+command=echo
+arguments=Deployment verified successfully
 exec=local
 ```
 
 ### Example 4: Error Handling
 
 ```
+# Example 4: Error Handling
+# Deployment with success/failure notification
+
 task=0
-hostname=primary-server
-command=deploy_application
-exec=pbrun
+hostname=localhost
+command=echo
+arguments=Application deployed successfully
+exec=local
 
 task=1
 condition=@0_exit@=0
-hostname=notification
-command=send_success_notification
+hostname=localhost
+command=echo
+arguments=SUCCESS: Deployment completed
 exec=local
 
 task=99
 condition=@0_exit@!=0
-hostname=notification
-command=send_failure_alert
-arguments=Deployment failed: @0_stderr@
+hostname=localhost
+command=echo
+arguments=FAILURE: Deployment failed - @0_stderr@
 exec=local
 ```
 
@@ -2922,20 +3171,27 @@ Task-by-task execution with flow control and conditions. See [TaskER FlowChart -
 
 **Example**:
 ```
+# Sequential Execution Model
+# Task-by-task execution with flow control
+# Standard workflow where tasks must complete in order
+
 task=0
-hostname=app-server
-command=stop_application
-exec=pbrun
+hostname=localhost
+command=echo
+arguments=Stopping application
+exec=local
 
 task=1
-hostname=app-server
-command=deploy_new_version
-exec=pbrun
+hostname=localhost
+command=echo
+arguments=Deploying new version
+exec=local
 
 task=2
-hostname=app-server
-command=start_application
-exec=pbrun
+hostname=localhost
+command=echo
+arguments=Starting application
+exec=local
 ```
 
 ### Parallel Execution Model
@@ -3793,14 +4049,11 @@ FILENAME=installer.zip
 DOWNLOAD_PATH=/tmp/downloads
 TIMEOUT=10
 
-# ===================================
-# PHASE 1: Check Both Ports Upfront
-# ===================================
-
 # Task 0: Check Port 443 (HTTPS - preferred)
 task=0
 hostname=@SERVER@
 command=obb_portcheck_ubsmc_443
+arguments=@TARGET_HOST@
 timeout=@TIMEOUT@
 exec=local
 
@@ -3808,12 +4061,9 @@ exec=local
 task=1
 hostname=@SERVER@
 command=obb_portcheck_ubsmc_80
+arguments=@TARGET_HOST@
 timeout=@TIMEOUT@
 exec=local
-
-# ===================================
-# PHASE 2: Early Exit Decision
-# ===================================
 
 # Task 2: Decision - Early Exit if Both Ports Failed
 task=2
@@ -3823,15 +4073,11 @@ type=decision
 success=@0_exit@=0|@1_exit@=0
 on_failure=99
 
-# ===================================
-# PHASE 3: Conditional Downloads
-# ===================================
-
 # Task 3: HTTPS Download (Conditional - only if port 443 open)
 task=3
 hostname=@SERVER@
 command=obb_curl_rOBBin_tarball_443
-arguments=--connect-timeout 30
+arguments=@DOWNLOAD_PATH@/@FILENAME@ https://@TARGET_HOST@/@FILENAME@
 timeout=300
 exec=local
 # Skip if port 443 was closed
@@ -3842,17 +4088,13 @@ on_success=10
 task=4
 hostname=@SERVER@
 command=obb_curl_rOBBin_tarball_80
-arguments=--connect-timeout 30
+arguments=@DOWNLOAD_PATH@/@FILENAME@ http://@TARGET_HOST@/@FILENAME@
 timeout=300
 exec=local
 # Skip if port 80 was closed
 condition=@1_exit@=0
 on_success=10
 on_failure=98
-
-# ===================================
-# CONVERGENCE POINT
-# ===================================
 
 # Task 10: Process Downloaded File
 task=10
@@ -3861,10 +4103,6 @@ command=echo
 arguments=SUCCESS: Downloaded @FILENAME@ from @TARGET_HOST@ - check @DOWNLOAD_PATH@/@FILENAME@
 exec=local
 next=never
-
-# ===================================
-# Error Handlers
-# ===================================
 
 # Task 98: Curl Failed
 task=98

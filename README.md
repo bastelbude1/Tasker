@@ -286,6 +286,8 @@ on_success=10
 on_failure=99
 ```
 
+> **Note**: This is a syntax illustration showing parallel block configuration. For a complete working example with all subtasks defined, see `test_cases/readme_examples/readme_05_parallel_basic.txt`
+
 **Parameters:** See [Parallel Execution Parameters](#parallel-execution-parameters) table below
 
 **Important Parallel Execution Behavior:**
@@ -323,6 +325,8 @@ next=all_success
 # Jump if condition met
 on_success=10
 ```
+
+> **Note**: This is a syntax illustration showing conditional block configuration. For a complete working example with all subtasks defined, see `test_cases/readme_examples/readme_06_conditional_basic.txt`
 
 **Parameters:** See [Conditional Execution Parameters](#conditional-execution-parameters) table below
 
@@ -408,6 +412,8 @@ success=@0_exit@=0  # Is port 80 available?
 on_success=10       # Use HTTP
 on_failure=20       # Use HTTPS
 ```
+
+> **Note**: This is a syntax illustration showing decision block logic. For a complete working example with all routing targets defined, see `test_cases/readme_examples/readme_07_decision_block.txt`
 
 ### Enhanced Loop Control
 
@@ -2057,6 +2063,8 @@ retry_delay=10
 next=majority_success
 ```
 
+> **Note**: This is a syntax illustration. For a complete working example, see `test_cases/readme_examples/readme_19_parallel_retry.txt`
+
 **Conditional Task Retries:**
 ```
 # Conditional execution with retry
@@ -2071,6 +2079,8 @@ retry_count=2
 # 5 second retry delay
 retry_delay=5
 ```
+
+> **Note**: This is a syntax illustration. For a complete working example, see `test_cases/readme_examples/readme_20_conditional_retry.txt`
 
 **Retry Display in Logs:**
 - Initial attempt: `Task 10-20: Executing`
@@ -2991,6 +3001,8 @@ command=send_failure_alert
 exec=local
 ```
 
+> **Note**: For a complete working example with all subtasks defined, see `test_cases/readme_examples/readme_38_parallel_model.txt`
+
 ### Conditional Execution Model
 
 Dynamic workflow branching based on runtime conditions - use ONLY when you need to evaluate data before choosing which tasks to execute.
@@ -3176,6 +3188,8 @@ hostname=dev-tester
 command=run_integration_tests
 exec=pbrun
 ```
+
+> **Note**: For a complete working example with environment detection and all subtasks defined, see `test_cases/readme_examples/readme_39_conditional_model.txt`
 
 ## Workflow Organization Best Practices
 
@@ -3786,16 +3800,14 @@ TIMEOUT=10
 # Task 0: Check Port 443 (HTTPS - preferred)
 task=0
 hostname=@SERVER@
-command=obb_portcheck
-arguments=@TARGET_HOST@ 443
+command=obb_portcheck_ubsmc_443
 timeout=@TIMEOUT@
 exec=local
 
 # Task 1: Check Port 80 (HTTP - fallback)
 task=1
 hostname=@SERVER@
-command=obb_portcheck
-arguments=@TARGET_HOST@ 80
+command=obb_portcheck_ubsmc_80
 timeout=@TIMEOUT@
 exec=local
 
@@ -3818,8 +3830,8 @@ on_failure=99
 # Task 3: HTTPS Download (Conditional - only if port 443 open)
 task=3
 hostname=@SERVER@
-command=curl
-arguments=--ssl-reqd -o @DOWNLOAD_PATH@/@FILENAME@ https://@TARGET_HOST@/@FILENAME@ --connect-timeout 30
+command=obb_curl_rOBBin_tarball_443
+arguments=--connect-timeout 30
 timeout=300
 exec=local
 # Skip if port 443 was closed
@@ -3829,8 +3841,8 @@ on_success=10
 # Task 4: HTTP Download (Conditional - only if port 80 open)
 task=4
 hostname=@SERVER@
-command=curl
-arguments=-o @DOWNLOAD_PATH@/@FILENAME@ http://@TARGET_HOST@/@FILENAME@ --connect-timeout 30
+command=obb_curl_rOBBin_tarball_80
+arguments=--connect-timeout 30
 timeout=300
 exec=local
 # Skip if port 80 was closed

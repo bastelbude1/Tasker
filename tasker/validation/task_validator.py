@@ -199,9 +199,16 @@ class TaskValidator:
 
                 # Log expansion if value changed (selective masking for sensitive vars)
                 if expanded_value != original_value and log_callback:
-                    log_callback(f"# Global variable {key}: environment variable expansion applied")
+                    from ..core.condition_evaluator import ConditionEvaluator
+                    if ConditionEvaluator.should_mask_variable(key):
+                        # Mask sensitive variable values
+                        masked = ConditionEvaluator.mask_value(expanded_value)
+                        log_callback(f"# Global variable {key}: {masked} (expanded from {original_value})")
+                    else:
+                        # Show non-sensitive values for operational transparency
+                        log_callback(f"# Global variable {key}: {expanded_value} (expanded from {original_value})")
+
                     if debug_callback:
-                        from ..core.condition_evaluator import ConditionEvaluator
                         if ConditionEvaluator.should_mask_variable(key):
                             debug_callback(f"#   Expanded to: <masked len={len(expanded_value)}>")
                         else:

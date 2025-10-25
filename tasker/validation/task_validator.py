@@ -181,8 +181,11 @@ class TaskValidator:
                 # Strict validation: Check for TASKER_ prefix requirement
                 if strict_env_validation and '$' in value:
                     # Extract all environment variable references from the value
-                    # Match ${VAR}, $VAR (case-insensitive identifiers)
-                    env_vars_in_value = re.findall(r'\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?', value)
+                    # Match either ${VAR} or $VAR, but not mismatched combinations like ${VAR or $VAR}
+                    # Using alternation pattern to ensure proper brace pairing
+                    env_var_matches = re.findall(r'\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)', value)
+                    # Flatten the tuple results (one group will be empty for each match)
+                    env_vars_in_value = [var for match in env_var_matches for var in match if var]
 
                     for env_var in env_vars_in_value:
                         if not env_var.startswith('TASKER_'):

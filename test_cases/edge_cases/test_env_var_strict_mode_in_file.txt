@@ -1,0 +1,21 @@
+# TEST_METADATA: {"description": "Strict env validation via task file header with TASKER_ prefix", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# NOTE: This test requires TASKER_USERNAME and TASKER_HOMEDIR environment variables
+# Run with: TASKER_USERNAME=$USER TASKER_HOMEDIR=$HOME python3 tasker.py test_env_var_strict_mode_in_file.txt -r
+
+--strict-env-validation
+
+# With strict mode enabled in file, only TASKER_-prefixed vars allowed
+MY_USER=$TASKER_USERNAME
+MY_HOME=$TASKER_HOMEDIR
+
+task=0
+hostname=localhost
+command=test
+arguments=-n @MY_USER@
+exec=local
+
+task=1
+hostname=localhost
+command=test
+arguments=-n @MY_HOME@
+exec=local

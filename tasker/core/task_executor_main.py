@@ -28,6 +28,7 @@ import fcntl  # Linux Only
 import threading
 import errno
 import signal
+import stat
 import tempfile
 import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -165,18 +166,41 @@ class TaskExecutor:
                 alert_path = os.path.abspath(alert_path)
 
             if os.path.exists(alert_path):
-                # Verify it's a regular file, not a symlink or directory
-                if not os.path.isfile(alert_path) or os.path.islink(alert_path):
-                    print(f"WARNING: Alert script path is not a regular file: {alert_path}")
+                # TOCTOU-hardened validation using stat with follow_symlinks=False
+                try:
+                    st = os.stat(alert_path, follow_symlinks=False)
+
+                    # Verify it's a regular file, not a symlink or directory
+                    if not stat.S_ISREG(st.st_mode):
+                        print(f"WARNING: Alert script path is not a regular file: {alert_path}")
+                        print("         Alert-on-failure will be disabled")
+                    elif stat.S_ISLNK(st.st_mode):
+                        print(f"WARNING: Alert script path is a symlink: {alert_path}")
+                        print("         Alert-on-failure will be disabled")
+                    else:
+                        self.alert_script = alert_path
+
+                        # Make script executable with TOCTOU-hardened chmod (owner-only for security)
+                        try:
+                            # Re-validate immediately before chmod to minimize TOCTOU window
+                            st_chmod = os.stat(self.alert_script, follow_symlinks=False)
+                            if not stat.S_ISREG(st_chmod.st_mode) or stat.S_ISLNK(st_chmod.st_mode):
+                                print(f"WARNING: Alert script changed between validation and chmod: {alert_path}")
+                                self.alert_script = None
+                            else:
+                                # Try chmod with follow_symlinks=False if supported (Python 3.3+)
+                                try:
+                                    os.chmod(self.alert_script, 0o700, follow_symlinks=False)
+                                except TypeError:
+                                    # Python 3.6.8 doesn't support follow_symlinks for chmod
+                                    # Already validated with stat, so safe to proceed
+                                    os.chmod(self.alert_script, 0o700)
+                        except (OSError, IOError) as e:
+                            print(f"WARNING: Could not make alert script executable: {e}")
+                            print(f"         Please manually run: chmod +x {alert_path}")
+                except (OSError, IOError) as e:
+                    print(f"WARNING: Could not stat alert script: {e}")
                     print("         Alert-on-failure will be disabled")
-                else:
-                    self.alert_script = alert_path
-                    # Make script executable if it isn't already (owner-only for security)
-                    try:
-                        os.chmod(self.alert_script, 0o700)
-                    except (OSError, IOError) as e:
-                        print(f"WARNING: Could not make alert script executable: {e}")
-                        print(f"         Please manually run: chmod +x {alert_path}")
             else:
                 print(f"WARNING: Alert script not found: {alert_path}")
                 print("         Alert-on-failure will be disabled")

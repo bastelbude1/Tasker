@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Basic environment variable expansion in global variables", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_warnings": 1}
+
+# Test basic environment variable expansion
+MY_USER=$USER
+MY_HOME=$HOME
+
+# Unused global variable with unexpanded env var (should not cause validation failure)
+UNUSED_VAR=$NONEXISTENT_ENV_VAR
+
+task=0
+hostname=localhost
+command=echo
+arguments=User: @MY_USER@
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Home: @MY_HOME@
+exec=local
+
+task=2
+hostname=localhost
+command=test
+arguments=-n @MY_USER@
+exec=local

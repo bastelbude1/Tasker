@@ -1,0 +1,13 @@
+# TEST_METADATA: {"description": "Strict mode rejects lowercase environment variables", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false, "security_category": "malformed_input", "risk_level": "medium"}
+# Tests that strict validation catches lowercase env vars like $user
+
+--strict-env-validation
+
+# This should FAIL - $user is lowercase and lacks TASKER_ prefix
+MY_USER=$user
+
+task=0
+hostname=localhost
+command=echo
+arguments=This should never execute
+exec=local

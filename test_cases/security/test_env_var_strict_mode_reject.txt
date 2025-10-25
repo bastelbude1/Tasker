@@ -1,0 +1,13 @@
+# TEST_METADATA: {"description": "Strict env validation rejects non-TASKER_ prefixed variables", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false, "security_category": "malformed_input", "risk_level": "medium"}
+# Tests strict validation via CLI flag would be required
+
+--strict-env-validation
+
+# This should FAIL with strict validation - $USER lacks TASKER_ prefix
+MY_USER=$USER
+
+task=0
+hostname=localhost
+command=echo
+arguments=This should never execute
+exec=local

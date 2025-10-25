@@ -1,0 +1,27 @@
+# TEST_METADATA: {"description": "Unused global variable with unexpanded env var should pass validation", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_warnings": 1}
+
+# Test that unused global variables with unexpanded environment variables
+# do NOT cause validation failure (deferred validation feature)
+
+# Used global variable with expanded env var - OK
+MY_USER=$USER
+
+# Unused global variable with unexpanded env var - should be OK (just a warning)
+UNUSED_SERVER=$NONEXISTENT_SERVER_VAR
+UNUSED_TOKEN=$MISSING_TOKEN
+
+# Multiple unused unexpanded vars to test edge cases
+DEAD_VAR1=$DOES_NOT_EXIST_1
+DEAD_VAR2=$DOES_NOT_EXIST_2
+
+task=0
+hostname=localhost
+command=echo
+arguments=User: @MY_USER@
+exec=local
+
+task=1
+hostname=localhost
+command=test
+arguments=-n @MY_USER@
+exec=local

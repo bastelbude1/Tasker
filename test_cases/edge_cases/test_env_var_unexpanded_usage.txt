@@ -1,0 +1,32 @@
+# TEST_METADATA: {"description": "Test validation failure when environment variable doesn't exist", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_category": "env_var_expansion", "expected_warnings": 1}
+
+# Test using global variables when source environment variable doesn't exist
+# This tests the behavior when $HOSTNAME (or other non-existent env vars) are used
+
+# Global variable with non-existent environment variable
+# $HOSTNAME is typically NOT in Python's os.environ, so it won't expand
+MY_HOSTNAME=$HOSTNAME
+
+# Global variable with existing environment variable for comparison
+MY_USER=$USER
+
+task=0
+hostname=localhost
+command=echo
+arguments=User from env: @MY_USER@
+exec=local
+success=exit_0
+
+task=1
+hostname=localhost
+command=echo
+arguments=Hostname from env: @MY_HOSTNAME@
+exec=local
+success=exit_0
+
+task=2
+hostname=localhost
+command=test
+arguments=-n @MY_HOSTNAME@
+exec=local
+success=exit_0

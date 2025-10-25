@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test firewall handler pattern with task 99", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "security_category": "malformed_input", "expected_execution_path": [0, 1, 99]}
+# TEST_METADATA: {"description": "Test firewall handler pattern with task 99", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "expected_execution_path": [0, 1, 99]}
 
 # Main workflow
 task=0

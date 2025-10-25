@@ -185,11 +185,16 @@ class TaskValidator:
                     unexpanded_vars = [var for match in env_var_matches for var in match if var]
 
                     if unexpanded_vars:
+                        # INFO level: Brief error message
                         errors.append(
-                            f"Line {line_num}: Environment variable expansion failed for global variable '{key}'. "
-                            f"Environment variable(s) {', '.join(['$' + v for v in unexpanded_vars])} do not exist or are not set. "
-                            f"Please set the required environment variable(s) before running this task file."
+                            f"Line {line_num}: Environment variable expansion failed for global variable '{key}'."
                         )
+                        # DEBUG level: Detailed information about which variables failed
+                        if debug_callback:
+                            debug_callback(
+                                f"# Environment variable(s) {', '.join(['$' + v for v in unexpanded_vars])} do not exist or are not set. "
+                                f"Please set the required environment variable(s) before running this task file."
+                            )
                         # Early return on expansion failure
                         return {'success': False, 'errors': errors, 'global_vars': {}}
 

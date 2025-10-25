@@ -165,12 +165,18 @@ class TaskExecutor:
                 alert_path = os.path.abspath(alert_path)
 
             if os.path.exists(alert_path):
-                self.alert_script = alert_path
-                # Make script executable if it isn't already
-                try:
-                    os.chmod(self.alert_script, 0o755)
-                except (OSError, IOError) as e:
-                    print(f"WARNING: Could not make alert script executable: {e}")
+                # Verify it's a regular file, not a symlink or directory
+                if not os.path.isfile(alert_path) or os.path.islink(alert_path):
+                    print(f"WARNING: Alert script path is not a regular file: {alert_path}")
+                    print("         Alert-on-failure will be disabled")
+                else:
+                    self.alert_script = alert_path
+                    # Make script executable if it isn't already (owner-only for security)
+                    try:
+                        os.chmod(self.alert_script, 0o700)
+                    except (OSError, IOError) as e:
+                        print(f"WARNING: Could not make alert script executable: {e}")
+                        print(f"         Please manually run: chmod +x {alert_path}")
             else:
                 print(f"WARNING: Alert script not found: {alert_path}")
                 print("         Alert-on-failure will be disabled")

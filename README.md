@@ -1723,8 +1723,9 @@ Alerts are executed in these failure scenarios:
 
 - **30-second timeout**: Prevents hanging alert scripts
 - **Failure isolation**: Alert script failures don't prevent workflow exit
-- **Auto-executable**: Scripts automatically made executable (chmod +x)
-- **Path validation**: Warns if alert script not found
+- **Auto-executable**: Scripts automatically made executable with secure permissions (chmod 700, owner-only)
+- **Path validation**: Warns if alert script not found, rejects symlinks and directories
+- **TOCTOU protection**: Validates file type immediately before chmod to prevent race conditions
 - **Execution order**: Cleanup → Alert → Exit (cleanup is a direct method call, not task-based workflow)
 
 #### Use Cases

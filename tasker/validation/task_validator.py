@@ -1354,7 +1354,10 @@ class TaskValidator:
             unused_list = sorted(unused_vars)
             self.warnings.append(f"Found {len(unused_vars)} unused global variable(s): {', '.join(unused_list)}")
             for var in unused_list:
-                self.warnings.append(f"  Unused global variable: {var} = {self.global_vars[var]}")
+                # SECURITY: Don't log actual values to avoid leaking secrets
+                val = self.global_vars.get(var, '')
+                masked = f"<len={len(val)}>"
+                self.warnings.append(f"  Unused global variable: {var} = {masked}")
 
     def validate_field_values(self, task, task_id, line_number):
         """

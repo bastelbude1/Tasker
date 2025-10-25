@@ -1097,7 +1097,8 @@ class TaskExecutor:
                     # Strict validation: Check for TASKER_ prefix requirement
                     if self.strict_env_validation and '$' in value:
                         # Extract all environment variable references from the value
-                        env_vars = re.findall(r'\$\{?([A-Z_][A-Z0-9_]*)\}?', value)
+                        # Match ${VAR}, $VAR (case-insensitive identifiers)
+                        env_vars = re.findall(r'\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?', value)
 
                         for env_var in env_vars:
                             if not env_var.startswith('TASKER_'):
@@ -1109,11 +1110,12 @@ class TaskExecutor:
                                 self.log_error("# VALIDATION FAILED: Environment variable validation error")
                                 ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Environment variable validation error", False)
 
-                    # Log expansion if value changed (INFO level for all expansions)
+                    # Log expansion if value changed (avoid leaking secrets in logs)
                     if expanded_value != original_value:
-                        self.log_info(f"# Global variable {key}: environment variable expansion")
-                        self.log_info(f"#   Original: {original_value}")
-                        self.log_info(f"#   Expanded: {expanded_value}")
+                        # Log only that expansion happened, not the actual values
+                        self.log_info(f"# Global variable {key}: environment variable expansion applied")
+                        self.log_debug(f"#   Original length: {len(original_value)}")
+                        self.log_debug(f"#   Expanded length: {len(expanded_value)}")
 
                     parsed_global_vars[key] = expanded_value
                     self.log_debug(f"Global variable: {key} = {expanded_value}")

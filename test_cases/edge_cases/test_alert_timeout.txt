@@ -1,0 +1,20 @@
+# TEST_METADATA: {"description": "Test alert script 30-second timeout enforcement", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "expected_warnings": 2}
+
+# Test that alert scripts are killed after 30 seconds
+# Workflow should still exit properly even if alert times out
+
+--alert-on-failure=test_cases/bin/slow_alert.sh
+
+task=0
+hostname=localhost
+command=echo
+arguments=Task starting
+exec=local
+success=exit_0
+
+task=1
+hostname=localhost
+command=false
+arguments=
+exec=local
+success=exit_0

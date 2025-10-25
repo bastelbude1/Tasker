@@ -28,6 +28,7 @@ import fcntl  # Linux Only
 import threading
 import errno
 import signal
+import stat
 import tempfile
 import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -96,7 +97,8 @@ class TaskExecutor:
                  skip_host_validation=False, skip_security_validation=False,
                  skip_subtask_range_validation=False, strict_env_validation=False,
                  show_plan=False, validate_only=False, fire_and_forget=False,
-                 no_task_backup=False, auto_recovery=False, show_recovery_info=False):
+                 no_task_backup=False, auto_recovery=False, show_recovery_info=False,
+                 alert_on_failure=None):
         """
         Initialize a TaskExecutor instance and prepare environment, logging, state, and modular components for task orchestration.
 
@@ -119,6 +121,11 @@ class TaskExecutor:
             strict_env_validation: If true, require TASKER_ prefix for environment variables in global variable definitions.
             show_plan: If true, the executor may display an execution plan before running tasks.
             validate_only: If true, the executor performs parsing/validation and exits without running tasks.
+            fire_and_forget: If true, enables fire-and-forget mode (tasks execute without waiting for completion).
+            no_task_backup: If true, disables automatic task file backup before execution.
+            auto_recovery: If true, enables automatic recovery mode using state files.
+            show_recovery_info: If true, displays recovery information and exits without executing tasks.
+            alert_on_failure: Optional path to an alert script to execute on workflow failure; script receives context via environment variables (TASKER_EXIT_CODE, TASKER_ERROR, TASKER_TASK_FILE, TASKER_LOG_FILE, TASKER_STATE_FILE, TASKER_FAILED_TASK, TASKER_TIMESTAMP).
         """
         # Clear debug logging cache for new execution session
         from .condition_evaluator import ConditionEvaluator
@@ -153,7 +160,55 @@ class TaskExecutor:
         # Global variables support
         self.global_vars = {}  # Store global variables
         self.strict_env_validation = strict_env_validation  # Require TASKER_ prefix for env vars
-        
+
+        # Alert on failure support
+        # Note: Using print() for warnings in this section because logging infrastructure
+        # (self.log_lock, self.log_file) is not initialized until after alert validation
+        self.alert_script = None
+        if alert_on_failure:
+            # Expand path and validate
+            alert_path = os.path.expanduser(alert_on_failure)
+            if not os.path.isabs(alert_path):
+                # Make relative paths relative to current directory
+                alert_path = os.path.abspath(alert_path)
+
+            if os.path.exists(alert_path):
+                # TOCTOU-hardened validation using stat with follow_symlinks=False
+                try:
+                    st = os.stat(alert_path, follow_symlinks=False)
+
+                    # Verify it's a regular file, not a symlink or directory
+                    if not stat.S_ISREG(st.st_mode):
+                        print(f"WARNING: Alert script path is not a regular file (symlink/directory/device): {alert_path}")
+                        print("         Alert-on-failure will be disabled")
+                    else:
+                        self.alert_script = alert_path
+
+                        # Make script executable with TOCTOU-hardened chmod (owner-only for security)
+                        try:
+                            # Re-validate immediately before chmod to minimize TOCTOU window
+                            st_chmod = os.stat(self.alert_script, follow_symlinks=False)
+                            if not stat.S_ISREG(st_chmod.st_mode):
+                                print(f"WARNING: Alert script changed between validation and chmod: {alert_path}")
+                                self.alert_script = None
+                            else:
+                                # Try chmod with follow_symlinks=False if supported (Python 3.3+)
+                                try:
+                                    os.chmod(self.alert_script, 0o700, follow_symlinks=False)
+                                except TypeError:
+                                    # Python 3.6.8 doesn't support follow_symlinks for chmod
+                                    # Already validated with stat, so safe to proceed
+                                    os.chmod(self.alert_script, 0o700)
+                        except (OSError, IOError) as e:
+                            print(f"WARNING: Could not make alert script executable: {e}")
+                            print(f"         Please manually run: chmod +x {alert_path}")
+                except (OSError, IOError) as e:
+                    print(f"WARNING: Could not stat alert script: {e}")
+                    print("         Alert-on-failure will be disabled")
+            else:
+                print(f"WARNING: Alert script not found: {alert_path}")
+                print("         Alert-on-failure will be disabled")
+
         # Thread safety for logging
         self.log_lock = threading.Lock()
         
@@ -369,6 +424,10 @@ class TaskExecutor:
 
         # Set execution type override from command line
         self._task_runner.set_execution_type_override(self.exec_type)
+
+        # Register alert callback with ExitHandler if alert script configured
+        if self.alert_script:
+            ExitHandler.set_alert_callback(self._execute_alert_script)
 
         # ===== BACKWARD COMPATIBILITY PROPERTIES =====
         # Create property wrappers for seamless transition to new architecture
@@ -747,8 +806,84 @@ class TaskExecutor:
             error_summary = f"Cleanup completed with {error_count} error(s):"
             for i, error in enumerate(cleanup_errors, 1):
                 error_summary += f"\n  {i}. {error}"
-    
+
             self._safe_error_report(error_summary)
+
+    def _execute_alert_script(self, exit_code, error_msg=''):
+        """
+        Execute alert script on failure with comprehensive context.
+
+        Passes environment variables to the alert script:
+        - TASKER_LOG_FILE: Path to log file
+        - TASKER_STATE_FILE: Path to state/recovery file (if exists)
+        - TASKER_TASK_FILE: Path to task file
+        - TASKER_FAILED_TASK: Task ID that failed
+        - TASKER_EXIT_CODE: Exit code
+        - TASKER_ERROR: Error message
+        - TASKER_TIMESTAMP: Failure timestamp
+
+        Args:
+            exit_code: The exit code that triggered the alert
+            error_msg: Optional error message describing the failure
+        """
+        if not self.alert_script:
+            return
+
+        # Skip alert execution in dry-run mode
+        if self.dry_run:
+            self.log_info(f"Dry-run mode: Would execute alert script: {self.alert_script}")
+            self.log_info(f"  EXIT_CODE={exit_code}, ERROR={error_msg}")
+            return
+
+        try:
+            self.log_warn(f"Executing alert script: {self.alert_script}")
+
+            # Prepare environment variables with context
+            env = os.environ.copy()
+            env['TASKER_EXIT_CODE'] = str(exit_code)
+            env['TASKER_ERROR'] = error_msg
+            env['TASKER_FAILED_TASK'] = str(getattr(self, 'current_task', 'unknown'))
+            env['TASKER_TASK_FILE'] = self.task_file
+            env['TASKER_LOG_FILE'] = self.log_file_path if self.log_file_path else ''
+
+            # Add state file path (recovery file if auto-recovery enabled, otherwise empty)
+            state_file_path = ''
+            if self.recovery_manager and hasattr(self.recovery_manager, 'recovery_file'):
+                state_file_path = self.recovery_manager.recovery_file
+            env['TASKER_STATE_FILE'] = state_file_path
+
+            env['TASKER_TIMESTAMP'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+            # Execute alert script with timeout (Python 3.6.8 compatible)
+            with subprocess.Popen(
+                [self.alert_script],
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            ) as process:
+                try:
+                    stdout, stderr = process.communicate(timeout=30)
+                    exit_result = process.returncode
+
+                    if exit_result != 0:
+                        self.log_warn(f"Alert script exited with code {exit_result}")
+                    if stderr:
+                        self.log_warn(f"Alert script stderr: {stderr.strip()}")
+                    if stdout:
+                        self.log_info(f"Alert script output: {stdout.strip()}")
+
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    stdout, stderr = process.communicate()
+                    self.log_warn("Alert script timeout after 30 seconds")
+
+        except (KeyboardInterrupt, SystemExit):
+            # Re-raise system-level interrupts to allow graceful shutdown
+            raise
+        except (OSError, subprocess.SubprocessError, ValueError) as e:
+            # Log other runtime errors without blocking workflow termination
+            self.log_warn(f"Alert script error ({type(e).__name__}): {e}")
 
     def _signal_handler(self, signum, frame):
         """Signal handler for graceful shutdown."""

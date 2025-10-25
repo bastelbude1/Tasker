@@ -63,14 +63,26 @@ class ExitCodes:
 
 class ExitHandler:
     """Safe exit code handler that preserves workflow functionality."""
-    
-    @staticmethod
-    def exit_with_code(code, message=None, debug=False):
+
+    # Class variable to store alert callback
+    _alert_callback = None
+
+    @classmethod
+    def set_alert_callback(cls, callback):
+        """Set the alert callback to be called on failure exits.
+
+        Args:
+            callback: Callable that takes (exit_code, error_msg) as arguments
+        """
+        cls._alert_callback = callback
+
+    @classmethod
+    def exit_with_code(cls, code, message=None, debug=False):
         """Exit with specific code and optional message.
-        
+
         IMPORTANT: This only affects final tasker.py exit status.
         Internal task evaluation continues to use 0=success, other=failure.
-        
+
         Args:
             code: Exit code to use
             message: Optional message to display
@@ -82,6 +94,15 @@ class ExitHandler:
                 print(f"[{timestamp}] DEBUG: SUCCESS: {message}")
             else:
                 print(f"[{timestamp}] DEBUG: FAILURE: {message} (Exit code: {code})")
+
+        # Execute alert callback on failure (non-zero exit code)
+        if code != ExitCodes.SUCCESS and cls._alert_callback:
+            try:
+                cls._alert_callback(code, message or '')
+            except Exception as e:
+                # Don't let alert failures prevent exit
+                print(f"WARNING: Alert callback failed: {e}")
+
         sys.exit(code)
     
     @staticmethod

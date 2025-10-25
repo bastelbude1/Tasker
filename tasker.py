@@ -275,6 +275,10 @@ Examples:
     parser.add_argument('--show-plan', action='store_true',
                        help='Show execution plan and require confirmation before running')
 
+    # Alert on failure
+    parser.add_argument('--alert-on-failure', metavar='SCRIPT_PATH',
+                       help='Execute alert script when workflow fails (receives context via environment variables: TASKER_LOG_FILE, TASKER_STATE_FILE, TASKER_TASK_FILE, TASKER_FAILED_TASK, TASKER_EXIT_CODE, TASKER_ERROR, TASKER_TIMESTAMP)')
+
     # Keep -d/--debug as convenient shorthand for --log-level=DEBUG
     parser.add_argument('-d', '--debug', action='store_true',
                        help='Enable debug logging (shorthand for --log-level=DEBUG)')
@@ -380,7 +384,8 @@ Examples:
         fire_and_forget=args.fire_and_forget,
         no_task_backup=args.no_task_backup,
         auto_recovery=args.auto_recovery,
-        show_recovery_info=args.show_recovery_info
+        show_recovery_info=args.show_recovery_info,
+        alert_on_failure=getattr(args, 'alert_on_failure', None)
     ) as executor:
         executor.run()
 

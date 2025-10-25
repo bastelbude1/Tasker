@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Basic environment variable expansion in global variables", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# TEST_METADATA: {"description": "Basic environment variable expansion in global variables", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_warnings": 1}
 
 # Test basic environment variable expansion
 MY_USER=$USER

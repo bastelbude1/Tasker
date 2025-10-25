@@ -1072,6 +1072,9 @@ class TaskExecutor:
         self.global_vars = parse_result['global_vars']
         global_count = len(self.global_vars)
         self.log_info(f"# Found {global_count} global variables")
+        unexp = parse_result.get('unexpanded_vars', {})
+        if unexp:
+            self.log_warn(f"# {len(unexp)} global variable(s) reference unset environment variables; will be checked during validation.")
         if global_count > 0:
             for key, value in self.global_vars.items():
                 # Selective masking: show values for non-sensitive vars, mask sensitive ones

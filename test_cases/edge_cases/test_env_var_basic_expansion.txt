@@ -20,6 +20,5 @@ exec=local
 task=2
 hostname=localhost
 command=test
-arguments=@MY_USER@ = baste
+arguments=-n @MY_USER@
 exec=local
-condition=@MY_USER@=baste

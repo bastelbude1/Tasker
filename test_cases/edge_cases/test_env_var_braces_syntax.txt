@@ -1,0 +1,24 @@
+# TEST_METADATA: {"description": "Environment variable expansion with ${VAR} braces syntax", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Test both $VAR and ${VAR} syntax
+USER_SIMPLE=$USER
+USER_BRACES=${USER}
+MIXED_SYNTAX=${USER}_${HOME}
+
+task=0
+hostname=localhost
+command=echo
+arguments=Simple: @USER_SIMPLE@
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Braces: @USER_BRACES@
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=Mixed: @MIXED_SYNTAX@
+exec=local

@@ -138,16 +138,7 @@ cp tasker.py tasker.py.backup_YYYYMMDD
    - Provides detailed failure diagnostics
    ```
 
-3. **Code review with CodeRabbit (MANDATORY):**
-   ```bash
-   coderabbit review --prompt-only
-   ```
-   - **REQUIRED before ANY push to GitHub or Gitea**
-   - Performs automated code quality analysis
-   - Reviews code changes for best practices, potential issues, and maintainability
-   - Must be run on all modified files before git push operations
-
-4. **CRITICAL Verification logic (ZERO TOLERANCE):**
+3. **CRITICAL Verification logic (ZERO TOLERANCE):**
    - ❌ **Python exceptions = IMMEDIATE FAILURE:** Any Traceback, AttributeError, Exception detected
    - ❌ **Execution path mismatch = FAILURE:** Tasks executed must match expected_execution_path
    - ❌ **Variable mismatch = FAILURE:** Variables must match expected values (if specified)
@@ -155,7 +146,7 @@ cp tasker.py tasker.py.backup_YYYYMMDD
    - ✅ **Metadata validation:** All tests must have valid TEST_METADATA
    - ✅ **Behavioral validation:** Execution behavior must match metadata expectations
 
-5. **CRITICAL Success criteria (ZERO TOLERANCE):**
+4. **CRITICAL Success criteria (ZERO TOLERANCE):**
    - **100% pass rate required** (0 failures, 0 skips)
    - **ALL tests must have TEST_METADATA** (no skipped tests due to missing metadata)
    - **Execution paths must match expectations** (validates task flow control)

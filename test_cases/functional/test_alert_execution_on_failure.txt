@@ -1,0 +1,20 @@
+# TEST_METADATA: {"description": "Test alert script execution on task failure with environment variables", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "expected_warnings": 1}
+
+# Test that alert script is executed when a task fails
+# Verifies alert is called and environment variables are passed
+
+--alert-on-failure=test_cases/bin/test_alert.sh
+
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0 starting workflow
+exec=local
+success=exit_0
+
+task=1
+hostname=localhost
+command=false
+arguments=
+exec=local
+success=exit_0

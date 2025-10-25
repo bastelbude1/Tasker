@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test using global variables with unexpanded environment variables", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2]}
+# TEST_METADATA: {"description": "Test validation failure when environment variable doesn't exist", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_category": "env_var_expansion"}
 
 # Test using global variables when source environment variable doesn't exist
 # This tests the behavior when $HOSTNAME (or other non-existent env vars) are used

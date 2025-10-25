@@ -3,7 +3,7 @@
 # Test both $VAR and ${VAR} syntax
 USER_SIMPLE=$USER
 USER_BRACES=${USER}
-MIXED_SYNTAX=$USER_${HOME}
+MIXED_SYNTAX=${USER}_${HOME}
 
 task=0
 hostname=localhost

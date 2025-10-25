@@ -874,7 +874,7 @@ class TaskExecutor:
                     stdout, stderr = process.communicate()
                     self.log_warn("Alert script timeout after 30 seconds")
 
-        except Exception as e:
+        except (OSError, subprocess.SubprocessError, ValueError) as e:
             self.log_warn(f"Alert script error ({type(e).__name__}): {e}")
 
     def _signal_handler(self, signum, frame):

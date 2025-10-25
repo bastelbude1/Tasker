@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Global Variable Block test - task field names should cause validation errors", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "security_category": "malformed_input", "validation_category": "task_fields", "skip_host_validation": true}
+# TEST_METADATA: {"description": "Global Variable Block test - task field names should cause validation errors", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false, "security_category": "malformed_input", "validation_category": "task_fields", "skip_host_validation": true}
 # Test Block 14: Global Variable Definition Block - Task Field Names
 # Tests that task field names cannot be used as global variable names
 # This test should FAIL during validation phase

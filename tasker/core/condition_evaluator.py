@@ -76,15 +76,16 @@ class ConditionEvaluator:
             value: Value to mask
 
         Returns:
-            Masked string in format "<masked len=N>"
+            Masked string in format "<masked len=N>" or "<masked len=?>" if length cannot be determined
 
         Example:
             mask_value('super_secret_123') -> '<masked len=16>'
+            mask_value(unprintable_object) -> '<masked len=?>'
         """
         try:
             value_len = len(str(value))
         except (TypeError, AttributeError):
-            value_len = -1
+            value_len = "?"
         return f"<masked len={value_len}>"
 
     @staticmethod

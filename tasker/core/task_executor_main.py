@@ -1058,7 +1058,6 @@ class TaskExecutor:
         parse_result = TaskValidator.parse_global_vars_only(
             self.task_file,
             strict_env_validation=self.strict_env_validation,
-            log_callback=self.log_info,
             debug_callback=self.log_debug if self.log_level == 'DEBUG' else None
         )
 
@@ -1074,7 +1073,6 @@ class TaskExecutor:
         global_count = len(self.global_vars)
         self.log_info(f"# Found {global_count} global variables")
         if global_count > 0:
-            from ..core.condition_evaluator import ConditionEvaluator
             for key, value in self.global_vars.items():
                 # Selective masking: show values for non-sensitive vars, mask sensitive ones
                 if ConditionEvaluator.should_mask_variable(key):

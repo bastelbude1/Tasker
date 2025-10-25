@@ -1073,7 +1073,12 @@ class TaskExecutor:
         self.log_info(f"# Found {global_count} global variables")
         if global_count > 0:
             for key, value in self.global_vars.items():
-                self.log_debug(f"#   {key} = {value}")
+                # SECURITY: Avoid leaking values; log name and length only
+                try:
+                    vlen = len(str(value))
+                except Exception:
+                    vlen = -1
+                self.log_debug(f"#   {key} (length: {vlen})")
         
         # PHASE 2: Parse tasks (second pass)
         current_task = None

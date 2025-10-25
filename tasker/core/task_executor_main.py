@@ -874,7 +874,11 @@ class TaskExecutor:
                     stdout, stderr = process.communicate()
                     self.log_warn("Alert script timeout after 30 seconds")
 
+        except (KeyboardInterrupt, SystemExit):
+            # Re-raise system-level interrupts to allow graceful shutdown
+            raise
         except (OSError, subprocess.SubprocessError, ValueError) as e:
+            # Log other runtime errors without blocking workflow termination
             self.log_warn(f"Alert script error ({type(e).__name__}): {e}")
 
     def _signal_handler(self, signum, frame):

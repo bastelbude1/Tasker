@@ -527,7 +527,8 @@ class TaskValidator:
                         # Strict validation: Check for TASKER_ prefix requirement
                         if self.strict_env_validation and '$' in value:
                             # Extract all environment variable references from the value
-                            env_vars = re.findall(r'\$\{?([A-Z_][A-Z0-9_]*)\}?', value)
+                            # Match ${VAR}, $VAR (case-insensitive identifiers)
+                            env_vars = re.findall(r'\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?', value)
 
                             for env_var in env_vars:
                                 if not env_var.startswith('TASKER_'):
@@ -539,11 +540,12 @@ class TaskValidator:
                                     self.debug_log(f"Environment variable validation failed: ${env_var} lacks TASKER_ prefix")
                                     continue  # Skip this global variable
 
-                        # Log expansion if value changed (via log callback for INFO level)
+                        # Log expansion if value changed (avoid leaking secrets in logs)
                         if expanded_value != original_value and self._log_callback:
-                            self._log_callback(f"# Global variable {key}: environment variable expansion")
-                            self._log_callback(f"#   Original: {original_value}")
-                            self._log_callback(f"#   Expanded: {expanded_value}")
+                            # Log only that expansion happened, not the actual values
+                            self._log_callback(f"# Global variable {key}: environment variable expansion applied")
+                            self.debug_log(f"#   Original length: {len(original_value)}")
+                            self.debug_log(f"#   Expanded length: {len(expanded_value)}")
 
                         # SECURITY HARDENING: Sanitize expanded global variable
                         sanitize_result = self.sanitizer.sanitize_global_variable(key, expanded_value)

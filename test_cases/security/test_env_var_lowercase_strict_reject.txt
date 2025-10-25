@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Strict mode rejects lowercase environment variables", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false, "security_category": "environment_variable_validation", "risk_level": "medium"}
+# TEST_METADATA: {"description": "Strict mode rejects lowercase environment variables", "test_type": "security_negative", "expected_exit_code": 20, "expected_success": false, "security_category": "malformed_input", "risk_level": "medium"}
 # Tests that strict validation catches lowercase env vars like $user
 
 --strict-env-validation

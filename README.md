@@ -1598,6 +1598,7 @@ exit 0
 #### Usage Examples
 
 **Command-line execution:**
+
 ```bash
 # Execute with alert on failure
 tasker -r --alert-on-failure ./alert.sh workflow.txt
@@ -1607,7 +1608,8 @@ tasker -r --alert-on-failure ./alert.sh workflow.txt
 ```
 
 **File-based configuration:**
-```
+
+```bash
 # workflow.txt - Alert defined in file header
 --alert-on-failure=./alert.sh
 --auto-recovery
@@ -1635,6 +1637,7 @@ Alert scripts receive comprehensive failure context:
 #### Advanced Alert Examples
 
 **Email notification:**
+
 ```bash
 #!/bin/bash
 # email_alert.sh - Send failure notification via email
@@ -1653,6 +1656,7 @@ EOF
 ```
 
 **Slack webhook integration:**
+
 ```bash
 #!/bin/bash
 # slack_alert.sh - Post to Slack channel
@@ -1677,6 +1681,7 @@ curl -X POST "$WEBHOOK_URL" \
 ```
 
 **Log archiving:**
+
 ```bash
 #!/bin/bash
 # archive_alert.sh - Archive failed workflow logs
@@ -1737,6 +1742,7 @@ Alerts are executed in these failure scenarios:
 - **Custom Recovery**: Trigger remediation workflows or rollback scripts
 
 **Example: Production deployment with alerts:**
+
 ```bash
 # production_deploy.txt
 --alert-on-failure=./ops/deployment_alert.sh

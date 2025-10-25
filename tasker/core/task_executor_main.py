@@ -801,6 +801,12 @@ class TaskExecutor:
         if not self.alert_script:
             return
 
+        # Skip alert execution in dry-run mode
+        if self.dry_run:
+            self.log_info(f"Dry-run mode: Would execute alert script: {self.alert_script}")
+            self.log_info(f"  EXIT_CODE={exit_code}, ERROR={error_msg}")
+            return
+
         try:
             self.log_warn(f"Executing alert script: {self.alert_script}")
 
@@ -845,7 +851,7 @@ class TaskExecutor:
                     self.log_warn("Alert script timeout after 30 seconds")
 
         except Exception as e:
-            self.log_warn(f"Alert script error: {e}")
+            self.log_warn(f"Alert script error ({type(e).__name__}): {e}")
 
     def _signal_handler(self, signum, frame):
         """Signal handler for graceful shutdown."""

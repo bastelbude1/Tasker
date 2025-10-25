@@ -546,7 +546,7 @@ class TaskValidator:
             with open(self.task_file, 'r') as f:
                 lines = f.readlines()
         except Exception as e:
-            self.errors.append(f"Error reading task file: {str(e)}")
+            self.errors.append(f"Error reading task file: {type(e).__name__}: {e}")
             return False
 
         # PHASE 1: Parse global variables (first pass)

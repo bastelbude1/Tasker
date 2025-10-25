@@ -1,0 +1,13 @@
+# TEST_METADATA: {"description": "Strict env validation via file header rejects non-TASKER_ vars", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "security_category": "environment_variable_validation", "risk_level": "medium"}
+# NOTE: This test uses file header to enable strict mode
+
+--strict-env-validation
+
+# This should FAIL - $USER lacks TASKER_ prefix
+MY_USER=$USER
+
+task=0
+hostname=localhost
+command=echo
+arguments=This should never execute
+exec=local

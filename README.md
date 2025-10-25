@@ -865,6 +865,7 @@ These flags generate warnings but are allowed:
 | `--skip-task-validation` | Boolean | `--skip-task-validation` |
 | `--skip-command-validation` | Boolean | `--skip-command-validation` |
 | `--skip-security-validation` | Boolean | `--skip-security-validation` (warns) |
+| `--strict-env-validation` | Boolean | `--strict-env-validation` |
 | `--skip-validation` | Boolean | `--skip-validation` (warns) |
 | `--fire-and-forget` | Boolean | `--fire-and-forget` (warns) |
 | `--show-plan` | Boolean | `--show-plan` |
@@ -2935,20 +2936,34 @@ MY_PASSWORD=$DB_PASSWORD    # ✅ Allowed (but risky!)
 ```
 
 ```bash
-# Strict mode: Require TASKER_ prefix for environment variables
+# Strict mode via CLI flag
 tasker --strict-env-validation tasks.txt -r
 
-# In strict mode, only TASKER_-prefixed vars are allowed
+# Strict mode via task file header (recommended for portable task files)
+# File: tasks.txt
+--strict-env-validation
+
 MY_USER=$TASKER_USERNAME     # ✅ Allowed (TASKER_ prefix)
 MY_PASSWORD=$DB_PASSWORD      # ❌ BLOCKED (no TASKER_ prefix)
+
+task=0
+hostname=localhost
+command=echo
+arguments=User: @MY_USER@
+exec=local
 ```
 
 **When to use strict mode:**
 - Shared/production environments with environment variables containing secrets
 - CI/CD pipelines where environment variables may include tokens/keys
 - Multi-user systems where env vars might contain sensitive data
+- Portable task files that enforce security across different environments
 
 **Default behavior:** Strict mode is **OPT-IN**. Normal mode allows any environment variable since users typically control both the task file and environment.
+
+**Configuration methods:**
+1. **CLI flag**: `tasker --strict-env-validation tasks.txt -r` (per-execution)
+2. **Task file header**: Add `--strict-env-validation` at top of task file (portable, recommended)
 
 **Security note:** Expanded values still go through security validation (command injection detection, etc.)
 

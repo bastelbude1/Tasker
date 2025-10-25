@@ -129,6 +129,7 @@ class TaskValidator:
                 'success' (bool): True if parsing succeeded, False if validation/sanitization failed.
                 'errors' (list): List of error messages (strict validation and security errors).
                 'global_vars' (dict): Mapping of parsed global variable names to sanitized expanded values.
+                'unexpanded_vars' (dict): Mapping of variable names to metadata about unexpanded environment variables.
         """
         global_vars = {}
         errors = []
@@ -136,7 +137,7 @@ class TaskValidator:
 
         if not os.path.exists(task_file):
             errors.append(f"Task file '{task_file}' not found")
-            return {'success': False, 'errors': errors, 'global_vars': {}}
+            return {'success': False, 'errors': errors, 'global_vars': {}, 'unexpanded_vars': {}}
 
         with open(task_file, 'r') as f:
             lines = f.readlines()
@@ -219,7 +220,7 @@ class TaskValidator:
                                 f"Either use TASKER_-prefixed variables or disable --strict-env-validation flag."
                             )
                             # Early return on strict validation failure
-                            return {'success': False, 'errors': errors, 'global_vars': {}}
+                            return {'success': False, 'errors': errors, 'global_vars': {}, 'unexpanded_vars': {}}
 
                 # Log all global variables at DEBUG level during validation (selective masking for sensitive vars)
                 if debug_callback:

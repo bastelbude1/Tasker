@@ -133,6 +133,7 @@ class TaskValidator:
         global_vars = {}
         errors = []
         unexpanded_vars = {}  # Track unexpanded variables for deferred validation
+        sanitizer = InputSanitizer()
 
         if not os.path.exists(task_file):
             errors.append(f"Task file '{task_file}' not found")
@@ -180,11 +181,11 @@ class TaskValidator:
                 # Expand environment variables
                 expanded_value = os.path.expandvars(value)
 
-                # Check if environment variable expansion failed (still contains $ references)
-                if '$' in value and '$' in expanded_value:
-                    # Extract environment variable references that failed to expand
-                    env_var_matches = re.findall(r'\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)', expanded_value)
-                    unexpanded_env_vars = [var for match in env_var_matches for var in match if var]
+                # Detect referenced env vars that are not set in the current environment
+                if '$' in value:
+                    env_var_matches = re.findall(r'\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)', value)
+                    referenced_vars = [var for match in env_var_matches for var in match if var]
+                    unexpanded_env_vars = [v for v in referenced_vars if v not in os.environ]
 
                     if unexpanded_env_vars:
                         # DEFERRED VALIDATION: Track unexpanded variable for later validation
@@ -246,7 +247,6 @@ class TaskValidator:
 
                 # CRITICAL SECURITY: Sanitize expanded global variable
                 # This prevents command injection and other security vulnerabilities
-                sanitizer = InputSanitizer()
                 sanitize_result = sanitizer.sanitize_global_variable(key, expanded_value)
 
                 # Check for sanitization errors

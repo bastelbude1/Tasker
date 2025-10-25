@@ -197,8 +197,8 @@ class TaskValidator:
                             # Early return on strict validation failure
                             return {'success': False, 'errors': errors, 'global_vars': {}}
 
-                # Log all global variables (selective masking for sensitive vars)
-                if log_callback:
+                # Log all global variables at DEBUG level during validation (selective masking for sensitive vars)
+                if debug_callback:
                     from ..core.condition_evaluator import ConditionEvaluator
 
                     if expanded_value != original_value:
@@ -206,24 +206,19 @@ class TaskValidator:
                         if ConditionEvaluator.should_mask_variable(key):
                             # Mask sensitive variable values
                             masked = ConditionEvaluator.mask_value(expanded_value)
-                            log_callback(f"# Global variable {key}: {masked} (expanded from {original_value})")
+                            debug_callback(f"# Global variable {key}: {masked} (expanded from {original_value})")
                         else:
                             # Show non-sensitive values for operational transparency
-                            log_callback(f"# Global variable {key}: {expanded_value} (expanded from {original_value})")
-
-                        if debug_callback:
-                            if ConditionEvaluator.should_mask_variable(key):
-                                debug_callback(f"#   Expanded to: <masked len={len(expanded_value)}>")
-                            else:
-                                debug_callback(f"#   Original: {original_value}")
-                                debug_callback(f"#   Expanded: {expanded_value}")
+                            debug_callback(f"# Global variable {key}: {expanded_value} (expanded from {original_value})")
+                            debug_callback(f"#   Original: {original_value}")
+                            debug_callback(f"#   Expanded: {expanded_value}")
                     else:
                         # Value was not expanded (no env var or env var doesn't exist)
                         if ConditionEvaluator.should_mask_variable(key):
                             masked = ConditionEvaluator.mask_value(expanded_value)
-                            log_callback(f"# Global variable {key}: {masked}")
+                            debug_callback(f"# Global variable {key}: {masked}")
                         else:
-                            log_callback(f"# Global variable {key}: {expanded_value}")
+                            debug_callback(f"# Global variable {key}: {expanded_value}")
 
                 # CRITICAL SECURITY: Sanitize expanded global variable
                 # This prevents command injection and other security vulnerabilities

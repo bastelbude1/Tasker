@@ -94,7 +94,7 @@ class TaskExecutor:
                  exec_type=None, timeout=30, connection_test=False, project=None,
                  start_from_task=None, skip_task_validation=False,
                  skip_host_validation=False, skip_security_validation=False,
-                 skip_subtask_range_validation=False,
+                 skip_subtask_range_validation=False, strict_env_validation=False,
                  show_plan=False, validate_only=False, fire_and_forget=False,
                  no_task_backup=False, auto_recovery=False, show_recovery_info=False):
         """
@@ -116,6 +116,7 @@ class TaskExecutor:
             skip_host_validation: If true, host validation is skipped (hostname checks will be bypassed).
             skip_security_validation: If true, security-specific validation steps are skipped during task validation.
             skip_subtask_range_validation: If true, subtask ID range convention warnings are suppressed.
+            strict_env_validation: If true, require TASKER_ prefix for environment variables in global variable definitions.
             show_plan: If true, the executor may display an execution plan before running tasks.
             validate_only: If true, the executor performs parsing/validation and exits without running tasks.
         """
@@ -151,6 +152,7 @@ class TaskExecutor:
 
         # Global variables support
         self.global_vars = {}  # Store global variables
+        self.strict_env_validation = strict_env_validation  # Require TASKER_ prefix for env vars
         
         # Thread safety for logging
         self.log_lock = threading.Lock()
@@ -1007,7 +1009,8 @@ class TaskExecutor:
                 log_callback=self.log_info,
                 debug_callback=self.log_debug if self.log_level == 'DEBUG' else None,
                 skip_security_validation=self.skip_security_validation,
-                skip_subtask_range_validation=self.skip_subtask_range_validation
+                skip_subtask_range_validation=self.skip_subtask_range_validation,
+                strict_env_validation=self.strict_env_validation
             )
             
             if not result['success']:
@@ -1086,8 +1089,34 @@ class TaskExecutor:
                 # Use class constant to avoid duplication
                 if key not in self.KNOWN_TASK_FIELDS:
                     # This is a global variable
-                    parsed_global_vars[key] = value
-                    self.log_debug(f"Global variable: {key} = {value}")
+                    original_value = value
+
+                    # Expand environment variables if present
+                    expanded_value = os.path.expandvars(value)
+
+                    # Strict validation: Check for TASKER_ prefix requirement
+                    if self.strict_env_validation and '$' in value:
+                        # Extract all environment variable references from the value
+                        env_vars = re.findall(r'\$\{?([A-Z_][A-Z0-9_]*)\}?', value)
+
+                        for env_var in env_vars:
+                            if not env_var.startswith('TASKER_'):
+                                self.log_error(
+                                    f"Line {line_num}: Strict environment variable validation failed for global variable '{key}'. "
+                                    f"Environment variable '${env_var}' does not start with required prefix 'TASKER_'. "
+                                    f"Either use TASKER_-prefixed variables or disable --strict-env-validation flag."
+                                )
+                                self.log_error("# VALIDATION FAILED: Environment variable validation error")
+                                ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Environment variable validation error", False)
+
+                    # Log expansion if value changed (INFO level for all expansions)
+                    if expanded_value != original_value:
+                        self.log_info(f"# Global variable {key}: environment variable expansion")
+                        self.log_info(f"#   Original: {original_value}")
+                        self.log_info(f"#   Expanded: {expanded_value}")
+
+                    parsed_global_vars[key] = expanded_value
+                    self.log_debug(f"Global variable: {key} = {expanded_value}")
 
         # Assign all global variables at once (compatible with StateManager property system)
         self.global_vars = parsed_global_vars

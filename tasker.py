@@ -256,6 +256,8 @@ Examples:
                        help='Skip command existence validation - allows missing local commands (WARNING: may cause execution failures)')
     parser.add_argument('--skip-security-validation', action='store_true',
                        help='Skip security pattern validation - disables input sanitization checks (WARNING: allows potentially risky patterns)')
+    parser.add_argument('--strict-env-validation', action='store_true',
+                       help='Require TASKER_ prefix for environment variables in global variable definitions (security: prevents accidental secret leakage)')
     parser.add_argument('--skip-subtask-range-validation', action='store_true',
                        help='Skip subtask ID range convention warnings - suppresses recommendations for distinct ID ranges')
     parser.add_argument('--skip-validation', action='store_true',
@@ -372,6 +374,7 @@ Examples:
         skip_host_validation=skip_host_validation,
         skip_security_validation=skip_security_validation,
         skip_subtask_range_validation=args.skip_subtask_range_validation,
+        strict_env_validation=args.strict_env_validation,
         show_plan=args.show_plan,
         validate_only=args.validate_only,
         fire_and_forget=args.fire_and_forget,

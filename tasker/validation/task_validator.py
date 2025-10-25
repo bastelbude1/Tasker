@@ -108,7 +108,7 @@ class TaskValidator:
         self.valid_operators = ['!=', '!~', '<=', '>=', '=', '~', '<', '>']
 
     @staticmethod
-    def parse_global_vars_only(task_file, strict_env_validation=False, log_callback=None, debug_callback=None):
+    def parse_global_vars_only(task_file, strict_env_validation=False, debug_callback=None):
         """
         Parse ONLY global variables from task file with environment variable expansion and sanitization.
 
@@ -121,7 +121,6 @@ class TaskValidator:
         Parameters:
             task_file (str): Path to the task file to parse.
             strict_env_validation (bool): If True, require TASKER_ prefix for env vars.
-            log_callback (function): Optional callback for logging expansion messages.
             debug_callback (function): Optional callback for debug logging.
 
         Returns:
@@ -617,7 +616,6 @@ class TaskValidator:
         parse_result = TaskValidator.parse_global_vars_only(
             self.task_file,
             strict_env_validation=self.strict_env_validation,
-            log_callback=self._log_callback,
             debug_callback=self._debug_callback if self.debug else None
         )
 

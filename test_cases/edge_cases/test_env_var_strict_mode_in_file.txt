@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Env var expansion failure when TASKER_ vars not set", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_category": "env_var_expansion"}
+# TEST_METADATA: {"description": "Env var expansion failure when TASKER_ vars not set", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "validation_category": "env_var_expansion", "expected_warnings": 1}
 # NOTE: This test validates that missing TASKER_-prefixed environment variables cause validation failure
 # To test successful expansion, run manually with: TASKER_USERNAME=$USER TASKER_HOMEDIR=$HOME python3 tasker.py test_env_var_strict_mode_in_file.txt -r
 

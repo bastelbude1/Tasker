@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Unused global variable with unexpanded env var should pass validation", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# TEST_METADATA: {"description": "Unused global variable with unexpanded env var should pass validation", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_warnings": 1}
 
 # Test that unused global variables with unexpanded environment variables
 # do NOT cause validation failure (deferred validation feature)

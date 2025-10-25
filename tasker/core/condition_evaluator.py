@@ -27,7 +27,66 @@ class ConditionEvaluator:
     def clear_debug_cache(cls):
         """Clear the debug logging cache for a new execution session."""
         cls._logged_replacements.clear()
-    
+
+    @staticmethod
+    def should_mask_variable(var_name):
+        """
+        Check if a variable should be masked based on naming convention.
+
+        Auto-masked prefixes (case-insensitive):
+        - SECRET_*, MASK_*, HIDE_* - explicit marking
+        - PASSWORD_*, TOKEN_* - common sensitive data types
+        - *_PASSWORD, *_TOKEN, *_SECRET, *_KEY - suffix-based detection
+
+        Args:
+            var_name: Variable name to check
+
+        Returns:
+            True if variable should be masked, False otherwise
+
+        Examples:
+            should_mask_variable('SECRET_API_KEY') -> True
+            should_mask_variable('DB_PASSWORD') -> True
+            should_mask_variable('HOSTNAME') -> False
+            should_mask_variable('USERNAME') -> False
+        """
+        if not var_name:
+            return False
+
+        var_upper = var_name.upper()
+
+        # Prefix-based masking
+        prefix_masks = ('SECRET_', 'MASK_', 'HIDE_', 'PASSWORD_', 'TOKEN_')
+        if var_upper.startswith(prefix_masks):
+            return True
+
+        # Suffix-based masking
+        suffix_masks = ('_PASSWORD', '_TOKEN', '_SECRET', '_KEY')
+        if var_upper.endswith(suffix_masks):
+            return True
+
+        return False
+
+    @staticmethod
+    def mask_value(value):
+        """
+        Format a masked value showing only length.
+
+        Args:
+            value: Value to mask
+
+        Returns:
+            Masked string in format "<masked len=N>"
+
+        Example:
+            mask_value('super_secret_123') -> '<masked len=16>'
+        """
+        try:
+            value_len = len(str(value))
+        except Exception:
+            value_len = -1
+        return f"<masked len={value_len}>"
+
     @staticmethod
     def replace_variables(text, global_vars, task_results, debug_callback=None):
         """
@@ -99,7 +158,11 @@ class ConditionEvaluator:
                 # Only log if we haven't seen this replacement before
                 replacement_key = f"{var_name}={value}"
                 if debug_callback and replacement_key not in ConditionEvaluator._logged_replacements:
-                    debug_callback(f"Replaced global variable @{var_name}@ with '{value}'")
+                    if ConditionEvaluator.should_mask_variable(var_name):
+                        masked = ConditionEvaluator.mask_value(value)
+                        debug_callback(f"Replaced global variable @{var_name}@ with '{masked}'")
+                    else:
+                        debug_callback(f"Replaced global variable @{var_name}@ with '{value}'")
                     ConditionEvaluator._logged_replacements.add(replacement_key)
             else:
                 unresolved_variables.append(f"@{var_name}@")

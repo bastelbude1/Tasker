@@ -887,12 +887,6 @@ class TaskExecutor:
         self._shutdown_signal = signal_name
         self._shutdown_signum = signum
 
-        # Execute alert script on signal interrupt
-        if self.alert_script:
-            exit_code = ExitCodes.SIGNAL_INTERRUPT if signum == signal.SIGINT else ExitCodes.SIGNAL_TERMINATE
-            error_msg = f"Workflow interrupted by {signal_name}"
-            self._execute_alert_script(exit_code, error_msg)
-
     def _check_shutdown(self):
         """Check if shutdown was requested - call at natural breakpoints."""
         if self._shutdown_requested:

@@ -83,7 +83,7 @@ class ConditionEvaluator:
         """
         try:
             value_len = len(str(value))
-        except Exception:
+        except (TypeError, AttributeError):
             value_len = -1
         return f"<masked len={value_len}>"
 

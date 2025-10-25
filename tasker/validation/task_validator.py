@@ -107,6 +107,108 @@ class TaskValidator:
         self.valid_operators = ['!=', '!~', '<=', '>=', '=', '~', '<', '>']
 
     @staticmethod
+    def parse_global_vars_only(task_file, strict_env_validation=False, log_callback=None, debug_callback=None):
+        """
+        Parse ONLY global variables from task file with environment variable expansion.
+        Does NOT perform security validation - only env var expansion and strict mode checks.
+
+        This method is used by TaskExecutor during parsing phase to centralize
+        environment variable expansion logic without triggering full validation.
+
+        Parameters:
+            task_file (str): Path to the task file to parse.
+            strict_env_validation (bool): If True, require TASKER_ prefix for env vars.
+            log_callback (function): Optional callback for logging expansion messages.
+            debug_callback (function): Optional callback for debug logging.
+
+        Returns:
+            dict: Parsing result with keys:
+                'success' (bool): True if parsing succeeded, False if strict validation failed.
+                'errors' (list): List of error messages (strict validation errors only).
+                'global_vars' (dict): Mapping of parsed global variable names to expanded values.
+        """
+        global_vars = {}
+        errors = []
+
+        if not os.path.exists(task_file):
+            errors.append(f"Task file '{task_file}' not found")
+            return {'success': False, 'errors': errors, 'global_vars': {}}
+
+        with open(task_file, 'r') as f:
+            lines = f.readlines()
+
+        for line_num, line in enumerate(lines, 1):
+            line = line.strip()
+
+            # Skip empty lines and comments
+            if not line or line.startswith('#'):
+                continue
+
+            # Skip file-defined arguments
+            if line.startswith(('-', '--')):
+                continue
+
+            # Stop at first task definition
+            task_match = re.match(r'^\s*task\s*=\s*(.*)', line)
+            if task_match:
+                break
+
+            # Parse global variable definitions
+            if '=' in line:
+                key, value = line.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+
+                # Skip task field names
+                known_task_fields = (
+                    'task', 'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
+                    'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure',
+                    'on_success', 'success', 'failure', 'condition', 'exec', 'timeout', 'return',
+                    'type', 'max_parallel', 'tasks', 'retry_failed', 'retry_count', 'retry_delay',
+                    'if_true_tasks', 'if_false_tasks'
+                )
+                if key in known_task_fields:
+                    continue
+
+                # Store original value for comparison
+                original_value = value
+
+                # Expand environment variables
+                expanded_value = os.path.expandvars(value)
+
+                # Strict validation: Check for TASKER_ prefix requirement
+                if strict_env_validation and '$' in value:
+                    # Extract all environment variable references from the value
+                    # Match ${VAR}, $VAR (case-insensitive identifiers)
+                    env_vars_in_value = re.findall(r'\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?', value)
+
+                    for env_var in env_vars_in_value:
+                        if not env_var.startswith('TASKER_'):
+                            errors.append(
+                                f"Line {line_num}: Strict environment variable validation failed for global variable '{key}'. "
+                                f"Environment variable '${env_var}' does not start with required prefix 'TASKER_'. "
+                                f"Either use TASKER_-prefixed variables or disable --strict-env-validation flag."
+                            )
+                            # Early return on strict validation failure
+                            return {'success': False, 'errors': errors, 'global_vars': {}}
+
+                # Log expansion if value changed (avoid leaking secrets in logs)
+                if expanded_value != original_value and log_callback:
+                    # Log only that expansion happened, not the actual values
+                    log_callback(f"# Global variable {key}: environment variable expansion applied")
+                    if debug_callback:
+                        debug_callback(f"#   Original length: {len(original_value)}")
+                        debug_callback(f"#   Expanded length: {len(expanded_value)}")
+
+                global_vars[key] = expanded_value
+
+        return {
+            'success': True,
+            'errors': [],
+            'global_vars': global_vars
+        }
+
+    @staticmethod
     def validate_task_file(task_file, debug=False, log_callback=None, debug_callback=None,
                           skip_security_validation=False, skip_subtask_range_validation=False,
                           strict_env_validation=False):
@@ -140,7 +242,7 @@ class TaskValidator:
         parse_success = validator.parse_file()
         if parse_success:
             validator.validate_tasks()
-            
+
         return {
             'success': len(validator.errors) == 0,
             'errors': validator.errors[:],  # Copy the list

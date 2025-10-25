@@ -1034,95 +1034,42 @@ class TaskExecutor:
             return False
 
     def parse_task_file(self):
-        """Parse the task file and extract global variables and task definitions."""
+        """Parse the task file and extract global variables and task definitions.
+
+        IMPORTANT: Global variable parsing and environment variable expansion is now
+        centralized in TaskValidator.parse_global_vars_only() to avoid code duplication and drift.
+        """
         if not os.path.exists(self.task_file):
             self.log_error(f"Task file '{self.task_file}' not found.")
             ExitHandler.exit_with_code(ExitCodes.TASK_FILE_NOT_FOUND, f"Task file '{self.task_file}' not found", False)
-            
+
         with open(self.task_file, 'r') as f:
             lines = f.readlines()
-        
-        # PHASE 1: Collect global variables (first pass)
+
+        # PHASE 1: Parse global variables using TaskValidator (centralized logic)
+        # This delegates env var expansion and strict validation to TaskValidator
+        # to avoid code duplication and ensure consistent behavior
         self.log_info(f"# Parsing global variables from '{self.task_file}'")
-        parsed_global_vars = {}  # Local dictionary to collect global variables
 
-        for line_num, line in enumerate(lines, 1):
-            line = line.strip()
+        # Use the new parse_global_vars_only() method which ONLY does env var expansion
+        # and strict validation, WITHOUT security validation (security happens later)
+        parse_result = TaskValidator.parse_global_vars_only(
+            self.task_file,
+            strict_env_validation=self.strict_env_validation,
+            log_callback=self.log_info,
+            debug_callback=self.log_debug if self.log_level == 'DEBUG' else None
+        )
 
-            # Skip empty lines and comments
-            if not line or line.startswith('#'):
-                continue
+        # Check for strict validation errors
+        if not parse_result['success']:
+            for error in parse_result['errors']:
+                self.log_error(error)
+            self.log_error("# VALIDATION FAILED: Environment variable validation error")
+            ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Environment variable validation error", False)
 
-            # Skip file-defined arguments (lines starting with - or --)
-            # These are processed by tasker.py CLI parser, not part of task file content
-            if line.startswith(('-', '--')):
-                continue
-
-            # STOP at first task definition - everything after is task fields, not globals
-            # Use regex to handle variations with spaces like 'task = 0' or ' task=0'
-            task_match = re.match(r'^\s*task\s*=\s*(.*)', line)
-            if task_match:
-                # Before stopping, validate that the task ID is a valid integer
-                # This prevents 'task=invalid_value' from being treated as a task and causing parser crash
-                try:
-                    task_value = task_match.group(1).strip()
-                    int(task_value)  # Try to convert to integer
-                    self.log_debug(f"First task found at line {line_num}, stopping global variable parsing")
-                    break
-                except ValueError:
-                    # Invalid task ID - this is likely an attempt to use 'task' as a global variable
-                    self.log_error(
-                        f"Line {line_num}: Cannot use 'task' as a global variable name. "
-                        f"'task' is reserved for task ID definitions and must be an integer. "
-                        f"Use a different name like 'TASK_NAME' or 'MY_TASK'."
-                    )
-                    self.log_error("# VALIDATION FAILED: Invalid task definition")
-                    ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Invalid task definition", False)
-
-            # Check if this is a global variable definition
-            if '=' in line:
-                key, value = line.split('=', 1)
-                key = key.strip()
-                value = value.strip()
-
-                # Check if this is a global variable (not a known task field)
-                # Use class constant to avoid duplication
-                if key not in self.KNOWN_TASK_FIELDS:
-                    # This is a global variable
-                    original_value = value
-
-                    # Expand environment variables if present
-                    expanded_value = os.path.expandvars(value)
-
-                    # Strict validation: Check for TASKER_ prefix requirement
-                    if self.strict_env_validation and '$' in value:
-                        # Extract all environment variable references from the value
-                        # Match ${VAR}, $VAR (case-insensitive identifiers)
-                        env_vars = re.findall(r'\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?', value)
-
-                        for env_var in env_vars:
-                            if not env_var.startswith('TASKER_'):
-                                self.log_error(
-                                    f"Line {line_num}: Strict environment variable validation failed for global variable '{key}'. "
-                                    f"Environment variable '${env_var}' does not start with required prefix 'TASKER_'. "
-                                    f"Either use TASKER_-prefixed variables or disable --strict-env-validation flag."
-                                )
-                                self.log_error("# VALIDATION FAILED: Environment variable validation error")
-                                ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Environment variable validation error", False)
-
-                    # Log expansion if value changed (avoid leaking secrets in logs)
-                    if expanded_value != original_value:
-                        # Log only that expansion happened, not the actual values
-                        self.log_info(f"# Global variable {key}: environment variable expansion applied")
-                        self.log_debug(f"#   Original length: {len(original_value)}")
-                        self.log_debug(f"#   Expanded length: {len(expanded_value)}")
-
-                    parsed_global_vars[key] = expanded_value
-                    self.log_debug(f"Global variable: {key} = {expanded_value}")
-
-        # Assign all global variables at once (compatible with StateManager property system)
-        self.global_vars = parsed_global_vars
-        global_count = len(parsed_global_vars)
+        # Use the expanded global variables from TaskValidator
+        self.global_vars = parse_result['global_vars']
+        global_count = len(self.global_vars)
         self.log_info(f"# Found {global_count} global variables")
         if global_count > 0:
             for key, value in self.global_vars.items():

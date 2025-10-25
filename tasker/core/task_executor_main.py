@@ -121,6 +121,11 @@ class TaskExecutor:
             strict_env_validation: If true, require TASKER_ prefix for environment variables in global variable definitions.
             show_plan: If true, the executor may display an execution plan before running tasks.
             validate_only: If true, the executor performs parsing/validation and exits without running tasks.
+            fire_and_forget: If true, enables fire-and-forget mode (tasks execute without waiting for completion).
+            no_task_backup: If true, disables automatic task file backup before execution.
+            auto_recovery: If true, enables automatic recovery mode using state files.
+            show_recovery_info: If true, displays recovery information and exits without executing tasks.
+            alert_on_failure: Optional path to an alert script to execute on workflow failure; script receives context via environment variables (TASKER_EXIT_CODE, TASKER_ERROR, TASKER_TASK_FILE, TASKER_LOG_FILE, TASKER_STATE_FILE, TASKER_FAILED_TASK, TASKER_TIMESTAMP).
         """
         # Clear debug logging cache for new execution session
         from .condition_evaluator import ConditionEvaluator

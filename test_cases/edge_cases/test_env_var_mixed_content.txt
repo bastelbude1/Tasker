@@ -1,0 +1,24 @@
+# TEST_METADATA: {"description": "Mixed environment variables and literal text in global variables", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Test mixed content - env vars with literal text
+DEPLOYMENT_PATH=/var/deployments/$USER
+LOG_FILE=/var/log/tasker_$USER.log
+BACKUP_DIR=$HOME/backups
+
+task=0
+hostname=localhost
+command=echo
+arguments=Deployment path: @DEPLOYMENT_PATH@
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Log file: @LOG_FILE@
+exec=local
+
+task=2
+hostname=localhost
+command=echo
+arguments=Backup dir: @BACKUP_DIR@
+exec=local

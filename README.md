@@ -865,6 +865,7 @@ These flags generate warnings but are allowed:
 | `--skip-task-validation` | Boolean | `--skip-task-validation` |
 | `--skip-command-validation` | Boolean | `--skip-command-validation` |
 | `--skip-security-validation` | Boolean | `--skip-security-validation` (warns) |
+| `--strict-env-validation` | Boolean | `--strict-env-validation` |
 | `--skip-validation` | Boolean | `--skip-validation` (warns) |
 | `--fire-and-forget` | Boolean | `--fire-and-forget` (warns) |
 | `--show-plan` | Boolean | `--show-plan` |
@@ -1026,9 +1027,11 @@ Define reusable variables at the top of your task file for configuration managem
 
 ### ✅ Environment Variable Support
 
-**TASKER automatically expands environment variables** like `$HOME`, `$USER`, `$PWD`, etc. in task arguments.
+**TASKER automatically expands environment variables** like `$HOME`, `$USER`, `$PWD`, etc. in:
+- ✅ **Task arguments field** - Expanded at execution time
+- ✅ **Global variable definitions** - Expanded at parse time (NEW!)
 
-**✅ Environment variables work as expected:**
+**✅ Environment variables in task arguments:**
 ```
 task=0
 hostname=localhost
@@ -1043,14 +1046,38 @@ arguments=Current user is $USER in directory $PWD
 exec=local
 ```
 
+**✅ NEW: Environment variables in global variable definitions:**
+
+```bash
+# Global variables can now expand environment variables
+MY_USER=$USER
+MY_HOME=$HOME
+DEPLOYMENT_PATH=/var/deployments/$USER
+LOG_FILE=$HOME/logs/tasker.log
+
+task=0
+hostname=localhost
+command=echo
+arguments=Running as @MY_USER@ from @MY_HOME@
+exec=local
+```
+
+**Supported syntax:**
+- **Simple**: `$USER`, `$HOME`, `$PWD`
+- **Braces**: `${USER}`, `${HOME}` (useful for disambiguation)
+- **Example**: `PATH_WITH_USER=/home/${USER}/bin` (braces prevent interpreting `/bin` as part of variable name)
+
 **Supported environment variables:**
 - `$HOME` - User's home directory
 - `$USER` - Current username
 - `$PWD` - Current working directory
 - `$PATH` - System PATH variable
+- `$HOSTNAME` - System hostname
 - Any other environment variables available in the system
 
-**Note:** Environment variables are expanded only in the `arguments` field. Use TASKER global variables (`@VARIABLE@`) for custom values that need to be shared across tasks.
+**Expansion timing:**
+- **Global variables**: Expanded **once** at parse time (start of execution)
+- **Arguments field**: Expanded at **task execution** time (allows dynamic values like `$PWD` after `cd` commands)
 
 ### Basic Global Variables
 
@@ -2904,6 +2931,69 @@ arguments=cat *.log                    # Wildcard allowed
 arguments=cmd1 && cmd2 || cmd3         # Command chaining allowed
 ```
 
+#### Environment Variable Validation
+
+**NEW: Strict Environment Variable Validation** prevents accidental secret leakage in global variables:
+
+```bash
+# Normal mode (default): Allow any environment variable
+MY_USER=$USER
+MY_PASSWORD=$DB_PASSWORD    # ✅ Allowed (but risky!)
+```
+
+```bash
+# Strict mode via CLI flag
+tasker --strict-env-validation tasks.txt -r
+
+# Strict mode via task file header (recommended for portable task files)
+# File: tasks.txt
+--strict-env-validation
+
+MY_USER=$TASKER_USERNAME     # ✅ Allowed (TASKER_ prefix)
+MY_PASSWORD=$DB_PASSWORD      # ❌ BLOCKED (no TASKER_ prefix)
+
+task=0
+hostname=localhost
+command=echo
+arguments=User: @MY_USER@
+exec=local
+```
+
+**When to use strict mode:**
+- Shared/production environments with environment variables containing secrets
+- CI/CD pipelines where environment variables may include tokens/keys
+- Multi-user systems where env vars might contain sensitive data
+- Portable task files that enforce security across different environments
+
+**Default behavior:** Strict mode is **OPT-IN**. Normal mode allows any environment variable since users typically control both the task file and environment.
+
+**Configuration methods:**
+1. **CLI flag**: `tasker --strict-env-validation tasks.txt -r` (per-execution)
+2. **Task file header**: Add `--strict-env-validation` at top of task file (portable, recommended)
+
+**Security note:** Expanded values still go through security validation (command injection detection, etc.)
+
+**Selective masking:** Global variable values are logged by default for operational transparency and debugging. Variables with sensitive prefixes are automatically masked in all logs.
+
+**Auto-masked prefixes** (case-insensitive):
+- `SECRET_*`, `MASK_*`, `HIDE_*` - explicit marking
+- `PASSWORD_*`, `TOKEN_*` - common sensitive data types
+- `*_PASSWORD`, `*_TOKEN`, `*_SECRET`, `*_KEY` - suffix-based detection
+
+**Examples:**
+
+```bash
+# Visible in logs (essential for debugging)
+HOSTNAME=production-db-01        # Logged: "Replaced @HOSTNAME@ with 'production-db-01'"
+USERNAME=deploy_user             # Logged: "Replaced @USERNAME@ with 'deploy_user'"
+
+# Automatically masked (security protection)
+SECRET_API_KEY=$TASKER_TOKEN     # Logged: "Replaced @SECRET_API_KEY@ with '<masked len=32>'"
+DB_PASSWORD=$TASKER_PASS        # Logged: "Replaced @DB_PASSWORD@ with '<masked len=16>'"
+```
+
+**Best practice:** Use appropriate prefixes for sensitive data. Regular operational data (hostnames, usernames, paths) should remain visible for debugging.
+
 #### Skipping Security Validation
 
 For advanced users or migration scenarios, security validation can be bypassed:
@@ -4302,6 +4392,7 @@ tasker recovery_workflow.txt --show-effective-args
 | `--skip-host-validation` | Skip host validation - use hostnames as-is (WARNING: may cause connection failures) | `tasker -r --skip-host-validation tasks.txt` |
 | `--skip-command-validation` | Skip command existence validation (WARNING: may cause execution failures) | `tasker -r --skip-command-validation tasks.txt` |
 | `--skip-security-validation` | Skip security pattern validation - disables input sanitization (WARNING: allows risky patterns) | `tasker -r --skip-security-validation tasks.txt` |
+| `--strict-env-validation` | Require TASKER_ prefix for environment variables in global variables (security: prevents accidental secret leakage) | `tasker -r --strict-env-validation tasks.txt` |
 | `--skip-validation` | Skip ALL validation (task + host + command + security) | `tasker -r --skip-validation tasks.txt` |
 
 #### Resume and Recovery
@@ -4325,6 +4416,7 @@ usage: tasker [-h] [-r] [-l LOG_DIR] [--log-level {ERROR,WARN,INFO,DEBUG}]
               [--start-from TASK_ID] [--auto-recovery] [--show-recovery-info]
               [--skip-task-validation] [--skip-host-validation]
               [--skip-command-validation] [--skip-security-validation]
+              [--strict-env-validation] [--skip-subtask-range-validation]
               [--skip-validation] [--validate-only] [--fire-and-forget]
               [--no-task-backup] [--show-plan] [-d] [--show-effective-args]
               task_file

@@ -2972,6 +2972,8 @@ exec=local
 
 **Security note:** Expanded values still go through security validation (command injection detection, etc.)
 
+**Privacy protection:** Expanded global variable values are never written to logs (even at DEBUG level). Logs include only variable names and non-sensitive indicators (e.g., value length).
+
 #### Skipping Security Validation
 
 For advanced users or migration scenarios, security validation can be bypassed:

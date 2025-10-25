@@ -1047,7 +1047,7 @@ exec=local
 ```
 
 **✅ NEW: Environment variables in global variable definitions:**
-```
+```bash
 # Global variables can now expand environment variables
 MY_USER=$USER
 MY_HOME=$HOME

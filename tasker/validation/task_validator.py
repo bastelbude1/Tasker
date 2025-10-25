@@ -632,6 +632,7 @@ class TaskValidator:
                             # Match ${VAR}, $VAR (case-insensitive identifiers)
                             env_vars = re.findall(r'\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?', value)
 
+                            invalid_env_ref = False
                             for env_var in env_vars:
                                 if not env_var.startswith('TASKER_'):
                                     self.errors.append(
@@ -640,7 +641,11 @@ class TaskValidator:
                                         f"Either use TASKER_-prefixed variables or disable --strict-env-validation flag."
                                     )
                                     self.debug_log(f"Environment variable validation failed: ${env_var} lacks TASKER_ prefix")
-                                    continue  # Skip this global variable
+                                    invalid_env_ref = True
+
+                            if invalid_env_ref:
+                                # Skip this global variable entirely - do not sanitize or store it
+                                continue
 
                         # Log expansion if value changed (avoid leaking secrets in logs)
                         if expanded_value != original_value and self._log_callback:

@@ -2972,7 +2972,25 @@ exec=local
 
 **Security note:** Expanded values still go through security validation (command injection detection, etc.)
 
-**Privacy protection:** Expanded global variable values are never written to logs (even at DEBUG level). Logs include only variable names and non-sensitive indicators (e.g., value length).
+**Selective masking:** Global variable values are logged by default for operational transparency and debugging. Variables with sensitive prefixes are automatically masked in all logs.
+
+**Auto-masked prefixes** (case-insensitive):
+- `SECRET_*`, `MASK_*`, `HIDE_*` - explicit marking
+- `PASSWORD_*`, `TOKEN_*` - common sensitive data types
+- `*_PASSWORD`, `*_TOKEN`, `*_SECRET`, `*_KEY` - suffix-based detection
+
+**Examples:**
+```bash
+# Visible in logs (essential for debugging)
+HOSTNAME=production-db-01        # Logged: "Replaced @HOSTNAME@ with 'production-db-01'"
+USERNAME=deploy_user             # Logged: "Replaced @USERNAME@ with 'deploy_user'"
+
+# Automatically masked (security protection)
+SECRET_API_KEY=$TASKER_TOKEN     # Logged: "Replaced @SECRET_API_KEY@ with '<masked len=32>'"
+DB_PASSWORD=$TASKER_PASS        # Logged: "Replaced @DB_PASSWORD@ with '<masked len=16>'"
+```
+
+**Best practice:** Use appropriate prefixes for sensitive data. Regular operational data (hostnames, usernames, paths) should remain visible for debugging.
 
 #### Skipping Security Validation
 

@@ -1074,13 +1074,14 @@ class TaskExecutor:
         global_count = len(self.global_vars)
         self.log_info(f"# Found {global_count} global variables")
         if global_count > 0:
+            from ..core.condition_evaluator import ConditionEvaluator
             for key, value in self.global_vars.items():
-                # SECURITY: Avoid leaking values; log name and length only
-                try:
-                    vlen = len(str(value))
-                except Exception:
-                    vlen = -1
-                self.log_debug(f"#   {key} (length: {vlen})")
+                # Selective masking: show values for non-sensitive vars, mask sensitive ones
+                if ConditionEvaluator.should_mask_variable(key):
+                    masked = ConditionEvaluator.mask_value(value)
+                    self.log_debug(f"#   {key} = {masked}")
+                else:
+                    self.log_debug(f"#   {key} = {value}")
         
         # PHASE 2: Parse tasks (second pass)
         current_task = None

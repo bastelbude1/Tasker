@@ -197,13 +197,16 @@ class TaskValidator:
                             # Early return on strict validation failure
                             return {'success': False, 'errors': errors, 'global_vars': {}}
 
-                # Log expansion if value changed (avoid leaking secrets in logs)
+                # Log expansion if value changed (selective masking for sensitive vars)
                 if expanded_value != original_value and log_callback:
-                    # Log only that expansion happened, not the actual values
                     log_callback(f"# Global variable {key}: environment variable expansion applied")
                     if debug_callback:
-                        debug_callback(f"#   Original length: {len(original_value)}")
-                        debug_callback(f"#   Expanded length: {len(expanded_value)}")
+                        from ..core.condition_evaluator import ConditionEvaluator
+                        if ConditionEvaluator.should_mask_variable(key):
+                            debug_callback(f"#   Expanded to: <masked len={len(expanded_value)}>")
+                        else:
+                            debug_callback(f"#   Original: {original_value}")
+                            debug_callback(f"#   Expanded: {expanded_value}")
 
                 # CRITICAL SECURITY: Sanitize expanded global variable
                 # This prevents command injection and other security vulnerabilities
@@ -1354,10 +1357,14 @@ class TaskValidator:
             unused_list = sorted(unused_vars)
             self.warnings.append(f"Found {len(unused_vars)} unused global variable(s): {', '.join(unused_list)}")
             for var in unused_list:
-                # SECURITY: Don't log actual values to avoid leaking secrets
+                # Selective masking: show values for non-sensitive vars, mask sensitive ones
+                from ..core.condition_evaluator import ConditionEvaluator
                 val = self.global_vars.get(var, '')
-                masked = f"<len={len(val)}>"
-                self.warnings.append(f"  Unused global variable: {var} = {masked}")
+                if ConditionEvaluator.should_mask_variable(var):
+                    display_val = ConditionEvaluator.mask_value(val)
+                else:
+                    display_val = val
+                self.warnings.append(f"  Unused global variable: {var} = {display_val}")
 
     def validate_field_values(self, task, task_id, line_number):
         """

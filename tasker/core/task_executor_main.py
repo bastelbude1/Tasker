@@ -270,6 +270,8 @@ class TaskExecutor:
 
         if self.dry_run:
             self.log_info("# Dry run mode")
+        if self.strict_env_validation:
+            self.log_info("# Strict environment variable validation: ENABLED (requires TASKER_ prefix)")
         self.log_debug(f"# Default timeout: {timeout} [s]")
     
         # Only add minimal warning for shared summary files

@@ -178,6 +178,21 @@ class TaskValidator:
                 # Expand environment variables
                 expanded_value = os.path.expandvars(value)
 
+                # Check if environment variable expansion failed (still contains $ references)
+                if '$' in value and '$' in expanded_value:
+                    # Extract environment variable references that failed to expand
+                    env_var_matches = re.findall(r'\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)', expanded_value)
+                    unexpanded_vars = [var for match in env_var_matches for var in match if var]
+
+                    if unexpanded_vars:
+                        errors.append(
+                            f"Line {line_num}: Environment variable expansion failed for global variable '{key}'. "
+                            f"Environment variable(s) {', '.join(['$' + v for v in unexpanded_vars])} do not exist or are not set. "
+                            f"Please set the required environment variable(s) before running this task file."
+                        )
+                        # Early return on expansion failure
+                        return {'success': False, 'errors': errors, 'global_vars': {}}
+
                 # Strict validation: Check for TASKER_ prefix requirement
                 if strict_env_validation and '$' in value:
                     # Extract all environment variable references from the value

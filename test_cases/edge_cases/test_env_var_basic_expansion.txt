@@ -3,7 +3,6 @@
 # Test basic environment variable expansion
 MY_USER=$USER
 MY_HOME=$HOME
-MY_HOSTNAME=$HOSTNAME
 
 task=0
 hostname=localhost

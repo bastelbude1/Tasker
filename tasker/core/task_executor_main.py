@@ -1920,12 +1920,12 @@ class TaskExecutor:
         # Conditional host validation
         if not self.skip_host_validation:
             validated_hosts = HostValidator.validate_hosts(
-                self.tasks, 
-                self.global_vars, 
-                self.task_results, 
-                self.exec_type, 
-                self.default_exec_type, 
-                True,  # Always check connectivity for remote hosts
+                self.tasks,
+                self.global_vars,
+                self.task_results,
+                self.exec_type,
+                self.default_exec_type,
+                self.connection_test,  # Respect CLI/constructor flag
                 self.log_debug if self.log_level == 'DEBUG' else None,  # Only detailed output in debug mode
                 self.log_info
             )

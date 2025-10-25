@@ -49,6 +49,7 @@ class TaskValidator:
 
         # Validation control flags
         self.skip_security_validation = False
+        self.strict_env_validation = False  # Require TASKER_ prefix for env vars
 
         # Global variables support
         self.global_vars = {}  # Store global variables for validation
@@ -107,7 +108,8 @@ class TaskValidator:
 
     @staticmethod
     def validate_task_file(task_file, debug=False, log_callback=None, debug_callback=None,
-                          skip_security_validation=False, skip_subtask_range_validation=False):
+                          skip_security_validation=False, skip_subtask_range_validation=False,
+                          strict_env_validation=False):
         """
                           Validate the task file at the given path and report parsing and validation results.
 
@@ -115,6 +117,7 @@ class TaskValidator:
                               task_file (str): Path to the task file to validate.
                               skip_security_validation (bool): If True, skip pattern-based security checks.
                               skip_subtask_range_validation (bool): If True, suppress recommended subtask ID range warnings.
+                              strict_env_validation (bool): If True, require TASKER_ prefix for environment variables in global variable definitions.
 
                           Returns:
                               dict: Validation summary with keys:
@@ -131,6 +134,7 @@ class TaskValidator:
         validator._debug_callback = debug_callback
         validator.skip_security_validation = skip_security_validation
         validator.skip_subtask_range_validation = skip_subtask_range_validation
+        validator.strict_env_validation = strict_env_validation
 
         # Parse and validate
         parse_success = validator.parse_file()
@@ -514,8 +518,35 @@ class TaskValidator:
                         if self.check_for_inline_comments(key, value, line_number):
                             continue  # Skip this global variable if it has inline comments
 
-                        # SECURITY HARDENING: Sanitize global variable
-                        sanitize_result = self.sanitizer.sanitize_global_variable(key, value)
+                        # Store original value before expansion
+                        original_value = value
+
+                        # Expand environment variables if present
+                        expanded_value = os.path.expandvars(value)
+
+                        # Strict validation: Check for TASKER_ prefix requirement
+                        if self.strict_env_validation and '$' in value:
+                            # Extract all environment variable references from the value
+                            env_vars = re.findall(r'\$\{?([A-Z_][A-Z0-9_]*)\}?', value)
+
+                            for env_var in env_vars:
+                                if not env_var.startswith('TASKER_'):
+                                    self.errors.append(
+                                        f"Line {line_number}: Strict environment variable validation failed for global variable '{key}'. "
+                                        f"Environment variable '${env_var}' does not start with required prefix 'TASKER_'. "
+                                        f"Either use TASKER_-prefixed variables or disable --strict-env-validation flag."
+                                    )
+                                    self.debug_log(f"Environment variable validation failed: ${env_var} lacks TASKER_ prefix")
+                                    continue  # Skip this global variable
+
+                        # Log expansion if value changed (via log callback for INFO level)
+                        if expanded_value != original_value and self._log_callback:
+                            self._log_callback(f"# Global variable {key}: environment variable expansion")
+                            self._log_callback(f"#   Original: {original_value}")
+                            self._log_callback(f"#   Expanded: {expanded_value}")
+
+                        # SECURITY HARDENING: Sanitize expanded global variable
+                        sanitize_result = self.sanitizer.sanitize_global_variable(key, expanded_value)
 
                         # Add any sanitization errors/warnings
                         for error in sanitize_result['errors']:

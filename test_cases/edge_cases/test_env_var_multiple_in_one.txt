@@ -1,0 +1,17 @@
+# TEST_METADATA: {"description": "Multiple environment variables in a single global variable", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Test multiple env vars in one global variable
+USER_HOME_COMBO=$USER:$HOME
+PATH_INFO=$HOME/bin:$PWD
+
+task=0
+hostname=localhost
+command=echo
+arguments=Combined: @USER_HOME_COMBO@
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Path info: @PATH_INFO@
+exec=local

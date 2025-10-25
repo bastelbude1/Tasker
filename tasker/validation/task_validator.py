@@ -54,6 +54,7 @@ class TaskValidator:
         # Global variables support
         self.global_vars = {}  # Store global variables for validation
         self.referenced_global_vars = set()  # Track which global variables are used
+        self.unexpanded_global_vars = {}  # Track unexpanded env vars for deferred validation
         
         # Define required and optional fields for tasks
         self.required_fields = ['task']
@@ -131,6 +132,7 @@ class TaskValidator:
         """
         global_vars = {}
         errors = []
+        unexpanded_vars = {}  # Track unexpanded variables for deferred validation
 
         if not os.path.exists(task_file):
             errors.append(f"Task file '{task_file}' not found")
@@ -182,21 +184,23 @@ class TaskValidator:
                 if '$' in value and '$' in expanded_value:
                     # Extract environment variable references that failed to expand
                     env_var_matches = re.findall(r'\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)', expanded_value)
-                    unexpanded_vars = [var for match in env_var_matches for var in match if var]
+                    unexpanded_env_vars = [var for match in env_var_matches for var in match if var]
 
-                    if unexpanded_vars:
-                        # INFO level: Brief error message
-                        errors.append(
-                            f"Line {line_num}: Environment variable expansion failed for global variable '{key}'."
-                        )
-                        # DEBUG level: Detailed information about which variables failed
+                    if unexpanded_env_vars:
+                        # DEFERRED VALIDATION: Track unexpanded variable for later validation
+                        # Only fail if this variable is actually used in tasks
+                        unexpanded_vars[key] = {
+                            'line_num': line_num,
+                            'env_vars': unexpanded_env_vars
+                        }
+                        # Log at DEBUG level during parsing
                         if debug_callback:
+                            env_vars_str = ', '.join(['$' + v for v in unexpanded_env_vars])
                             debug_callback(
-                                f"# Environment variable(s) {', '.join(['$' + v for v in unexpanded_vars])} do not exist or are not set. "
-                                f"Please set the required environment variable(s) before running this task file."
+                                f"# Global variable '{key}' contains unexpanded environment variable(s): {env_vars_str}. "
+                                f"Will validate if this variable is used in tasks."
                             )
-                        # Early return on expansion failure
-                        return {'success': False, 'errors': errors, 'global_vars': {}}
+                        # Continue processing (don't return early)
 
                 # Strict validation: Check for TASKER_ prefix requirement
                 if strict_env_validation and '$' in value:
@@ -259,7 +263,8 @@ class TaskValidator:
         return {
             'success': len(errors) == 0,
             'errors': errors,
-            'global_vars': global_vars
+            'global_vars': global_vars,
+            'unexpanded_vars': unexpanded_vars
         }
 
     @staticmethod
@@ -623,6 +628,9 @@ class TaskValidator:
         # Use the sanitized and validated global variables
         self.global_vars = parse_result['global_vars']
 
+        # Store unexpanded variable tracking for deferred validation
+        self.unexpanded_global_vars = parse_result.get('unexpanded_vars', {})
+
         self.debug_log(f"Parsed {len(self.global_vars)} global variables")
 
         # PHASE 2: Parse tasks (existing logic with minor updates)
@@ -926,6 +934,11 @@ class TaskValidator:
 
         # Perform reachability analysis to find orphaned tasks
         self.check_task_reachability(task_ids, referenced_tasks, parallel_tasks, conditional_tasks)
+
+        # Check for unexpanded environment variables in USED global variables (deferred validation)
+        # This must run BEFORE check_unused_global_variables() so that used unexpanded vars
+        # show as errors, not as "unused" warnings
+        self.check_unexpanded_used_variables()
 
         # Check for unused global variables
         self.check_unused_global_variables()
@@ -1380,6 +1393,35 @@ class TaskValidator:
                     f"Task {task_id} is unreachable and never referenced. "
                     f"It will never execute. Consider removing it or adding a reference."
                 )
+
+    def check_unexpanded_used_variables(self):
+        """
+        Validate that used global variables have successfully expanded environment variables.
+        Only fails if an unexpanded variable is actually referenced in tasks.
+
+        This is a deferred validation that runs after all tasks are parsed,
+        allowing unused variables with unexpanded env vars to pass validation.
+        """
+        # Cross-reference unexpanded vars with referenced vars
+        used_unexpanded = self.referenced_global_vars.intersection(
+            set(self.unexpanded_global_vars.keys())
+        )
+
+        if used_unexpanded:
+            for var_name in sorted(used_unexpanded):
+                metadata = self.unexpanded_global_vars[var_name]
+                # INFO level: Brief error message
+                self.errors.append(
+                    f"Line {metadata['line_num']}: Environment variable expansion "
+                    f"failed for used global variable '{var_name}'."
+                )
+                # DEBUG level: Detailed information about which variables failed
+                if hasattr(self, '_debug_callback') and self._debug_callback:
+                    env_vars_str = ', '.join(['$' + v for v in metadata['env_vars']])
+                    self._debug_callback(
+                        f"# Environment variable(s) {env_vars_str} do not exist or are not set. "
+                        f"Please set the required environment variable(s) before running this task file."
+                    )
 
     def check_unused_global_variables(self):
         """Check for global variables that are defined but never used."""

@@ -4,6 +4,9 @@
 MY_USER=$USER
 MY_HOME=$HOME
 
+# Unused global variable with unexpanded env var (should not cause validation failure)
+UNUSED_VAR=$NONEXISTENT_ENV_VAR
+
 task=0
 hostname=localhost
 command=echo

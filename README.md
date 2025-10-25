@@ -2981,6 +2981,7 @@ exec=local
 - `*_PASSWORD`, `*_TOKEN`, `*_SECRET`, `*_KEY` - suffix-based detection
 
 **Examples:**
+
 ```bash
 # Visible in logs (essential for debugging)
 HOSTNAME=production-db-01        # Logged: "Replaced @HOSTNAME@ with 'production-db-01'"

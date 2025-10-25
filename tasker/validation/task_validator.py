@@ -109,11 +109,13 @@ class TaskValidator:
     @staticmethod
     def parse_global_vars_only(task_file, strict_env_validation=False, log_callback=None, debug_callback=None):
         """
-        Parse ONLY global variables from task file with environment variable expansion.
-        Does NOT perform security validation - only env var expansion and strict mode checks.
+        Parse ONLY global variables from task file with environment variable expansion and sanitization.
+
+        IMPORTANT: This method performs BOTH env var expansion AND security sanitization.
+        Malicious global variables are rejected to prevent command injection attacks.
 
         This method is used by TaskExecutor during parsing phase to centralize
-        environment variable expansion logic without triggering full validation.
+        environment variable expansion and sanitization logic.
 
         Parameters:
             task_file (str): Path to the task file to parse.
@@ -123,9 +125,9 @@ class TaskValidator:
 
         Returns:
             dict: Parsing result with keys:
-                'success' (bool): True if parsing succeeded, False if strict validation failed.
-                'errors' (list): List of error messages (strict validation errors only).
-                'global_vars' (dict): Mapping of parsed global variable names to expanded values.
+                'success' (bool): True if parsing succeeded, False if validation/sanitization failed.
+                'errors' (list): List of error messages (strict validation and security errors).
+                'global_vars' (dict): Mapping of parsed global variable names to sanitized expanded values.
         """
         global_vars = {}
         errors = []
@@ -200,11 +202,26 @@ class TaskValidator:
                         debug_callback(f"#   Original length: {len(original_value)}")
                         debug_callback(f"#   Expanded length: {len(expanded_value)}")
 
-                global_vars[key] = expanded_value
+                # CRITICAL SECURITY: Sanitize expanded global variable
+                # This prevents command injection and other security vulnerabilities
+                from ..validation.input_sanitizer import InputSanitizer
+                sanitizer = InputSanitizer()
+                sanitize_result = sanitizer.sanitize_global_variable(key, expanded_value)
 
+                # Check for sanitization errors
+                if not sanitize_result['valid']:
+                    for error in sanitize_result['errors']:
+                        errors.append(f"Line {line_num}: Global variable security error: {error}")
+                    # Skip this global variable - do not store it
+                    continue
+
+                # Store sanitized value (not the raw expanded value)
+                global_vars[key] = sanitize_result['value']
+
+        # Return success=False if any errors were accumulated during parsing
         return {
-            'success': True,
-            'errors': [],
+            'success': len(errors) == 0,
+            'errors': errors,
             'global_vars': global_vars
         }
 

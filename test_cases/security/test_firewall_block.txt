@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Firewall block test - minimal return-only task", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "security_category": "malformed_input", "expected_execution_path": [0, 1, 2], "expected_final_task": 2, "expected_variables": {"0_stdout": "initialization", "1_stdout": "processing"}}
+# TEST_METADATA: {"description": "Firewall block test - minimal return-only task", "test_type": "security_negative", "expected_exit_code": 1, "expected_success": false, "security_category": "malformed_input", "expected_execution_path": [0, 1, 2], "expected_final_task": 2, "expected_variables": {"0_stdout": "initialization", "1_stdout": "processing"}}
 
 # Test case for minimal firewall block (End Failure Block)
 # Task 2 has ONLY task and return parameters - no command, no hostname

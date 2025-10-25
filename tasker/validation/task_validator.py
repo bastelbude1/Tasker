@@ -207,7 +207,6 @@ class TaskValidator:
 
                 # CRITICAL SECURITY: Sanitize expanded global variable
                 # This prevents command injection and other security vulnerabilities
-                from ..validation.input_sanitizer import InputSanitizer
                 sanitizer = InputSanitizer()
                 sanitize_result = sanitizer.sanitize_global_variable(key, expanded_value)
 

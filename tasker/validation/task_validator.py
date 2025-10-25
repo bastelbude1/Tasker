@@ -567,133 +567,26 @@ class TaskValidator:
             return False
 
         # PHASE 1: Parse global variables (first pass)
-        # Global variables are ONLY defined BEFORE the first task definition
-        # Stop processing as soon as we encounter the first 'task=' line
+        # Delegate to centralized parse_global_vars_only() to avoid code duplication
         self.debug_log("Parsing global variables...")
-        global_count = 0
 
-        for line_number, line in enumerate(lines, 1):
-            line = line.strip()
+        # Call the static method that handles env var expansion, strict validation, and sanitization
+        parse_result = TaskValidator.parse_global_vars_only(
+            self.task_file,
+            strict_env_validation=self.strict_env_validation,
+            log_callback=self._log_callback,
+            debug_callback=self._debug_callback if self.debug else None
+        )
 
-            # Skip empty lines and comments
-            if not line or line.startswith('#'):
-                continue
+        # Handle parsing errors (strict validation or sanitization failures)
+        if not parse_result['success']:
+            for error in parse_result['errors']:
+                self.errors.append(error)
 
-            # Skip file-defined arguments (lines starting with - or --)
-            # These are processed by tasker.py CLI parser, not part of task file content
-            if line.startswith(('-', '--')):
-                continue
+        # Use the sanitized and validated global variables
+        self.global_vars = parse_result['global_vars']
 
-            # STOP at first task definition - everything after is task fields, not globals
-            if line.startswith('task='):
-                # Before stopping, validate that the task ID is a valid integer
-                # This prevents 'task=invalid_value' from being treated as a task and causing parser crash
-                try:
-                    task_value = line.split('=', 1)[1].strip()
-                    int(task_value)  # Try to convert to integer
-                    self.debug_log(f"First task found at line {line_number}, stopping global variable parsing")
-                    break
-                except ValueError:
-                    # Invalid task ID - this is likely an attempt to use 'task' as a global variable
-                    self.errors.append(
-                        f"Line {line_number}: Cannot use 'task' as a global variable name. "
-                        f"'task' is reserved for task ID definitions and must be an integer. "
-                        f"Use a different name like 'TASK_NAME' or 'MY_TASK'."
-                    )
-                    continue  # Skip this line and continue parsing globals
-
-            # Parse key=value pairs (only before first task definition)
-            if '=' in line:
-                try:
-                    key, value = line.split('=', 1)
-                    key = key.strip()
-                    value = value.strip()
-                    
-                    # CRITICAL: Validate reserved keywords for global variables
-                    # The 'task' keyword causes parser crash (ValueError)
-                    if key == 'task':
-                        self.errors.append(
-                            f"Line {line_number}: Cannot use 'task' as a global variable name. "
-                            f"'task' is reserved for task ID definitions. Use a different name like 'TASK_NAME' or 'MY_TASK'."
-                        )
-                        continue  # Skip this line
-
-                    # Check if this is a global variable (not a known task field)
-                    # CRITICAL: Task field names are silently ignored during parsing
-                    # This causes confusing "undefined variable" errors later
-                    if key in self.known_task_fields:
-                        self.errors.append(
-                            f"Line {line_number}: Cannot use task field name '{key}' as a global variable name. "
-                            f"Task field names are reserved. Use a different name like '{key.upper()}' or 'MY_{key.upper()}'."
-                        )
-                        continue  # Skip this line
-
-                    # NOTE: Names like 'stdout', 'stderr', 'exit' are SAFE to use as global variables
-                    # They don't conflict with task result variables (@0_stdout@, @0_stderr@, etc.)
-                    # because the patterns are different: @VARNAME@ vs @N_stdout@
-
-                    if key not in self.known_task_fields:
-                        # Check for inline comments in global variables
-                        if self.check_for_inline_comments(key, value, line_number):
-                            continue  # Skip this global variable if it has inline comments
-
-                        # Store original value before expansion
-                        original_value = value
-
-                        # Expand environment variables if present
-                        expanded_value = os.path.expandvars(value)
-
-                        # Strict validation: Check for TASKER_ prefix requirement
-                        if self.strict_env_validation and '$' in value:
-                            # Extract all environment variable references from the value
-                            # Match ${VAR}, $VAR (case-insensitive identifiers)
-                            env_vars = re.findall(r'\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?', value)
-
-                            invalid_env_ref = False
-                            for env_var in env_vars:
-                                if not env_var.startswith('TASKER_'):
-                                    self.errors.append(
-                                        f"Line {line_number}: Strict environment variable validation failed for global variable '{key}'. "
-                                        f"Environment variable '${env_var}' does not start with required prefix 'TASKER_'. "
-                                        f"Either use TASKER_-prefixed variables or disable --strict-env-validation flag."
-                                    )
-                                    self.debug_log(f"Environment variable validation failed: ${env_var} lacks TASKER_ prefix")
-                                    invalid_env_ref = True
-
-                            if invalid_env_ref:
-                                # Skip this global variable entirely - do not sanitize or store it
-                                continue
-
-                        # Log expansion if value changed (avoid leaking secrets in logs)
-                        if expanded_value != original_value and self._log_callback:
-                            # Log only that expansion happened, not the actual values
-                            self._log_callback(f"# Global variable {key}: environment variable expansion applied")
-                            self.debug_log(f"#   Original length: {len(original_value)}")
-                            self.debug_log(f"#   Expanded length: {len(expanded_value)}")
-
-                        # SECURITY HARDENING: Sanitize expanded global variable
-                        sanitize_result = self.sanitizer.sanitize_global_variable(key, expanded_value)
-
-                        # Add any sanitization errors/warnings
-                        for error in sanitize_result['errors']:
-                            self.errors.append(f"Line {line_number}: Global variable security error")
-                            self.debug_log(f"Security validation failed: {error}")
-                        for warning in sanitize_result['warnings']:
-                            self.warnings.append(f"Line {line_number}: Global variable security warning")
-                            self.debug_log(f"Security warning: {warning}")
-
-                        # Only add if sanitization passed
-                        if sanitize_result['valid']:
-                            self.global_vars[sanitize_result['name']] = sanitize_result['value']
-                            global_count += 1
-                            self.debug_log(f"Found global variable: {sanitize_result['name']} = {sanitize_result['value']}")
-                        else:
-                            self.debug_log(f"Rejected global variable due to security validation: {key}")
-                            
-                except Exception as e:
-                    self.errors.append(f"Line {line_number}: Error parsing global variable: {str(e)}")
-        
-        self.debug_log(f"Parsed {global_count} global variables")
+        self.debug_log(f"Parsed {len(self.global_vars)} global variables")
 
         # PHASE 2: Parse tasks (existing logic with minor updates)
         current_task = None

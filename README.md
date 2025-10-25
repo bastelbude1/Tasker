@@ -1061,6 +1061,11 @@ arguments=Running as @MY_USER@ from @MY_HOME@
 exec=local
 ```
 
+**Supported syntax:**
+- **Simple**: `$USER`, `$HOME`, `$PWD`
+- **Braces**: `${USER}`, `${HOME}` (useful for disambiguation)
+- **Example**: `PATH_WITH_USER=/home/${USER}/bin` (braces prevent interpreting `/bin` as part of variable name)
+
 **Supported environment variables:**
 - `$HOME` - User's home directory
 - `$USER` - Current username

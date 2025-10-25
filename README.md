@@ -1725,7 +1725,7 @@ Alerts are executed in these failure scenarios:
 - **Failure isolation**: Alert script failures don't prevent workflow exit
 - **Auto-executable**: Scripts automatically made executable (chmod +x)
 - **Path validation**: Warns if alert script not found
-- **Execution order**: Alert → Cleanup (tasks 90-99) → Exit
+- **Execution order**: Cleanup → Alert → Exit (cleanup is a direct method call, not task-based workflow)
 
 #### Use Cases
 

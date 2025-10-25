@@ -1562,6 +1562,194 @@ Tasks that trigger streaming are automatically logged:
 [02Oct25 15:47:21] Task 0: STDOUT: Large dataset line 000000 with data: XXX... (20839999 chars total)
 ```
 
+### Alert-on-Failure: Workflow Monitoring
+
+Get instant notifications when workflows fail or are interrupted with custom alert scripts.
+
+#### Basic Alert Script
+
+Create a simple alert script that receives failure context via environment variables:
+
+```bash
+#!/bin/bash
+# alert.sh - Basic failure notification
+
+echo "========================================="
+echo "TASKER WORKFLOW FAILURE ALERT"
+echo "========================================="
+echo "Timestamp:    $TASKER_TIMESTAMP"
+echo "Task File:    $TASKER_TASK_FILE"
+echo "Failed Task:  $TASKER_FAILED_TASK"
+echo "Exit Code:    $TASKER_EXIT_CODE"
+echo "Error:        $TASKER_ERROR"
+echo "Log File:     $TASKER_LOG_FILE"
+echo "State File:   $TASKER_STATE_FILE"
+echo "========================================="
+
+# Show recent log entries
+if [ -f "$TASKER_LOG_FILE" ]; then
+    echo "Recent Log (last 10 lines):"
+    tail -10 "$TASKER_LOG_FILE"
+fi
+
+exit 0
+```
+
+#### Usage Examples
+
+**Command-line execution:**
+```bash
+# Execute with alert on failure
+tasker -r --alert-on-failure ./alert.sh workflow.txt
+
+# Alert triggers ONLY on failures (task failures, validation errors, interrupts)
+# Does NOT trigger on successful workflow completion
+```
+
+**File-based configuration:**
+```
+# workflow.txt - Alert defined in file header
+--alert-on-failure=./alert.sh
+--auto-recovery
+
+# Tasks follow...
+task=0
+hostname=localhost
+...
+```
+
+#### Environment Variables
+
+Alert scripts receive comprehensive failure context:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `TASKER_LOG_FILE` | Full path to workflow log file | `/home/user/TASKER/log/workflow_20251025_123456.log` |
+| `TASKER_STATE_FILE` | Recovery/state file path (if --auto-recovery enabled) | `/home/user/TASKER/recovery/workflow.state` |
+| `TASKER_TASK_FILE` | Task definition file path | `workflow.txt` |
+| `TASKER_FAILED_TASK` | Task ID that failed | `5` |
+| `TASKER_EXIT_CODE` | Exit code that triggered alert | `1` |
+| `TASKER_ERROR` | Error message | `Last task failed` |
+| `TASKER_TIMESTAMP` | Failure timestamp | `2025-10-25 12:34:56` |
+
+#### Advanced Alert Examples
+
+**Email notification:**
+```bash
+#!/bin/bash
+# email_alert.sh - Send failure notification via email
+
+mail -s "TASKER Alert: Workflow Failed" admin@example.com << EOF
+TASKER Workflow Failure
+
+Task File:     $TASKER_TASK_FILE
+Failed Task:   $TASKER_FAILED_TASK
+Exit Code:     $TASKER_EXIT_CODE
+Error:         $TASKER_ERROR
+Timestamp:     $TASKER_TIMESTAMP
+
+Log file: $TASKER_LOG_FILE
+EOF
+```
+
+**Slack webhook integration:**
+```bash
+#!/bin/bash
+# slack_alert.sh - Post to Slack channel
+
+WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+
+curl -X POST "$WEBHOOK_URL" \
+  -H 'Content-Type: application/json' \
+  -d "{
+    \"text\": \"🚨 TASKER Workflow Failed\",
+    \"attachments\": [{
+      \"color\": \"danger\",
+      \"fields\": [
+        {\"title\": \"Task File\", \"value\": \"$TASKER_TASK_FILE\", \"short\": true},
+        {\"title\": \"Failed Task\", \"value\": \"$TASKER_FAILED_TASK\", \"short\": true},
+        {\"title\": \"Exit Code\", \"value\": \"$TASKER_EXIT_CODE\", \"short\": true},
+        {\"title\": \"Timestamp\", \"value\": \"$TASKER_TIMESTAMP\", \"short\": true},
+        {\"title\": \"Error\", \"value\": \"$TASKER_ERROR\", \"short\": false}
+      ]
+    }]
+  }"
+```
+
+**Log archiving:**
+```bash
+#!/bin/bash
+# archive_alert.sh - Archive failed workflow logs
+
+ARCHIVE_DIR="/var/log/tasker/failures"
+mkdir -p "$ARCHIVE_DIR"
+
+# Create failure report with timestamp
+REPORT_FILE="$ARCHIVE_DIR/failure_$(date +%Y%m%d_%H%M%S).txt"
+
+{
+  echo "TASKER WORKFLOW FAILURE REPORT"
+  echo "=============================="
+  echo "Task File:    $TASKER_TASK_FILE"
+  echo "Failed Task:  $TASKER_FAILED_TASK"
+  echo "Exit Code:    $TASKER_EXIT_CODE"
+  echo "Error:        $TASKER_ERROR"
+  echo "Timestamp:    $TASKER_TIMESTAMP"
+  echo ""
+  echo "FULL LOG:"
+  echo "=============================="
+  cat "$TASKER_LOG_FILE"
+} > "$REPORT_FILE"
+
+echo "Failure archived to: $REPORT_FILE"
+```
+
+#### Alert Triggering Scenarios
+
+Alerts are executed in these failure scenarios:
+
+1. **Task Execution Failure**: When a task fails based on success criteria
+2. **Validation Failure**: Invalid task file, missing hosts, security issues
+3. **Signal Interrupts**: Ctrl-C (SIGINT) or SIGTERM received
+4. **Timeout Errors**: Task exceeds timeout limits
+5. **Dependency Failures**: Missing commands or connection failures
+
+**Alert is NOT triggered on:**
+- Successful workflow completion (all tasks succeed)
+- Dry-run mode (no actual execution)
+- Validation-only mode (--validate-only flag)
+
+#### Alert Safety Features
+
+- **30-second timeout**: Prevents hanging alert scripts
+- **Failure isolation**: Alert script failures don't prevent workflow exit
+- **Auto-executable**: Scripts automatically made executable (chmod +x)
+- **Path validation**: Warns if alert script not found
+- **Execution order**: Alert → Cleanup (tasks 90-99) → Exit
+
+#### Use Cases
+
+- **DevOps Monitoring**: Slack/Teams notifications for failed deployments
+- **Email Alerts**: Send detailed failure reports to administrators
+- **Log Aggregation**: Forward failures to Splunk/ELK/DataDog
+- **Ticket Creation**: Auto-create JIRA/ServiceNow tickets for failures
+- **Custom Recovery**: Trigger remediation workflows or rollback scripts
+
+**Example: Production deployment with alerts:**
+```bash
+# production_deploy.txt
+--alert-on-failure=./ops/deployment_alert.sh
+--auto-recovery
+
+# Deployment tasks...
+task=0
+hostname=prod-server-01
+command=deploy_application
+...
+```
+
+See `examples/alerts/simple_alert.sh` for a working example alert script.
+
 ### System Compatibility
 
 #### Python Version Support
@@ -4407,6 +4595,7 @@ tasker recovery_workflow.txt --show-effective-args
 |--------|-------------|---------|
 | `--fire-and-forget` | Continue workflow execution even when tasks fail (WARNING: Failed tasks will not stop execution) | `tasker -r --fire-and-forget tasks.txt` |
 | `--no-task-backup` | Disable task file backup creation - reduces file clutter, useful for testing | `tasker -r --no-task-backup tasks.txt` |
+| `--alert-on-failure` | Execute custom alert script when workflow fails or is interrupted - receives context via environment variables (TASKER_LOG_FILE, TASKER_STATE_FILE, TASKER_TASK_FILE, TASKER_FAILED_TASK, TASKER_EXIT_CODE, TASKER_ERROR, TASKER_TIMESTAMP) | `tasker -r --alert-on-failure /path/to/alert.sh tasks.txt` |
 
 ### Complete Usage Reference
 

@@ -2006,7 +2006,7 @@ class TaskExecutor:
 
                 # Check if task was already completed (shouldn't re-run)
                 if resume_task_id is not None and resume_task_id in execution_path:
-                    self.log_warning(f"# Task {resume_task_id} already in execution path, finding next task")
+                    self.log_warn(f"# Task {resume_task_id} already in execution path, finding next task")
                     # Find next task not in execution_path
                     resume_task_id = None
                     for tid in valid_task_ids:
@@ -2051,7 +2051,7 @@ class TaskExecutor:
 
                     self.log_info(f"# State restored successfully - starting from task {resume_task_id}")
                 else:
-                    self.log_warning("# No valid resume task found - recovery file may indicate workflow completion")
+                    self.log_warn("# No valid resume task found - recovery file may indicate workflow completion")
                     # Delete recovery file if no tasks left to execute
                     if self.recovery_manager:
                         self.recovery_manager.delete_recovery_file()

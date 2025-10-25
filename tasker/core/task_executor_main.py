@@ -172,10 +172,7 @@ class TaskExecutor:
 
                     # Verify it's a regular file, not a symlink or directory
                     if not stat.S_ISREG(st.st_mode):
-                        print(f"WARNING: Alert script path is not a regular file: {alert_path}")
-                        print("         Alert-on-failure will be disabled")
-                    elif stat.S_ISLNK(st.st_mode):
-                        print(f"WARNING: Alert script path is a symlink: {alert_path}")
+                        print(f"WARNING: Alert script path is not a regular file (symlink/directory/device): {alert_path}")
                         print("         Alert-on-failure will be disabled")
                     else:
                         self.alert_script = alert_path
@@ -184,7 +181,7 @@ class TaskExecutor:
                         try:
                             # Re-validate immediately before chmod to minimize TOCTOU window
                             st_chmod = os.stat(self.alert_script, follow_symlinks=False)
-                            if not stat.S_ISREG(st_chmod.st_mode) or stat.S_ISLNK(st_chmod.st_mode):
+                            if not stat.S_ISREG(st_chmod.st_mode):
                                 print(f"WARNING: Alert script changed between validation and chmod: {alert_path}")
                                 self.alert_script = None
                             else:

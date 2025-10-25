@@ -157,6 +157,8 @@ class TaskExecutor:
         self.strict_env_validation = strict_env_validation  # Require TASKER_ prefix for env vars
 
         # Alert on failure support
+        # Note: Using print() for warnings in this section because logging infrastructure
+        # (self.log_lock, self.log_file) is not initialized until after alert validation
         self.alert_script = None
         if alert_on_failure:
             # Expand path and validate

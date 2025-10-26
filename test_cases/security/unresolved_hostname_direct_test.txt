@@ -1,0 +1,20 @@
+# TEST_METADATA: {"description": "Direct unresolved hostname variable test","test_type": "negative","expected_exit_code": 20,"expected_success": false,"skip_host_validation": false}
+# DIRECT UNRESOLVED HOSTNAME VARIABLE TEST
+# Tests that TASKER detects unresolved variables used directly in hostname fields
+# This catches cases where undefined variables are used without being wrapped in global variables
+
+# Task 0: Hostname directly references undefined variable
+# This should fail validation because @UNDEFINED_HOST@ is not defined
+task=0
+hostname=@UNDEFINED_HOST@
+command=echo
+arguments=This should not execute
+success=exit_0
+on_success=1
+
+# Task 1: Hostname with partially resolved variable chain
+task=1
+hostname=@NONEXISTENT_VAR@.example.com
+command=echo
+arguments=This should also not execute
+success=exit_0

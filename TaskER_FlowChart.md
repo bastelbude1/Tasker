@@ -1226,7 +1226,8 @@ flowchart TD
 ### Supported Delimiter Keywords
 | Keyword | Splits On | Example | Input → Output |
 |---------|-----------|---------|----------------|
-| `space` | Any whitespace(s) | `stdout_split=space,1` | `"alpha beta gamma"` → `"beta"` |
+| `space` | Space character(s) only | `stdout_split=space,1` | `"alpha beta gamma"` → `"beta"` |
+| `whitespace` | Any whitespace (spaces, tabs, newlines) | `stdout_split=whitespace,1` | `"word1  word2\t\tword3"` → `"word2"` |
 | `tab` | Tab character(s) | `stdout_split=tab,2` | `"A\tB\tC\tD"` → `"C"` |
 | `comma` | Comma | `stdout_split=comma,0` | `"red,green,blue"` → `"red"` |
 | `semicolon` | Semicolon | `stdout_split=semicolon,1` | `"foo;bar;baz"` → `"bar"` |

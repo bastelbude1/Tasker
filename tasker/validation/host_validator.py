@@ -54,24 +54,45 @@ class HostValidator:
         
         # Collect unique host+exec_type combinations
         host_exec_combinations = {}  # {hostname: set(exec_types)}
-        
+        unresolved_hostnames = []  # Track tasks with unresolved hostname variables
+
         for task in tasks.values():
             if 'hostname' in task and task['hostname']:
                 hostname, resolved = ConditionEvaluator.replace_variables(
                     task['hostname'], global_vars, task_results, debug_callback)
-                
+
+                # CRITICAL: Detect unresolved hostname variables
+                if not resolved:
+                    unresolved_hostnames.append({
+                        'task_id': task.get('task_id', 'unknown'),
+                        'hostname': task['hostname'],
+                        'resolved_to': hostname
+                    })
+                    continue
+
                 if resolved and hostname:
                     # Determine exec type for this task
                     task_exec = HostValidator._determine_task_exec_type(
                         task, exec_type, default_exec_type)
-                    
+
                     # Skip local execution from validation
                     if task_exec == 'local':
                         continue
-                        
+
                     if hostname not in host_exec_combinations:
                         host_exec_combinations[hostname] = set()
                     host_exec_combinations[hostname].add(task_exec)
+
+        # Handle unresolved hostname variables
+        if unresolved_hostnames:
+            if log_callback:
+                log_callback(f"# ERROR: {len(unresolved_hostnames)} task(s) have unresolved hostname variables:")
+                for entry in unresolved_hostnames:
+                    log_callback(f"#   Task {entry['task_id']}: hostname='{entry['hostname']}' contains unresolved variable(s)")
+                    if debug_callback:
+                        debug_callback(f"    After partial resolution: '{entry['resolved_to']}'")
+                log_callback(f"# Hint: Check that all variables referenced in hostnames are defined in the global variables section")
+            return {'error': 'unresolved_hostname_variables', 'exit_code': ExitCodes.TASK_FILE_VALIDATION_FAILED}
         
         # Check if required execution commands exist
         missing_commands = set()

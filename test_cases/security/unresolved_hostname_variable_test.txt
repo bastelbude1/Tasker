@@ -1,0 +1,24 @@
+# TEST_METADATA: {"description": "Unresolved hostname variable validation test","test_type": "negative","expected_exit_code": 20,"expected_success": false,"skip_host_validation": false}
+# UNRESOLVED HOSTNAME VARIABLE VALIDATION TEST
+# Tests that TASKER properly detects and rejects hostnames with unresolved variables
+# This prevents security issues where unresolved variables could bypass host validation
+
+# Global variable that references an undefined variable
+SERVER=@HOSTNAME@
+TIMEOUT=10
+
+# Task 0: Try to use hostname with unresolved variable
+# This should fail during validation because @HOSTNAME@ is not defined
+task=0
+hostname=@SERVER@
+command=echo
+arguments=This should not execute
+success=exit_0
+on_success=1
+
+# Task 1: Another task with the same unresolved hostname
+task=1
+hostname=@SERVER@
+command=echo
+arguments=This should also not execute
+success=exit_0

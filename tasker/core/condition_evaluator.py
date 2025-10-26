@@ -241,14 +241,15 @@ class ConditionEvaluator:
             
         # Convert delimiter keywords to actual regex patterns
         delimiter_map = {
-            'space': r'\s+',
+            'space': r' +',          # FIXED: Only literal space characters (not tabs/newlines)
+            'whitespace': r'\s+',    # NEW: All whitespace (spaces, tabs, newlines, etc.)
             'tab': r'\t+',
-            'newline': r'\n+',       # NEW - CRITICAL! Split by one or more line breaks (consistent with space/tab)
-            'colon': ':',            # NEW - Common in config files (/etc/passwd, etc)
-            'semicolon': ';',        # NEW - Better naming than 'semi'
+            'newline': r'\n+',       # Split by one or more line breaks
+            'colon': ':',            # Common in config files (/etc/passwd, etc)
+            'semicolon': ';',        # Better naming than 'semi'
             'semi': ';',             # Keep for backward compatibility
             'comma': ',',
-            'pipe': r'\|'            # FIXED: Pipe needs escaping in regex
+            'pipe': r'\|'            # Pipe needs escaping in regex
         }
         
         delimiter_pattern = delimiter_map.get(delimiter, delimiter)

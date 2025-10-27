@@ -1,0 +1,53 @@
+# TEST_METADATA: {"description": "Test stdout~/stderr~ pattern matching with quoted patterns containing operators", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4, 5, 6]}
+
+# Test case: Quoted patterns can contain any operators without ambiguity
+# Solution: Use quotes to protect patterns: stdout~"pattern = value"
+# Coverage: Double quotes, single quotes, variable references with operators
+
+task=0
+hostname=localhost
+command=bash
+arguments=-c "printf '%s\n%s\n%s\n' '[27Oct25_19:07:29] [INFO] Starting migration process' '[27Oct25_19:07:29] [INFO] WMPC Migrated = ubsos_sssd::domains: { enumerate: true }' '[27Oct25_19:07:29] [INFO] Migration completed successfully'"
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Test 1 PASSED: Double-quoted stdout~ pattern with equals
+exec=local
+condition=@0_stdout@~"WMPC Migrated = ubsos_sssd"
+
+task=2
+hostname=localhost
+command=echo
+arguments=Test 2 PASSED: Single-quoted stdout~ pattern with equals
+exec=local
+condition=@0_stdout@~'Migrated = ubsos_sssd'
+
+task=3
+hostname=localhost
+command=echo
+arguments=Test 3 PASSED: Pattern with colon separator domains
+exec=local
+condition=@0_stdout@~"ubsos_sssd::domains:"
+
+task=4
+hostname=localhost
+command=echo
+arguments=Test 4 PASSED: stdout!~ negation with quoted pattern
+exec=local
+condition=@0_stdout@!~"FAILED: Error occurred"
+
+task=5
+hostname=localhost
+command=echo
+arguments=Test 5 PASSED: Pattern with curly braces
+exec=local
+condition=@0_stdout@~'{ enumerate: true }'
+
+task=6
+hostname=localhost
+command=echo
+arguments=SUCCESS: All quoted pattern tests passed
+exec=local
+next=never

@@ -266,6 +266,47 @@ class ConditionEvaluator:
             return output
 
     @staticmethod
+    def _extract_pattern_from_condition(condition_part, debug_callback=None):
+        """
+        Extract pattern from condition part (after ~ operator), handling quotes.
+
+        Args:
+            condition_part: The part after the ~ operator (e.g., "pattern" or pattern)
+            debug_callback: Optional function for debug logging
+
+        Returns:
+            Tuple of (pattern, is_quoted)
+
+        Note: This helper reduces code duplication between stdout~ and stderr~ handling.
+        Limitation: Does not handle escaped backslashes before quotes (e.g., foo\\").
+        This is an acceptable limitation as such patterns are rare in command output.
+        """
+        pattern = condition_part.strip()
+        is_quoted = False
+
+        if pattern and (pattern[0] == '"' or pattern[0] == "'"):
+            quote_char = pattern[0]
+            if len(pattern) > 1 and pattern.endswith(quote_char):
+                # Remove quotes
+                pattern = pattern[1:-1]
+                is_quoted = True
+                if debug_callback:
+                    debug_callback(f"Extracted quoted pattern: '{pattern}'")
+            else:
+                # Unclosed quote: strip leading quote and warn (permissive fallback)
+                original_pattern = pattern
+                pattern = pattern[1:]  # Strip leading quote
+                if debug_callback:
+                    debug_callback(f"WARNING: Unclosed quote in pattern '{original_pattern}' - treating as unquoted pattern '{pattern}'")
+
+        # Warn if unquoted pattern contains operators
+        if not is_quoted and any(op in pattern for op in ['!~', '<=', '>=', '!=', '~', '=', '<', '>']):
+            if debug_callback:
+                debug_callback(f"WARNING: Unquoted pattern '{pattern}' contains operators. Consider using quotes: ~\"{pattern}\"")
+
+        return pattern, is_quoted
+
+    @staticmethod
     def evaluate_condition(condition, exit_code, stdout, stderr, global_vars, task_results, debug_callback=None, current_task_success=None):
         """
         Evaluate a complex condition that may contain boolean operators (AND, OR, NOT)
@@ -391,10 +432,20 @@ class ConditionEvaluator:
         
         # Check for stdout/stderr conditions (only specific patterns like ~, !~, and _count, not general comparison operators)
         # Note: General patterns with =, !=, <, <=, >, >= (but not _count patterns) are handled by evaluate_operator_comparison below
-        # IMPORTANT: _count patterns use operators as part of their syntax (e.g., stdout_count=3, stdout_count<5)
-        # so we must check for _count BEFORE blocking based on operators
+        #
+        # OPERATOR PRECEDENCE & PRIORITY ORDER:
+        # The condition below implements a careful precedence order to handle edge cases correctly:
+        #   1. _count patterns (e.g., stdout_count=3) - uses = as part of syntax, not as comparison
+        #   2. ~ and !~ patterns (e.g., stdout~pattern) - string matching takes priority
+        #   3. Comparison operators (=, !=, <, etc.) - handled by evaluate_operator_comparison
+        #
+        # This priority order ensures that:
+        #   - 'stdout~WMPC Migrated = ubsos_sssd' correctly uses ~ (pattern match), not = (comparison)
+        #   - 'stdout_count=3' correctly uses = as part of _count syntax
+        #   - 'stdout=value' correctly delegates to evaluate_operator_comparison
+        #
         # CASE INSENSITIVE: Accept both 'stdout' and 'STDOUT' for user convenience
-        if condition.lower().startswith('stdout') and ('_count' in condition.lower() or not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>='])):
+        if condition.lower().startswith('stdout') and ('_count' in condition.lower() or '~' in condition or not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>='])):
             stdout_stripped = stdout.rstrip('\n')
             condition_lower = condition.lower()
             if condition_lower == 'stdout~':
@@ -408,14 +459,19 @@ class ConditionEvaluator:
                     debug_callback(f"Stdout not empty check: '{stdout.strip()}' is {'not empty' if result else 'empty'}")
                 return result
             elif '~' in condition:
-                pattern = condition.split('~', 1)[1]
+                # Extract pattern using helper method (reduces code duplication)
+                condition_part = condition.split('~', 1)[1]
+                pattern, is_quoted = ConditionEvaluator._extract_pattern_from_condition(
+                    condition_part, debug_callback
+                )
+
                 if condition_lower.startswith('stdout!~'):
-                    result = pattern not in stdout
+                    result = pattern not in stdout_stripped
                     if debug_callback:
                         debug_callback(f"Stdout pattern not match: '{pattern}' is {'absent' if result else 'present'} in '{stdout_stripped}'")
                     return result
                 else:
-                    result = pattern in stdout
+                    result = pattern in stdout_stripped
                     if debug_callback:
                         debug_callback(f"Stdout pattern match: '{pattern}' is {'present' if result else 'absent'} in '{stdout_stripped}'")
                     return result
@@ -454,29 +510,36 @@ class ConditionEvaluator:
         # Note: General patterns with =, !=, <, <=, >, >= (but not _count patterns) are handled by evaluate_operator_comparison below
         # IMPORTANT: _count patterns use operators as part of their syntax (e.g., stderr_count=0, stderr_count<5)
         # so we must check for _count BEFORE blocking based on operators
+        # CRITICAL FIX: Check for ~ and !~ operators FIRST before checking for other operators
+        # This allows patterns like 'stderr~Error code = 404' to work correctly
         # CASE INSENSITIVE: Accept both 'stderr' and 'STDERR' for user convenience
-        if condition.lower().startswith('stderr') and ('_count' in condition.lower() or not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>='])):
+        if condition.lower().startswith('stderr') and ('_count' in condition.lower() or '~' in condition or not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>='])):
             stderr_stripped = stderr.rstrip('\n')
             condition_lower = condition.lower()
             if condition_lower == 'stderr~':
-                result = stderr.strip() == ''
+                result = stderr_stripped == ''
                 if debug_callback:
-                    debug_callback(f"Stderr empty check: '{stderr.strip()}' is {'empty' if result else 'not empty'}")
+                    debug_callback(f"Stderr empty check: '{stderr_stripped}' is {'empty' if result else 'not empty'}")
                 return result
             elif condition_lower == 'stderr!~':
-                result = stderr.strip() != ''
+                result = stderr_stripped != ''
                 if debug_callback:
-                    debug_callback(f"Stderr not empty check: '{stderr.strip()}' is {'not empty' if result else 'empty'}")
+                    debug_callback(f"Stderr not empty check: '{stderr_stripped}' is {'not empty' if result else 'empty'}")
                 return result
             elif '~' in condition:
-                pattern = condition.split('~', 1)[1]
+                # Extract pattern using helper method (reduces code duplication)
+                condition_part = condition.split('~', 1)[1]
+                pattern, is_quoted = ConditionEvaluator._extract_pattern_from_condition(
+                    condition_part, debug_callback
+                )
+
                 if condition_lower.startswith('stderr!~'):
-                    result = pattern not in stderr
+                    result = pattern not in stderr_stripped
                     if debug_callback:
                         debug_callback(f"Stderr pattern not match: '{pattern}' is {'absent' if result else 'present'} in '{stderr_stripped}'")
                     return result
                 else:
-                    result = pattern in stderr
+                    result = pattern in stderr_stripped
                     if debug_callback:
                         debug_callback(f"Stderr pattern match: '{pattern}' is {'present' if result else 'absent'} in '{stderr_stripped}'")
                     return result
@@ -488,7 +551,7 @@ class ConditionEvaluator:
 
                     # Fix: Handle empty stderr correctly
                     # Empty string after strip() should be 0 lines, not 1
-                    stderr_stripped = stderr.strip()
+                    # Use already-computed stderr_stripped from line 486
                     if stderr_stripped == '':
                         actual_count = 0
                     else:
@@ -546,24 +609,102 @@ class ConditionEvaluator:
             return False
 
     @staticmethod
-    def evaluate_operator_comparison(condition, exit_code, stdout, stderr, debug_callback=None):
-        """Evaluate conditions with comparison operators (=, !=, ~, !~, <, <=, >, >=)."""
-        # Split on operators (order matters - check longer operators first)
-        operators = ['!=', '!~', '<=', '>=', '=', '~', '<', '>']
-        
-        operator = None
-        left = None
-        right = None
-        
+    def parse_operator_condition(condition, debug_callback=None):
+        """
+        Parse a condition with operators, supporting quoted patterns.
+
+        Quoted patterns (recommended for patterns with special characters):
+            stdout~"WMPC Migrated = ubsos_sssd"  → pattern can contain =, ~, etc.
+            stderr!~'error: code = 404'           → single quotes also supported
+
+        Unquoted patterns (backward compatibility):
+            stdout~simple_pattern                  → no special characters
+            exit=0                                 → simple comparisons
+
+        Returns:
+            Tuple of (operator, left, right) or (None, None, None) if parsing fails
+        """
+        # Operators to check (order matters - check longer operators first)
+        operators = ['!~', '<=', '>=', '!=', '~', '=', '<', '>']
+
+        # First pass: Try to find quoted patterns with any operator
+        # This takes priority because quoted patterns can contain any characters
+        for op in operators:
+            if op not in condition:
+                continue
+
+            # Find the operator position
+            op_idx = condition.find(op)
+            if op_idx == -1:
+                continue
+
+            left = condition[:op_idx].strip()
+            right_raw = condition[op_idx + len(op):].strip()
+
+            # Check if right side starts with a quote
+            if right_raw and (right_raw[0] == '"' or right_raw[0] == "'"):
+                quote_char = right_raw[0]
+                # Find matching closing quote, allowing backslash-escaped quotes
+                close_idx = -1
+                i = 1
+                while i < len(right_raw):
+                    if right_raw[i] == quote_char and (i == 1 or right_raw[i-1] != '\\'):
+                        close_idx = i
+                        break
+                    i += 1
+
+                if close_idx > 0:
+                    # Found closing quote - extract and unescape the quoted value
+                    raw_content = right_raw[1:close_idx]
+                    # Unescape escaped quotes
+                    right = raw_content.replace('\\' + quote_char, quote_char)
+
+                    # Validate that nothing comes after the closing quote (except whitespace)
+                    remainder = right_raw[close_idx + 1:].strip()
+                    if remainder:
+                        if debug_callback:
+                            debug_callback(f"WARNING: Unexpected text after closing quote in '{condition}': '{remainder}'")
+                        # Don't fail, just warn - continue to try other operators
+                        continue
+
+                    if debug_callback:
+                        debug_callback(f"Parsed quoted condition: operator='{op}', left='{left}', right='{right}'")
+
+                    return (op, left, right)
+                else:
+                    # Unclosed quote
+                    if debug_callback:
+                        debug_callback(f"ERROR: Unclosed quote in condition: '{condition}'")
+                    return (None, None, None)
+
+        # Second pass: No quoted patterns found, try unquoted parsing
+        # Use the original operator priority order
         for op in operators:
             if op in condition:
                 parts = condition.split(op, 1)
                 if len(parts) == 2:
                     left = parts[0].strip()
                     right = parts[1].strip()
-                    operator = op
-                    break
-        
+
+                    # Check if right side looks like it should have been quoted
+                    # (contains other operators that might cause ambiguity)
+                    other_ops = [o for o in operators if o != op]
+                    if any(other_op in right for other_op in other_ops):
+                        if debug_callback:
+                            debug_callback(f"WARNING: Unquoted pattern '{right}' contains operators. Consider using quotes: {op}\"{right}\"")
+
+                    return (op, left, right)
+
+        # No operator found
+        return (None, None, None)
+
+    @staticmethod
+    def evaluate_operator_comparison(condition, exit_code, stdout, stderr, debug_callback=None):
+        """Evaluate conditions with comparison operators (=, !=, ~, !~, <, <=, >, >=)."""
+
+        # Parse the condition with quote support
+        operator, left, right = ConditionEvaluator.parse_operator_condition(condition, debug_callback)
+
         if operator is None or left is None or right is None:
             if debug_callback:
                 debug_callback(f"Could not parse operator condition '{condition}'")

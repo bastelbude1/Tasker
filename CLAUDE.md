@@ -81,6 +81,138 @@ with subprocess.Popen(['command'],
 - Preserve all existing functionality during refactoring
 - Test thoroughly after each change
 
+### **CRITICAL: Tarball Creation Security Policy**
+**🚨 MANDATORY: Never include sensitive or development-only files in distribution tarballs!**
+
+**⚠️ SECURITY INCIDENT:** In October 2025, sensitive data from `.claude/` directory was accidentally included in `tasker-v2.1.tar.gz` and pushed to GitHub. This required complete git history rewrite to remove the sensitive data.
+
+**CRITICAL RULE:** Distribution tarballs MUST NEVER include files that are excluded by `.gitignore` or development-only files.
+
+**Required Tarball Creation Command:**
+```bash
+cd /home/baste
+tar -czf tasker-v2.1.tar.gz \
+  --exclude="*.pyc" \
+  --exclude="__pycache__" \
+  --exclude=".git" \
+  --exclude=".gitignore" \
+  --exclude="*.log" \
+  --exclude="tasker-v2.1.tar.gz" \
+  --exclude=".claude/" \
+  --exclude="IMPROVEMENT_ROADMAP.md" \
+  --exclude="code_review" \
+  --exclude=".python-version" \
+  --exclude="README.md.backup_*" \
+  --exclude=".coderabbit.yaml" \
+  --exclude="tasker.py.backup_*" \
+  --exclude=".claude.json" \
+  --exclude=".markdownlint.json" \
+  tasker/
+```
+
+**Exclusion Categories:**
+
+1. **CRITICAL - Sensitive Data (NEVER INCLUDE):**
+   - `.claude/` - Contains Claude Code working files and potentially sensitive data
+   - `.env` - Environment variables and secrets
+   - `*.pem`, `*.key` - Private keys and certificates
+   - `credentials.json` - API keys and authentication tokens
+
+2. **Development Artifacts (NEVER INCLUDE):**
+   - `.coderabbit.yaml` - CodeRabbit configuration
+   - `.claude.json` - Claude configuration
+   - `.python-version` - Python version management
+   - `.markdownlint.json` - Linting configuration
+   - `IMPROVEMENT_ROADMAP.md` - Internal planning documents
+   - `code_review/` - Code review artifacts
+   - `*.backup`, `*.backup_*` - Backup files (e.g., `tasker.py.backup_20251025_111241`)
+   - `README.md.backup_*` - Documentation backups
+
+3. **Compiled/Generated Files (NEVER INCLUDE):**
+   - `*.pyc` - Python compiled bytecode
+   - `__pycache__/` - Python cache directories
+   - `*.log` - Log files
+
+4. **Version Control (NEVER INCLUDE):**
+   - `.git/` - Git repository data
+   - `.gitignore` - Git ignore rules
+
+**Verification Steps:**
+
+1. **Before creating tarball:**
+   ```bash
+   # Review .gitignore for excluded files
+   cat .gitignore
+
+   # Check for sensitive files
+   find . -name ".claude" -o -name "*.key" -o -name "*.pem" -o -name ".env"
+   ```
+
+2. **After creating tarball:**
+   ```bash
+   # Verify exclusions worked
+   tar -tzf tasker-v2.1.tar.gz | grep -E "\.pyc$|__pycache__|\.claude/|IMPROVEMENT_ROADMAP|code_review/|\.python-version|\.coderabbit|\.markdownlint\.json"
+
+   # Should return NO matches (empty output)
+
+   # Verify file count and size
+   tar -tzf tasker-v2.1.tar.gz | wc -l  # Should be ~512 files
+   ls -lh tasker-v2.1.tar.gz              # Should be ~383K
+   ```
+
+3. **Check what's included:**
+   ```bash
+   # List first 50 files
+   tar -tzf tasker-v2.1.tar.gz | head -50
+
+   # Verify main components present
+   tar -tzf tasker-v2.1.tar.gz | grep -E "^tasker/README.md$|^tasker/vtps$|^tasker/tasker/"
+   ```
+
+**Emergency Response - If Sensitive Data is Committed:**
+
+If sensitive data is accidentally included and pushed to GitHub:
+
+1. **DO NOT just commit a new tarball** - The old version remains in git history
+2. **Use git-filter-repo to purge history:**
+   ```bash
+   # Download tool
+   cd /tmp
+   wget https://raw.githubusercontent.com/newren/git-filter-repo/main/git-filter-repo
+   chmod +x git-filter-repo
+
+   # Backup clean tarball
+   cp /home/baste/tasker/tasker-v2.1.tar.gz /home/baste/tasker-v2.1.tar.gz.backup
+
+   # Remove ALL tarball history
+   cd /home/baste/tasker
+   /tmp/git-filter-repo --invert-paths --path tasker-v2.1.tar.gz --force
+
+   # Restore remotes (filter-repo removes them)
+   git remote add origin git@github.com:bastelbude1/Tasker.git
+   git remote add gitea git@192.168.188.73:bastelbude/Tasker.git
+
+   # Add clean tarball back
+   cp /home/baste/tasker-v2.1.tar.gz.backup tasker-v2.1.tar.gz
+   git add tasker-v2.1.tar.gz
+   git commit -m "chore: Add clean distribution tarball (v2.1)"
+
+   # Force push to overwrite remote history
+   git push --force-with-lease origin <branch-name>
+   ```
+
+3. **Rotate compromised credentials immediately**
+4. **Notify team members to reset their local branches**
+
+**Claude Code Enforcement:**
+- ✅ **ALWAYS** verify exclusion list before creating tarball
+- ✅ **ALWAYS** verify tarball contents after creation
+- ✅ **NEVER** include files matching `.gitignore` patterns
+- ✅ **NEVER** include development-only configuration files
+- ✅ **NEVER** include backup files or sensitive data
+- ❌ **NEVER** commit tarball without verification
+- ❌ **NEVER** assume old tarball was created correctly - always verify
+
 ### **CRITICAL: Backup Policy**
 **🚨 MANDATORY: Always create backups before ANY code changes!**
 

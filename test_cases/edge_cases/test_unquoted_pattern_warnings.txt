@@ -1,0 +1,38 @@
+# TEST_METADATA: {"description": "Test unquoted pattern warning system for patterns with operators", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4]}
+
+# Test case: Unquoted patterns containing operators should generate warnings
+# but still work for backward compatibility (warning in debug mode only)
+# This validates the warning system helps users identify ambiguous patterns
+
+task=0
+hostname=localhost
+command=echo
+arguments=value = 100
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Test 1 PASSED: Unquoted pattern with = works but may generate warning
+exec=local
+condition=@0_stdout@~value = 100
+
+task=2
+hostname=localhost
+command=bash
+arguments=-c "echo 'Status: ok' && echo 'Warning: threshold >= 50' >&2"
+exec=local
+
+task=3
+hostname=localhost
+command=echo
+arguments=Test 3 PASSED: Unquoted stderr pattern with >= works
+exec=local
+condition=@2_stderr@~threshold >= 50
+
+task=4
+hostname=localhost
+command=echo
+arguments=SUCCESS: Unquoted patterns with operators work (backward compatibility)
+exec=local
+next=never

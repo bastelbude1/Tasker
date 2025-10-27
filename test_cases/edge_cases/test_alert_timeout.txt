@@ -3,7 +3,7 @@
 # Test that alert scripts are killed after 30 seconds
 # Workflow should still exit properly even if alert times out
 
---alert-on-failure=test_cases/bin/slow_alert.sh
+--alert-on-failure=/home/baste/tasker/test_cases/bin/slow_alert.sh
 
 task=0
 hostname=localhost

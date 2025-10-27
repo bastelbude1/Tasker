@@ -413,16 +413,23 @@ class ConditionEvaluator:
                 pattern = condition.split('~', 1)[1].strip()
 
                 # Handle quoted patterns: stdout~"pattern" or stdout~'pattern'
+                is_quoted = False
                 if pattern and (pattern[0] == '"' or pattern[0] == "'"):
                     quote_char = pattern[0]
                     if len(pattern) > 1 and pattern.endswith(quote_char):
                         # Remove quotes
                         pattern = pattern[1:-1]
+                        is_quoted = True
                         if debug_callback:
                             debug_callback(f"Extracted quoted pattern: '{pattern}'")
                     else:
                         if debug_callback:
                             debug_callback(f"WARNING: Unclosed quote in pattern: {pattern}")
+
+                # Warn if unquoted pattern contains operators
+                if not is_quoted and any(op in pattern for op in ['!~', '<=', '>=', '!=', '~', '=', '<', '>']):
+                    if debug_callback:
+                        debug_callback(f"WARNING: Unquoted stdout pattern '{pattern}' contains operators. Consider using quotes: ~\"{pattern}\"")
 
                 if condition_lower.startswith('stdout!~'):
                     result = pattern not in stdout_stripped
@@ -489,16 +496,23 @@ class ConditionEvaluator:
                 pattern = condition.split('~', 1)[1].strip()
 
                 # Handle quoted patterns: stderr~"pattern" or stderr~'pattern'
+                is_quoted = False
                 if pattern and (pattern[0] == '"' or pattern[0] == "'"):
                     quote_char = pattern[0]
                     if len(pattern) > 1 and pattern.endswith(quote_char):
                         # Remove quotes
                         pattern = pattern[1:-1]
+                        is_quoted = True
                         if debug_callback:
                             debug_callback(f"Extracted quoted pattern: '{pattern}'")
                     else:
                         if debug_callback:
                             debug_callback(f"WARNING: Unclosed quote in pattern: {pattern}")
+
+                # Warn if unquoted pattern contains operators
+                if not is_quoted and any(op in pattern for op in ['!~', '<=', '>=', '!=', '~', '=', '<', '>']):
+                    if debug_callback:
+                        debug_callback(f"WARNING: Unquoted stderr pattern '{pattern}' contains operators. Consider using quotes: ~\"{pattern}\"")
 
                 if condition_lower.startswith('stderr!~'):
                     result = pattern not in stderr_stripped
@@ -611,12 +625,20 @@ class ConditionEvaluator:
             # Check if right side starts with a quote
             if right_raw and (right_raw[0] == '"' or right_raw[0] == "'"):
                 quote_char = right_raw[0]
-                # Find matching closing quote
-                close_idx = right_raw.find(quote_char, 1)
+                # Find matching closing quote, allowing backslash-escaped quotes
+                close_idx = -1
+                i = 1
+                while i < len(right_raw):
+                    if right_raw[i] == quote_char and (i == 1 or right_raw[i-1] != '\\'):
+                        close_idx = i
+                        break
+                    i += 1
 
                 if close_idx > 0:
-                    # Found closing quote - extract the quoted value
-                    right = right_raw[1:close_idx]
+                    # Found closing quote - extract and unescape the quoted value
+                    raw_content = right_raw[1:close_idx]
+                    # Unescape escaped quotes
+                    right = raw_content.replace('\\' + quote_char, quote_char)
 
                     # Validate that nothing comes after the closing quote (except whitespace)
                     remainder = right_raw[close_idx + 1:].strip()

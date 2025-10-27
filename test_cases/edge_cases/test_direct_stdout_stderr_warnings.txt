@@ -1,0 +1,18 @@
+# TEST_METADATA: {"description": "Test direct stdout~/stderr~ warnings for unquoted patterns", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1]}
+
+# Test case: Direct stdout~/stderr~ checks with unquoted patterns should generate warnings
+# These use the current task's stdout/stderr, triggering the specific branch warnings
+
+task=0
+hostname=localhost
+command=bash
+arguments=-c "echo 'value = 100' && echo 'error >= threshold' >&2"
+exec=local
+next=stdout~value = 100
+
+task=1
+hostname=localhost
+command=echo
+arguments=SUCCESS: Direct stdout/stderr warnings work
+exec=local
+next=never

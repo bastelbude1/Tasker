@@ -423,8 +423,11 @@ class ConditionEvaluator:
                         if debug_callback:
                             debug_callback(f"Extracted quoted pattern: '{pattern}'")
                     else:
+                        # Unclosed quote: strip leading quote and warn (permissive fallback)
+                        original_pattern = pattern
+                        pattern = pattern[1:]  # Strip leading quote
                         if debug_callback:
-                            debug_callback(f"WARNING: Unclosed quote in pattern: {pattern}")
+                            debug_callback(f"WARNING: Unclosed quote in pattern '{original_pattern}' - treating as unquoted pattern '{pattern}'")
 
                 # Warn if unquoted pattern contains operators
                 if not is_quoted and any(op in pattern for op in ['!~', '<=', '>=', '!=', '~', '=', '<', '>']):
@@ -506,8 +509,11 @@ class ConditionEvaluator:
                         if debug_callback:
                             debug_callback(f"Extracted quoted pattern: '{pattern}'")
                     else:
+                        # Unclosed quote: strip leading quote and warn (permissive fallback)
+                        original_pattern = pattern
+                        pattern = pattern[1:]  # Strip leading quote
                         if debug_callback:
-                            debug_callback(f"WARNING: Unclosed quote in pattern: {pattern}")
+                            debug_callback(f"WARNING: Unclosed quote in pattern '{original_pattern}' - treating as unquoted pattern '{pattern}'")
 
                 # Warn if unquoted pattern contains operators
                 if not is_quoted and any(op in pattern for op in ['!~', '<=', '>=', '!=', '~', '=', '<', '>']):

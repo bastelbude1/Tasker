@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Test permissive handling of unclosed quotes in patterns", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2]}
+
+# Test case: Unclosed quotes are handled permissively for direct stdout/stderr checks
+# Leading quote is stripped and pattern is treated as unquoted
+# Warning is generated but matching continues
+
+task=0
+hostname=localhost
+command=echo
+arguments=Test 1 PASSED: Unclosed double quote handled permissively
+exec=local
+next=stdout~"Test 1 PASSED
+
+task=1
+hostname=localhost
+command=echo
+arguments=Test 2 PASSED: Unclosed single quote handled permissively
+exec=local
+next=stdout~'Test 2 PASSED
+
+task=2
+hostname=localhost
+command=echo
+arguments=SUCCESS: Unclosed quotes stripped and matching works
+exec=local
+next=never

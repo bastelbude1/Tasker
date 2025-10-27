@@ -1,0 +1,38 @@
+# TEST_METADATA: {"description": "Test stdout~ pattern matching with quoted patterns containing operators", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4]}
+
+# Test case: Quoted patterns can contain any operators without ambiguity
+# Solution: Use quotes to protect patterns: stdout~"pattern = value"
+
+task=0
+hostname=localhost
+command=bash
+arguments=-c "printf '%s\n%s\n%s\n' '[27Oct25_19:07:29] [INFO] Starting migration process' '[27Oct25_19:07:29] [INFO] WMPC Migrated = ubsos_sssd::domains: { enumerate: true }' '[27Oct25_19:07:29] [INFO] Migration completed successfully'"
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Test 1 PASSED: Double-quoted pattern matched
+exec=local
+condition=@0_stdout@~"WMPC Migrated = ubsos_sssd"
+
+task=2
+hostname=localhost
+command=echo
+arguments=Test 2 PASSED: Single-quoted pattern matched
+exec=local
+condition=@0_stdout@~'Migrated = ubsos_sssd'
+
+task=3
+hostname=localhost
+command=echo
+arguments=Test 3 PASSED: Direct stdout~ with double quotes
+exec=local
+condition=@2_stdout@~"Test 2 PASSED"
+
+task=4
+hostname=localhost
+command=echo
+arguments=SUCCESS: All quoted pattern tests passed
+exec=local
+next=never

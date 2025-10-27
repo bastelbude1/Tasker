@@ -486,14 +486,14 @@ class ConditionEvaluator:
             stderr_stripped = stderr.rstrip('\n')
             condition_lower = condition.lower()
             if condition_lower == 'stderr~':
-                result = stderr.strip() == ''
+                result = stderr_stripped == ''
                 if debug_callback:
-                    debug_callback(f"Stderr empty check: '{stderr.strip()}' is {'empty' if result else 'not empty'}")
+                    debug_callback(f"Stderr empty check: '{stderr_stripped}' is {'empty' if result else 'not empty'}")
                 return result
             elif condition_lower == 'stderr!~':
-                result = stderr.strip() != ''
+                result = stderr_stripped != ''
                 if debug_callback:
-                    debug_callback(f"Stderr not empty check: '{stderr.strip()}' is {'not empty' if result else 'empty'}")
+                    debug_callback(f"Stderr not empty check: '{stderr_stripped}' is {'not empty' if result else 'empty'}")
                 return result
             elif '~' in condition:
                 pattern = condition.split('~', 1)[1].strip()
@@ -538,7 +538,7 @@ class ConditionEvaluator:
 
                     # Fix: Handle empty stderr correctly
                     # Empty string after strip() should be 0 lines, not 1
-                    stderr_stripped = stderr.strip()
+                    # Use already-computed stderr_stripped from line 486
                     if stderr_stripped == '':
                         actual_count = 0
                     else:

@@ -1,0 +1,37 @@
+# TEST_METADATA: {"description": "Test stderr handling mirrors stdout handling", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4]}
+
+# Test case: Verify stderr~ handles patterns the same way as stdout~
+# Tests: quoted patterns, unclosed quotes, stripped matching, operator warnings
+
+task=0
+hostname=localhost
+command=bash
+arguments=-c "echo 'Normal output' && echo 'Error: code = 404' >&2"
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Test 1 PASSED: stderr~ with quoted pattern containing equals
+exec=local
+condition=@0_stderr@~"Error: code = 404"
+
+task=2
+hostname=localhost
+command=bash
+arguments=-c "echo 'stdout message' && echo 'warning: value >= threshold' >&2"
+exec=local
+
+task=3
+hostname=localhost
+command=echo
+arguments=Test 3 PASSED: stderr~ with single-quoted pattern
+exec=local
+condition=@2_stderr@~'value >= threshold'
+
+task=4
+hostname=localhost
+command=echo
+arguments=SUCCESS: stderr handling mirrors stdout correctly
+exec=local
+next=never

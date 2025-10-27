@@ -4,7 +4,7 @@
 # TASKER_LOG_FILE, TASKER_STATE_FILE, TASKER_TASK_FILE, TASKER_FAILED_TASK,
 # TASKER_EXIT_CODE, TASKER_ERROR, TASKER_TIMESTAMP
 
---alert-on-failure=test_cases/bin/test_alert.sh
+--alert-on-failure=/home/baste/tasker/test_cases/bin/test_alert.sh
 
 task=0
 hostname=localhost

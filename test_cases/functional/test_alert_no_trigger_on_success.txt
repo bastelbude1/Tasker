@@ -3,7 +3,7 @@
 # Test that alert script is NOT called when all tasks succeed
 # Alert should only trigger on failures
 
---alert-on-failure=test_cases/bin/test_alert.sh
+--alert-on-failure=/home/baste/tasker/test_cases/bin/test_alert.sh
 
 task=0
 hostname=localhost

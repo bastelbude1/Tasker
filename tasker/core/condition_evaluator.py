@@ -266,6 +266,47 @@ class ConditionEvaluator:
             return output
 
     @staticmethod
+    def _extract_pattern_from_condition(condition_part, debug_callback=None):
+        """
+        Extract pattern from condition part (after ~ operator), handling quotes.
+
+        Args:
+            condition_part: The part after the ~ operator (e.g., "pattern" or pattern)
+            debug_callback: Optional function for debug logging
+
+        Returns:
+            Tuple of (pattern, is_quoted)
+
+        Note: This helper reduces code duplication between stdout~ and stderr~ handling.
+        Limitation: Does not handle escaped backslashes before quotes (e.g., foo\\").
+        This is an acceptable limitation as such patterns are rare in command output.
+        """
+        pattern = condition_part.strip()
+        is_quoted = False
+
+        if pattern and (pattern[0] == '"' or pattern[0] == "'"):
+            quote_char = pattern[0]
+            if len(pattern) > 1 and pattern.endswith(quote_char):
+                # Remove quotes
+                pattern = pattern[1:-1]
+                is_quoted = True
+                if debug_callback:
+                    debug_callback(f"Extracted quoted pattern: '{pattern}'")
+            else:
+                # Unclosed quote: strip leading quote and warn (permissive fallback)
+                original_pattern = pattern
+                pattern = pattern[1:]  # Strip leading quote
+                if debug_callback:
+                    debug_callback(f"WARNING: Unclosed quote in pattern '{original_pattern}' - treating as unquoted pattern '{pattern}'")
+
+        # Warn if unquoted pattern contains operators
+        if not is_quoted and any(op in pattern for op in ['!~', '<=', '>=', '!=', '~', '=', '<', '>']):
+            if debug_callback:
+                debug_callback(f"WARNING: Unquoted pattern '{pattern}' contains operators. Consider using quotes: ~\"{pattern}\"")
+
+        return pattern, is_quoted
+
+    @staticmethod
     def evaluate_condition(condition, exit_code, stdout, stderr, global_vars, task_results, debug_callback=None, current_task_success=None):
         """
         Evaluate a complex condition that may contain boolean operators (AND, OR, NOT)
@@ -391,10 +432,18 @@ class ConditionEvaluator:
         
         # Check for stdout/stderr conditions (only specific patterns like ~, !~, and _count, not general comparison operators)
         # Note: General patterns with =, !=, <, <=, >, >= (but not _count patterns) are handled by evaluate_operator_comparison below
-        # IMPORTANT: _count patterns use operators as part of their syntax (e.g., stdout_count=3, stdout_count<5)
-        # so we must check for _count BEFORE blocking based on operators
-        # CRITICAL FIX: Check for ~ and !~ operators FIRST before checking for other operators
-        # This allows patterns like 'stdout~WMPC Migrated = ubsos_sssd' to work correctly
+        #
+        # OPERATOR PRECEDENCE & PRIORITY ORDER:
+        # The condition below implements a careful precedence order to handle edge cases correctly:
+        #   1. _count patterns (e.g., stdout_count=3) - uses = as part of syntax, not as comparison
+        #   2. ~ and !~ patterns (e.g., stdout~pattern) - string matching takes priority
+        #   3. Comparison operators (=, !=, <, etc.) - handled by evaluate_operator_comparison
+        #
+        # This priority order ensures that:
+        #   - 'stdout~WMPC Migrated = ubsos_sssd' correctly uses ~ (pattern match), not = (comparison)
+        #   - 'stdout_count=3' correctly uses = as part of _count syntax
+        #   - 'stdout=value' correctly delegates to evaluate_operator_comparison
+        #
         # CASE INSENSITIVE: Accept both 'stdout' and 'STDOUT' for user convenience
         if condition.lower().startswith('stdout') and ('_count' in condition.lower() or '~' in condition or not any(op in condition for op in ['=', '!=', '<', '<=', '>', '>='])):
             stdout_stripped = stdout.rstrip('\n')
@@ -410,29 +459,11 @@ class ConditionEvaluator:
                     debug_callback(f"Stdout not empty check: '{stdout.strip()}' is {'not empty' if result else 'empty'}")
                 return result
             elif '~' in condition:
-                pattern = condition.split('~', 1)[1].strip()
-
-                # Handle quoted patterns: stdout~"pattern" or stdout~'pattern'
-                is_quoted = False
-                if pattern and (pattern[0] == '"' or pattern[0] == "'"):
-                    quote_char = pattern[0]
-                    if len(pattern) > 1 and pattern.endswith(quote_char):
-                        # Remove quotes
-                        pattern = pattern[1:-1]
-                        is_quoted = True
-                        if debug_callback:
-                            debug_callback(f"Extracted quoted pattern: '{pattern}'")
-                    else:
-                        # Unclosed quote: strip leading quote and warn (permissive fallback)
-                        original_pattern = pattern
-                        pattern = pattern[1:]  # Strip leading quote
-                        if debug_callback:
-                            debug_callback(f"WARNING: Unclosed quote in pattern '{original_pattern}' - treating as unquoted pattern '{pattern}'")
-
-                # Warn if unquoted pattern contains operators
-                if not is_quoted and any(op in pattern for op in ['!~', '<=', '>=', '!=', '~', '=', '<', '>']):
-                    if debug_callback:
-                        debug_callback(f"WARNING: Unquoted stdout pattern '{pattern}' contains operators. Consider using quotes: ~\"{pattern}\"")
+                # Extract pattern using helper method (reduces code duplication)
+                condition_part = condition.split('~', 1)[1]
+                pattern, is_quoted = ConditionEvaluator._extract_pattern_from_condition(
+                    condition_part, debug_callback
+                )
 
                 if condition_lower.startswith('stdout!~'):
                     result = pattern not in stdout_stripped
@@ -496,29 +527,11 @@ class ConditionEvaluator:
                     debug_callback(f"Stderr not empty check: '{stderr_stripped}' is {'not empty' if result else 'empty'}")
                 return result
             elif '~' in condition:
-                pattern = condition.split('~', 1)[1].strip()
-
-                # Handle quoted patterns: stderr~"pattern" or stderr~'pattern'
-                is_quoted = False
-                if pattern and (pattern[0] == '"' or pattern[0] == "'"):
-                    quote_char = pattern[0]
-                    if len(pattern) > 1 and pattern.endswith(quote_char):
-                        # Remove quotes
-                        pattern = pattern[1:-1]
-                        is_quoted = True
-                        if debug_callback:
-                            debug_callback(f"Extracted quoted pattern: '{pattern}'")
-                    else:
-                        # Unclosed quote: strip leading quote and warn (permissive fallback)
-                        original_pattern = pattern
-                        pattern = pattern[1:]  # Strip leading quote
-                        if debug_callback:
-                            debug_callback(f"WARNING: Unclosed quote in pattern '{original_pattern}' - treating as unquoted pattern '{pattern}'")
-
-                # Warn if unquoted pattern contains operators
-                if not is_quoted and any(op in pattern for op in ['!~', '<=', '>=', '!=', '~', '=', '<', '>']):
-                    if debug_callback:
-                        debug_callback(f"WARNING: Unquoted stderr pattern '{pattern}' contains operators. Consider using quotes: ~\"{pattern}\"")
+                # Extract pattern using helper method (reduces code duplication)
+                condition_part = condition.split('~', 1)[1]
+                pattern, is_quoted = ConditionEvaluator._extract_pattern_from_condition(
+                    condition_part, debug_callback
+                )
 
                 if condition_lower.startswith('stderr!~'):
                     result = pattern not in stderr_stripped

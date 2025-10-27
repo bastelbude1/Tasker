@@ -2060,7 +2060,7 @@ arguments=Deploying to staging
 exec=local
 ```
 
-**⚠️ IMPORTANT: Quoted Patterns for Complex Matches**
+#### ⚠️ IMPORTANT: Quoted Patterns for Complex Matches
 
 When your pattern contains operators (`=`, `>=`, `<=`, `!=`, `<`, `>`, `~`, `!~`), always use quoted patterns to avoid parsing ambiguity:
 

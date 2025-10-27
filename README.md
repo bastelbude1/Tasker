@@ -2060,6 +2060,59 @@ arguments=Deploying to staging
 exec=local
 ```
 
+**⚠️ IMPORTANT: Quoted Patterns for Complex Matches**
+
+When your pattern contains operators (`=`, `>=`, `<=`, `!=`, `<`, `>`, `~`, `!~`), always use quoted patterns to avoid parsing ambiguity:
+
+```bash
+# ✅ CORRECT: Quoted patterns (recommended)
+condition=@0_stdout@~"WMPC Migrated = ubsos_sssd"
+condition=@1_stderr@~"threshold >= 50"
+condition=@2_stdout@~'error: code = 404'
+success=stdout~"result: { status = OK }"
+
+# ❌ INCORRECT: Unquoted patterns with multiple operators
+condition=@0_stdout@~WMPC Migrated = ubsos_sssd     # Ambiguous: ~ or = ?
+condition=@1_stderr@~threshold >= 50                 # Ambiguous: ~ or >= ?
+```
+
+**When to use quoted patterns:**
+
+| Pattern Type | Requires Quotes | Example |
+|-------------|----------------|---------|
+| Contains operators (`=`, `>=`, etc.) | ✅ YES | `~"value >= 50"` |
+| Contains special chars (`:`, `{`, `}`) | ✅ YES | `~"status: { ok }"` |
+| Contains spaces only | ⚠️ RECOMMENDED | `~"hello world"` |
+| Simple alphanumeric | ❌ NO | `~production` |
+
+**Quote styles supported:**
+- Double quotes: `condition=@0_stdout@~"pattern with = signs"`
+- Single quotes: `condition=@0_stdout@~'pattern with >= signs'`
+- Escaped quotes: `condition=@0_stdout@~"He said: \"Hello\""`
+
+**Edge case behavior:**
+```bash
+# Works: Single operator, no ambiguity
+condition=@0_stdout@~value = 100
+
+# Fails: Multiple operators create ambiguity
+# Parser interprets as >= comparison instead of ~ pattern match
+condition=@0_stderr@~threshold >= 50
+
+# Works: Quoted pattern removes ambiguity
+condition=@0_stderr@~"threshold >= 50"
+```
+
+**Why this matters:**
+
+Without quotes, TASKER must decide which operator to use for parsing:
+- `output~pattern >= value` - Is this a pattern match (~) or comparison (>=)?
+- Using quotes makes your intent explicit: `output~"pattern >= value"` (pattern match)
+- Unquoted patterns with single operators work for backward compatibility
+- Unquoted patterns with multiple operators may fail to parse correctly
+
+**Best practice:** Always use quoted patterns when your search text contains any operator characters. This eliminates ambiguity and makes your task files more maintainable.
+
 ### Success Criteria
 
 Define custom success conditions beyond just exit codes.

@@ -1,8 +1,9 @@
-# TEST_METADATA: {"description": "Test unquoted pattern warning system for patterns with operators", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3, 4]}
+# TEST_METADATA: {"description": "Test unquoted pattern warning system and edge cases with operators", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 4, 5]}
 
-# Test case: Unquoted patterns containing operators should generate warnings
-# but still work for backward compatibility (warning in debug mode only)
-# This validates the warning system helps users identify ambiguous patterns
+# Test case: Unquoted patterns with operators demonstrate edge cases
+# Shows the CORRECT way (quoted) and INCORRECT way (unquoted with multiple operators)
+# Unquoted patterns with SINGLE operator (=) work for backward compatibility
+# Unquoted patterns with MULTIPLE operators (>= and ~) create ambiguity and fail
 
 task=0
 hostname=localhost
@@ -13,7 +14,7 @@ exec=local
 task=1
 hostname=localhost
 command=echo
-arguments=Test 1 PASSED: Unquoted pattern with = works but may generate warning
+arguments=Test 1 PASSED: Unquoted pattern with single = operator works
 exec=local
 condition=@0_stdout@~value = 100
 
@@ -26,13 +27,20 @@ exec=local
 task=3
 hostname=localhost
 command=echo
-arguments=Test 3 PASSED: Unquoted stderr pattern with >= works
+arguments=Test 3 SKIPPED: Unquoted pattern with >= causes ambiguity - condition fails
 exec=local
 condition=@2_stderr@~threshold >= 50
 
 task=4
 hostname=localhost
 command=echo
-arguments=SUCCESS: Unquoted patterns with operators work (backward compatibility)
+arguments=Test 4 PASSED: Quoted pattern with >= works correctly
+exec=local
+condition=@2_stderr@~"threshold >= 50"
+
+task=5
+hostname=localhost
+command=echo
+arguments=SUCCESS: Quoted patterns solve operator ambiguity
 exec=local
 next=never

@@ -425,12 +425,12 @@ class ConditionEvaluator:
                             debug_callback(f"WARNING: Unclosed quote in pattern: {pattern}")
 
                 if condition_lower.startswith('stdout!~'):
-                    result = pattern not in stdout
+                    result = pattern not in stdout_stripped
                     if debug_callback:
                         debug_callback(f"Stdout pattern not match: '{pattern}' is {'absent' if result else 'present'} in '{stdout_stripped}'")
                     return result
                 else:
-                    result = pattern in stdout
+                    result = pattern in stdout_stripped
                     if debug_callback:
                         debug_callback(f"Stdout pattern match: '{pattern}' is {'present' if result else 'absent'} in '{stdout_stripped}'")
                     return result
@@ -501,12 +501,12 @@ class ConditionEvaluator:
                             debug_callback(f"WARNING: Unclosed quote in pattern: {pattern}")
 
                 if condition_lower.startswith('stderr!~'):
-                    result = pattern not in stderr
+                    result = pattern not in stderr_stripped
                     if debug_callback:
                         debug_callback(f"Stderr pattern not match: '{pattern}' is {'absent' if result else 'present'} in '{stderr_stripped}'")
                     return result
                 else:
-                    result = pattern in stderr
+                    result = pattern in stderr_stripped
                     if debug_callback:
                         debug_callback(f"Stderr pattern match: '{pattern}' is {'present' if result else 'absent'} in '{stderr_stripped}'")
                     return result

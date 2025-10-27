@@ -1,0 +1,31 @@
+# TEST_METADATA: {"description": "Test escaped quotes in quoted patterns", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2, 3]}
+
+# Test case: Patterns can contain escaped quotes using backslash
+# Example: stdout~"pattern with \" quote" should match literal quote character
+
+task=0
+hostname=localhost
+command=echo
+arguments=Message: "Success status = OK"
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=Test 1 PASSED: Double-quoted pattern with escaped quote
+exec=local
+condition=@0_stdout@~"\"Success status"
+
+task=2
+hostname=localhost
+command=echo
+arguments=Test 2 PASSED: Pattern with escaped quote and equals
+exec=local
+condition=@0_stdout@~"\"Success status = OK\""
+
+task=3
+hostname=localhost
+command=echo
+arguments=SUCCESS: Escaped quotes in patterns work correctly
+exec=local
+next=never

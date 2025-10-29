@@ -307,6 +307,7 @@ class TaskExecutor:
                     fcntl.flock(self.summary_log.fileno(), fcntl.LOCK_UN)
         else:
             self.summary_log = None
+            self.summary_log_path = None
 
         # Start logging task execution
         self.log_info(f"=== Task Execution Start: {display_ts} ===")
@@ -726,6 +727,9 @@ class TaskExecutor:
                     try:
                         with self.log_lock:
                             self._log_direct(f"# Log file: {getattr(self, 'log_file_path', 'unknown')}")
+                            # Display project file path if project mode is enabled
+                            if hasattr(self, 'summary_log_path') and self.summary_log_path:
+                                self._log_direct(f"# Project file: {self.summary_log_path}")
                             self._log_direct("=== Task Execution End: {} ===".format(
                                 datetime.now().strftime('%d%b%y_%H%M%S')))
                     except Exception as log_error:
@@ -734,6 +738,9 @@ class TaskExecutor:
                         try:
                             timestamp = datetime.now().strftime('%d%b%y_%H%M%S')
                             self.log_file.write(f"# Log file: {getattr(self, 'log_file_path', 'unknown')}\n")
+                            # Display project file path if project mode is enabled
+                            if hasattr(self, 'summary_log_path') and self.summary_log_path:
+                                self.log_file.write(f"# Project file: {self.summary_log_path}\n")
                             self.log_file.write(f"=== Task Execution End: {timestamp} ===\n")
                             self.log_file.flush()
                         except Exception as fallback_error:
@@ -946,6 +953,9 @@ class TaskExecutor:
         """Destructor - ensure log file is closed."""
         if hasattr(self, 'log_file') and self.log_file:
             self.log_info(f"# Log file: {self.log_file_path}")
+            # Display project file path if project mode is enabled
+            if hasattr(self, 'summary_log_path') and self.summary_log_path:
+                self.log_info(f"# Project file: {self.summary_log_path}")
             self.log_info("=== Task Execution End: {} ===".format(
                 datetime.now().strftime('%d%b%y_%H%M%S')))
             self.log_file.close()

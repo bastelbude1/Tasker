@@ -254,6 +254,7 @@ class TaskExecutor:
         self.final_success = None
         self.final_hostname = None
         self.final_command = None
+        self.summary_log_path = None
 
         # Capture timestamp once for consistency across formats
         now = datetime.now()
@@ -307,7 +308,6 @@ class TaskExecutor:
                     fcntl.flock(self.summary_log.fileno(), fcntl.LOCK_UN)
         else:
             self.summary_log = None
-            self.summary_log_path = None
 
         # Start logging task execution
         self.log_info(f"=== Task Execution Start: {display_ts} ===")

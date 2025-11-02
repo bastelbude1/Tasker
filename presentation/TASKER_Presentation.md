@@ -862,157 +862,25 @@ tasker -r -p MY_PROJECT my_first_workflow.txt
 
 ---
 
-# Quick Reference: Essential Parameters
+# Parameter Reference & Learning Resources
 
-### Every Task Needs:
-```
-task=N              # Task ID (unique number)
-hostname=X          # Target server (or localhost)
-command=X           # Command to execute
-exec=TYPE           # Execution type (local/shell/pbrun/p7s)
-```
+For comprehensive parameter reference with visual workflow diagrams, see:
 
-### Flow Control:
-```
-on_success=N        # Jump to task N if success
-on_failure=N        # Jump to task N if failure
-next=N|never        # Sequential flow (never=stop)
-condition=EXPR      # Execute only if condition true
-```
+**📊 TaskER_FlowChart.md** - Visual block inventory with:
+- Mermaid flowcharts for each workflow block
+- Complete parameter tables
+- Correct, tested examples
+- Entry/exit points and behavior descriptions
 
-### Success Criteria:
-```
-success=exit_0                    # Exit code 0
-success=exit_0&stdout~pattern     # Exit 0 AND stdout matches
-success=exit_0|stdout~pattern     # Exit 0 OR stdout matches
-success=!stderr                   # No stderr output
-```
+This document provides visual learning for all TASKER concepts including:
+- Execution blocks
+- Success/failure routing
+- Conditional execution
+- Loop blocks
+- Parallel execution
+- All workflow patterns
 
-### Parallel Execution:
-```
-hostname=srv1,srv2,srv3,...   # Multiple servers
-max_parallel=N                # Concurrent limit
-timeout=N                     # Per-task timeout (seconds)
-```
-
-### Error Handling:
-```
-retry_failed=true             # Retry on failure
-retry_count=N                 # Max retry attempts
-loop=N                        # Repeat N times
-```
-
-### Variables:
-```
-# Global (top of file)
-MY_VAR=value
-
-# Reference in tasks
-arguments=--host @MY_VAR@
-
-# Task output
-env_PASSWORD=@0_stdout@       # Use task 0 output as env var
-```
-
----
-
-# Advanced Techniques
-
-### 1. Fire-and-Forget Tasks
-```
-task=0
-hostname=log-server
-command=process_logs.sh
-exec=pbrun
-fire_and_forget=true    # Don't wait for completion
-```
-
-### 2. Custom Exit Codes
-```
-task=0
-hostname=localhost
-command=health_check.sh
-exec=local
-success=exit_0
-return=42              # Workflow exits with code 42
-```
-
-### 3. Alert Integration
-```
-task=99
-hostname=localhost
-command=/opt/alert.sh
-arguments=Workflow failed - @0_stderr@
-exec=local
-alert_on_failure=/opt/emergency_alert.sh
-```
-
-### 4. Loop Execution
-```
-task=0
-hostname=api-server
-command=process_batch.sh
-exec=pbrun
-loop=10
-timeout=600
-```
-
-### 5. Majority Success Condition
-```
-task=0
-hostname=web1,web2,web3,web4,web5
-command=deploy.sh
-exec=pbrun
-max_parallel=5
-
-task=1
-hostname=localhost
-command=echo
-arguments=Deployment succeeded on majority of servers
-exec=local
-condition=@0_majority_success@=60
-```
-
----
-
-# Testing & Validation
-
-### Built-in Test Suite
-```bash
-# Run functional tests
-cd test_cases
-python3 scripts/intelligent_test_runner.py functional/
-
-# Run all tests
-python3 scripts/intelligent_test_runner.py functional/ integration/ security/
-
-# Results
-✅ Passed: 487
-❌ Failed: 0
-⏭️  Skipped: 0
-```
-
-### Test Coverage
-- **487+ Test Cases** covering:
-  - Basic functionality
-  - Flow control (branching, loops, conditions)
-  - Parallel execution
-  - Variable substitution
-  - Security validation
-  - Edge cases and error handling
-  - Integration scenarios
-
-### Dry Run Mode
-```bash
-# Validate without execution
-tasker tasks.txt
-
-# Validate with detailed output
-tasker -d tasks.txt
-
-# Validate only (skip host checks)
-tasker --validate-only tasks.txt
-```
+**Available in the TASKER repository root.**
 
 ---
 

@@ -631,63 +631,34 @@ tasker -r demo.txt
 
 ---
 
-### Quick Reference (2 minutes)
-**Slide: Quick Reference**
+### Parameter Reference & Learning Resources (2 minutes)
+**Slide: Parameter Reference & Learning Resources**
 
 **Speaker Notes:**
-- Don't read through all parameters
-- Highlight the essentials
-- "This is your cheat sheet - I'll share the slides"
+- This slide directs attendees to comprehensive visual documentation
+- Don't try to list all parameters (risk of errors)
+- Emphasize the quality of the reference material
 
-**Four Categories:**
-1. **Must Have**: Every task needs these 4 parameters
-2. **Flow Control**: How tasks connect
-3. **Success Criteria**: Define what success means
-4. **Parallel**: Multi-server magic
+**Key Message:**
+"Rather than walking through parameter lists that might have errors, we've created a comprehensive visual reference that's already tested and accurate."
+
+**Introduce TaskER_FlowChart.md:**
+"The **TaskER_FlowChart.md** document in the repository root contains:
+- Visual mermaid flowcharts for every workflow pattern
+- Complete parameter tables with correct syntax
+- Tested examples that actually work
+- Entry/exit points and behavior descriptions
+
+This is your authoritative reference - over 1,200 lines of visual documentation covering every TASKER concept."
+
+**Practical Advice:**
+"When building workflows:
+1. Start with the examples in test_cases/functional/
+2. Reference TaskER_FlowChart.md for parameter details
+3. Use validation mode (no -r flag) to catch errors before execution"
 
 **Message:**
-"You can build 80% of workflows with just these parameters. The other 20% is for advanced use cases."
-
----
-
-### Advanced Techniques (2 minutes)
-**Slide: Advanced Techniques**
-
-**Speaker Notes:**
-- Quick showcase of advanced features
-- Don't go deep unless questions
-
-**Pick 2-3 to highlight:**
-- Fire-and-forget: "Start a long-running job, don't wait"
-- Custom exit codes: "Control workflow return value"
-- Loop with variables: "Process batches automatically"
-
-**Message:**
-"There's a lot more under the hood. Check the documentation for 487+ examples."
-
----
-
-### Testing & Validation (2 minutes)
-**Slide: Testing & Validation**
-
-**Speaker Notes:**
-- Emphasize production-readiness
-- 487 test cases is impressive
-
-**Live Demo (if time):**
-```bash
-cd test_cases
-python3 scripts/intelligent_test_runner.py functional/ | head -50
-```
-
-**Key Points:**
-- Comprehensive test suite
-- Every feature tested
-- Security validation tests
-- Integration tests for real workflows
-
-**Confidence Builder:**
-"Before every release, we run 487 test cases covering every feature, edge case, and security scenario. If it passes, it works in production."
+"You don't need to memorize parameters. You need to know where to find them. TaskER_FlowChart.md is that source."
 
 ---
 

@@ -57,6 +57,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from tasker.core.task_executor_main import TaskExecutor
 from tasker.core.utilities import get_log_directory
 
+# Version information
+VERSION = "2.1.0"
 
 # Security: Flags that should NEVER be accepted from task files
 CLI_ONLY_FLAGS = {'--help', '-h', '--version'}
@@ -212,14 +214,17 @@ def main():
         epilog='''
 Examples:
   %(prog)s tasks.txt -r                    # Execute tasks (real run)
-  %(prog)s tasks.txt --log-level=DEBUG     # Execute with debug logging  
+  %(prog)s tasks.txt --log-level=DEBUG     # Execute with debug logging
   %(prog)s tasks.txt --show-plan           # Show execution plan first
   %(prog)s tasks.txt --start-from=5        # Resume from task 5
   %(prog)s tasks.txt --validate-only       # Only validate, don't execute
         ''',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    
+
+    # Version information
+    parser.add_argument('--version', action='version', version=f'TASKER v{VERSION}')
+
     # Positional arguments
     parser.add_argument('task_file', help='Path to the task file')
     

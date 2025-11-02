@@ -825,20 +825,13 @@ tasker/
 
 # Getting Started: 5-Minute Setup
 
-### Installation
+### Verify TASKER is Available
 ```bash
-# Extract TASKER distribution
-tar -xzf tasker-v2.1.tar.gz
-cd tasker
+# TASKER is already installed - verify it works
+tasker --version
 
-# No installation needed - just run!
-./tasker --version
-```
-
-### Create Alias (Optional)
-```bash
-echo 'alias tasker="/path/to/Tasker/tasker"' >> ~/.bashrc
-source ~/.bashrc
+# Check available options
+tasker --help
 ```
 
 ### Your First Workflow
@@ -1137,11 +1130,11 @@ tasker test_cases/security/invalid_command_injection.txt
 
 # Get Started Today
 
-### Installation
+### Quick Start
 ```bash
-tar -xzf tasker-v2.1.tar.gz
-cd tasker
-./tasker --version
+# TASKER is already installed - just use it
+tasker --version
+tasker --help
 ```
 
 ### Resources
@@ -1188,9 +1181,8 @@ A: Yes! 487+ test cases ensure reliability. TASKER is production-ready and desig
 
 **Get Started:**
 ```bash
-tar -xzf tasker-v2.1.tar.gz
-cd tasker
-./tasker -r test_cases/functional/hello.txt
+# TASKER is ready to use
+tasker -r test_cases/functional/hello.txt
 ```
 
 **Let's transform your operational workflows!**

@@ -609,13 +609,11 @@ Read the quote on the slide - this is the target audience.
 
 **Live Demo:**
 ```bash
-# Show the installation (if not done earlier)
-cd /tmp
-tar -xzf tasker-v2.1.tar.gz
-cd tasker
-./tasker --version
+# TASKER is already installed - verify
+tasker --version
 
-# Run the first workflow
+# Create your first workflow
+cd /tmp
 cat > demo.txt << 'EOF'
 task=0
 hostname=localhost
@@ -624,11 +622,12 @@ arguments=I just automated something!
 exec=local
 EOF
 
-./tasker -r demo.txt
+# Run it
+tasker -r demo.txt
 ```
 
 **Key Message:**
-"From extracting the tarball to running your first workflow: under 2 minutes. No package installation, no dependency hell, no configuration files."
+"TASKER is ready to use. From creating a workflow to running it: under 1 minute. No installation, no dependencies, no configuration files."
 
 ---
 
@@ -977,10 +976,10 @@ Thank you for attending the TASKER presentation today. As promised, here are the
 📊 Visual Reference: TaskER_FlowChart.md (workflow blocks with diagrams)
 📝 Examples: test_cases/functional/ directory (100+ examples)
 
-Getting Started (5 minutes):
-1. tar -xzf tasker-v2.1.tar.gz
-2. cd tasker
-3. ./tasker -r test_cases/functional/hello.txt
+Getting Started (1 minute):
+1. Verify: tasker --version
+2. Run example: tasker -r test_cases/functional/hello.txt
+3. Start building your workflows!
 
 Next Steps:
 - Review the documentation

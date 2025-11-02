@@ -246,10 +246,6 @@ ptasker -n 50 -r deployment.txt
 
 ### Why This Matters
 
-**Customer Story:**
-> "TASKER validation caught a typo that would have brought down production across 200 servers. The validation ran in 2 seconds and prevented a multi-hour incident. TASKER paid for itself on day one."
-> — **Infrastructure Engineer, Fortune 500 Finance**
-
 **The Power:**
 - ✅ **Fail fast** - Catch errors in seconds, not minutes/hours
 - ✅ **Fail safe** - No execution until validation passes
@@ -1058,10 +1054,10 @@ A: TASKER runs on Windows with Python 3.6+. Remote execution requires SSH or cus
 A: Use exit codes and log parsing, or call monitoring APIs from tasks.
 
 **Q: Is there commercial support?**
-A: Currently community-supported via GitHub. Enterprise support available upon request.
+A: Supported internally by our team. For questions or issues, reach out via internal channels.
 
 **Q: Can I use TASKER in production?**
-A: Yes! 487+ test cases ensure reliability. Used in production by multiple organizations.
+A: Yes! 487+ test cases ensure reliability. TASKER is production-ready and designed for enterprise environments.
 
 ---
 

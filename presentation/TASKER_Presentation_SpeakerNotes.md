@@ -183,9 +183,6 @@ ptasker -n 50 -r deployment.txt
 
 **Together:** Safe validated workflows + industrial-scale parallelism = production-ready automation"
 
-**Customer Story (Read slowly):**
-*Read the quote from the slide about preventing production incident*
-
 **Key Takeaway:**
 "Validation is not a nice-to-have. It's the difference between confident automation and risky scripts. TASKER makes validation automatic and comprehensive."
 
@@ -275,9 +272,6 @@ TASKER does this with: `condition=@0_majority_success@=75`"
 4. **Privilege controls**: "Integration with enterprise tools"
 5. **Audit trail**: "Everything logged"
 
-**Security Story:**
-"A customer told me they caught a typo in a deployment script during validation. That typo would have brought down production. TASKER paid for itself on day one."
-
 ---
 
 ### Enterprise Feature #2: Variables (3 minutes)
@@ -312,8 +306,8 @@ The password never touches disk - it flows from task to task in memory."
 3. **Debug mode**: Deep dive when needed
 4. **Audit trail**: Who ran what, when
 
-**Compliance Story:**
-"For regulated industries (healthcare, finance), you need audit trails. TASKER logs everything: what ran, when, by who, with what result."
+**Key Point:**
+"TASKER logs everything: what ran, when, by who, with what result - essential for audit requirements."
 
 ---
 
@@ -656,13 +650,13 @@ If live demos fail (network, etc.), have screenshots ready.
 **Common Questions:**
 
 **Q: Can TASKER replace Ansible?**
-A: "For task orchestration, yes. For configuration management and state, no. They solve different problems. Many teams use both - TASKER for workflows, Ansible for config management."
+A: "For task orchestration, yes. For configuration management and state, no. They solve different problems. Teams can use both - TASKER for workflows, Ansible for config management."
 
 **Q: What about Windows?**
 A: "TASKER runs on Windows with Python 3.6+. For remote execution, you need SSH or you can extend the exec types for PowerShell remoting."
 
 **Q: Performance at scale?**
-A: "We've tested with 1000+ concurrent tasks. Linear scaling. The bottleneck is usually network, not TASKER."
+A: "The test suite includes tests with 1000+ concurrent tasks showing linear scaling. The bottleneck is usually network, not TASKER."
 
 **Q: Commercial support?**
 A: "Supported internally by our team. For questions or issues, reach out via internal channels."
@@ -683,7 +677,7 @@ A: "Yes. Just include Python 3.6+ in your container image and mount your task fi
 A: "TASKER provides comprehensive logging, retry logic, and error handling. For critical workflows, use the alert integration and on_failure routing to ensure ops is notified."
 
 **Q: What's the learning curve?**
-A: "Most users are productive in under an hour. We've seen team members who don't code build workflows in their first session."
+A: "The syntax is simple enough that you can be productive in under an hour. The design goal is that even team members who don't code can understand and build workflows."
 
 ---
 

@@ -1761,7 +1761,7 @@ See `examples/alerts/simple_alert.sh` for a working example alert script.
 
 #### Python Version Support
 - **Python 3.6.8+**: Full compatibility with legacy systems
-- **Cross-platform**: Linux, macOS, Windows support
+- **Platform**: Built for Linux, can be updated for Windows (SSH-only remote execution)
 - **Memory Management**: Uses standard Python tempfile module
 
 #### Resource Requirements

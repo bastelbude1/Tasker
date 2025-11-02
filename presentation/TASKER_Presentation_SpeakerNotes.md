@@ -802,7 +802,7 @@ If live demos fail (network, etc.), have screenshots ready.
 A: "For task orchestration, yes. For configuration management and state, no. They solve different problems. Teams can use both - TASKER for workflows, Ansible for config management."
 
 **Q: What about Windows?**
-A: "TASKER runs on Windows with Python 3.6+. For remote execution, you need SSH or you can extend the exec types for PowerShell remoting."
+A: "TASKER is built for Linux but can be updated to run on Windows. Remote command execution only works with SSH."
 
 **Q: Performance at scale?**
 A: "The test suite includes tests with 1000+ concurrent tasks showing linear scaling. The bottleneck is usually network, not TASKER."

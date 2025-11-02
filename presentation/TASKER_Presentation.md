@@ -1020,7 +1020,7 @@ tasker --help
 A: For task sequencing yes, for configuration management no. They complement each other.
 
 **Q: What about Windows support?**
-A: TASKER runs on Windows with Python 3.6+. Remote execution requires SSH or custom exec types.
+A: TASKER is built for Linux but can be updated to run on Windows. Remote command execution only works with SSH.
 
 **Q: How do I integrate with monitoring?**
 A: Use exit codes and log parsing, or call monitoring APIs from tasks.

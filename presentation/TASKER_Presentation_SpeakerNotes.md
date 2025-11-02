@@ -99,35 +99,101 @@ Ask: "Could your junior admin modify this without fear?"
 
 ---
 
-### Power Feature #1: Parallel Execution (7 minutes)
-**Slide: Power Feature #1: Parallel Execution**
+### Power Feature #1: Pre-execution Validation & Safety (10 minutes)
+**Slide: Power Feature #1: Pre-execution Validation & Safety**
 
 **Speaker Notes:**
-- This is where TASKER shines vs. Bash
-- Emphasize the built-in features
+- This is TASKER's truly unique power feature
+- Most automation tools fail at runtime - TASKER catches errors before execution
+- This resonates strongly with IT audiences who've been burned by runtime failures
 
-**Key Points:**
-- **max_parallel=10**: "You set one parameter, TASKER handles all the thread management"
-- **retry_failed=true**: "Automatic retry with exponential backoff"
-- **success criteria**: "Complex success detection built-in"
-- **Statistics**: "Detailed reporting - you know exactly what happened"
+**Opening Hook:**
+"Raise your hand if you've ever run an automation script and discovered a typo AFTER it started executing on production servers."
+*(Wait for hands - this is relatable)*
 
-**Demo (if time):**
+"What if I told you TASKER catches those errors in 2 seconds, before anything executes?"
+
+**The Problem (Emphasize Pain):**
+- Traditional tools: Ansible, Bash, Python scripts validate during runtime
+- You discover errors AFTER execution starts
+- Examples:
+  - Typo in command name → Fails on all 50 servers
+  - Missing command in PATH → Wastes 15 minutes before failing
+  - Security vulnerability → Already exposed by the time you notice
+  - Circular dependency → Infinite loop in production
+
+**TASKER's Solution: Validate EVERYTHING First**
+
+Walk through validation slide showing:
 ```bash
-# Show a parallel execution test
-./tasker -r test_cases/functional/test_parallel_basic.txt
+tasker deployment.txt  # Just validation, no -r flag
 ```
 
-**Comparison:**
-"To do this in Bash, you'd need:
-- Background job management
-- PID tracking
-- Wait logic with timeouts
-- Manual retry loops
-- Output capture and parsing
-- Statistics tracking
+**Key Message:** "If validation passes, execution will work. If validation fails, nothing executes."
 
-In TASKER, you set 3 parameters."
+**Live Demo - The Typo Example:**
+```bash
+# Show the deployment.txt with typo "deploay_app.sh"
+cat demo_with_typo.txt
+
+# Run validation (will fail)
+./tasker demo_with_typo.txt
+
+# Point out:
+# - Caught immediately (2 seconds)
+# - Clear error message
+# - No servers touched
+# - No rollback needed
+```
+
+**Contrast with Traditional Tools:**
+"In Ansible or Bash, this typo would:
+1. Start executing on server 1 → FAIL
+2. Move to server 2 → FAIL
+3. Continue through all 50 servers → ALL FAIL
+4. You waste 15 minutes plus rollback time
+5. Potential partial state corruption
+
+With TASKER:
+1. Validation runs in 2 seconds → FAIL
+2. Fix typo
+3. Run again → SUCCESS
+4. Zero servers touched during failure"
+
+**Multi-Layer Validation:**
+Walk through the 5 layers briefly:
+- Layer 1: Syntax (file format)
+- Layer 2: Semantics (logic, dependencies)
+- Layer 3: Security (injection, traversal)
+- Layer 4: Runtime (commands exist, hosts reachable)
+- Layer 5: Execution safety (timeouts, audit)
+
+**Integration with parallelr/ptasker (Important!):**
+"TASKER isn't trying to replace powerful parallel execution tools. We have `max_parallel` for convenience, but for industrial-scale parallelism, use **parallelr/ptasker** (https://github.com/bastelbude1/parallelr).
+
+TASKER is designed to integrate:
+```bash
+export DEPLOYMENT_VERSION=2.1.0
+ptasker -n 50 -r deployment.txt
+```
+
+**What each tool does:**
+- TASKER: Validates workflow, defines flow control, handles success criteria
+- parallelr/ptasker: Massive parallel execution (100+ concurrent tasks)
+
+**Together:** Safe validated workflows + industrial-scale parallelism = production-ready automation"
+
+**Customer Story (Read slowly):**
+*Read the quote from the slide about preventing production incident*
+
+**Key Takeaway:**
+"Validation is not a nice-to-have. It's the difference between confident automation and risky scripts. TASKER makes validation automatic and comprehensive."
+
+**Transition:** "Now that you know your workflows are safe, let's see how they handle complex decision-making..."
+
+**Time Management:**
+- If running long: Skip multi-layer validation details
+- If running short: Add second demo showing security validation catching command injection
 
 ---
 

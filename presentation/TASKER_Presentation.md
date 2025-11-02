@@ -32,7 +32,8 @@
 **A professional task orchestration engine that transforms complex operations into simple text files**
 
 ### Core Philosophy:
-```
+
+```text
 Simple things should be simple.
 Complex things should be possible.
 Everything should be readable.
@@ -74,7 +75,8 @@ fi
 ```
 
 **TASKER Configuration** (30 lines, more features):
-```
+
+```bash
 # health_check.txt
 
 task=0
@@ -161,7 +163,8 @@ tasker deployment.txt
 ### Real-World Example: Catching Disasters
 
 **Deployment script with typo:**
-```
+
+```bash
 task=0
 hostname=prod-web-01
 command=deploay_app.sh    # TYPO: should be "deploy_app.sh"
@@ -170,7 +173,8 @@ timeout=300
 ```
 
 **Traditional tools (Ansible, Bash, etc.):**
-```
+
+```text
 Starting deployment to prod-web-01... FAILED
 ERROR: Command 'deploay_app.sh' not found
 Time wasted: 5-15 minutes + rollback time
@@ -288,7 +292,7 @@ ptasker -n 50 -r deployment.txt
 
 **Real-World Example: Database Backup with Analysis**
 
-```
+```bash
 # Task 0: Run backup script on remote database server
 task=0
 hostname=db-prod-01
@@ -325,7 +329,8 @@ success=exit_0
 ### Why This Is Powerful
 
 **Reuse Existing Scripts:**
-```
+
+```text
 ✅ Keep your tested backup_database.py
 ✅ Keep your analyze_backup.py
 ✅ Add TASKER workflow orchestration around them
@@ -333,7 +338,8 @@ success=exit_0
 ```
 
 **Mix Execution Contexts:**
-```
+
+```text
 Remote → Local → Remote in one workflow
 - Run complex operations where data lives (remote)
 - Post-process results with powerful local tools (local)
@@ -342,7 +348,8 @@ Remote → Local → Remote in one workflow
 ```
 
 **Post-Process Remote Output:**
-```
+
+```text
 Task 0 (remote): Generate complex JSON report
 Task 1 (local): Parse JSON with jq or Python
 Task 2 (local): Extract metrics, format for dashboard
@@ -359,7 +366,8 @@ Task 4 (remote): Archive report based on analysis
 - Alert if thresholds exceeded
 
 **TASKER Solution:**
-```
+
+```bash
 # Task 0: Parallel block to collect logs from 50 servers
 task=0
 type=parallel
@@ -445,6 +453,7 @@ def backup_database(options):
 ```
 
 **TASKER Handles Complexity:**
+
 - What if backup fails? → `on_failure=99` (alert)
 - What if server is unreachable? → `timeout=600` + `retry_count=3`
 - How to process output? → `@0_stdout@` in next task
@@ -480,7 +489,8 @@ TASKER doesn't replace your scripts. It orchestrates them. Keep the logic in pro
 - Alert if thresholds not met
 
 ### TASKER Solution:
-```
+
+```bash
 # Task 0: Parallel health check on 20 servers
 task=0
 type=parallel
@@ -556,6 +566,7 @@ return=1
 ```
 
 **Built-in condition types:**
+
 - `@task_all_success@` - All instances succeeded
 - `@task_any_success@` - At least one succeeded
 - `@task_majority_success@=N` - At least N% succeeded
@@ -569,10 +580,13 @@ return=1
 ### Multi-Layer Security Architecture
 
 **1. Pre-Execution Validation:**
+
 ```bash
 tasker --validate-only tasks.txt
 ```
+
 Checks:
+
 - ✅ Task file syntax and structure
 - ✅ All required parameters present
 - ✅ No undefined variables or circular dependencies
@@ -581,7 +595,8 @@ Checks:
 - ✅ Security policy compliance
 
 **2. Command Injection Protection:**
-```
+
+```bash
 # REJECTED - Command injection attempt detected
 task=0
 hostname=localhost
@@ -589,10 +604,12 @@ command=echo
 arguments=test; rm -rf /
 exec=local
 ```
+
 **Error:** Security violation detected in arguments
 
 **3. Execution Context Awareness:**
-```
+
+```bash
 # Shell execution - allows shell syntax
 exec=shell
 command=echo "Production: $(date)"
@@ -604,6 +621,7 @@ arguments=Production: $(date)  # $(date) passed as literal string
 ```
 
 **4. Privilege Escalation Controls:**
+
 - `exec=pbrun` - PowerBroker privilege escalation
 - `exec=p7s` - Password-based privilege escalation
 - Automatic validation that privilege tools exist
@@ -617,7 +635,7 @@ arguments=Production: $(date)  # $(date) passed as literal string
 
 **Scenario:** Get database credentials from vault, use in connection
 
-```
+```bash
 # Global variables (read-only during execution)
 DB_HOST=prod-db.example.com
 DB_PORT=5432
@@ -648,6 +666,7 @@ condition=@0_exit_code@=0
 ```
 
 **Variable Types:**
+
 - **Global:** `@VARIABLE_NAME@` - Defined at top of file
 - **Task Output:** `@TaskID_stdout@` - Capture stdout from any task
 - **Task Metadata:** `@TaskID_exit_code@`, `@TaskID_stderr@`
@@ -661,12 +680,14 @@ condition=@0_exit_code@=0
 ### Comprehensive Execution Tracking
 
 **Project-Based Logging:**
+
 ```bash
 tasker -r -p DEPLOY_2024Q1 deployment.txt
 ```
 
 **Directory Structure:**
-```
+
+```text
 ~/TASKER/
 ├── backup/                          # Task file backups
 ├── recovery/                        # State files for recovery
@@ -678,7 +699,8 @@ tasker -r -p DEPLOY_2024Q1 deployment.txt
 ```
 
 **Project Summary Log Format:**
-```
+
+```text
 # Tab-separated columns for easy parsing:
 #Timestamp  Status  Exit_Code  Task_File  Task_ID  Hostname  Command  Log_File
 
@@ -688,16 +710,20 @@ tasker -r -p DEPLOY_2024Q1 deployment.txt
 ```
 
 **Benefits:**
+
 - Tab-separated format for easy parsing with awk/grep
 - All project executions in one file for historical tracking
 - Detailed logs in separate timestamped files
 - State recovery files for interrupted workflows
 
 **Debug Mode:**
+
 ```bash
 tasker -r -d deployment.txt
 ```
+
 Includes:
+
 - Variable resolution steps
 - Condition evaluation details
 - Parallel execution thread tracking
@@ -708,9 +734,11 @@ Includes:
 # Real-World Use Cases
 
 ### 1. Rolling Deployment (Zero Downtime)
+
 **Challenge:** Update 100 web servers without service interruption
 
 **TASKER Solution:**
+
 - Remove server from load balancer
 - Deploy new version
 - Health check with retry
@@ -723,9 +751,11 @@ Includes:
 ---
 
 ### 2. Database Maintenance Window
+
 **Challenge:** Weekly maintenance across 20 database servers
 
 **TASKER Workflow:**
+
 1. Verify all backups completed (parallel check)
 2. Stop application services (5 at a time)
 3. Run maintenance scripts (parallel)
@@ -739,9 +769,11 @@ Includes:
 ---
 
 ### 3. Incident Response Automation
+
 **Challenge:** Standardize response to service outages
 
 **TASKER Workflow:**
+
 1. Detect failure (monitoring integration)
 2. Gather diagnostic data from all affected servers
 3. Create incident ticket
@@ -758,9 +790,11 @@ Includes:
 ---
 
 ### 4. Compliance Reporting
+
 **Challenge:** Monthly security compliance checks on 500+ servers
 
 **TASKER Workflow:**
+
 1. Check patch levels (parallel batches)
 2. Verify security configurations
 3. Audit user accounts
@@ -820,7 +854,8 @@ Includes:
 # Architecture: Why It's Fast and Reliable
 
 ### Modular Design (TASKER 2.0+)
-```
+
+```text
 tasker/
 ├── core/
 │   ├── task_parser.py          # Parse task files
@@ -840,6 +875,7 @@ tasker/
 ```
 
 ### Performance Characteristics
+
 - **Startup Time:** < 1 second
 - **Task Overhead:** ~50ms per task (validation + parsing)
 - **Parallel Scaling:** Linear up to 1000 concurrent tasks
@@ -853,26 +889,31 @@ tasker/
 ### Defense in Depth
 
 **Layer 1: Input Validation**
+
 - Strict parameter syntax checking
 - Variable substitution validation
 - Circular dependency detection
 
 **Layer 2: Command Validation**
+
 - Command existence verification
 - Path traversal prevention
 - Command injection detection
 
 **Layer 3: Execution Context**
+
 - Separate validation for `shell` vs `local` execution
 - Privilege escalation controls (`pbrun`, `p7s`)
 - Environment variable sanitization
 
 **Layer 4: Audit Trail**
+
 - All executions logged with project tracking
 - Command history with timestamps
 - Exit codes and outputs preserved
 
 **Layer 5: Network Security**
+
 - Optional host validation (connectivity checks)
 - Timeout enforcement (prevent hanging connections)
 - No credential storage (use vault integration)
@@ -882,6 +923,7 @@ tasker/
 # Getting Started: 5-Minute Setup
 
 ### Verify TASKER is Available
+
 ```bash
 # TASKER is already installed - verify it works
 tasker --version
@@ -891,6 +933,7 @@ tasker --help
 ```
 
 ### Your First Workflow
+
 ```bash
 # Create simple task file
 cat > my_first_workflow.txt << 'EOF'
@@ -943,12 +986,14 @@ This document provides visual learning for all TASKER concepts including:
 # Documentation & Support
 
 ### Comprehensive Documentation
+
 - **README.md** - 2,000+ lines covering all features
 - **CLAUDE.md** - Development guidelines and best practices
 - **Test Cases** - 487+ examples demonstrating every feature
 - **Inline Comments** - Detailed code documentation
 
 ### Learning Resources
+
 - **Example Workflows** - In `test_cases/functional/`
 - **Integration Tests** - Real-world scenarios in `test_cases/integration/`
 - **Security Examples** - Attack prevention in `test_cases/security/`
@@ -960,13 +1005,15 @@ This document provides visual learning for all TASKER concepts including:
 ### Planned Features (Community Driven)
 
 **Variable Updates During Execution**
-```
+
+```bash
 task=1
 type=update_global
 set_DEPLOYMENT_TARGET=@0_stdout@
 ```
 
 **JSON/YAML Task Files**
+
 ```json
 {
   "tasks": [
@@ -981,11 +1028,13 @@ set_DEPLOYMENT_TARGET=@0_stdout@
 ```
 
 **Logical Parameter Validation**
+
 - Detect conflicting parameters
 - Warn about illogical combinations
 - Suggest optimizations
 
 **Web UI (Under Consideration)**
+
 - Visual workflow editor
 - Real-time execution monitoring
 - Historical analytics
@@ -1025,21 +1074,25 @@ set_DEPLOYMENT_TARGET=@0_stdout@
 ### Let's See It In Action!
 
 **Demo 1: Simple Sequential Workflow**
+
 ```bash
 tasker -r test_cases/functional/hello.txt
 ```
 
 **Demo 2: Parallel Execution with Conditions**
+
 ```bash
 tasker -r test_cases/functional/test_conditional_majority_success_met_60.txt
 ```
 
 **Demo 3: Complex Flow Control**
+
 ```bash
 tasker -r test_cases/functional/test_complex_routing.txt
 ```
 
 **Demo 4: Validation Catches Errors**
+
 ```bash
 tasker test_cases/security/invalid_command_injection.txt
 # Shows security validation in action
@@ -1050,6 +1103,7 @@ tasker test_cases/security/invalid_command_injection.txt
 # Get Started Today
 
 ### Quick Start
+
 ```bash
 # TASKER is already installed - just use it
 tasker --version
@@ -1057,12 +1111,14 @@ tasker --help
 ```
 
 ### Resources
+
 - **Documentation:** README.md (comprehensive guide)
 - **Examples:** test_cases/functional/ (100+ examples)
 - **Support:** Internal team channels
 
 ### Version
-- **Current Version:** 2.1 (Production Ready)
+
+- **Current Version:** 2.1.0 (Production Ready)
 
 ---
 
@@ -1073,15 +1129,19 @@ tasker --help
 ### Common Questions:
 
 **Q: Can TASKER replace Ansible?**
+
 A: For task sequencing yes, for configuration management no. They complement each other.
 
 **Q: What about Windows support?**
+
 A: TASKER is built for Linux but can be updated to run on Windows. Remote command execution only works with SSH.
 
 **Q: How do I integrate with monitoring?**
+
 A: Use exit codes and log parsing, or call monitoring APIs from tasks.
 
 **Q: Can I use TASKER in production?**
+
 A: Yes! 487+ test cases ensure reliability. TASKER is production-ready and designed for enterprise environments.
 
 ---
@@ -1091,11 +1151,13 @@ A: Yes! 487+ test cases ensure reliability. TASKER is production-ready and desig
 ## Start Automating With TASKER Today
 
 **Remember:**
+
 - Simple things stay simple
 - Complex things become possible
 - Everything remains readable
 
 **Get Started:**
+
 ```bash
 # TASKER is ready to use
 tasker -r test_cases/functional/hello.txt

@@ -61,7 +61,7 @@ from tasker.core.utilities import get_log_directory
 VERSION = "2.1.0"
 
 # Security: Flags that should NEVER be accepted from task files
-CLI_ONLY_FLAGS = {'--help', '-h', '--version'}
+CLI_ONLY_FLAGS = {'--help', '-h', '--version', '-V'}
 
 # Security: Flags that should generate warnings when found in files
 SECURITY_SENSITIVE_FLAGS = {
@@ -223,7 +223,7 @@ Examples:
     )
 
     # Version information
-    parser.add_argument('--version', action='version', version=f'TASKER v{VERSION}')
+    parser.add_argument('-V', '--version', action='version', version=f'TASKER v{VERSION}')
 
     # Positional arguments
     parser.add_argument('task_file', help='Path to the task file')

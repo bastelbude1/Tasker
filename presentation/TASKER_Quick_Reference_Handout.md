@@ -7,8 +7,8 @@
 ## Installation (30 seconds)
 
 ```bash
-git clone https://github.com/bastelbude1/Tasker.git
-cd Tasker
+tar -xzf tasker-v2.1.tar.gz
+cd tasker
 ./tasker --version  # Ready to go!
 ```
 
@@ -414,19 +414,17 @@ tasker --validate-only tasks.txt  # Skip host validation
 
 ## Resources
 
-**Repository:** https://github.com/bastelbude1/Tasker
 **Documentation:** README.md (2000+ lines, comprehensive)
 **Examples:** `test_cases/functional/` (100+ working examples)
 **Tests:** 487+ test cases covering all features
-**License:** AGPL-3.0 (Free for internal use)
+**Version:** 2.1 (Production Ready)
 
 ---
 
 ## Support
 
-**Issues:** GitHub Issues (https://github.com/bastelbude1/Tasker/issues)
-**Questions:** GitHub Discussions
-**Contributions:** Pull requests welcome
+**Support:** Internal team channels
+**Documentation:** Available in distribution package
 
 ---
 

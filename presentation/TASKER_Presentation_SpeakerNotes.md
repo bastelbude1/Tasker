@@ -169,7 +169,7 @@ Walk through the 5 layers briefly:
 - Layer 5: Execution safety (timeouts, audit)
 
 **Integration with parallelr/ptasker (Important!):**
-"TASKER isn't trying to replace powerful parallel execution tools. We have `max_parallel` for convenience, but for industrial-scale parallelism, use **parallelr/ptasker** (https://github.com/bastelbude1/parallelr).
+"TASKER isn't trying to replace powerful parallel execution tools. We have `max_parallel` for convenience, but for industrial-scale parallelism, use **parallelr/ptasker**.
 
 TASKER is designed to integrate:
 ```bash
@@ -438,8 +438,8 @@ Read the quote on the slide - this is the target audience.
 ```bash
 # Show the installation (if not done earlier)
 cd /tmp
-git clone https://github.com/bastelbude1/Tasker.git
-cd Tasker
+tar -xzf tasker-v2.1.tar.gz
+cd tasker
 ./tasker --version
 
 # Run the first workflow
@@ -455,7 +455,7 @@ EOF
 ```
 
 **Key Message:**
-"From git clone to running your first workflow: under 2 minutes. No package installation, no dependency hell, no configuration files."
+"From extracting the tarball to running your first workflow: under 2 minutes. No package installation, no dependency hell, no configuration files."
 
 ---
 
@@ -529,11 +529,11 @@ python3 scripts/intelligent_test_runner.py functional/ | head -50
 **Key Points:**
 - Comprehensive docs (2000+ lines)
 - 487+ examples to learn from
-- Open source community
-- GitHub for issues/questions
+- Internal team support
+- Documentation in distribution package
 
 **Message:**
-"You're not on your own. There's extensive documentation and a growing community."
+"You're not on your own. There's extensive documentation and internal team support."
 
 ---
 
@@ -665,10 +665,10 @@ A: "TASKER runs on Windows with Python 3.6+. For remote execution, you need SSH 
 A: "We've tested with 1000+ concurrent tasks. Linear scaling. The bottleneck is usually network, not TASKER."
 
 **Q: Commercial support?**
-A: "Currently community-supported via GitHub. For enterprise support contracts, contact us directly."
+A: "Supported internally by our team. For questions or issues, reach out via internal channels."
 
-**Q: Can I contribute?**
-A: "Absolutely! It's AGPL-3.0. We welcome PRs for features, bug fixes, and documentation."
+**Q: Can I contribute improvements?**
+A: "Yes! Share workflows, document best practices, and help improve our internal automation standards."
 
 **Q: How do I integrate with monitoring?**
 A: "TASKER provides structured logs and exit codes. You can parse logs or call monitoring APIs from tasks. We're considering native integrations in future releases."
@@ -799,20 +799,20 @@ Hi everyone,
 Thank you for attending the TASKER presentation today. As promised, here are the resources to get started:
 
 📁 Presentation Slides: [Link to slides]
-🚀 GitHub Repository: https://github.com/bastelbude1/Tasker
-📖 Documentation: See README.md in the repository (2000+ lines)
+📦 TASKER Distribution: tasker-v2.1.tar.gz (available via internal channels)
+📖 Documentation: See README.md in the distribution (2000+ lines)
 📝 Examples: test_cases/functional/ directory (100+ examples)
 
 Getting Started (5 minutes):
-1. git clone https://github.com/bastelbude1/Tasker.git
-2. cd Tasker
+1. tar -xzf tasker-v2.1.tar.gz
+2. cd tasker
 3. ./tasker -r test_cases/functional/hello.txt
 
 Next Steps:
 - Review the documentation
 - Try the examples
 - Build your first workflow
-- Reach out if you have questions
+- Reach out via internal channels if you have questions
 
 I'm happy to help you get started or discuss specific use cases for your team.
 

@@ -715,9 +715,9 @@ tasker/
 
 ### Installation
 ```bash
-# Clone repository
-git clone https://github.com/bastelbude1/Tasker.git
-cd Tasker
+# Extract TASKER distribution
+tar -xzf tasker-v2.1.tar.gz
+cd tasker
 
 # No installation needed - just run!
 ./tasker --version
@@ -986,14 +986,13 @@ retry_count=3    # Auto-enables retry
 - ✅ Standardize operational workflows
 - ✅ Scale from 1 to 1,000+ servers
 - ✅ Professional logging and audit trails
-- ✅ Zero licensing costs (AGPL-3.0)
 
 ### Next Steps:
 
 1. **Try it now:** 5-minute setup, zero dependencies
 2. **Start small:** Automate one manual task
 3. **Scale up:** Build your workflow library
-4. **Contribute:** Share workflows, report issues, suggest features
+4. **Share knowledge:** Document workflows and best practices
 
 ---
 
@@ -1028,21 +1027,18 @@ tasker test_cases/security/invalid_command_injection.txt
 
 ### Installation
 ```bash
-git clone https://github.com/bastelbude1/Tasker.git
-cd Tasker
+tar -xzf tasker-v2.1.tar.gz
+cd tasker
 ./tasker --version
 ```
 
 ### Resources
 - **Documentation:** README.md (comprehensive guide)
 - **Examples:** test_cases/functional/ (100+ examples)
-- **Support:** GitHub Issues
-- **Community:** Contributions welcome!
+- **Support:** Internal team channels
 
-### Contact
-- **Repository:** github.com/bastelbude1/Tasker
-- **License:** AGPL-3.0 (Free for internal use)
-- **Version:** 2.1 (Production Ready)
+### Version
+- **Current Version:** 2.1 (Production Ready)
 
 ---
 
@@ -1080,8 +1076,8 @@ A: Yes! 487+ test cases ensure reliability. Used in production by multiple organ
 
 **Get Started:**
 ```bash
-git clone https://github.com/bastelbude1/Tasker.git
-cd Tasker
+tar -xzf tasker-v2.1.tar.gz
+cd tasker
 ./tasker -r test_cases/functional/hello.txt
 ```
 
@@ -1090,5 +1086,3 @@ cd Tasker
 ---
 
 *TASKER 2.1 - Professional Task Automation for Enterprise Environments*
-
-*Copyright (C) 2024-2025 Bastelbude | Licensed under AGPL-3.0*

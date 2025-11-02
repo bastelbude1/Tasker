@@ -194,31 +194,176 @@ ptasker -n 50 -r deployment.txt
 
 ---
 
-### Power Feature #2: Smart Flow Control (7 minutes)
-**Slide: Power Feature #2: Smart Flow Control**
+### Power Feature #2: Separation of Concerns + Hybrid Execution (10 minutes)
+**Slide: Power Feature #2: Separation of Concerns + Hybrid Execution**
 
 **Speaker Notes:**
-- Show the mermaid diagram
-- Walk through the workflow logic
-- Emphasize: "The flow adapts based on what actually happens"
+- This is THE differentiator that explains why TASKER exists
+- Most powerful feature for convincing technical audiences
+- Addresses the core pain: orchestrating existing scripts
 
-**Teaching Method:**
-1. Explain the workflow requirement first (database migration)
-2. Show the Mermaid diagram
-3. Walk through the TASKER code
-4. Highlight the on_success/on_failure parameters
+**Opening Hook:**
+"Raise your hand if you have Python or Bash scripts that work great, but orchestrating them across multiple servers is a pain."
+*(Wait for hands - this is very relatable)*
 
-**Key Insight:**
-"Notice there's no if-else pyramid. Each task declares its own success/failure paths. TASKER figures out the flow automatically."
+"Keep your hands up if you've considered rewriting those scripts in Ansible YAML but dreaded the work."
+*(More hands go up)*
 
-**Real-World Connection:**
-"This is a real database migration workflow. In production, you want:
-- Automatic backup before changes
-- Automatic rollback on failure
-- Health verification after changes
-- Alert if anything goes wrong
+"TASKER solves this. You don't rewrite your scripts. You orchestrate them."
 
-This TASKER file IS your runbook."
+---
+
+**The Problem (Spend time here - this is the pain point):**
+
+Walk through the three approaches on the slide:
+
+**1. Ansible Approach:**
+"Ansible tries to be your execution engine. You write logic in YAML with modules:
+- Need to parse JSON? → Use Ansible json_query filter
+- Need complex logic? → Write 200-line playbook with when clauses
+- Need custom operation? → Hope there's a module or write one
+- Result: Complex YAML that's hard to test and maintain"
+
+**2. Bash Script Approach:**
+"Or you write one massive bash script:
+- 500 lines mixing logic and orchestration
+- Nested if-else pyramids
+- Hard to reuse components
+- Hard to test individual parts
+- One person understands it, everyone else is afraid to touch it"
+
+**3. TASKER Approach:**
+"TASKER says: Keep your scripts. We'll orchestrate them.
+- Scripts contain business logic (Python, Bash, whatever you want)
+- TASKER handles workflow (sequence, retry, error handling, flow control)
+- Separation of concerns = maintainability"
+
+---
+
+**The Power: Hybrid Execution (Critical Demo Section):**
+
+Walk through the "Database Backup with Analysis" example on screen:
+
+**Point to each task and explain the flow:**
+
+"Task 0 - REMOTE execution:
+- Runs backup_database.py on the actual database server
+- That's where the data lives, that's where backup should run
+- Uses pbrun for privilege escalation
+- Captures output: 'Backup completed: /backups/db_20250102.tar.gz'
+
+Task 1 - LOCAL execution:
+- Takes that output (@0_stdout@)
+- Runs analyze_backup.py on the TASKER orchestrator (your workstation/automation server)
+- Uses powerful local tools (Python, pandas, whatever you have)
+- Generates analysis: 'Backup size: 50GB, Duration: 5min, Status: Healthy'
+
+Task 2 - LOCAL execution:
+- Takes analysis output (@1_stdout@)
+- Posts to monitoring API using local curl
+- No need to install monitoring tools on every server
+
+Task 3 - REMOTE execution:
+- Back to the database server
+- Cleans up old backups
+- Keeps only last 7 days"
+
+**Key Message:**
+"Notice the flow: Remote → Local → Local → Remote
+You can't easily do this in Ansible or monolithic bash scripts.
+TASKER makes it natural."
+
+---
+
+**Real-World Pattern: Log Analysis (Second Example):**
+
+"Here's a pattern you'll use constantly:
+
+1. Collect data from 50 servers (remote, parallel)
+2. Aggregate locally (local - use your powerful tools)
+3. Analyze locally (local - Python/jq/whatever)
+4. Generate report locally (local - format for your needs)
+5. Alert conditionally (local - based on analysis)
+
+The scripts that do collection? Already exist.
+The analysis scripts? Already exist.
+You just need to orchestrate them. That's TASKER."
+
+---
+
+**What You Keep vs What TASKER Handles (Critical Distinction):**
+
+"Your scripts stay focused:
+- backup_database.py: Does backup. Returns 0 if success. That's it.
+- No retry logic in the script
+- No remote execution handling in the script
+- No output parsing in the script
+- Just does the backup
+
+TASKER handles:
+- What if backup fails? → on_failure=99 (alert)
+- What if server unreachable? → timeout=600, retry_count=3
+- How to use output? → @0_stdout@ in next task
+- Run on 10 servers? → hostname=db-01,...,db-10
+
+This is separation of concerns. Scripts do work. TASKER orchestrates."
+
+---
+
+**Addressing Objections:**
+
+**Audience might think: "But I can do this with Ansible"**
+
+Response: "Yes, but:
+- Ansible needs you to write logic in YAML or create custom modules
+- TASKER uses your existing scripts in any language
+- Ansible's local_action is awkward for complex local processing
+- TASKER makes remote-local-remote flow natural
+
+Ansible is great for configuration management. TASKER is great for workflow orchestration."
+
+**Audience might think: "I can do this with one bash script"**
+
+Response: "Yes, but:
+- Your script becomes 500 lines of mixed concerns
+- Hard to test components
+- Hard to reuse parts
+- Hard for others to maintain
+- TASKER keeps components separate and reusable"
+
+---
+
+**Interactive Question:**
+
+"Ask the audience: How many of you have these situations:
+- Scripts that work, but orchestrating them is painful? [hands]
+- Need to collect data from servers, process locally? [hands]
+- Different parts of workflow need different privileges or locations? [hands]
+
+TASKER solves all of these."
+
+---
+
+**Key Takeaway (Emphasize heavily):**
+
+"TASKER is not trying to replace your scripts.
+TASKER orchestrates your scripts.
+Keep business logic in proper programming languages.
+Let TASKER handle workflow, error handling, remote execution, and retry.
+
+This is why TASKER exists."
+
+---
+
+**Transition:**
+"Now that you understand TASKER orchestrates scripts, let's see how it handles sophisticated conditions for complex workflows..."
+
+---
+
+**Time Management:**
+- If running long: Skip the second example (log analysis), just mention it
+- If running short: Demo a simple 2-task workflow showing remote→local output flow
+- Critical part: The "What You Keep vs What TASKER Handles" distinction - don't skip this
 
 ---
 

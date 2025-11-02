@@ -254,80 +254,197 @@ ptasker -n 50 -r deployment.txt
 
 ---
 
-# Power Feature #2: Smart Flow Control
+# Power Feature #2: Separation of Concerns + Hybrid Execution
 
-### Complex Workflow: Database Migration
+### The Problem: Where Does Logic Live?
 
-```mermaid
-flowchart TD
-    Start([Start]) --> T0[Backup Database]
-    T0 -->|Success| T1[Stop Application]
-    T0 -->|Failure| Alert[Alert Team]
+**Ansible Approach:**
+- Logic written in YAML with modules
+- Complex operations → Complex YAML
+- Hard to maintain, limited by modules
+- Example: 200-line Ansible playbook with when clauses and loops
 
-    T1 --> T2[Run Migration]
-    T2 -->|Success| T3[Start Application]
-    T2 -->|Failure| T4[Restore Backup]
+**Bash Script Approach:**
+- Everything in one monolithic script
+- Logic + orchestration mixed together
+- Hard to reuse, hard to test
+- Example: 500-line bash script with nested if-else pyramids
 
-    T3 --> T5[Verify Health]
-    T4 --> Alert
-    T5 -->|Success| End((Done))
-    T5 -->|Failure| Alert
+**TASKER Approach: Scripts Do Work, TASKER Manages Workflow**
+
+### Separation of Concerns
+
+**Your Scripts:**
+- Written in any language (Python, Bash, Perl, Ruby, Go...)
+- Contain business logic and complex operations
+- Focus on ONE thing, do it well
+- Testable independently
+
+**TASKER:**
+- Orchestrates script execution
+- Manages workflow (sequence, branching, retry)
+- Handles error recovery
+- Provides observability (logging, reporting)
+
+### Hybrid Execution: Mix Local and Remote Seamlessly
+
+**Real-World Example: Database Backup with Analysis**
+
 ```
-
-### TASKER Implementation:
-```
+# Task 0: Run backup script on remote database server
 task=0
-hostname=db-server
-command=/opt/backup_db.sh
+hostname=db-prod-01
+command=/opt/scripts/backup_database.py
+arguments=--full --compress
 exec=pbrun
-success=exit_0
-on_success=1
-on_failure=99
+success=exit_0&stdout~Backup completed
 
+# Task 1: Analyze backup output locally with Python
 task=1
-hostname=app-server
-command=systemctl
-arguments=stop myapp
-exec=pbrun
+hostname=localhost
+command=/usr/local/bin/analyze_backup.py
+arguments=--backup-log @0_stdout@
+exec=local
 success=exit_0
 
+# Task 2: Upload analysis to monitoring (local)
 task=2
-hostname=db-server
-command=/opt/migrate.sh
-exec=pbrun
-success=exit_0&stdout~Migration complete
-on_success=3
-on_failure=4
-
-task=3
-hostname=app-server
-command=systemctl
-arguments=start myapp
-exec=pbrun
-
-task=4
-hostname=db-server
-command=/opt/restore_db.sh
-exec=pbrun
-on_success=99
-
-task=5
-hostname=app-server
-command=curl
-arguments=http://localhost:8080/health
-exec=local
-success=exit_0&stdout~healthy
-on_failure=99
-
-task=99
 hostname=localhost
-command=/opt/alert_team.sh
-arguments=Migration failed - manual intervention required
+command=curl
+arguments=-X POST https://monitoring.internal/api/backup-status --data @1_stdout@
 exec=local
-return=1
+success=exit_0
+
+# Task 3: Clean up old backups on remote server
+task=3
+hostname=db-prod-01
+command=/opt/scripts/cleanup_old_backups.sh
+arguments=--keep 7
+exec=pbrun
+success=exit_0
 ```
 
-**Flow automatically adapts** based on success/failure at each step!
+### Why This Is Powerful
+
+**Reuse Existing Scripts:**
+```
+✅ Keep your tested backup_database.py
+✅ Keep your analyze_backup.py
+✅ Add TASKER workflow orchestration around them
+✅ No rewriting in YAML or monolithic bash
+```
+
+**Mix Execution Contexts:**
+```
+Remote → Local → Remote in one workflow
+- Run complex operations where data lives (remote)
+- Post-process results with powerful local tools (local)
+- Send notifications from orchestrator (local)
+- Clean up on target systems (remote)
+```
+
+**Post-Process Remote Output:**
+```
+Task 0 (remote): Generate complex JSON report
+Task 1 (local): Parse JSON with jq or Python
+Task 2 (local): Extract metrics, format for dashboard
+Task 3 (local): Update monitoring systems
+Task 4 (remote): Archive report based on analysis
+```
+
+### Real-World Pattern: Log Analysis Across Servers
+
+**The Challenge:**
+- 50 application servers generating logs
+- Need to analyze logs for errors
+- Extract patterns, generate report
+- Alert if thresholds exceeded
+
+**TASKER Solution:**
+```
+# Task 0: Collect logs from all servers (remote, parallel)
+task=0
+hostname=app-01,app-02,...,app-50
+command=/opt/scripts/collect_last_hour_logs.sh
+exec=pbrun
+max_parallel=10
+timeout=60
+
+# Task 1: Aggregate logs locally (local)
+task=1
+hostname=localhost
+command=/usr/local/bin/aggregate_logs.py
+arguments=--input @0_stdout@
+exec=local
+
+# Task 2: Analyze patterns locally (local)
+task=2
+hostname=localhost
+command=/usr/local/bin/analyze_patterns.py
+arguments=--logs @1_stdout@
+exec=local
+
+# Task 3: Generate report locally (local)
+task=3
+hostname=localhost
+command=/usr/local/bin/generate_report.py
+arguments=--analysis @2_stdout@ --format html
+exec=local
+
+# Task 4: Alert if needed (local, conditional)
+task=4
+hostname=localhost
+command=/usr/local/bin/send_alert.sh
+arguments=Critical errors detected: @2_stdout@
+exec=local
+condition=@2_exit_code@!=0
+```
+
+### What You Don't Need to Do
+
+❌ **Don't rewrite** your Python scripts in YAML
+❌ **Don't create** one massive script with all logic
+❌ **Don't manually** handle remote execution, output capture, error handling
+❌ **Don't implement** retry logic in every script
+
+✅ **Do write** focused scripts that do one thing well
+✅ **Do use** TASKER to orchestrate them
+✅ **Do leverage** existing tools and languages
+✅ **Do mix** local and remote execution as needed
+
+### The Power
+
+**Scripts Stay Simple:**
+```python
+# backup_database.py - focused, testable
+def backup_database(options):
+    perform_backup()
+    verify_backup()
+    print(f"Backup completed: {backup_file}")
+    return 0
+```
+
+**TASKER Handles Complexity:**
+- What if backup fails? → `on_failure=99` (alert)
+- What if server is unreachable? → `timeout=600` + `retry_count=3`
+- How to process output? → `@0_stdout@` in next task
+- How to run on 10 servers? → `hostname=db-01,...,db-10` + `max_parallel=5`
+
+### Why This Matters
+
+**Question for Audience:**
+"How many of you have existing scripts that work well, but orchestrating them is painful?"
+
+**The Answer:**
+TASKER doesn't replace your scripts. It orchestrates them. Keep the logic in proper programming languages, let TASKER manage the workflow.
+
+**This is TASKER's sweet spot:**
+- You have working scripts (backup, deploy, analyze, monitor)
+- You need to orchestrate them across servers
+- You need error handling, retry, conditional flow
+- You want to mix local and remote execution
+
+**TASKER = Workflow orchestration for scripts, not a replacement for scripts**
 
 ---
 

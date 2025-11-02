@@ -443,16 +443,50 @@ The password never touches disk - it flows from task to task in memory."
 
 **Speaker Notes:**
 - Logging matters for compliance and debugging
-- Show the structure
+- Show the actual directory structure
+
+**Walk Through the Structure:**
+
+"TASKER creates organized logging in ~/TASKER/ with four subdirectories:
+
+1. **backup/**: Copies of task files for audit trail
+   - Every execution backs up the task file with timestamp
+   - Can recreate exactly what was run
+
+2. **log/**: Detailed execution logs
+   - One timestamped log file per execution
+   - Contains full output, errors, timing
+   - tasker_YYYYMMDD_HHMMSS.log format
+
+3. **project/**: Project summary tracking
+   - When you use -p flag, creates PROJECT_NAME.summary file
+   - Tab-separated format for easy parsing
+   - All executions for that project in one place
+   - Can track deployment history over weeks/months
+
+4. **recovery/**: State files for interrupted workflows
+   - If workflow interrupted, can resume
+   - Automatic recovery with --auto-recovery flag"
+
+**Project Summary Format:**
+
+Point to the tab-separated format on screen:
+
+"Notice it's tab-separated, not fancy formatting. Why?
+- Easy to parse with awk, grep, cut
+- Import into spreadsheets for analysis
+- Script against it for metrics
+- Columns: Timestamp, Status, Exit_Code, Task_File, Task_ID, Hostname, Command, Log_File"
 
 **Key Benefits:**
-1. **Project tracking**: Group related executions
-2. **Summary logs**: Business-level metrics
-3. **Debug mode**: Deep dive when needed
-4. **Audit trail**: Who ran what, when
+1. **Project tracking**: See all DEPLOY_2024Q1 executions in one file
+2. **Easy parsing**: Tab-separated for automation
+3. **Detailed logs**: Timestamped files for deep dive
+4. **Audit trail**: Complete history of what ran, when, where, with what result
+5. **Recovery**: Can resume interrupted workflows
 
 **Key Point:**
-"TASKER logs everything: what ran, when, by who, with what result - essential for audit requirements."
+"TASKER logs everything with structure. Not just stdout/stderr dumps - organized tracking for compliance, debugging, and historical analysis."
 
 ---
 

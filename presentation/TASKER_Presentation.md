@@ -609,40 +609,37 @@ condition=@0_exit_code@=0
 tasker -r -p DEPLOY_2024Q1 deployment.txt
 ```
 
-**Output Structure:**
+**Directory Structure:**
 ```
-/var/log/tasker/
-├── project_DEPLOY_2024Q1/
-│   ├── 20240115_143022_deployment.txt.log
-│   ├── 20240115_143022_deployment.txt.summary.log
-│   └── 20240116_090511_deployment.txt.log
-└── all_executions.log
+~/TASKER/
+├── backup/                          # Task file backups
+├── recovery/                        # State files for recovery
+├── project/                         # Project summary logs
+│   └── DEPLOY_2024Q1.summary       # Tab-separated execution log
+└── log/                            # Detailed execution logs
+    ├── tasker_20240115_143022.log
+    └── tasker_20240116_090511.log
 ```
 
-**Summary Log (Business Metrics):**
+**Project Summary Log Format:**
 ```
-=== TASKER Execution Summary ===
-Project: DEPLOY_2024Q1
-Task File: deployment.txt
-Start Time: 2024-01-15 14:30:22
-End Time: 2024-01-15 14:35:47
-Duration: 5m 25s
-Exit Code: 0
+# Tab-separated columns for easy parsing:
+#Timestamp  Status  Exit_Code  Task_File  Task_ID  Hostname  Command  Log_File
 
-Tasks Executed: 15
-- Succeeded: 14
-- Failed: 1
-- Retried: 3
-- Skipped: 2
-
-Servers Affected: 50
-- Successful: 48
-- Failed: 2
+2024-01-15_14:30:22  SUCCESS  0  deployment.txt  0  db-server  backup.sh  tasker_20240115_143022.log
+2024-01-15_14:32:45  SUCCESS  0  deployment.txt  1  app-server  deploy.sh  tasker_20240115_143022.log
+2024-01-15_14:35:10  FAILED   1  deployment.txt  2  web-server  restart.sh  tasker_20240115_143022.log
 ```
+
+**Benefits:**
+- Tab-separated format for easy parsing with awk/grep
+- All project executions in one file for historical tracking
+- Detailed logs in separate timestamped files
+- State recovery files for interrupted workflows
 
 **Debug Mode:**
 ```bash
-tasker -r -d -p DEPLOY_2024Q1 deployment.txt
+tasker -r -d deployment.txt
 ```
 Includes:
 - Variable resolution steps

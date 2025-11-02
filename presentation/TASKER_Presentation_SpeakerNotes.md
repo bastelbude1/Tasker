@@ -807,9 +807,6 @@ A: "TASKER runs on Windows with Python 3.6+. For remote execution, you need SSH 
 **Q: Performance at scale?**
 A: "The test suite includes tests with 1000+ concurrent tasks showing linear scaling. The bottleneck is usually network, not TASKER."
 
-**Q: Commercial support?**
-A: "Supported internally by our team. For questions or issues, reach out via internal channels."
-
 **Q: Can I contribute improvements?**
 A: "Yes! Share workflows, document best practices, and help improve our internal automation standards."
 

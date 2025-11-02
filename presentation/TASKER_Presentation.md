@@ -1025,9 +1025,6 @@ A: TASKER runs on Windows with Python 3.6+. Remote execution requires SSH or cus
 **Q: How do I integrate with monitoring?**
 A: Use exit codes and log parsing, or call monitoring APIs from tasks.
 
-**Q: Is there commercial support?**
-A: Supported internally by our team. For questions or issues, reach out via internal channels.
-
 **Q: Can I use TASKER in production?**
 A: Yes! 487+ test cases ensure reliability. TASKER is production-ready and designed for enterprise environments.
 

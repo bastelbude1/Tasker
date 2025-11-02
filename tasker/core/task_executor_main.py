@@ -2076,9 +2076,9 @@ class TaskExecutor:
                 self.exec_type,
                 self.default_exec_type,
                 self.connection_test,  # Respect CLI/constructor flag
-                self.skip_command_validation,  # Pass command validation skip flag
                 self.log_debug if self.log_level == 'DEBUG' else None,  # Only detailed output in debug mode
-                self.log_info
+                self.log_info,
+                skip_command_validation=self.skip_command_validation  # Keyword-only arg
             )
             
             # Handle new return format

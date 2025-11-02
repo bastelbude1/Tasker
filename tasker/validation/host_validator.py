@@ -26,7 +26,7 @@ class HostValidator:
     """
     
     @staticmethod
-    def validate_hosts(tasks, global_vars, task_results, exec_type=None, default_exec_type='pbrun', check_connectivity=False, skip_command_validation=False, debug_callback=None, log_callback=None):
+    def validate_hosts(tasks, global_vars, task_results, exec_type=None, default_exec_type='pbrun', check_connectivity=False, debug_callback=None, log_callback=None, *, skip_command_validation=False):
         """
         Enhanced host validation with automatic connectivity testing for remote hosts.
         Returns a dict mapping original hostnames to validated FQDNs if successful,
@@ -39,9 +39,9 @@ class HostValidator:
             exec_type: Override execution type
             default_exec_type: Default execution type to use
             check_connectivity: Whether to test actual connectivity (ignored - always True for remote hosts)
-            skip_command_validation: Whether to skip command existence validation
             debug_callback: Optional function for debug logging
             log_callback: Optional function for main logging
+            skip_command_validation: Whether to skip command existence validation (keyword-only)
 
         Returns:
             Dict mapping hostnames to validated FQDNs, or dict with 'error' and 'exit_code' if validation failed

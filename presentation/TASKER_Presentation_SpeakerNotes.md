@@ -843,7 +843,7 @@ Thank you for your time. Let's transform your operational workflows together."
 
 **After Presentation:**
 - Share slides
-- Share GitHub link
+- Distribute TaskER_FlowChart.md (from repository root) as visual learning reference
 - Offer office hours for questions
 - Collect feedback
 
@@ -940,6 +940,7 @@ Thank you for attending the TASKER presentation today. As promised, here are the
 📁 Presentation Slides: [Link to slides]
 📦 TASKER Distribution: tasker-v2.1.tar.gz (available via internal channels)
 📖 Documentation: See README.md in the distribution (2000+ lines)
+📊 Visual Reference: TaskER_FlowChart.md (workflow blocks with diagrams)
 📝 Examples: test_cases/functional/ directory (100+ examples)
 
 Getting Started (5 minutes):

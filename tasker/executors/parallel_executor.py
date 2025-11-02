@@ -274,23 +274,44 @@ class ParallelExecutor(BaseExecutor):
         
         # Set current parallel task for child task logging
         executor_instance._current_parallel_task = task_id
-        
-        # Parse task references
-        tasks_str = parallel_task.get('tasks', '')
-        if not tasks_str:
-            executor_instance.log(f"Task {task_id}: No tasks specified")
-            return task_id + 1
-        
-        # Get referenced task IDs and validate
-        try:
+
+        # Check if using hostnames-based parallel execution (new feature)
+        hostnames_str = parallel_task.get('hostnames', '')
+
+        if hostnames_str:
+            # Build list of generated subtask IDs (already exist in executor.tasks from parsing phase)
+            # Subtasks were generated during parsing with IDs in reserved range (100000+)
+            hostnames = [h.strip() for h in hostnames_str.split(',') if h.strip()]
             referenced_task_ids = []
-            for task_ref in tasks_str.split(','):
-                task_ref = task_ref.strip()
-                if task_ref:
-                    referenced_task_ids.append(int(task_ref))
-        except ValueError as e:
-            executor_instance.log(f"Task {task_id}: Invalid task reference: {str(e)}")
-            return None
+
+            for index in range(len(hostnames)):
+                # Use same ID formula as parsing phase (reserved range 100000+)
+                # Formula: 100000 + task_id * 10000 + index
+                subtask_id = 100000 + task_id * 10000 + index
+                referenced_task_ids.append(subtask_id)
+
+            executor_instance.log_debug(
+                f"Task {task_id}: Using {len(referenced_task_ids)} generated subtasks "
+                f"(IDs: {referenced_task_ids[0]}-{referenced_task_ids[-1]})"
+            )
+        else:
+            # Traditional task reference-based parallel execution
+            # Parse task references
+            tasks_str = parallel_task.get('tasks', '')
+            if not tasks_str:
+                executor_instance.log(f"Task {task_id}: No tasks specified")
+                return task_id + 1
+
+            # Get referenced task IDs and validate
+            try:
+                referenced_task_ids = []
+                for task_ref in tasks_str.split(','):
+                    task_ref = task_ref.strip()
+                    if task_ref:
+                        referenced_task_ids.append(int(task_ref))
+            except ValueError as e:
+                executor_instance.log(f"Task {task_id}: Invalid task reference: {str(e)}")
+                return None
         
         # Validate that all referenced tasks exist
         missing_tasks = []

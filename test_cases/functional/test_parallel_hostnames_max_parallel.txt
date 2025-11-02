@@ -1,0 +1,18 @@
+# TEST_METADATA: {"description": "Parallel hostnames: 10 hosts with max_parallel=3", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# Concurrency control test: 10 hosts, max 3 at a time
+# Expected: All 10 subtasks execute successfully, max 3 concurrent
+
+task=0
+type=parallel
+hostnames=localhost,localhost,localhost,localhost,localhost,localhost,localhost,localhost,localhost,localhost
+command=echo
+arguments=test
+exec=local
+max_parallel=3
+on_success=10
+
+task=10
+hostname=localhost
+command=echo
+arguments=Done
+exec=local

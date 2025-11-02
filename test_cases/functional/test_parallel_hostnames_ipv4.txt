@@ -1,0 +1,17 @@
+# TEST_METADATA: {"description": "Parallel hostnames: IPv4 addresses as hostnames", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# Edge case test: IPv4 addresses as hostnames (should be valid)
+# Expected: All IPv4 addresses valid, execution succeeds
+
+task=0
+type=parallel
+hostnames=127.0.0.1,192.168.1.1,10.0.0.1
+command=echo
+arguments=test
+exec=local
+on_success=10
+
+task=10
+hostname=localhost
+command=echo
+arguments=ipv4_handled
+exec=local

@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Parallel hostnames: any_success with 1/3 succeeding", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# Success criteria test: 3 hosts, only 1 succeeds, next=any_success met
+# Expected: 1 succeed, 2 fail; any_success condition met, overall success
+
+task=0
+type=parallel
+hostnames=localhost,localhost,localhost
+command=success_pattern.sh
+arguments=@task@ 100000
+exec=local
+success=any_success
+on_success=10
+on_failure=99
+
+task=10
+hostname=localhost
+command=echo
+arguments=any_success_met
+exec=local
+
+task=99
+hostname=localhost
+command=echo
+arguments=ERROR_should_not_reach
+exec=local

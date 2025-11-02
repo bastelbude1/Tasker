@@ -1,0 +1,17 @@
+# TEST_METADATA: {"description": "Parallel hostnames: 5 hosts all succeed", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 10]}
+# Basic functionality test: 5 hosts, all succeed
+# Expected: All 5 subtasks execute successfully
+
+task=0
+type=parallel
+hostnames=localhost,localhost,localhost,localhost,localhost
+command=echo
+arguments=test
+exec=local
+on_success=10
+
+task=10
+hostname=localhost
+command=echo
+arguments=All_hosts_succeeded
+exec=local

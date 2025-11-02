@@ -12,6 +12,11 @@ import re
 from .input_sanitizer import InputSanitizer
 from ..core.constants import MAX_VARIABLE_EXPANSION_DEPTH
 
+# Reserved ID range for auto-generated subtasks from hostnames= parameter
+# User-defined tasks must use IDs 0-99,999
+# Generated subtasks use IDs 100,000+
+RESERVED_SUBTASK_ID_START = 100000
+
 
 class TaskValidator:
     def __init__(self):
@@ -61,14 +66,14 @@ class TaskValidator:
         self.conditional_fields = {
             'normal': ['hostname', 'command'],
             'return': ['return'],
-            'parallel': ['type', 'tasks'],  # Parallel tasks need type and tasks
+            'parallel': ['type'],  # Parallel tasks need type; tasks OR hostnames validated separately
             'conditional': ['type', 'condition'],  # NEW: Conditional tasks need type and condition
             'decision': ['type']  # Decision blocks only need type (success/failure checked separately)
         }
         self.optional_fields = [
             'arguments', 'next', 'stdout_split', 'stderr_split',
             'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure', 'on_success', 'success', 'failure', 'condition', 'exec', 'timeout',
-            'type', 'max_parallel', 'tasks',  # Parallel task fields
+            'type', 'max_parallel', 'tasks', 'hostnames', 'command', 'hostname',  # Parallel task fields (added hostnames, command, hostname)
             'if_true_tasks', 'if_false_tasks'  # NEW: Conditional task fields
         ]
         
@@ -83,7 +88,7 @@ class TaskValidator:
             'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
             'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure',
             'on_success', 'success', 'condition', 'exec', 'timeout', 'return',
-            'type', 'max_parallel', 'tasks',  # Parallel task fields
+            'type', 'max_parallel', 'tasks', 'hostnames',  # Parallel task fields (added hostnames)
             'if_true_tasks', 'if_false_tasks',  # NEW: Conditional task fields
             *self.parallel_conditional_specific_fields  # Add retry fields
         ]
@@ -736,8 +741,16 @@ class TaskValidator:
             task_id = task.get('task')
             try:
                 task_id = int(task_id)
-                if task_id < 0 or task_id >= 1000:
-                    self.warnings.append(f"Line {line_number}: Task ID {task_id} should be between 0 and 999.")
+                if task_id < 0:
+                    self.errors.append(f"Line {line_number}: Task ID {task_id} cannot be negative.")
+                elif task_id >= RESERVED_SUBTASK_ID_START:
+                    self.errors.append(
+                        f"Line {line_number}: Task ID {task_id} is in reserved range ({RESERVED_SUBTASK_ID_START}+). "
+                        f"This range is reserved for auto-generated subtasks from hostnames= parameter. "
+                        f"Please use task IDs below {RESERVED_SUBTASK_ID_START}."
+                    )
+                elif task_id >= 1000:
+                    self.warnings.append(f"Line {line_number}: Task ID {task_id} is high (>= 1000). Consider using lower IDs for better readability.")
                 task_ids.add(task_id)
             except ValueError:
                 self.errors.append(f"Line {line_number}: Task ID '{task_id}' is not an integer.")
@@ -1080,6 +1093,98 @@ class TaskValidator:
                 except ValueError as e:
                     self.errors.append(f"Line {line_number}: Task {task_id} has invalid task reference in tasks field: {str(e)}")
 
+        # CRITICAL: Validate tasks= XOR hostnames= (mutually exclusive)
+        has_tasks = 'tasks' in task
+        has_hostnames = 'hostnames' in task
+
+        if has_tasks and has_hostnames:
+            self.errors.append(
+                f"Line {line_number}: Task {task_id} (parallel) cannot use both 'tasks' and 'hostnames' parameters. "
+                f"Use 'tasks=' for explicit task references OR 'hostnames=' for multi-host execution."
+            )
+        elif not has_tasks and not has_hostnames:
+            self.errors.append(
+                f"Line {line_number}: Task {task_id} (parallel) must specify either 'tasks=' or 'hostnames=' parameter."
+            )
+
+        # Validate 'hostnames' field (new feature)
+        if has_hostnames:
+            hostnames_str = task.get('hostnames', '').strip()
+
+            # Check for empty hostnames list
+            if not hostnames_str:
+                self.errors.append(f"Line {line_number}: Task {task_id} has empty hostnames field.")
+            else:
+                # Require 'command' parameter when using hostnames
+                if 'command' not in task:
+                    self.errors.append(
+                        f"Line {line_number}: Task {task_id} (parallel with hostnames) must specify 'command=' parameter."
+                    )
+
+                # Parse comma-separated hostnames
+                hostnames = [h.strip() for h in hostnames_str.split(',') if h.strip()]
+
+                # Validate hostname count (minimum 2, maximum 1000)
+                if len(hostnames) < 2:
+                    self.errors.append(
+                        f"Line {line_number}: Task {task_id} has only {len(hostnames)} hostname(s). "
+                        f"Use 'hostname=' for single host, 'hostnames=' requires minimum 2 hosts."
+                    )
+                elif len(hostnames) > 1000:
+                    self.errors.append(
+                        f"Line {line_number}: Task {task_id} has {len(hostnames)} hostnames, exceeding maximum limit of 1000. "
+                        f"Consider breaking into multiple parallel blocks or reviewing architecture."
+                    )
+
+                # Validate each hostname format (RFC-compliant)
+                import re
+                # RFC 1123 hostname pattern: alphanumeric, hyphens, dots; max 253 chars
+                # Also allow IPv4 addresses: XXX.XXX.XXX.XXX
+                hostname_pattern = re.compile(
+                    r'^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)*'  # subdomain parts
+                    r'[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$|'  # domain part
+                    r'^(\d{1,3}\.){3}\d{1,3}$'  # OR IPv4 address
+                )
+
+                invalid_hostnames = []
+                for hostname in hostnames:
+                    if len(hostname) > 253:
+                        invalid_hostnames.append(f"{hostname} (too long: {len(hostname)} chars > 253)")
+                    elif not hostname_pattern.match(hostname):
+                        invalid_hostnames.append(f"{hostname} (invalid format)")
+
+                if invalid_hostnames:
+                    self.errors.append(
+                        f"Line {line_number}: Task {task_id} has invalid hostnames: {', '.join(invalid_hostnames[:5])}"
+                        + (" ..." if len(invalid_hostnames) > 5 else "")
+                    )
+
+                # Check for generated subtask ID conflicts with user-defined tasks
+                # Subtask ID convention: Reserved range (100000+) to prevent conflicts
+                # Formula: 100000 + task_id * 10000 + index
+                # IMPORTANT: Generated subtasks use IDs >= 100000, completely separate from user tasks
+                if len(hostnames) >= 2 and len(hostnames) <= 1000:
+                    # Generate list of subtask IDs that will be created
+                    # task=0 → 100000+, task=1 → 110000+, task=2 → 120000+, etc.
+                    base_id = RESERVED_SUBTASK_ID_START + task_id * 10000
+                    generated_subtask_ids = [base_id + i for i in range(len(hostnames))]
+
+                    # Check if any generated IDs conflict with existing tasks
+                    conflicting_ids = []
+                    for subtask_id in generated_subtask_ids:
+                        # Check against all previously parsed task IDs
+                        if subtask_id in self.tasks and subtask_id != task_id:
+                            conflicting_ids.append(subtask_id)
+
+                    if conflicting_ids:
+                        self.warnings.append(
+                            f"Line {line_number}: Task {task_id} (parallel with hostnames) will generate subtask IDs "
+                            f"that conflict with user-defined tasks: {', '.join(map(str, conflicting_ids[:10]))}"
+                            + (" ..." if len(conflicting_ids) > 10 else "") + ". "
+                            f"Generated subtasks: {generated_subtask_ids[0]}-{generated_subtask_ids[-1]}. "
+                            f"Consider renaming conflicting tasks or using different parallel block ID."
+                        )
+
     def validate_conditional_task(self, task, task_id, line_number, conditional_tasks):
         """NEW: Validate conditional task specific fields."""
 
@@ -1242,11 +1347,14 @@ class TaskValidator:
 
     def validate_global_variable_references(self, task, task_id, line_number):
         """Validate that all global variable references (@VARIABLE@) are defined and track usage."""
-        
+
         # Pattern to match @VARIABLE@ but exclude @X_stdout@, @X_stderr@, @X_success@
         # CASE INSENSITIVE: Accept @0_STDOUT@, @0_stdout@, etc.
         global_var_pattern = r'@([a-zA-Z_][a-zA-Z0-9_]*)@'
         task_result_pattern = r'@(\d+)_(stdout|stderr|success|exit)@'
+
+        # Reserved variables that are substituted during execution (not global variables)
+        reserved_variables = {'task'}  # @task@ is replaced with subtask ID during generation
 
         # Check all string fields in the task
         for field_name, field_value in task.items():
@@ -1258,9 +1366,13 @@ class TaskValidator:
                 global_matches = re.findall(global_var_pattern, field_value)
 
                 for var_name in global_matches:
+                    # Skip reserved variables
+                    if var_name.lower() in reserved_variables:
+                        continue
+
                     # Track usage of this global variable
                     self.referenced_global_vars.add(var_name)
-                    
+
                     # Check if the global variable is defined
                     if var_name not in self.global_vars:
                         self.errors.append(

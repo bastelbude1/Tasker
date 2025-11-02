@@ -304,7 +304,7 @@ TASKER handles:
 - What if backup fails? → on_failure=99 (alert)
 - What if server unreachable? → timeout=600, retry_count=3
 - How to use output? → @0_stdout@ in next task
-- Run on 10 servers? → hostname=db-01,...,db-10
+- Run on 10 servers? → Use type=parallel with 10 subtasks (tasks=100-109), max_parallel=5
 
 This is separation of concerns. Scripts do work. TASKER orchestrates."
 

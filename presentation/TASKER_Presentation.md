@@ -163,7 +163,7 @@ tasker deployment.txt
 **Deployment script with typo:**
 ```
 task=0
-hostname=prod-web-01,prod-web-02,prod-web-03
+hostname=prod-web-01
 command=deploay_app.sh    # TYPO: should be "deploy_app.sh"
 exec=pbrun
 timeout=300
@@ -172,10 +172,8 @@ timeout=300
 **Traditional tools (Ansible, Bash, etc.):**
 ```
 Starting deployment to prod-web-01... FAILED
-Starting deployment to prod-web-02... FAILED
-Starting deployment to prod-web-03... FAILED
 ERROR: Command 'deploay_app.sh' not found
-Time wasted: 15 minutes + rollback time
+Time wasted: 5-15 minutes + rollback time
 ```
 
 **TASKER with validation:**
@@ -362,13 +360,33 @@ Task 4 (remote): Archive report based on analysis
 
 **TASKER Solution:**
 ```
-# Task 0: Collect logs from all servers (remote, parallel)
+# Task 0: Parallel block to collect logs from 50 servers
 task=0
-hostname=app-01,app-02,...,app-50
+type=parallel
+tasks=100,101,102  # ... 103-149 (50 total subtasks)
+max_parallel=10
+on_success=1
+
+# Subtasks - one per server (showing 3 of 50)
+task=100
+hostname=app-01
 command=/opt/scripts/collect_last_hour_logs.sh
 exec=pbrun
-max_parallel=10
 timeout=60
+
+task=101
+hostname=app-02
+command=/opt/scripts/collect_last_hour_logs.sh
+exec=pbrun
+timeout=60
+
+task=102
+hostname=app-03
+command=/opt/scripts/collect_last_hour_logs.sh
+exec=pbrun
+timeout=60
+
+# ... (tasks 103-149 for remaining 47 servers)
 
 # Task 1: Aggregate logs locally (local)
 task=1
@@ -430,7 +448,7 @@ def backup_database(options):
 - What if backup fails? → `on_failure=99` (alert)
 - What if server is unreachable? → `timeout=600` + `retry_count=3`
 - How to process output? → `@0_stdout@` in next task
-- How to run on 10 servers? → `hostname=db-01,...,db-10` + `max_parallel=5`
+- How to run on 10 servers? → Use `type=parallel` with 10 subtasks + `max_parallel=5`
 
 ### Why This Matters
 
@@ -463,38 +481,76 @@ TASKER doesn't replace your scripts. It orchestrates them. Keep the logic in pro
 
 ### TASKER Solution:
 ```
-# Task 0: Health check on 20 servers in parallel
+# Task 0: Parallel health check on 20 servers
 task=0
-hostname=web1,web2,web3,...,web20
-command=curl
-arguments=-sf http://localhost/health
-exec=local
+type=parallel
+tasks=100,101,102  # ... 103-119 (20 subtasks total)
 max_parallel=20
-timeout=30
-success=exit_0
-
-# Task 1: Continue only if health thresholds met
-task=1
-hostname=localhost
-command=echo
-arguments=Health check passed - deployment can proceed
-exec=local
-condition=@0_majority_success@=75&@0_max_failed@=3
+success=min_success=15  # At least 15 must succeed (75%)
 on_success=10
 on_failure=99
 
-# Task 10: Proceed with deployment
+# Health check subtasks (showing 3 of 20)
+task=100
+hostname=web1
+command=curl
+arguments=-sf http://localhost/health
+exec=local
+timeout=30
+
+task=101
+hostname=web2
+command=curl
+arguments=-sf http://localhost/health
+exec=local
+timeout=30
+
+task=102
+hostname=web3
+command=curl
+arguments=-sf http://localhost/health
+exec=local
+timeout=30
+
+# ... (tasks 103-119 for remaining 17 servers)
+
+# Task 10: Parallel deployment to 20 servers
 task=10
-hostname=web1,web2,web3,...,web20
+type=parallel
+tasks=200,201,202  # ... 203-219 (20 subtasks total)
+max_parallel=5
+on_success=50
+
+# Deployment subtasks (showing 3 of 20)
+task=200
+hostname=web1
 command=/opt/deploy.sh
 exec=pbrun
-max_parallel=5
+
+task=201
+hostname=web2
+command=/opt/deploy.sh
+exec=pbrun
+
+task=202
+hostname=web3
+command=/opt/deploy.sh
+exec=pbrun
+
+# ... (tasks 203-219 for remaining 17 servers)
+
+# Task 50: Success
+task=50
+hostname=localhost
+command=echo
+arguments=Deployment completed successfully
+exec=local
 
 # Task 99: Alert on failure
 task=99
 hostname=localhost
 command=/opt/alert_ops.sh
-arguments=Health check thresholds not met
+arguments=Health check or deployment failed
 exec=local
 return=1
 ```

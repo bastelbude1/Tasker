@@ -969,24 +969,6 @@ retry_count=3    # Auto-enables retry
 
 ---
 
-# Why IT Teams Love TASKER
-
-### 💬 What Users Say:
-
-> "We replaced 50+ Bash scripts with readable TASKER workflows. Our junior admins can now understand and modify automation without fear."
-> — **DevOps Lead, Healthcare Provider**
-
-> "The parallel execution with automatic retry saved us during a critical incident. TASKER restarted 200 services in 5 minutes."
-> — **SRE Manager, E-Commerce**
-
-> "Pre-execution validation caught a typo that would have broken production. TASKER paid for itself on day one."
-> — **Infrastructure Engineer, Finance**
-
-> "We built our entire DR runbook in TASKER. It's self-documenting and actually works under pressure."
-> — **Operations Director, Telecom**
-
----
-
 # Key Takeaways
 
 ### Why TASKER?

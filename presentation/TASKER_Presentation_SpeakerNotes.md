@@ -557,22 +557,6 @@ python3 scripts/intelligent_test_runner.py functional/ | head -50
 
 ---
 
-### Why IT Teams Love TASKER (2 minutes)
-**Slide: Why IT Teams Love TASKER**
-
-**Speaker Notes:**
-- User quotes build trust
-- Each quote highlights a different benefit
-
-**Read 2-3 Quotes:**
-- Pick quotes most relevant to audience
-- Pause after each to let it sink in
-
-**Personal Touch:**
-"These quotes are from IT professionals just like you, facing the same challenges you face every day."
-
----
-
 ### Key Takeaways (3 minutes)
 **Slide: Key Takeaways**
 

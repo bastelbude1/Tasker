@@ -519,26 +519,6 @@ python3 scripts/intelligent_test_runner.py functional/ | head -50
 
 ---
 
-### Success Stories (3 minutes)
-**Slide: Success Stories** (4 slides)
-
-**Speaker Notes:**
-- These build credibility
-- Use numbers to show impact
-
-**For Each Story:**
-1. Industry (relatable)
-2. Scale (impressive numbers)
-3. Result (concrete improvement)
-
-**Customization:**
-If you have testimonials from your organization, use those instead.
-
-**Engagement:**
-"These aren't hypothetical. These are real deployments saving real time and money."
-
----
-
 ### Documentation & Support (1 minute)
 **Slide: Documentation & Support**
 

@@ -362,19 +362,6 @@ cp tasker.py tasker.py.backup_YYYYMMDD
 
 ## 🔄 FUTURE FEATURE REQUESTS
 
-### Simplify Retry Configuration
-**Current Limitation**: Retry logic requires both `retry_failed=true` AND `retry_count=N` to be set, which is redundant.
-
-**Proposed Enhancement**: Automatically enable retry when `retry_count` is specified:
-```bash
-# Current (redundant):
-retry_failed=true
-retry_count=3
-
-# Proposed (simplified):
-retry_count=3  # Setting this automatically enables retry
-```
-
 ### Global Variable Updates During Execution
 **Current Limitation**: Global variables are read-only during workflow execution and cannot be modified by tasks.
 

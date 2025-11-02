@@ -26,12 +26,12 @@ class HostValidator:
     """
     
     @staticmethod
-    def validate_hosts(tasks, global_vars, task_results, exec_type=None, default_exec_type='pbrun', check_connectivity=False, debug_callback=None, log_callback=None):
+    def validate_hosts(tasks, global_vars, task_results, exec_type=None, default_exec_type='pbrun', check_connectivity=False, debug_callback=None, log_callback=None, *, skip_command_validation=False):
         """
         Enhanced host validation with automatic connectivity testing for remote hosts.
         Returns a dict mapping original hostnames to validated FQDNs if successful,
         or a dict with error information if validation failed.
-        
+
         Args:
             tasks: Dictionary of task definitions
             global_vars: Dictionary of global variables
@@ -41,7 +41,8 @@ class HostValidator:
             check_connectivity: Whether to test actual connectivity (ignored - always True for remote hosts)
             debug_callback: Optional function for debug logging
             log_callback: Optional function for main logging
-            
+            skip_command_validation: Whether to skip command existence validation (keyword-only)
+
         Returns:
             Dict mapping hostnames to validated FQDNs, or dict with 'error' and 'exit_code' if validation failed
         """
@@ -94,19 +95,20 @@ class HostValidator:
                 log_callback(f"# Hint: Check that all variables referenced in hostnames are defined in the global variables section")
             return {'error': 'unresolved_hostname_variables', 'exit_code': ExitCodes.TASK_FILE_VALIDATION_FAILED}
         
-        # Check if required execution commands exist
-        missing_commands = set()
-        for exec_types in host_exec_combinations.values():
-            for exec_type in exec_types:
-                if exec_type in exec_commands:
-                    cmd = exec_commands[exec_type]
-                    if not HostValidator._check_command_exists(cmd):
-                        missing_commands.add(f"{exec_type} ({cmd})")
-        
-        if missing_commands:
-            if log_callback:
-                log_callback(f"# ERROR: Required remote execution commands not found: {', '.join(missing_commands)}")
-            return {'error': 'missing_commands', 'exit_code': ExitCodes.CONNECTION_FAILED}
+        # Check if required execution commands exist (unless explicitly skipped)
+        if not skip_command_validation:
+            missing_commands = set()
+            for exec_types in host_exec_combinations.values():
+                for exec_type in exec_types:
+                    if exec_type in exec_commands:
+                        cmd = exec_commands[exec_type]
+                        if not HostValidator._check_command_exists(cmd):
+                            missing_commands.add(f"{exec_type} ({cmd})")
+
+            if missing_commands:
+                if log_callback:
+                    log_callback(f"# ERROR: Required remote execution commands not found: {', '.join(missing_commands)}")
+                return {'error': 'missing_commands', 'exit_code': ExitCodes.CONNECTION_FAILED}
         
         # Validate each unique host+exec_type combination
         failed_validations = []

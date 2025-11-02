@@ -94,11 +94,11 @@ class TaskExecutor:
     def __init__(self, task_file, log_dir='logs', dry_run=True, log_level='INFO',
                  exec_type=None, timeout=30, connection_test=False, project=None,
                  start_from_task=None, skip_task_validation=False,
-                 skip_host_validation=False, skip_security_validation=False,
-                 skip_subtask_range_validation=False, strict_env_validation=False,
-                 show_plan=False, validate_only=False, fire_and_forget=False,
-                 no_task_backup=False, auto_recovery=False, show_recovery_info=False,
-                 alert_on_failure=None):
+                 skip_host_validation=False, skip_command_validation=False,
+                 skip_security_validation=False, skip_subtask_range_validation=False,
+                 strict_env_validation=False, show_plan=False, validate_only=False,
+                 fire_and_forget=False, no_task_backup=False, auto_recovery=False,
+                 show_recovery_info=False, alert_on_failure=None):
         """
         Initialize a TaskExecutor instance and prepare environment, logging, state, and modular components for task orchestration.
 
@@ -116,6 +116,7 @@ class TaskExecutor:
             start_from_task: Optional task id to resume execution from; enables resume mode and influences startup logging.
             skip_task_validation: If true, task file validation is skipped (useful in resume scenarios).
             skip_host_validation: If true, host validation is skipped (hostname checks will be bypassed).
+            skip_command_validation: If true, command existence validation is skipped (WARNING: may cause execution failures).
             skip_security_validation: If true, security-specific validation steps are skipped during task validation.
             skip_subtask_range_validation: If true, subtask ID range convention warnings are suppressed.
             strict_env_validation: If true, require TASKER_ prefix for environment variables in global variable definitions.
@@ -230,6 +231,7 @@ class TaskExecutor:
         self.start_from_task = start_from_task
         self.skip_task_validation = skip_task_validation
         self.skip_host_validation = skip_host_validation
+        self.skip_command_validation = skip_command_validation
         self.skip_security_validation = skip_security_validation
         self.skip_subtask_range_validation = skip_subtask_range_validation
 
@@ -245,6 +247,8 @@ class TaskExecutor:
                 self.log_warn(f"# Task Validation will be skipped")
             if self.skip_host_validation:
                 self.log_warn("# Host Validation will be skipped - ATTENTION")
+            if self.skip_command_validation:
+                self.log_warn("# Command Validation will be skipped - ATTENTION")
             if self.skip_security_validation:
                 self.log_warn("# Security Validation will be skipped - ATTENTION")
 
@@ -2073,7 +2077,8 @@ class TaskExecutor:
                 self.default_exec_type,
                 self.connection_test,  # Respect CLI/constructor flag
                 self.log_debug if self.log_level == 'DEBUG' else None,  # Only detailed output in debug mode
-                self.log_info
+                self.log_info,
+                skip_command_validation=self.skip_command_validation  # Keyword-only arg
             )
             
             # Handle new return format

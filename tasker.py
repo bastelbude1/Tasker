@@ -57,9 +57,11 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from tasker.core.task_executor_main import TaskExecutor
 from tasker.core.utilities import get_log_directory
 
+# Version information
+VERSION = "2.1.0"
 
 # Security: Flags that should NEVER be accepted from task files
-CLI_ONLY_FLAGS = {'--help', '-h', '--version'}
+CLI_ONLY_FLAGS = {'--help', '-h', '--version', '-V'}
 
 # Security: Flags that should generate warnings when found in files
 SECURITY_SENSITIVE_FLAGS = {
@@ -212,14 +214,17 @@ def main():
         epilog='''
 Examples:
   %(prog)s tasks.txt -r                    # Execute tasks (real run)
-  %(prog)s tasks.txt --log-level=DEBUG     # Execute with debug logging  
+  %(prog)s tasks.txt --log-level=DEBUG     # Execute with debug logging
   %(prog)s tasks.txt --show-plan           # Show execution plan first
   %(prog)s tasks.txt --start-from=5        # Resume from task 5
   %(prog)s tasks.txt --validate-only       # Only validate, don't execute
         ''',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    
+
+    # Version information
+    parser.add_argument('-V', '--version', action='version', version=f'TASKER v{VERSION}')
+
     # Positional arguments
     parser.add_argument('task_file', help='Path to the task file')
     
@@ -376,6 +381,7 @@ Examples:
         start_from_task=args.start_from,
         skip_task_validation=skip_task_validation,
         skip_host_validation=skip_host_validation,
+        skip_command_validation=skip_command_validation,
         skip_security_validation=skip_security_validation,
         skip_subtask_range_validation=args.skip_subtask_range_validation,
         strict_env_validation=args.strict_env_validation,

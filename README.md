@@ -1761,7 +1761,7 @@ See `examples/alerts/simple_alert.sh` for a working example alert script.
 
 #### Python Version Support
 - **Python 3.6.8+**: Full compatibility with legacy systems
-- **Cross-platform**: Linux, macOS, Windows support
+- **Platform**: Built for Linux, can be updated for Windows (SSH-only remote execution)
 - **Memory Management**: Uses standard Python tempfile module
 
 #### Resource Requirements
@@ -5071,6 +5071,127 @@ tasker --start-from=15 --validate-only workflow.txt
 ## Feature Requests
 
 This section documents potential enhancements that could improve TASKER's functionality in future versions.
+
+### 🚀 PRIORITY 1: Simplified Multi-Host Parallel Execution (hostnames= Parameter)
+
+**Status**: ✅ **READY FOR IMPLEMENTATION** - Comprehensive analysis completed, next feature to implement
+
+**Current Limitation**: Running the same command on multiple servers requires verbose, repetitive task definitions.
+
+**Problem Severity**: **HIGH** - Affects 70-80% of parallel block use cases
+
+**Example - Current Required Syntax (20 servers = 160+ lines)**:
+```bash
+task=0
+type=parallel
+tasks=100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119
+max_parallel=20
+
+task=100
+hostname=web1
+command=curl
+arguments=-sf http://localhost/health
+exec=local
+timeout=30
+
+task=101
+hostname=web2
+command=curl
+arguments=-sf http://localhost/health
+exec=local
+timeout=30
+
+# ... REPEAT 18 MORE TIMES (tasks 102-119)
+# Total: 160+ lines of repetitive code
+```
+
+**Pain Points**:
+- 160+ lines of copy-paste code for 20 servers
+- 20 opportunities for typos and inconsistencies
+- 5-10 minutes to write and verify
+- Hard to modify - must update 20 places
+- Doesn't scale - 100 servers = 800+ lines
+
+**Proposed Enhancement**: Add `hostnames=` parameter to `type=parallel` blocks for identical operations across multiple hosts.
+
+**Proposed Implementation**:
+```bash
+task=0
+type=parallel
+hostnames=web1,web2,web3,web4,web5,web6,web7,web8,web9,web10,web11,web12,web13,web14,web15,web16,web17,web18,web19,web20
+command=curl
+arguments=-sf http://localhost/health
+exec=local
+max_parallel=20
+timeout=30
+success=min_success=15  # At least 75% must succeed
+on_success=10
+on_failure=99
+
+# Result: 11 lines (was 160+ lines) = 93% reduction
+```
+
+**Implementation Details**:
+- **Approach**: Extend `type=parallel` with new `hostnames=` parameter
+- **Validation**: Mutually exclusive with `tasks=` (use one or the other)
+- **Required Parameters**: `hostnames=` requires `command=` to be specified
+- **Subtask Generation**: Dynamically create one subtask per hostname
+- **Variable Support**: Aggregate statistics only (`@0_success_count@`, `@0_majority_success@`)
+- **Maximum Limit**: 1000 hosts per parallel block
+
+**Validation Rules (Simple & Safe)**:
+```python
+# Rule 1: type=parallel requires EITHER tasks= OR hostnames= (mutually exclusive)
+# Rule 2: hostnames= requires command= parameter
+# Rule 3: Minimum 2 hostnames (use hostname= for single server)
+# Rule 4: Maximum 1000 hostnames (prevent resource exhaustion)
+# Rule 5: Validate hostname format (RFC-compliant)
+```
+
+**Use Cases** (Common Operations):
+- Health checks across application fleet
+- Deploy same package to multiple servers
+- Collect logs from web tier
+- Run maintenance scripts on database replicas
+- Restart services across cluster
+- Check disk space on storage nodes
+
+**Benefits**:
+- **Massive Verbosity Reduction**: 90-98% fewer lines (160 → 11 for 20 servers)
+- **Eliminates Copy-Paste Errors**: Single source of truth for parameters
+- **Easy Maintenance**: Change timeout once, affects all hosts
+- **Improved Readability**: Intent immediately clear
+- **Time Savings**: 30 seconds vs 5-10 minutes to write
+- **Scales Efficiently**: 100 servers still 11 lines
+- **Competitive Parity**: Matches Ansible's concise multi-host syntax
+- **Aligns with Philosophy**: Makes "simple things simple"
+
+**Implementation Estimate**:
+- **Total Development Time**: 15 hours (2 days)
+- **Code Complexity**: +350 lines (validation + generation + tests)
+- **Benefit/Cost Ratio**: ~50:1 (saves 150+ lines per use)
+- **Risk Level**: Medium (touches parallel execution, needs thorough testing)
+- **Backward Compatibility**: ✅ Zero breaking changes
+
+**Detailed Analysis**: See `FEATURE_ANALYSIS_hostnames_list.md` for comprehensive evaluation including:
+- Detailed pros/cons comparison
+- Implementation options analysis
+- Phase-by-phase implementation plan (5 phases)
+- Test case specifications (20 test cases)
+- Risk mitigation strategies
+- Real-world use case examples
+
+**Priority Justification**:
+1. Addresses most common TASKER use case (multi-server operations)
+2. Exceptional value proposition (50:1 benefit/cost ratio)
+3. Transforms user experience (eliminates major pain point)
+4. Simple, safe validation prevents misuse
+5. Leverages existing infrastructure (minimal new code)
+6. Competitive necessity (Ansible comparison)
+
+**Current Workaround**: Write verbose repetitive task definitions or use external script (unsatisfactory).
+
+---
 
 ### Global Variable Updates During Execution
 

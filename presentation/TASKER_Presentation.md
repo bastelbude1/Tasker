@@ -19,11 +19,11 @@
 
 ### What You Really Need:
 
-✅ Simple, readable configuration files
-✅ Built-in error handling and retry logic
-✅ Parallel execution out of the box
-✅ Enterprise-grade validation
-✅ Zero coding required
+- ✅ Simple, readable configuration files
+- ✅ Built-in error handling and retry logic
+- ✅ Parallel execution out of the box
+- ✅ Enterprise-grade validation
+- ✅ Zero coding required
 
 ---
 
@@ -402,15 +402,17 @@ condition=@2_exit_code@!=0
 
 ### What You Don't Need to Do
 
-❌ **Don't rewrite** your Python scripts in YAML
-❌ **Don't create** one massive script with all logic
-❌ **Don't manually** handle remote execution, output capture, error handling
-❌ **Don't implement** retry logic in every script
+- ❌ **Don't rewrite** your Python scripts in YAML
+- ❌ **Don't create** one massive script with all logic
+- ❌ **Don't manually** handle remote execution, output capture, error handling
+- ❌ **Don't implement** retry logic in every script
 
-✅ **Do write** focused scripts that do one thing well
-✅ **Do use** TASKER to orchestrate them
-✅ **Do leverage** existing tools and languages
-✅ **Do mix** local and remote execution as needed
+### What You Should Do
+
+- ✅ **Do write** focused scripts that do one thing well
+- ✅ **Do use** TASKER to orchestrate them
+- ✅ **Do leverage** existing tools and languages
+- ✅ **Do mix** local and remote execution as needed
 
 ### The Power
 

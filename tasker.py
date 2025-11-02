@@ -381,6 +381,7 @@ Examples:
         start_from_task=args.start_from,
         skip_task_validation=skip_task_validation,
         skip_host_validation=skip_host_validation,
+        skip_command_validation=skip_command_validation,
         skip_security_validation=skip_security_validation,
         skip_subtask_range_validation=args.skip_subtask_range_validation,
         strict_env_validation=args.strict_env_validation,

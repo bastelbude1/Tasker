@@ -96,7 +96,6 @@ env_PASSWORD=@1_stdout@           # Task 1 output as environment variable
 @TaskID_exit_code@                # Exit code from task
 @TaskID_stderr@                   # Stderr from task
 @TaskID_success@                  # Boolean success state
-@TaskID_loop_counter@             # Current loop iteration
 ```
 
 ### Advanced Conditions
@@ -164,12 +163,11 @@ retry_failed=true
 retry_count=3
 ```
 
-### 4. Loop with Variable
+### 4. Loop Execution
 ```
 task=0
 hostname=localhost
 command=process_batch.sh
-arguments=--batch @0_loop_counter@
 exec=local
 loop=10
 timeout=600

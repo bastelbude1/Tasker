@@ -842,12 +842,11 @@ exec=local
 alert_on_failure=/opt/emergency_alert.sh
 ```
 
-### 4. Loop with Variable Tracking
+### 4. Loop Execution
 ```
 task=0
 hostname=api-server
 command=process_batch.sh
-arguments=--batch @0_loop_counter@
 exec=pbrun
 loop=10
 timeout=600

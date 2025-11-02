@@ -925,12 +925,6 @@ tasker --validate-only tasks.txt
 - **Integration Tests** - Real-world scenarios in `test_cases/integration/`
 - **Security Examples** - Attack prevention in `test_cases/security/`
 
-### Open Source
-- **License:** AGPL-3.0 (Free for internal use)
-- **Repository:** GitHub.com/bastelbude1/Tasker
-- **Contributions:** Welcome via pull requests
-- **Issues:** GitHub issue tracker
-
 ---
 
 # Roadmap: What's Next

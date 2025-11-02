@@ -910,11 +910,6 @@ type=update_global
 set_DEPLOYMENT_TARGET=@0_stdout@
 ```
 
-**Simplified Retry Configuration**
-```
-retry_count=3    # Auto-enables retry
-```
-
 **JSON/YAML Task Files**
 ```json
 {

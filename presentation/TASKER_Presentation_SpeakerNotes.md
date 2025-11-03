@@ -367,8 +367,10 @@ This is why TASKER exists."
 
 ---
 
+
 ### Power Feature #3: Advanced Conditions + Parallel Host Simplification (10 minutes)
-**Slide: Power Feature #3: Advanced Conditions**
+
+Slide: Power Feature #3: Advanced Conditions
 
 **Speaker Notes:**
 - This is v2.1's headline feature - the 93% code reduction story

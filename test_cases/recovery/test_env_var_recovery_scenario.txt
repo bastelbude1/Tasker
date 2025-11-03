@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Environment variable recovery scenarios - DOCUMENTATION ONLY", "test_type": "negative", "expected_exit_code": 20, "expected_success": false, "expected_warnings": 1, "note": "This is a design document, not an executable test. It explains env var recovery issues. See test_auto_recovery_env_var_missing.txt and test_auto_recovery_env_var_reexpand.txt for actual executable tests. This file will fail validation due to missing DEPLOY_ENV variable."}
 # TEST SCENARIO: What happens when environment variable changes between runs?
 # This is a demonstration/discussion file, not an automated test
 

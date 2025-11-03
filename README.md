@@ -316,6 +316,7 @@ on_failure=99
 **NEW in v2.1**: Execute identical commands across multiple hosts without defining individual subtasks.
 
 **Example - Health check across 20 servers (11 lines instead of 160+):**
+
 ```bash
 task=0
 type=parallel

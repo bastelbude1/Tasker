@@ -486,6 +486,8 @@ TASKER doesn't replace your scripts. It orchestrates them. Keep the logic in pro
 - Consider deployment successful if:
   - ≥ 75% of servers are healthy (min 15 of 20)
 - Alert if threshold not met
+  - Success evaluation occurs after all 20 tasks complete
+  - If fewer than 15 succeed, the parallel block jumps to task 99 (alert)
 
 ### Traditional Approach (160+ lines):
 
@@ -543,6 +545,12 @@ arguments=Health check or deployment failed
 exec=local
 return=1
 ```
+
+**Execution Context:**
+- `exec=local` (task 0): curl executes on the orchestrator machine where TASKER runs
+  - The orchestrator reaches out to web1-web20 to check their health endpoints
+- `exec=pbrun` (task 10): /opt/deploy.sh executes remotely on each hostname via PowerBroker
+  - The deployment script runs directly on web1-web20, not on the orchestrator
 
 ### What Changed in v2.1?
 

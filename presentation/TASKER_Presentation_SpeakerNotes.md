@@ -367,30 +367,251 @@ This is why TASKER exists."
 
 ---
 
-### Power Feature #3: Advanced Conditions (5 minutes)
-**Slide: Power Feature #3: Advanced Conditions**
+
+### Power Feature #3: Advanced Conditions + Parallel Host Simplification (10 minutes)
+
+Slide: Power Feature #3: Advanced Conditions
 
 **Speaker Notes:**
-- This shows sophisticated logic without coding
-- Focus on the condition types
+- This is v2.1's headline feature - the 93% code reduction story
+- Take your time here - this is a powerful "aha moment"
+- This combines parallel execution + sophisticated conditions + massive simplification
 
-**Walk Through:**
-1. "Check health on 20 servers in parallel"
-2. "Continue only if ≥75% healthy AND ≤3 failed"
-3. "Otherwise alert and abort"
+---
 
-**Built-in Conditions:**
-- Show each condition type
-- Explain when you'd use each
+**Opening Hook (Critical - Sets the Stage):**
 
-**Audience Question:**
-"How would you do this in Bash? You'd need to:
-- Track success count
-- Calculate percentage
-- Implement comparison logic
-- Handle edge cases
+"Raise your hand if you've ever copy-pasted a task definition 20 times, changing only the hostname each time."
+*(Wait for hands - this is extremely relatable)*
 
-TASKER does this with: `condition=@0_majority_success@=75`"
+"Keep your hands up if you've made a typo in one of those 20 copies and had to hunt it down."
+*(More hands, maybe some groans)*
+
+"What if I told you TASKER v2.1 reduces 160 lines of copy-paste hell to 11 lines?"
+
+---
+
+**The Traditional Problem (Show Pain First):**
+
+Walk through the "Traditional Approach" section on the slide:
+
+"In TASKER v2.0 and most automation tools, to check health on 20 servers, you'd write something like this:
+
+```bash
+task=0
+type=parallel
+tasks=100,101,102...119  # List all 20 task IDs
+
+# Then define each subtask separately - 8 lines each!
+task=100
+hostname=web1
+command=curl
+arguments=-sf http://localhost/health
+exec=local
+timeout=30
+# ... repeat 19 more times for web2 through web20
+```
+
+**The Pain Points:**
+- 160+ lines of repetitive code
+- Must manually define all 20 subtasks (8 lines × 20 = 160 lines)
+- Copy-paste errors are common
+- Maintenance nightmare: Add one server? Add 8 more lines
+- Error-prone: Miss one parameter? Subtle bugs
+- Hard to review: Does web17 match web18? Who knows!
+
+**Ask audience:** 'How many of you have been bitten by this kind of copy-paste error?'"
+
+---
+
+**The v2.1 Solution (The Reveal):**
+
+Show the "TASKER v2.1 Solution" section on slide:
+
+"Now watch this. TASKER v2.1 introduces the `hostnames=` parameter:
+
+```bash
+task=0
+type=parallel
+hostnames=web1,web2,web3,web4,web5,web6,web7,web8,web9,web10,web11,web12,web13,web14,web15,web16,web17,web18,web19,web20
+command=curl
+arguments=-sf http://localhost/health
+exec=local
+max_parallel=20
+timeout=30
+success=min_success=15  # At least 15 must succeed (75%)
+on_success=10
+on_failure=99
+```
+
+**That's it. 11 lines.**
+
+**Pause here for impact.**
+
+From 160+ lines to 11 lines. That's a 93% code reduction."
+
+---
+
+**How It Works (Explain the Magic):**
+
+"What's happening behind the scenes?
+
+TASKER sees `hostnames=web1,web2,...,web20` and automatically:
+1. **Generates 20 subtasks** - one per hostname
+2. **Assigns reserved IDs** - uses 100000-range IDs (collision-free)
+3. **Copies parameters** - command, arguments, exec, timeout all copied
+4. **Executes in parallel** - respects max_parallel=20
+5. **Evaluates success** - checks if ≥15 succeeded (75%)
+6. **Routes accordingly** - on_success=10 or on_failure=99
+
+You write 1 task definition. TASKER generates 20 subtasks. Zero copy-paste."
+
+---
+
+**Execution Context (Critical Distinction):**
+
+Point to the two parallel blocks on the slide and explain:
+
+"Notice the `exec=` parameter - this is important:
+
+**Task 0 - Health Check (exec=local):**
+
+```bash
+exec=local
+command=curl
+arguments=-sf http://localhost/health
+```
+
+- curl executes on the **orchestrator** (where TASKER runs)
+- The orchestrator reaches OUT to web1-web20
+- You're checking endpoints from a central location
+- Like checking 20 websites from your laptop
+
+
+**Task 10 - Deployment (exec=pbrun):**
+
+```bash
+exec=pbrun
+command=/opt/deploy.sh
+```
+
+- /opt/deploy.sh executes **remotely** on each hostname
+- PowerBroker runs the script directly on web1, web2, etc.
+- The deployment happens where the code lives
+- Like SSHing into each server and running a script
+
+**Key Message:** 'Same syntax, different execution context. TASKER makes both patterns simple.'"
+
+---
+
+**What Changed in v2.1? (The Before/After Story):**
+
+Walk through the comparison section on slide:
+
+"Let's be clear about what v2.1 brought:
+
+**Before (v2.0):**
+- You defined a parallel block
+- You manually listed all 20 task IDs in `tasks=` parameter
+- You manually wrote all 20 subtasks (8 lines each = 160 lines)
+- You copy-pasted parameters 20 times
+- Every typo was a potential bug
+
+**After (v2.1):**
+- You define ONE task with `hostnames=` parameter
+- TASKER auto-generates all subtasks
+- 11 lines total
+- **93% code reduction**
+- Zero copy-paste errors
+- Add a server? Add it to the comma-separated list. Done.
+
+**This is what v2.1 is about: Making the common case trivial.**"
+
+---
+
+**Built-in Success Criteria (Show Intelligence):**
+
+Point to the success criteria on slide:
+
+"And TASKER doesn't just run tasks - it evaluates success intelligently:
+
+- `success=min_success=15` → 'At least 15 of 20 must succeed (75%)'
+- `success=majority_success` → 'At least 50% must succeed'
+- `success=all_success` → 'All must succeed (use for critical operations)'
+- `success=any_success` → 'At least one must succeed (use for fallback patterns)'
+- `success=max_failed=5` → 'No more than 5 can fail'
+
+**When to use each:**
+- **min_success=N**: 'I need specific threshold (N out of total)'
+- **majority_success**: 'I need more than half (quorum pattern)'
+- **all_success**: 'Critical operations (database schema changes, etc.)'
+- **any_success**: 'Fallback patterns (try multiple servers, need one success)'
+- **max_failed=N**: 'Acceptable failure rate (up to N failures OK)'
+
+**Example use case:** 'Deployment to 100 servers. If 95 succeed and 5 fail, that's probably OK. Use max_failed=5.'
+
+No bash loops counting successes. No percentage calculations. Just declare your criteria."
+
+---
+
+**Demo Talking Points:**
+
+"When showing this slide, emphasize:
+
+1. **The visual impact**: Point to the code blocks - '160+ lines vs 11 lines - look at that difference!'
+
+2. **The maintenance story**: 'Add web21? Just add it to the hostname list. That's it.'
+
+3. **The reliability story**: 'Every subtask is identical. No copy-paste errors possible.'
+
+4. **The readability story**: 'Your manager can read this. Your junior admin can modify this. Your future self will thank you.'
+
+5. **The real-world applicability**: 'This pattern appears everywhere - health checks, deployments, data collection, configuration updates.'"
+
+---
+
+**Engagement Questions:**
+
+**Question 1:** "Who here maintains workflows with 10+ similar tasks that differ only by hostname or IP?"
+*(Wait for hands)*
+
+**Question 2:** "How many times have you discovered a typo in task 17 of 20 and groaned?"
+*(Knowing nods, some laughter)*
+
+**Question 3:** "Would 93% less code make your workflows easier to maintain?"
+*(Rhetorical - the answer is obvious)*
+
+---
+
+**Addressing Potential Questions:**
+
+**Q: "What about task IDs? Don't they conflict?"**
+A: "Great question! TASKER uses a reserved ID range (100000+) for auto-generated subtasks. Your manual task IDs (0-99999) never conflict. It's automatic collision prevention."
+
+**Q: "Can I still manually define subtasks if I need different commands?"**
+A: "Absolutely! Use `hostnames=` for identical operations across hosts. Use manual subtasks when each host needs different parameters. Mix and match as needed."
+
+**Q: "What's the maximum number of hostnames?"**
+A: "1-1000 hosts per parallel block. For massive scale beyond that, use TASKER with parallelr/ptasker integration."
+
+---
+
+**Key Takeaway (Emphasize Heavily):**
+
+"TASKER v2.1 transforms parallel execution from tedious to trivial.
+
+**The old way:** Copy, paste, modify hostname, repeat 20 times, hunt for typos
+**The new way:** List hostnames once, TASKER handles the rest
+
+This is the power of declarative automation. You declare WHAT you want (run curl on 20 hosts). TASKER figures out HOW (generate 20 subtasks, execute in parallel, evaluate success).
+
+**This is what workflow automation should feel like.**"
+
+---
+
+**Transition:**
+
+"Now that you've seen how TASKER simplifies complex workflows, let's talk about how it keeps them secure..."
 
 ---
 

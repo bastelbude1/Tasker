@@ -484,70 +484,49 @@ TASKER doesn't replace your scripts. It orchestrates them. Keep the logic in pro
 **Requirements:**
 - Check health on 20 servers
 - Consider deployment successful if:
-  - ≥ 75% of servers are healthy
-  - Maximum 3 servers can be down
-- Alert if thresholds not met
+  - ≥ 75% of servers are healthy (min 15 of 20)
+- Alert if threshold not met
 
-### TASKER Solution:
+### Traditional Approach (160+ lines):
+
+```bash
+# 160+ lines of repetitive code!
+task=0
+type=parallel
+tasks=100,101,102,103,104,...,119  # 20 task IDs
+
+# Must define each subtask separately:
+task=100
+hostname=web1
+command=curl
+arguments=-sf http://localhost/health
+# ... repeat 19 more times for web2-web20
+```
+
+### TASKER v2.1 Solution (11 lines):
 
 ```bash
 # Task 0: Parallel health check on 20 servers
 task=0
 type=parallel
-tasks=100,101,102  # ... 103-119 (20 subtasks total)
+hostnames=web1,web2,web3,web4,web5,web6,web7,web8,web9,web10,web11,web12,web13,web14,web15,web16,web17,web18,web19,web20
+command=curl
+arguments=-sf http://localhost/health
+exec=local
 max_parallel=20
+timeout=30
 success=min_success=15  # At least 15 must succeed (75%)
 on_success=10
 on_failure=99
 
-# Health check subtasks (showing 3 of 20)
-task=100
-hostname=web1
-command=curl
-arguments=-sf http://localhost/health
-exec=local
-timeout=30
-
-task=101
-hostname=web2
-command=curl
-arguments=-sf http://localhost/health
-exec=local
-timeout=30
-
-task=102
-hostname=web3
-command=curl
-arguments=-sf http://localhost/health
-exec=local
-timeout=30
-
-# ... (tasks 103-119 for remaining 17 servers)
-
 # Task 10: Parallel deployment to 20 servers
 task=10
 type=parallel
-tasks=200,201,202  # ... 203-219 (20 subtasks total)
+hostnames=web1,web2,web3,web4,web5,web6,web7,web8,web9,web10,web11,web12,web13,web14,web15,web16,web17,web18,web19,web20
+command=/opt/deploy.sh
+exec=pbrun
 max_parallel=5
 on_success=50
-
-# Deployment subtasks (showing 3 of 20)
-task=200
-hostname=web1
-command=/opt/deploy.sh
-exec=pbrun
-
-task=201
-hostname=web2
-command=/opt/deploy.sh
-exec=pbrun
-
-task=202
-hostname=web3
-command=/opt/deploy.sh
-exec=pbrun
-
-# ... (tasks 203-219 for remaining 17 servers)
 
 # Task 50: Success
 task=50
@@ -565,13 +544,27 @@ exec=local
 return=1
 ```
 
-**Built-in condition types:**
+### What Changed in v2.1?
 
-- `@task_all_success@` - All instances succeeded
-- `@task_any_success@` - At least one succeeded
-- `@task_majority_success@=N` - At least N% succeeded
-- `@task_min_success@=N` - At least N instances succeeded
-- `@task_max_failed@=N` - No more than N instances failed
+**Before (v2.0):** 160+ lines
+- Define parallel block
+- Manually define 20+ subtasks (8 lines each)
+- Repeat identical commands for each host
+- Error-prone copy-paste
+
+**After (v2.1):** 11 lines per parallel block
+- Use `hostnames=` parameter
+- TASKER auto-generates subtasks
+- **93% code reduction**
+- Zero copy-paste errors
+
+**Built-in success criteria:**
+
+- `min_success=N` - At least N instances succeeded
+- `majority_success` - At least 50% succeeded
+- `all_success` - All instances succeeded
+- `any_success` - At least one succeeded
+- `max_failed=N` - No more than N instances failed
 
 ---
 

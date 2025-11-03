@@ -538,7 +538,7 @@ Applied to any Execution Block
 </tr>
 </table>
 
-## 9. Parallel Block
+## 9. Parallel Task Block
 
 <table>
 <tr>
@@ -609,7 +609,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 10. Parallel Block with Retry
+## 10. Parallel Task Block with Retry
 
 <table>
 <tr>
@@ -682,7 +682,164 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 11. Conditional Block with Retry
+## 11. Parallel Host Block (NEW v2.1)
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Parallel Host Block] --> B[web1]
+    A --> C[web2]
+    A --> D[web3]
+    B --> E[Multi-Task Success Evaluation]
+    C --> E
+    D --> E
+
+    style A fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style B fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style E fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `type` | String | ✅ Yes | Must be "parallel" |
+| `hostnames` | String | ✅ Yes | Comma-separated hostnames (2-1000) |
+| `command` | String | ✅ Yes | Command to execute on all hosts |
+| `arguments` | String | ❌ Optional | Command arguments |
+| `exec` | String | ❌ Optional | Execution method (local/pbrun/p7s) |
+| `max_parallel` | Integer | ❌ Optional | Max concurrent hosts (1-50, default: 8) |
+
+### Example
+```bash
+task=0
+type=parallel
+hostnames=web1,web2,web3,web4,web5
+command=curl
+arguments=-sf http://localhost/health
+exec=local
+max_parallel=5
+success=min_success=4
+on_success=10
+```
+
+### Entry Point
+Can be entry point or follow any block
+
+### Behavior
+- **NEW in v2.1**: Simplified syntax for identical commands across multiple hosts
+- **Auto-generates** one subtask per hostname (IDs: 100000+)
+- No manual subtask definitions needed
+- Reduces 160+ lines to just 11 lines (93% reduction)
+- Executes simultaneously with threading
+- Results feed into Multi-Task Success Evaluation Block
+
+**Auto-Generated Subtask IDs:**
+- Formula: `100000 + parent_task_id * 10000 + index`
+- task=0: generates 100000, 100001, 100002, ...
+- task=1: generates 110000, 110001, 110002, ...
+- Reserved range prevents ID conflicts with user tasks
+
+### Next Block
+→ Multi-Task Success Evaluation Block (#12)
+
+</td>
+</tr>
+</table>
+
+## 12. Parallel Host Block with Retry (NEW v2.1)
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Parallel Host Block with Retry] --> B[web1]
+    A --> C[web2]
+    A --> D[web3]
+    B --> E{Retry?}
+    C --> F{Retry?}
+    D --> G{Retry?}
+    E -->|Failed & Retries Left| B
+    E -->|Success OR Retries Exhausted| H[Multi-Task Success Evaluation]
+    F -->|Failed & Retries Left| C
+    F -->|Success OR Retries Exhausted| H
+    G -->|Failed & Retries Left| D
+    G -->|Success OR Retries Exhausted| H
+
+    style A fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style B fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style E fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style F fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style G fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style H fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `type` | String | ✅ Yes | Must be "parallel" |
+| `hostnames` | String | ✅ Yes | Comma-separated hostnames (2-1000) |
+| `command` | String | ✅ Yes | Command to execute on all hosts |
+| `arguments` | String | ❌ Optional | Command arguments |
+| `exec` | String | ❌ Optional | Execution method (local/pbrun/p7s) |
+| `max_parallel` | Integer | ❌ Optional | Max concurrent hosts (1-50, default: 8) |
+| `retry_count` | Integer | ❌ Optional | Number of retry attempts (1-1000, default: 1) |
+| `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
+
+### Example
+```bash
+task=0
+type=parallel
+hostnames=web1,web2,web3,web4,web5
+command=curl
+arguments=-sf http://localhost/health
+exec=local
+max_parallel=5
+retry_count=3
+retry_delay=5
+success=min_success=4
+on_success=10
+```
+
+### Entry Point
+Can be entry point or follow any block
+
+### Behavior
+- **NEW in v2.1**: Combines simplified multi-host syntax with retry logic
+- Auto-generates one subtask per hostname with retry capability
+- Failed hosts are automatically retried up to `retry_count` times
+- `retry_delay` seconds between retry attempts
+- More resilient than basic parallel host execution
+- Results feed into Multi-Task Success Evaluation Block
+
+### Next Block
+→ Multi-Task Success Evaluation Block (#12)
+
+</td>
+</tr>
+</table>
+
+## 13. Conditional Block with Retry
 
 <table>
 <tr>
@@ -755,7 +912,7 @@ Can be entry point or follow any block
 </table>
 
 
-## 12. Multi-Task Success Evaluation Block (next)
+## 14. Multi-Task Success Evaluation Block (next)
 
 <table>
 <tr>
@@ -809,7 +966,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-## 13. Multi-Task Success Evaluation Block (on_success/on_failure)
+## 15. Multi-Task Success Evaluation Block (on_success/on_failure)
 
 <table>
 <tr>
@@ -861,7 +1018,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-## 14. End Success Block
+## 16. End Success Block
 
 <table>
 <tr>
@@ -912,7 +1069,7 @@ Terminal block - workflow ends successfully
 </tr>
 </table>
 
-## 15. End Failure Block
+## 17. End Failure Block
 
 <table>
 <tr>
@@ -970,7 +1127,7 @@ Terminal block - workflow ends with failure
 </tr>
 </table>
 
-## 16. Configuration Definition Block
+## 18. Configuration Definition Block
 
 <table>
 <tr>
@@ -1034,7 +1191,7 @@ exec=pbrun               # Override default exec type
 </tr>
 </table>
 
-## 17. File-Defined Arguments Block
+## 19. File-Defined Arguments Block
 
 <table>
 <tr>
@@ -1148,7 +1305,7 @@ ENVIRONMENT=production
 </tr>
 </table>
 
-## 18. Global Variable Definition Block
+## 20. Global Variable Definition Block
 
 <table>
 <tr>
@@ -1194,7 +1351,7 @@ Must be at the beginning of workflow file
 </tr>
 </table>
 
-## 19. Output Processing Block
+## 21. Output Processing Block
 
 <table>
 <tr>

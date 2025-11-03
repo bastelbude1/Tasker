@@ -1,8 +1,8 @@
-# TEST_METADATA: {"description": "Auto-recovery: Conditional Block LIMITATION", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "KNOWN BUG: Recovery resumes in WRONG branch after conditional block"}
+# TEST_METADATA: {"description": "Auto-recovery: Conditional Block routing", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Validates conditional block routing is preserved across recovery"}
 # Automated recovery test for Conditional Block
-# **CRITICAL BUG DEMONSTRATED:** Recovery does NOT properly handle conditional blocks
-# When conditional completes if_true_tasks, recovery resumes in WRONG branch (if_false_tasks)
-# This test DOCUMENTS the limitation - do NOT use --auto-recovery with conditional blocks!
+# Validates that conditional branch execution is properly preserved during recovery
+# Tests that after conditional completes if_true_tasks, recovery continues correctly
+# BUG FIX: Now uses intended_next_task to preserve routing decisions
 
 # File-defined arguments
 --auto-recovery

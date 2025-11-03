@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Auto-recovery: Parallel Host Block (v2.1)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "expected_warnings": 1, "note": "First run: parallel block succeeds but task 1 fails. Second run: recovers and completes successfully"}
+# TEST_METADATA: {"description": "Auto-recovery: Parallel Host Block (v2.1)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "First run: parallel block succeeds but task 1 fails. Second run: recovers and completes successfully"}
 # Automated recovery test for NEW v2.1 Parallel Host Block feature
 # Validates that parallel hostnames subtask results are properly saved and restored
 

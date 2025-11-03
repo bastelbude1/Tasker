@@ -95,7 +95,8 @@ class RecoveryStateManager:
         return os.path.exists(self.recovery_file)
 
     def save_state(self, execution_path: list, state_manager, log_file: str,
-                   failure_info: Optional[Dict[str, Any]] = None) -> None:
+                   failure_info: Optional[Dict[str, Any]] = None,
+                   intended_next_task: Optional[int] = None) -> None:
         """
         Save current execution state to recovery file.
 
@@ -104,6 +105,7 @@ class RecoveryStateManager:
             state_manager: StateManager instance with current state
             log_file: Path to log file
             failure_info: Optional failure information (task_id, exit_code, error)
+            intended_next_task: The task ID that would execute next (from executor routing decision)
         """
         # Calculate task file hash for integrity verification
         task_file_hash = self._calculate_file_hash()
@@ -133,6 +135,7 @@ class RecoveryStateManager:
             'execution_path': execution_path,
             'last_successful_task': execution_path[-1] if execution_path else None,
             'current_task': current_task,
+            'intended_next_task': intended_next_task,  # Task that would execute next
             'task_results': task_results,
             'global_vars': global_vars,
             'loop_state': {},  # TODO: Add loop state tracking if needed

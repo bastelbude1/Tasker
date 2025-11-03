@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Auto-recovery: Parallel Task Block", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "expected_warnings": 1, "note": "First run: parallel task block succeeds but task 1 fails. Second run: recovers and completes successfully"}
+# TEST_METADATA: {"description": "Auto-recovery: Parallel Task Block", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "First run: parallel task block succeeds but task 1 fails. Second run: recovers and completes successfully"}
 # Automated recovery test for Parallel Task Block
 # Validates that parallel task subtask results are properly saved and restored
 

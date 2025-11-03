@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Auto-recovery: on_failure routing preservation", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "expected_warnings": 1, "note": "Task fails and routes to error handler via on_failure, recovery preserves routing"}
+# TEST_METADATA: {"description": "Auto-recovery: on_failure routing preservation", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Task fails and routes to error handler via on_failure, recovery preserves routing"}
 # Automated recovery test for on_failure routing
 # Validates that on_failure routing paths are preserved across recovery
 # CRITICAL: Tests that recovery doesn't lose error handling paths

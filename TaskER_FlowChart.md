@@ -76,6 +76,7 @@ success=exit_0&stdout~running
 next=success
 ```
 
+
 ### Entry Point
 Follows after Task Execution Block
 
@@ -126,6 +127,7 @@ on_success=20
 on_failure=99
 ```
 
+
 ### Entry Point
 Follows after Task Execution Block
 
@@ -170,6 +172,7 @@ flowchart TD
 # Applied to existing task:
 sleep=5
 ```
+
 
 ### Entry Point
 Can follow any block that executes
@@ -227,8 +230,10 @@ if_true_tasks=10,11,12
 if_false_tasks=20,21
 ```
 
+
 ### Entry Point
 Can be entry point or follow any block
+
 
 ### Behavior
 - Evaluates boolean condition expression
@@ -454,8 +459,10 @@ on_success=10
 on_failure=99
 ```
 
+
 ### Entry Point
 Can be entry point or follow any block
+
 
 ### Behavior
 - Evaluates `condition` **before** executing task
@@ -521,6 +528,7 @@ next=loop
 loop_break=exit_0
 ```
 
+
 ### Entry Point
 Applied to any Execution Block
 
@@ -581,8 +589,10 @@ tasks=10,11,12
 max_parallel=2
 ```
 
+
 ### Entry Point
 Can be entry point or follow any block
+
 
 ### Behavior
 - Executes multiple tasks simultaneously with threading
@@ -655,6 +665,7 @@ flowchart TD
 | `retry_count` | Integer | ❌ Optional | Number of retry attempts (1-1000, default: 1, enables retry) |
 | `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
 
+
 ### Example
 ```bash
 task=8
@@ -665,8 +676,10 @@ retry_count=3
 retry_delay=5
 ```
 
+
 ### Entry Point
 Can be entry point or follow any block
+
 
 ### Behavior
 - Executes multiple tasks simultaneously with threading
@@ -733,8 +746,11 @@ success=min_success=4
 on_success=10
 ```
 
+
 ### Entry Point
+
 Can be entry point or follow any block
+
 
 ### Behavior
 - **NEW in v2.1**: Simplified syntax for identical commands across multiple hosts
@@ -750,7 +766,14 @@ Can be entry point or follow any block
 - task=1: generates 110000, 110001, 110002, ...
 - Reserved range prevents ID conflicts with user tasks
 
+**Special Variable: `@task@`**
+- Resolves to the auto-generated subtask ID during execution
+- Useful for per-host identification in arguments or logging
+- Example: `arguments=-sf http://localhost/health?id=@task@`
+- Allows distinguishing which host generated specific output
+
 ### Next Block
+
 → Multi-Task Success Evaluation Block (#12)
 
 </td>
@@ -806,6 +829,7 @@ flowchart TD
 | `retry_count` | Integer | ❌ Optional | Number of retry attempts (1-1000, default: 1) |
 | `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
 
+
 ### Example
 ```bash
 task=0
@@ -821,8 +845,11 @@ success=min_success=4
 on_success=10
 ```
 
+
 ### Entry Point
+
 Can be entry point or follow any block
+
 
 ### Behavior
 - **NEW in v2.1**: Combines simplified multi-host syntax with retry logic
@@ -831,6 +858,12 @@ Can be entry point or follow any block
 - `retry_delay` seconds between retry attempts
 - More resilient than basic parallel host execution
 - Results feed into Multi-Task Success Evaluation Block
+
+**Special Variable: `@task@`**
+- Resolves to the auto-generated subtask ID during execution
+- Useful for per-host identification in arguments or logging
+- Example: `arguments=-sf http://localhost/health?id=@task@`
+
 
 ### Next Block
 → Multi-Task Success Evaluation Block (#12)
@@ -893,8 +926,10 @@ retry_count=2
 retry_delay=3
 ```
 
+
 ### Entry Point
 Can be entry point or follow any block
+
 
 ### Behavior
 - Evaluates boolean condition expression
@@ -954,6 +989,7 @@ flowchart TD
 next=min_success=3
 ```
 
+
 ### Entry Point
 Follows after Parallel Block or Conditional Block
 
@@ -1004,6 +1040,7 @@ flowchart TD
 on_success=20
 on_failure=99
 ```
+
 
 ### Entry Point
 Follows after Parallel Block or Conditional Block
@@ -1056,6 +1093,7 @@ next=never
 task=100
 return=0
 ```
+
 
 ### Entry Point
 Terminal block - workflow ends successfully
@@ -1114,6 +1152,7 @@ task=96
 next=never
 return=1
 ```
+
 
 ### Entry Point
 Terminal block - workflow ends with failure
@@ -1222,6 +1261,7 @@ flowchart TD
 --log-level=DEBUG
 --timeout=60
 ```
+
 
 ### Entry Point
 **MUST be at the very beginning of the task file** - before global variables and tasks
@@ -1337,6 +1377,7 @@ RETRY_COUNT=3
 TIMEOUT_SECONDS=30
 ```
 
+
 ### Entry Point
 Must be at the beginning of workflow file
 
@@ -1404,6 +1445,7 @@ flowchart TD
 stdout_split=comma,1    # Split by comma, get 2nd element (0-indexed)
 stderr_split=space,0    # Split by spaces, get 1st element
 ```
+
 
 ### Entry Point
 Applied to any task that produces output

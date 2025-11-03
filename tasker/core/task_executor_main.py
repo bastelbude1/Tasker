@@ -126,6 +126,7 @@ class TaskExecutor:
             no_task_backup: If true, disables automatic task file backup before execution.
             auto_recovery: If true, enables automatic recovery mode using state files.
             show_recovery_info: If true, displays recovery information and exits without executing tasks.
+            auto_confirm: If true, automatically confirms prompts during recovery (non-interactive mode).
             alert_on_failure: Optional path to an alert script to execute on workflow failure; script receives context via environment variables (TASKER_EXIT_CODE, TASKER_ERROR, TASKER_TASK_FILE, TASKER_LOG_FILE, TASKER_STATE_FILE, TASKER_FAILED_TASK, TASKER_TIMESTAMP).
         """
         # Clear debug logging cache for new execution session

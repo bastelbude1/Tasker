@@ -282,6 +282,12 @@ class ParallelExecutor(BaseExecutor):
             # Build list of generated subtask IDs (already exist in executor.tasks from parsing phase)
             # Subtasks were generated during parsing with IDs in reserved range (100000+)
             hostnames = [h.strip() for h in hostnames_str.split(',') if h.strip()]
+
+            # Defensive check: handle empty hostnames list
+            if not hostnames:
+                executor_instance.log(f"Task {task_id}: No hostnames specified")
+                return task_id + 1
+
             referenced_task_ids = []
 
             for index in range(len(hostnames)):

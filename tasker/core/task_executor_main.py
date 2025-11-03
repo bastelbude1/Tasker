@@ -98,7 +98,7 @@ class TaskExecutor:
                  skip_security_validation=False, skip_subtask_range_validation=False,
                  strict_env_validation=False, show_plan=False, validate_only=False,
                  fire_and_forget=False, no_task_backup=False, auto_recovery=False,
-                 show_recovery_info=False, alert_on_failure=None):
+                 show_recovery_info=False, auto_confirm=False, alert_on_failure=None):
         """
         Initialize a TaskExecutor instance and prepare environment, logging, state, and modular components for task orchestration.
 
@@ -238,6 +238,7 @@ class TaskExecutor:
         # Auto-recovery parameters
         self.auto_recovery = auto_recovery
         self.show_recovery_info = show_recovery_info
+        self.auto_confirm = auto_confirm  # Auto-confirm prompts (use saved env values)
         self.recovery_manager = None  # Will be initialized after StateManager
 
         # Log resume information
@@ -2310,20 +2311,87 @@ class TaskExecutor:
                         restored_vars = recovery_data['global_vars'].copy()
                         metadata = recovery_data.get('global_vars_metadata', {})
 
-                        # Re-expand environment-sourced variables to handle changed environment
+                        # Analyze environment variable changes and missing vars
+                        missing_vars = []  # Env vars not set in current environment
+                        changed_vars = []  # Env vars with different values
+
                         for var_name, meta in metadata.items():
                             if meta.get('source') == 'env':
                                 template = meta.get('template', '')
-                                # Re-expand from current environment
                                 re_expanded = os.path.expandvars(template)
                                 old_value = restored_vars.get(var_name, '')
 
-                                # Only log if value changed
-                                if re_expanded != old_value:
-                                    self.log_info(f"# Re-expanded {var_name}: '{old_value}' → '{re_expanded}'")
+                                # Detect if environment variable is missing
+                                # os.path.expandvars returns the template unchanged if var doesn't exist
+                                if re_expanded == template:
+                                    missing_vars.append({
+                                        'name': var_name,
+                                        'template': template,
+                                        'saved_value': old_value
+                                    })
+                                # Detect if value changed
+                                elif re_expanded != old_value:
+                                    changed_vars.append({
+                                        'name': var_name,
+                                        'old_value': old_value,
+                                        'new_value': re_expanded
+                                    })
 
-                                # Use re-expanded value (respects current environment)
-                                restored_vars[var_name] = re_expanded
+                        # Handle missing or changed environment variables
+                        use_saved_values = False
+                        if missing_vars or changed_vars:
+                            if self.auto_confirm:
+                                # Auto-confirm mode: use saved values for missing, new values for changed
+                                use_saved_values = True
+                                self.log_info("# Auto-confirm mode (-y flag): Using saved/new environment values")
+                            else:
+                                # Interactive mode: prompt user
+                                print("\n" + "="*70)
+                                if missing_vars:
+                                    print("⚠️  Environment variables MISSING during recovery:")
+                                    for var_info in missing_vars:
+                                        print(f"  - {var_info['name']} {var_info['template']}")
+                                        print(f"    Saved value: '{var_info['saved_value']}'")
+
+                                if changed_vars:
+                                    print("\nℹ️  Environment variables CHANGED since first run:")
+                                    for var_info in changed_vars:
+                                        print(f"  - {var_info['name']}: '{var_info['old_value']}' → '{var_info['new_value']}'")
+
+                                print("\nOptions:")
+                                if missing_vars:
+                                    print("  [y] Use saved values for missing vars, new values for changed vars")
+                                    print("  [n] Abort recovery (environment must be consistent)")
+                                else:
+                                    print("  [y] Continue with new environment values")
+                                    print("  [n] Abort recovery")
+                                print("="*70)
+
+                                try:
+                                    response = input("\nContinue recovery? [y/N]: ").strip().lower()
+                                    use_saved_values = (response == 'y')
+                                except (EOFError, KeyboardInterrupt):
+                                    use_saved_values = False
+
+                                if not use_saved_values:
+                                    self.log_error("# Recovery aborted by user")
+                                    ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, "Recovery aborted - environment inconsistent", False)
+
+                        # Apply environment variable values based on decision
+                        for var_name, meta in metadata.items():
+                            if meta.get('source') == 'env':
+                                template = meta.get('template', '')
+                                re_expanded = os.path.expandvars(template)
+                                old_value = restored_vars.get(var_name, '')
+
+                                # If var is missing, use saved value
+                                if re_expanded == template and use_saved_values:
+                                    self.log_info(f"# Using saved value for {var_name}: '{old_value}' (env var missing)")
+                                    restored_vars[var_name] = old_value
+                                # If var changed, use new value and log it
+                                elif re_expanded != old_value:
+                                    self.log_info(f"# Re-expanded {var_name}: '{old_value}' → '{re_expanded}'")
+                                    restored_vars[var_name] = re_expanded
 
                         # Store restored/re-expanded variables with metadata
                         self._state_manager.set_global_vars(restored_vars, metadata)

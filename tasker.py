@@ -251,6 +251,8 @@ Examples:
                        help='Enable automatic error recovery (saves state after each task, auto-resumes on failure)')
     parser.add_argument('--show-recovery-info', action='store_true',
                        help='Display recovery state information and exit')
+    parser.add_argument('-y', '--yes', action='store_true',
+                       help='Auto-confirm all prompts (use saved environment values during recovery, skip confirmations)')
 
     # Granular validation control
     parser.add_argument('--skip-task-validation', action='store_true',
@@ -391,6 +393,7 @@ Examples:
         no_task_backup=args.no_task_backup,
         auto_recovery=args.auto_recovery,
         show_recovery_info=args.show_recovery_info,
+        auto_confirm=args.yes,
         alert_on_failure=getattr(args, 'alert_on_failure', None)
     ) as executor:
         executor.run()

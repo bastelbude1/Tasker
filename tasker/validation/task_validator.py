@@ -139,6 +139,7 @@ class TaskValidator:
         global_vars = {}
         errors = []
         unexpanded_vars = {}  # Track unexpanded variables for deferred validation
+        metadata = {}  # Track whether variables come from environment or are literals
         sanitizer = InputSanitizer()
 
         if not os.path.exists(task_file):
@@ -265,18 +266,27 @@ class TaskValidator:
                 # Store sanitized value (not the raw expanded value)
                 global_vars[key] = sanitize_result['value']
 
+                # Capture metadata: track if this variable came from environment or is literal
+                if original_value != expanded_value:
+                    # Variable was expanded from environment variable
+                    metadata[key] = {'source': 'env', 'template': original_value}
+                else:
+                    # Variable is a literal value
+                    metadata[key] = {'source': 'literal'}
+
         # Return success=False if any errors were accumulated during parsing
         return {
             'success': len(errors) == 0,
             'errors': errors,
             'global_vars': global_vars,
-            'unexpanded_vars': unexpanded_vars
+            'unexpanded_vars': unexpanded_vars,
+            'metadata': metadata  # Variable source tracking for recovery
         }
 
     @staticmethod
     def validate_task_file(task_file, debug=False, log_callback=None, debug_callback=None,
                           skip_security_validation=False, skip_subtask_range_validation=False,
-                          strict_env_validation=False):
+                          strict_env_validation=False, recovery_saved_global_vars=None):
         """
                           Validate the task file at the given path and report parsing and validation results.
 
@@ -302,6 +312,7 @@ class TaskValidator:
         validator.skip_security_validation = skip_security_validation
         validator.skip_subtask_range_validation = skip_subtask_range_validation
         validator.strict_env_validation = strict_env_validation
+        validator.recovery_saved_global_vars = recovery_saved_global_vars or {}  # For validation bypass
 
         # Parse and validate
         parse_success = validator.parse_file()
@@ -1539,6 +1550,20 @@ class TaskValidator:
         used_unexpanded = self.referenced_global_vars.intersection(
             set(self.unexpanded_global_vars.keys())
         )
+
+        # Filter out variables that have saved values in recovery state
+        recovery_saved_vars = getattr(self, 'recovery_saved_global_vars', {})
+        if recovery_saved_vars:
+            # Skip validation for variables that exist in recovery state
+            vars_to_skip = {var for var in used_unexpanded if var in recovery_saved_vars}
+            if vars_to_skip:
+                if hasattr(self, '_log_callback') and self._log_callback:
+                    skipped_count = len(vars_to_skip)
+                    self._log_callback(
+                        f"# Validation bypass: {skipped_count} env variable(s) will use saved values from recovery"
+                    )
+                # Remove these from unexpanded check
+                used_unexpanded = used_unexpanded - vars_to_skip
 
         if used_unexpanded:
             for var_name in sorted(used_unexpanded):

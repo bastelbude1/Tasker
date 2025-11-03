@@ -35,6 +35,7 @@ class StateManager:
         self._loop_counter = {}  # Track remaining loop iterations
         self._loop_iterations = {}  # Track current iteration number
         self._global_vars = {}   # Store global variables
+        self._global_vars_metadata = {}  # Store global variable source metadata (env vs literal)
         self._execution_path = []  # Track task execution order for recovery
 
         # Additional state tracking
@@ -194,15 +195,18 @@ class StateManager:
 
     # ===== GLOBAL VARIABLES =====
 
-    def set_global_vars(self, global_vars: Dict[str, str]) -> None:
+    def set_global_vars(self, global_vars: Dict[str, str], metadata: Optional[Dict] = None) -> None:
         """
         Set global variables (replaces existing).
 
         Args:
             global_vars: Dictionary of global variables
+            metadata: Optional metadata about variable sources (env vs literal)
         """
         with self._lock:
             self._global_vars = global_vars.copy()
+            if metadata is not None:
+                self._global_vars_metadata = metadata.copy()
 
     def get_global_vars(self) -> Dict[str, str]:
         """
@@ -213,6 +217,16 @@ class StateManager:
         """
         with self._lock:
             return self._global_vars.copy()
+
+    def get_global_vars_metadata(self) -> Dict:
+        """
+        Get global variables metadata (thread-safe copy).
+
+        Returns:
+            Copy of global variables metadata dictionary
+        """
+        with self._lock:
+            return self._global_vars_metadata.copy()
 
     def get_global_var(self, key: str, default: Optional[str] = None) -> Optional[str]:
         """
@@ -306,6 +320,7 @@ class StateManager:
             self._loop_counter.clear()
             self._loop_iterations.clear()
             self._global_vars.clear()
+            self._global_vars_metadata.clear()
             self._execution_path.clear()
             self._tasks.clear()
             self.workflow_failed_due_to_condition = False

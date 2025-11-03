@@ -1,0 +1,41 @@
+# TEST_METADATA: {"description": "Auto-recovery: Task with retry logic", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Tests recovery behavior with retry-enabled tasks"}
+# Automated recovery test for tasks with retry logic
+# Validates that tasks with retry parameters can be properly recovered
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Task 0: Setup task before retry
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Starting retry test
+
+# Task 1: Task with retry enabled
+# This task will succeed (no actual retries needed)
+task=1
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Task_with_retry_capability
+retry_count=3
+retry_delay=1
+
+# Task 2: Stateful task - fails first run, succeeds second run
+task=2
+hostname=@HOST_PREFIX@
+exec=local
+command=recovery_helper.sh
+arguments=test_auto_recovery_with_retry
+
+# Task 3: Final success marker
+task=3
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Recovery_completed_with_retry_test

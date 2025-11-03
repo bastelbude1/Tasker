@@ -1,0 +1,37 @@
+# TEST_METADATA: {"description": "Auto-recovery: Parallel Host Block (v2.1)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "First run: parallel block succeeds but task 1 fails. Second run: recovers and completes successfully"}
+# Automated recovery test for NEW v2.1 Parallel Host Block feature
+# Validates that parallel hostnames subtask results are properly saved and restored
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Task 0: Parallel Host Block - executes 5 parallel subtasks
+# This should complete successfully on first run
+# Recovery must preserve all 5 subtask results
+task=0
+type=parallel
+hostnames=localhost,localhost,localhost,localhost,localhost
+command=echo
+arguments=Parallel_host_task_@task@_executed
+exec=local
+on_success=1
+
+# Task 1: Stateful task - fails first run, succeeds second run
+# This validates that parallel block state was properly saved
+task=1
+hostname=@HOST_PREFIX@
+exec=local
+command=recovery_helper.sh
+arguments=test_auto_recovery_parallel_hostnames
+
+# Task 2: Should execute only on second run (after recovery)
+# Confirms that recovery successfully continued after parallel block
+task=2
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Recovery_completed_after_parallel_hostnames_block

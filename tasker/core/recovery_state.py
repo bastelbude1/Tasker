@@ -95,7 +95,8 @@ class RecoveryStateManager:
         return os.path.exists(self.recovery_file)
 
     def save_state(self, execution_path: list, state_manager, log_file: str,
-                   failure_info: Optional[Dict[str, Any]] = None) -> None:
+                   failure_info: Optional[Dict[str, Any]] = None,
+                   intended_next_task: Optional[int] = None) -> None:
         """
         Save current execution state to recovery file.
 
@@ -104,6 +105,7 @@ class RecoveryStateManager:
             state_manager: StateManager instance with current state
             log_file: Path to log file
             failure_info: Optional failure information (task_id, exit_code, error)
+            intended_next_task: The task ID that would execute next (from executor routing decision)
         """
         # Calculate task file hash for integrity verification
         task_file_hash = self._calculate_file_hash()
@@ -111,6 +113,7 @@ class RecoveryStateManager:
         # Get current state from StateManager
         task_results = state_manager.get_all_task_results()
         global_vars = state_manager.get_global_vars()
+        global_vars_metadata = state_manager.get_global_vars_metadata()
         current_task = state_manager.get_current_task()
 
         # Build execution_path from successful tasks if not provided
@@ -133,8 +136,10 @@ class RecoveryStateManager:
             'execution_path': execution_path,
             'last_successful_task': execution_path[-1] if execution_path else None,
             'current_task': current_task,
+            'intended_next_task': intended_next_task,  # Task that would execute next
             'task_results': task_results,
             'global_vars': global_vars,
+            'global_vars_metadata': global_vars_metadata,  # Variable source tracking (env vs literal)
             'loop_state': {},  # TODO: Add loop state tracking if needed
             'failure_info': failure_info
         }

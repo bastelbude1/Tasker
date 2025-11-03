@@ -1,0 +1,70 @@
+# TEST_METADATA: {"description": "Auto-recovery: Conditional Block routing", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Validates conditional block routing is preserved across recovery"}
+# Automated recovery test for Conditional Block
+# Validates that conditional branch execution is properly preserved during recovery
+# Tests that after conditional completes if_true_tasks, recovery continues correctly
+# BUG FIX: Now uses intended_next_task to preserve routing decisions
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
+# Global variables
+HOST_PREFIX=localhost
+TEST_VALUE=success
+
+# Task 0: Setup task to create condition
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=@TEST_VALUE@
+
+# Task 1: Conditional Block - evaluates @0_stdout@
+# Should take if_true branch (tasks 10,11) since @0_stdout@ will be "success"
+task=1
+type=conditional
+condition=@0_stdout@=success
+if_true_tasks=10,11
+if_false_tasks=20,21
+
+# TRUE BRANCH (should execute)
+task=10
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=True_branch_task_10_executed
+
+task=11
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=True_branch_task_11_executed
+
+# FALSE BRANCH (should NOT execute)
+task=20
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=ERROR_False_branch_should_not_execute
+return=1
+
+task=21
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=ERROR_False_branch_task_21_should_not_execute
+return=1
+
+# Task 2: After conditional - stateful task that fails first run
+task=2
+hostname=@HOST_PREFIX@
+exec=local
+command=recovery_helper.sh
+arguments=test_auto_recovery_conditional_block
+
+# Task 3: Final task after recovery
+task=3
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Recovery_completed_conditional_branch_preserved

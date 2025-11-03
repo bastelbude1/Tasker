@@ -1,0 +1,44 @@
+# TEST_METADATA: {"description": "Auto-recovery: Task with timeout parameter", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Validates timeout parameter is preserved across recovery"}
+# Automated recovery test for timeout handling
+# Validates that timeout parameters are properly preserved during recovery
+# Tests that recovery correctly resumes tasks that have timeout configured
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Task 0: Setup task
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Starting_timeout_test
+
+# Task 1: Task with timeout parameter
+# Uses timeout=10 to ensure task completes within timeout (doesn't actually timeout)
+task=1
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Task_with_timeout_executed
+timeout=10
+
+# Task 2: Stateful task that fails first run - has timeout configured
+# This task will fail on first run (triggers recovery)
+# On second run (recovery), it succeeds
+task=2
+hostname=@HOST_PREFIX@
+exec=local
+command=recovery_helper.sh
+arguments=test_auto_recovery_timeout_elapsed
+timeout=10
+
+# Task 3: Final success marker
+task=3
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Recovery_completed_timeout_parameter_preserved

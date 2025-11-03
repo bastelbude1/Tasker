@@ -1,0 +1,65 @@
+# TEST_METADATA: {"description": "Auto-recovery: on_failure routing preservation", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Task fails and routes to error handler via on_failure, recovery preserves routing"}
+# Automated recovery test for on_failure routing
+# Validates that on_failure routing paths are preserved across recovery
+# CRITICAL: Tests that recovery doesn't lose error handling paths
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Task 0: Setup task
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Starting_on_failure_routing_test
+
+# Task 1: Task that intentionally fails and routes to error handler
+# This task succeeds first run to set up the scenario
+task=1
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Task_1_preparing_failure_scenario
+on_success=2
+
+# Task 2: This task will fail and trigger on_failure routing
+task=2
+hostname=@HOST_PREFIX@
+exec=local
+command=false
+on_success=10
+on_failure=50
+
+# Task 10: Success path (should NOT execute)
+task=10
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=ERROR_Success_path_should_not_execute
+return=1
+
+# Task 50: Error handler - should execute after task 2 fails
+task=50
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Error_handler_task_50_executed
+on_success=51
+
+# Task 51: Stateful task in error handler - fails first run
+task=51
+hostname=@HOST_PREFIX@
+exec=local
+command=recovery_helper.sh
+arguments=test_auto_recovery_on_failure
+
+# Task 99: Final task after recovery
+task=99
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Recovery_completed_on_failure_routing_preserved

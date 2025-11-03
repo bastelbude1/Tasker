@@ -98,7 +98,7 @@ class TaskExecutor:
                  skip_security_validation=False, skip_subtask_range_validation=False,
                  strict_env_validation=False, show_plan=False, validate_only=False,
                  fire_and_forget=False, no_task_backup=False, auto_recovery=False,
-                 show_recovery_info=False, alert_on_failure=None):
+                 show_recovery_info=False, auto_confirm=False, alert_on_failure=None):
         """
         Initialize a TaskExecutor instance and prepare environment, logging, state, and modular components for task orchestration.
 
@@ -126,6 +126,7 @@ class TaskExecutor:
             no_task_backup: If true, disables automatic task file backup before execution.
             auto_recovery: If true, enables automatic recovery mode using state files.
             show_recovery_info: If true, displays recovery information and exits without executing tasks.
+            auto_confirm: If true, automatically confirms prompts during recovery (non-interactive mode).
             alert_on_failure: Optional path to an alert script to execute on workflow failure; script receives context via environment variables (TASKER_EXIT_CODE, TASKER_ERROR, TASKER_TASK_FILE, TASKER_LOG_FILE, TASKER_STATE_FILE, TASKER_FAILED_TASK, TASKER_TIMESTAMP).
         """
         # Clear debug logging cache for new execution session
@@ -238,6 +239,7 @@ class TaskExecutor:
         # Auto-recovery parameters
         self.auto_recovery = auto_recovery
         self.show_recovery_info = show_recovery_info
+        self.auto_confirm = auto_confirm  # Auto-confirm prompts (use saved env values)
         self.recovery_manager = None  # Will be initialized after StateManager
 
         # Log resume information
@@ -363,12 +365,20 @@ class TaskExecutor:
         self._state_manager = StateManager()
 
         # Initialize RecoveryStateManager if auto-recovery or recovery-info is requested
+        self.recovery_saved_global_vars = {}  # Track global vars from recovery (for validation bypass)
         if self.auto_recovery or self.show_recovery_info:
             from .recovery_state import RecoveryStateManager
             self.recovery_manager = RecoveryStateManager(self.task_file, self.log_dir)
             if self.auto_recovery:
                 if self.recovery_manager.recovery_file_exists():
                     self.log_info("# Auto-recovery enabled: Found recovery file for this task")
+                    # Load recovery metadata early for validation bypass
+                    recovery_data = self.recovery_manager.load_state()
+                    if recovery_data and 'global_vars' in recovery_data:
+                        self.recovery_saved_global_vars = recovery_data.get('global_vars', {})
+                        if self.auto_confirm:
+                            var_count = len(self.recovery_saved_global_vars)
+                            self.log_info(f"# Auto-confirm mode: {var_count} global variable(s) available from recovery state")
                 else:
                     self.log_info("# Auto-recovery enabled: Will create recovery state during execution")
 
@@ -1161,7 +1171,8 @@ class TaskExecutor:
                 debug_callback=self.log_debug if self.log_level == 'DEBUG' else None,
                 skip_security_validation=self.skip_security_validation,
                 skip_subtask_range_validation=self.skip_subtask_range_validation,
-                strict_env_validation=self.strict_env_validation
+                strict_env_validation=self.strict_env_validation,
+                recovery_saved_global_vars=self.recovery_saved_global_vars
             )
             
             if not result['success']:
@@ -1308,6 +1319,9 @@ class TaskExecutor:
 
         # Use the expanded global variables from TaskValidator
         self.global_vars = parse_result['global_vars']
+        metadata = parse_result.get('metadata', {})
+        # Store global vars and metadata in state manager
+        self._state_manager.set_global_vars(self.global_vars, metadata)
         global_count = len(self.global_vars)
         self.log_info(f"# Found {global_count} global variables")
         unexp = parse_result.get('unexpanded_vars', {})
@@ -2241,11 +2255,18 @@ class TaskExecutor:
 
                 # Calculate next task to execute based on last successful task
                 last_successful_task = recovery_data.get('last_successful_task')
+                intended_next_task = recovery_data.get('intended_next_task')
 
                 # Determine resume task ID
-                if last_successful_task is not None:
-                    # Resume from next task after last successful
+                # Prioritize intended_next_task (from routing decision) over calculated next
+                if intended_next_task is not None:
+                    # Use the task ID that was determined during execution (includes routing)
+                    resume_task_id = intended_next_task
+                    self.log_info(f"# Using intended next task from recovery state: {resume_task_id}")
+                elif last_successful_task is not None:
+                    # Fallback: Resume from next task after last successful (old behavior)
                     resume_task_id = last_successful_task + 1
+                    self.log_info(f"# Calculating resume task (legacy): {last_successful_task} + 1 = {resume_task_id}")
                 else:
                     # No successful tasks yet, start from first task
                     resume_task_id = min(self.tasks.keys()) if self.tasks else 0
@@ -2295,9 +2316,95 @@ class TaskExecutor:
                         task_id = int(task_id_str)
                         self._state_manager.store_task_result(task_id, result)
 
-                    # Restore global variables
+                    # Restore global variables with intelligent re-expansion
                     if 'global_vars' in recovery_data:
-                        self._state_manager.set_global_vars(recovery_data['global_vars'])
+                        restored_vars = recovery_data['global_vars'].copy()
+                        metadata = recovery_data.get('global_vars_metadata', {})
+
+                        # Analyze environment variable changes and missing vars
+                        missing_vars = []  # Env vars not set in current environment
+                        changed_vars = []  # Env vars with different values
+
+                        for var_name, meta in metadata.items():
+                            if meta.get('source') == 'env':
+                                template = meta.get('template', '')
+                                re_expanded = os.path.expandvars(template)
+                                old_value = restored_vars.get(var_name, '')
+
+                                # Detect if environment variable is missing
+                                # os.path.expandvars returns the template unchanged if var doesn't exist
+                                if re_expanded == template:
+                                    missing_vars.append({
+                                        'name': var_name,
+                                        'template': template,
+                                        'saved_value': old_value
+                                    })
+                                # Detect if value changed
+                                elif re_expanded != old_value:
+                                    changed_vars.append({
+                                        'name': var_name,
+                                        'old_value': old_value,
+                                        'new_value': re_expanded
+                                    })
+
+                        # Handle missing or changed environment variables
+                        use_saved_values = False
+                        if missing_vars or changed_vars:
+                            if self.auto_confirm:
+                                # Auto-confirm mode: use saved values for missing, new values for changed
+                                use_saved_values = True
+                                self.log_info("# Auto-confirm mode (-y flag): Using saved/new environment values")
+                            else:
+                                # Interactive mode: prompt user
+                                print("\n" + "="*70)
+                                if missing_vars:
+                                    print("⚠️  Environment variables MISSING during recovery:")
+                                    for var_info in missing_vars:
+                                        print(f"  - {var_info['name']} {var_info['template']}")
+                                        print(f"    Saved value: '{var_info['saved_value']}'")
+
+                                if changed_vars:
+                                    print("\nINFO:  Environment variables CHANGED since first run:")
+                                    for var_info in changed_vars:
+                                        print(f"  - {var_info['name']}: '{var_info['old_value']}' → '{var_info['new_value']}'")
+
+                                print("\nOptions:")
+                                if missing_vars:
+                                    print("  [y] Use saved values for missing vars, new values for changed vars")
+                                    print("  [n] Abort recovery (environment must be consistent)")
+                                else:
+                                    print("  [y] Continue with new environment values")
+                                    print("  [n] Abort recovery")
+                                print("="*70)
+
+                                try:
+                                    response = input("\nContinue recovery? [y/N]: ").strip().lower()
+                                    use_saved_values = (response == 'y')
+                                except (EOFError, KeyboardInterrupt):
+                                    use_saved_values = False
+
+                                if not use_saved_values:
+                                    self.log_error("# Recovery aborted by user")
+                                    ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, "Recovery aborted - environment inconsistent", False)
+
+                        # Apply environment variable values based on decision
+                        for var_name, meta in metadata.items():
+                            if meta.get('source') == 'env':
+                                template = meta.get('template', '')
+                                re_expanded = os.path.expandvars(template)
+                                old_value = restored_vars.get(var_name, '')
+
+                                # If var is missing, use saved value
+                                if re_expanded == template and use_saved_values:
+                                    self.log_info(f"# Using saved value for {var_name}: '{old_value}' (env var missing)")
+                                    restored_vars[var_name] = old_value
+                                # If var changed, use new value and log it
+                                elif re_expanded != old_value:
+                                    self.log_info(f"# Re-expanded {var_name}: '{old_value}' → '{re_expanded}'")
+                                    restored_vars[var_name] = re_expanded
+
+                        # Store restored/re-expanded variables with metadata
+                        self._state_manager.set_global_vars(restored_vars, metadata)
 
                     # Restore execution path
                     self._state_manager.set_execution_path(execution_path)
@@ -2396,13 +2503,30 @@ class TaskExecutor:
                             'exit_code': last.get('exit_code'),
                             'error': (last.get('stderr') or '')[:512]
                         }
+                    # Determine intended next task from executor result
+                    # result contains the next task ID (from routing decision)
+                    if isinstance(result, int):
+                        intended_next = result
+                    elif result is None:
+                        # None can mean task failed OR task intentionally stopped/succeeded
+                        # Check failure_info to distinguish: if failure_info exists, retry; otherwise no retry
+                        if failure_info is not None:
+                            # Task failed without routing - retry this task on recovery
+                            intended_next = int(task_id)
+                        else:
+                            # Task succeeded or intentionally stopped - no retry needed
+                            intended_next = None
+                    else:
+                        # result is "LOOP" or other string - no next task to save
+                        intended_next = None
                     # Save recovery state after each task
                     # execution_path will be calculated automatically from successful tasks
                     self.recovery_manager.save_state(
                         execution_path=None,  # Will be calculated from task_results
                         state_manager=self._state_manager,
                         log_file=log_file,
-                        failure_info=failure_info
+                        failure_info=failure_info,
+                        intended_next_task=intended_next  # Save intended next task for recovery
                     )
                 except (RuntimeError, OSError, IOError, ValueError) as e:
                     self.log_warn(f"Failed to save recovery state: {e}")

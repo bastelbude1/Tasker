@@ -1,0 +1,42 @@
+# TEST_METADATA: {"description": "Auto-recovery: Loop state limitation", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Demonstrates that loop counters are NOT persisted - recovery restarts loop from beginning"}
+# Automated recovery test demonstrating loop state limitation
+# KNOWN LIMITATION: Loop counters are NOT saved to recovery state
+# Recovery will restart the loop from iteration 1, not continue from where it failed
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Task 0: Setup task before loop
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Starting loop test
+
+# Task 1: Loop task - should execute 3 times
+# However, recovery will NOT preserve loop iteration count
+task=1
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Loop_iteration_executing
+loop=3
+next=loop
+
+# Task 2: After loop - stateful task that fails first run
+task=2
+hostname=@HOST_PREFIX@
+exec=local
+command=recovery_helper.sh
+arguments=test_auto_recovery_loop_limitation
+
+# Task 3: Final success marker
+task=3
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Recovery_completed_after_loop_limitation_test

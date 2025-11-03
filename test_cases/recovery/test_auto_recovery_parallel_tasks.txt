@@ -1,0 +1,66 @@
+# TEST_METADATA: {"description": "Auto-recovery: Parallel Task Block", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "expected_warnings": 1, "note": "First run: parallel task block succeeds but task 1 fails. Second run: recovers and completes successfully"}
+# Automated recovery test for Parallel Task Block
+# Validates that parallel task subtask results are properly saved and restored
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Task 0: Parallel Task Block coordinator - executes 5 subtasks
+# This should complete successfully on first run
+# Recovery must preserve all 5 subtask results
+task=0
+type=parallel
+tasks=10,11,12,13,14
+max_parallel=5
+on_success=1
+
+# Subtask definitions (10-14)
+task=10
+hostname=@HOST_PREFIX@
+command=echo
+arguments=Parallel_subtask_10_executed
+exec=local
+
+task=11
+hostname=@HOST_PREFIX@
+command=echo
+arguments=Parallel_subtask_11_executed
+exec=local
+
+task=12
+hostname=@HOST_PREFIX@
+command=echo
+arguments=Parallel_subtask_12_executed
+exec=local
+
+task=13
+hostname=@HOST_PREFIX@
+command=echo
+arguments=Parallel_subtask_13_executed
+exec=local
+
+task=14
+hostname=@HOST_PREFIX@
+command=echo
+arguments=Parallel_subtask_14_executed
+exec=local
+
+# Task 1: Stateful task - fails first run, succeeds second run
+# This validates that parallel block state was properly saved
+task=1
+hostname=@HOST_PREFIX@
+exec=local
+command=recovery_helper.sh
+arguments=test_auto_recovery_parallel_tasks
+
+# Task 2: Should execute only on second run (after recovery)
+# Confirms that recovery successfully continued after parallel block
+task=2
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Recovery_completed_after_parallel_tasks_block

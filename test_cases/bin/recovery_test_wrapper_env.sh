@@ -21,9 +21,9 @@ export PATH="${SCRIPT_DIR}:${PATH}"
 TEST_ID=$(basename "$TASK_FILE" .txt)
 STATE_FILE="/tmp/recovery_test_${TEST_ID}.state"
 
-# Cleanup
+# Cleanup - only remove this test's recovery file
 echo "=== Recovery Test Wrapper (Env): Cleaning up ==="
-rm -f "$RECOVERY_DIR"/*.recovery.json 2>/dev/null || true
+rm -f "$RECOVERY_DIR"/${TEST_ID}_*.recovery.json 2>/dev/null || true
 rm -f "$STATE_FILE" 2>/dev/null || true
 
 # First run - with initial environment

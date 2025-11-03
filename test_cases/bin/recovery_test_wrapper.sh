@@ -53,13 +53,12 @@ set -e
 echo "=== Recovery Test Wrapper: First run exit code: $FIRST_EXIT ==="
 
 # Validate recovery file was created
-RECOVERY_FILES=("$RECOVERY_DIR"/*.recovery.json)
-if [ ! -f "${RECOVERY_FILES[0]}" ]; then
+if ! ls "$RECOVERY_DIR"/${TEST_ID}_*.recovery.json >/dev/null 2>&1; then
     echo "ERROR: Recovery file not created after first run" >&2
     exit 1
 fi
 
-echo "=== Recovery Test Wrapper: Recovery file created: ${RECOVERY_FILES[0]} ==="
+echo "=== Recovery Test Wrapper: Recovery file created ==="
 
 # Second run - expect success with recovery
 echo "=== Recovery Test Wrapper: Second run (expect recovery and success) ==="
@@ -71,8 +70,7 @@ set -e
 echo "=== Recovery Test Wrapper: Second run exit code: $SECOND_EXIT ==="
 
 # Validate recovery file was deleted after success
-RECOVERY_FILES_AFTER=("$RECOVERY_DIR"/*.recovery.json)
-if [ -f "${RECOVERY_FILES_AFTER[0]}" ]; then
+if ls "$RECOVERY_DIR"/${TEST_ID}_*.recovery.json >/dev/null 2>&1; then
     echo "ERROR: Recovery file not deleted after successful second run" >&2
     exit 1
 fi

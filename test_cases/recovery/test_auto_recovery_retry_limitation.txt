@@ -1,0 +1,37 @@
+# TEST_METADATA: {"description": "Auto-recovery: Retry limitation - attempts not persisted", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "KNOWN LIMITATION: Retry attempts restart from 1 during recovery (not persisted)"}
+# Automated recovery test for retry attempt limitation
+# Validates KNOWN LIMITATION: Retry attempts are NOT persisted in recovery state
+# When task exhausts retries (retry_count=2) and fails, recovery restarts from attempt 1
+# This is a DOCUMENTED LIMITATION, not a bug
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Task 0: Setup task
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Starting_retry_limitation_test
+
+# Task 1: Task with retry_count=2
+# First run: Will fail and exhaust all retries
+# Recovery run: Restarts from attempt 1 (limitation), succeeds
+task=1
+hostname=@HOST_PREFIX@
+exec=local
+command=recovery_helper.sh
+arguments=test_auto_recovery_retry_limitation
+retry_count=2
+retry_delay=1
+
+# Task 2: Final success marker
+task=2
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Recovery_completed_retry_attempts_restarted

@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Auto-recovery: Environment variable re-expansion", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper_env.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Tests env-sourced globals re-expand during recovery"}
+# TEST_METADATA: {"description": "Auto-recovery: Environment variable re-expansion", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper_env.sh", "wrapper_args": "--skip-host-validation -y", "skip_host_validation": true, "note": "Tests env-sourced globals re-expand during recovery with -y flag"}
 # Automated recovery test for environment variable re-expansion
 # Validates that environment-sourced global variables are re-expanded during recovery
 # This ensures recovery uses current environment values, not stale saved values

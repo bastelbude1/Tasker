@@ -1,0 +1,34 @@
+# TEST_METADATA: {"description": "Auto-recovery: Missing environment variable with -y flag", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper_env_missing.sh", "wrapper_args": "--skip-host-validation -y", "skip_host_validation": true, "expected_warnings": 1, "note": "Tests -y flag allows recovery with missing env vars using saved values"}
+# Automated recovery test for missing environment variable during recovery
+# With -y flag, should use saved values and bypass validation
+# This enables fully automated recovery in cron/CI/CD scenarios
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
+# Global variables
+DEPLOYMENT_HOST=$TASKER_DEPLOY_HOST
+STATIC_PATH=/var/data
+
+# Task 0: Display initial values (env var set)
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Initial_Host:@DEPLOYMENT_HOST@_Path:@STATIC_PATH@
+
+# Task 1: Stateful task that fails first run
+task=1
+hostname=localhost
+exec=local
+command=recovery_helper.sh
+arguments=test_auto_recovery_env_var_missing
+
+# Task 2: Display recovered values
+# DEPLOYMENT_HOST will use saved value from recovery
+task=2
+hostname=localhost
+exec=local
+command=echo
+arguments=Recovered_Host:@DEPLOYMENT_HOST@_Path:@STATIC_PATH@

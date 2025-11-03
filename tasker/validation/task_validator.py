@@ -286,7 +286,7 @@ class TaskValidator:
     @staticmethod
     def validate_task_file(task_file, debug=False, log_callback=None, debug_callback=None,
                           skip_security_validation=False, skip_subtask_range_validation=False,
-                          strict_env_validation=False):
+                          strict_env_validation=False, recovery_saved_global_vars=None):
         """
                           Validate the task file at the given path and report parsing and validation results.
 
@@ -312,6 +312,7 @@ class TaskValidator:
         validator.skip_security_validation = skip_security_validation
         validator.skip_subtask_range_validation = skip_subtask_range_validation
         validator.strict_env_validation = strict_env_validation
+        validator.recovery_saved_global_vars = recovery_saved_global_vars or {}  # For validation bypass
 
         # Parse and validate
         parse_success = validator.parse_file()
@@ -1549,6 +1550,20 @@ class TaskValidator:
         used_unexpanded = self.referenced_global_vars.intersection(
             set(self.unexpanded_global_vars.keys())
         )
+
+        # Filter out variables that have saved values in recovery state
+        recovery_saved_vars = getattr(self, 'recovery_saved_global_vars', {})
+        if recovery_saved_vars:
+            # Skip validation for variables that exist in recovery state
+            vars_to_skip = {var for var in used_unexpanded if var in recovery_saved_vars}
+            if vars_to_skip:
+                if hasattr(self, '_log_callback') and self._log_callback:
+                    skipped_count = len(vars_to_skip)
+                    self._log_callback(
+                        f"# Validation bypass: {skipped_count} env variable(s) will use saved values from recovery"
+                    )
+                # Remove these from unexpanded check
+                used_unexpanded = used_unexpanded - vars_to_skip
 
         if used_unexpanded:
             for var_name in sorted(used_unexpanded):

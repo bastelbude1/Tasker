@@ -364,12 +364,20 @@ class TaskExecutor:
         self._state_manager = StateManager()
 
         # Initialize RecoveryStateManager if auto-recovery or recovery-info is requested
+        self.recovery_saved_global_vars = {}  # Track global vars from recovery (for validation bypass)
         if self.auto_recovery or self.show_recovery_info:
             from .recovery_state import RecoveryStateManager
             self.recovery_manager = RecoveryStateManager(self.task_file, self.log_dir)
             if self.auto_recovery:
                 if self.recovery_manager.recovery_file_exists():
                     self.log_info("# Auto-recovery enabled: Found recovery file for this task")
+                    # Load recovery metadata early for validation bypass
+                    recovery_data = self.recovery_manager.load_state()
+                    if recovery_data and 'global_vars' in recovery_data:
+                        self.recovery_saved_global_vars = recovery_data.get('global_vars', {})
+                        if self.auto_confirm:
+                            var_count = len(self.recovery_saved_global_vars)
+                            self.log_info(f"# Auto-confirm mode: {var_count} global variable(s) available from recovery state")
                 else:
                     self.log_info("# Auto-recovery enabled: Will create recovery state during execution")
 
@@ -1162,7 +1170,8 @@ class TaskExecutor:
                 debug_callback=self.log_debug if self.log_level == 'DEBUG' else None,
                 skip_security_validation=self.skip_security_validation,
                 skip_subtask_range_validation=self.skip_subtask_range_validation,
-                strict_env_validation=self.strict_env_validation
+                strict_env_validation=self.strict_env_validation,
+                recovery_saved_global_vars=self.recovery_saved_global_vars if self.auto_confirm else {}
             )
             
             if not result['success']:

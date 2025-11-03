@@ -734,6 +734,7 @@ flowchart TD
 | `max_parallel` | Integer | ❌ Optional | Max concurrent hosts (1-50, default: 8) |
 
 ### Example
+
 ```bash
 task=0
 type=parallel
@@ -746,11 +747,9 @@ success=min_success=4
 on_success=10
 ```
 
-
 ### Entry Point
 
 Can be entry point or follow any block
-
 
 ### Behavior
 - **NEW in v2.1**: Simplified syntax for identical commands across multiple hosts
@@ -829,8 +828,8 @@ flowchart TD
 | `retry_count` | Integer | ❌ Optional | Number of retry attempts (1-1000, default: 1) |
 | `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
 
-
 ### Example
+
 ```bash
 task=0
 type=parallel
@@ -845,11 +844,9 @@ success=min_success=4
 on_success=10
 ```
 
-
 ### Entry Point
 
 Can be entry point or follow any block
-
 
 ### Behavior
 - **NEW in v2.1**: Combines simplified multi-host syntax with retry logic
@@ -863,7 +860,6 @@ Can be entry point or follow any block
 - Resolves to the auto-generated subtask ID during execution
 - Useful for per-host identification in arguments or logging
 - Example: `arguments=-sf http://localhost/health?id=@task@`
-
 
 ### Next Block
 → Multi-Task Success Evaluation Block (#12)

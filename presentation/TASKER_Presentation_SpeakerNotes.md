@@ -475,6 +475,7 @@ Point to the two parallel blocks on the slide and explain:
 "Notice the `exec=` parameter - this is important:
 
 **Task 0 - Health Check (exec=local):**
+
 ```bash
 exec=local
 command=curl
@@ -487,6 +488,7 @@ arguments=-sf http://localhost/health
 - Like checking 20 websites from your laptop
 
 **Task 10 - Deployment (exec=pbrun):**
+
 ```bash
 exec=pbrun
 command=/opt/deploy.sh

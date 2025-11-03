@@ -33,7 +33,7 @@ export TASKER_DEPLOY_HOST="server001"
 echo "# First run environment: TASKER_DEPLOY_HOST=$TASKER_DEPLOY_HOST"
 
 set +e
-tasker "$TASK_FILE" -r "${OPTIONS[@]}"
+tasker "$TASK_FILE" -r -y "${OPTIONS[@]}"
 FIRST_EXIT=$?
 set -e
 
@@ -53,7 +53,7 @@ unset TASKER_DEPLOY_HOST
 echo "# Second run environment: TASKER_DEPLOY_HOST is NOT SET (will use saved value with -y)"
 
 set +e
-tasker "$TASK_FILE" -r "${OPTIONS[@]}"
+tasker "$TASK_FILE" -r -y "${OPTIONS[@]}"
 SECOND_EXIT=$?
 set -e
 

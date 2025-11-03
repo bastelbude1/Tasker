@@ -1172,7 +1172,7 @@ class TaskExecutor:
                 skip_security_validation=self.skip_security_validation,
                 skip_subtask_range_validation=self.skip_subtask_range_validation,
                 strict_env_validation=self.strict_env_validation,
-                recovery_saved_global_vars=self.recovery_saved_global_vars if self.auto_confirm else {}
+                recovery_saved_global_vars=self.recovery_saved_global_vars
             )
             
             if not result['success']:

@@ -1164,7 +1164,7 @@ class TaskValidator:
                             ipaddress.IPv4Address(hostname)
                             # Valid IPv4, no further checks needed
                             continue
-                        except (ipaddress.AddressValueError, ValueError) as e:
+                        except (ipaddress.AddressValueError, ValueError):
                             # Invalid IPv4 format
                             invalid_hostnames.append(f"{hostname} (invalid IPv4 address)")
                             continue

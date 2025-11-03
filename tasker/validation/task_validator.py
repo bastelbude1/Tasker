@@ -833,7 +833,7 @@ class TaskValidator:
 
             # Validate parallel task specific fields
             if task_type == 'parallel':
-                self.validate_parallel_task(task, task_id, line_number, parallel_tasks)
+                self.validate_parallel_task(task, task_id, line_number, parallel_tasks, task_ids)
                 # Validate retry configuration for parallel tasks
                 self.validate_retry_configuration(task, task_id, line_number)
 
@@ -1009,8 +1009,16 @@ class TaskValidator:
                 except ValueError:
                     self.errors.append(f"Line {line_number}: Task {task_id} has invalid retry_delay: '{task['retry_delay']}'. Must be an integer.")
 
-    def validate_parallel_task(self, task, task_id, line_number, parallel_tasks):
-        """Validate parallel task specific fields."""
+    def validate_parallel_task(self, task, task_id, line_number, parallel_tasks, task_ids):
+        """Validate parallel task specific fields.
+
+        Args:
+            task: Task dictionary
+            task_id: Task ID (integer)
+            line_number: Line number in task file
+            parallel_tasks: Set of task IDs referenced by parallel tasks
+            task_ids: Set of all task IDs (for conflict detection)
+        """
 
         # Validate 'type' field
         if 'type' in task:
@@ -1186,8 +1194,8 @@ class TaskValidator:
                     # Check if any generated IDs conflict with existing tasks
                     conflicting_ids = []
                     for subtask_id in generated_subtask_ids:
-                        # Check against all previously parsed task IDs
-                        if subtask_id in self.tasks and subtask_id != task_id:
+                        # Check against all collected task IDs (task_ids is a set of integers)
+                        if subtask_id in task_ids and subtask_id != task_id:
                             conflicting_ids.append(subtask_id)
 
                     if conflicting_ids:

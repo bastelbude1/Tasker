@@ -85,7 +85,7 @@ class TaskExecutor:
         'task', 'hostname', 'command', 'arguments', 'next', 'stdout_split', 'stderr_split',
         'stdout_count', 'stderr_count', 'sleep', 'loop', 'loop_break', 'on_failure',
         'on_success', 'success', 'failure', 'condition', 'exec', 'timeout', 'return',
-        'type', 'max_parallel', 'tasks', 'retry_failed', 'retry_count', 'retry_delay',
+        'type', 'max_parallel', 'tasks', 'hostnames', 'retry_failed', 'retry_count', 'retry_delay',
         'if_true_tasks', 'if_false_tasks'
     )
 
@@ -1184,6 +1184,95 @@ class TaskExecutor:
             self.log_error(f"Error during task validation: {str(e)}")
             return False
 
+    def _generate_subtask_id(self, parent_task_id, index):
+        """
+        Generate subtask ID in reserved range 100000+ to prevent clashes with user-defined tasks.
+
+        Reserved ID Range Convention:
+        - User-defined tasks: 0 - 99,999
+        - Generated subtasks: 100,000 - 199,999 (parallel hostnames feature)
+        - Future features: 200,000+ (available for expansion)
+
+        Formula: 100000 + parent_task_id * 10000 + index
+
+        This provides:
+        - Clear visual relationship to parent task (110000 = task 1, 120000 = task 2)
+        - Room for 10,000 parallel blocks (tasks 0-9,999)
+        - Each can have up to 10,000 hosts
+        - Leaves 200,000+ range for future features
+
+        Examples:
+        - task=0, host #0 → 100000
+        - task=0, host #5 → 100005
+        - task=1, host #0 → 110000
+        - task=1, host #5 → 110005
+        - task=42, host #0 → 520000
+        - task=999, host #0 → 10090000
+        """
+        return 100000 + parent_task_id * 10000 + index
+
+    def _generate_subtasks_from_hostnames(self, task_id, parallel_task, parsed_tasks):
+        """
+        Generate subtasks from hostnames= parameter during parsing phase.
+
+        This method creates individual subtask dictionaries for each hostname in the
+        parallel block's hostnames= parameter. Subtasks are assigned IDs in the reserved
+        range (100000+) to prevent clashes with user-defined tasks.
+
+        Generated subtasks are added directly to parsed_tasks dictionary so they exist
+        in self.tasks from the start, behaving identically to manually defined subtasks.
+
+        Args:
+            task_id: ID of the parent parallel block
+            parallel_task: The parallel task dictionary containing hostnames= parameter
+            parsed_tasks: Dictionary to add generated subtasks to
+        """
+        hostnames_str = parallel_task.get('hostnames', '').strip()
+        if not hostnames_str:
+            return
+
+        # Parse comma-separated hostnames (whitespace trimmed)
+        hostnames = [h.strip() for h in hostnames_str.split(',') if h.strip()]
+
+        if not hostnames:
+            return
+
+        # Parameters to copy from parent to subtasks
+        copyable_params = [
+            'command', 'arguments', 'exec', 'timeout',
+            'retry_count', 'retry_delay', 'success', 'failure'
+        ]
+
+        generated_count = 0
+        for index, hostname in enumerate(hostnames):
+            # Generate ID in reserved range (100000+)
+            subtask_id = self._generate_subtask_id(task_id, index)
+
+            # Create subtask dictionary
+            subtask = {
+                'task': str(subtask_id),
+                'hostname': hostname,
+                '_generated_from': str(task_id)  # Mark for debugging/introspection
+            }
+
+            # Copy parameters from parent task
+            for param in copyable_params:
+                if param in parallel_task:
+                    value = parallel_task[param]
+                    # Replace @task@ placeholder with actual subtask ID
+                    if param == 'arguments' and '@task@' in str(value):
+                        value = value.replace('@task@', str(subtask_id))
+                    subtask[param] = value
+
+            # Add to parsed tasks dictionary
+            parsed_tasks[subtask_id] = subtask
+            generated_count += 1
+
+        self.log_debug(
+            f"Task {task_id}: Generated {generated_count} subtasks in reserved range "
+            f"({self._generate_subtask_id(task_id, 0)}-{self._generate_subtask_id(task_id, generated_count-1)})"
+        )
+
     def parse_task_file(self):
         """Parse the task file and extract global variables and task definitions.
 
@@ -1276,6 +1365,10 @@ class TaskExecutor:
 
                         parsed_tasks[task_id] = current_task
 
+                        # NEW: Generate subtasks for parallel blocks with hostnames
+                        if current_task.get('type') == 'parallel' and 'hostnames' in current_task:
+                            self._generate_subtasks_from_hostnames(task_id, current_task, parsed_tasks)
+
                     # Start a new task
                     current_task = {'task': value}
                 else:
@@ -1311,6 +1404,10 @@ class TaskExecutor:
 
             parsed_tasks[task_id] = current_task
 
+            # NEW: Generate subtasks for parallel blocks with hostnames (last task)
+            if current_task.get('type') == 'parallel' and 'hostnames' in current_task:
+                self._generate_subtasks_from_hostnames(task_id, current_task, parsed_tasks)
+
         # Assign all parsed tasks at once (compatible with StateManager property system)
         self.tasks = parsed_tasks
         
@@ -1319,8 +1416,8 @@ class TaskExecutor:
         for task_id, task in self.tasks.items():
             # Different validation for parallel and conditional tasks
             if task.get('type') == 'parallel':
-                if 'tasks' not in task:
-                    self.log_warn(f"Parallel task {task_id} is missing required 'tasks' field.")
+                if 'tasks' not in task and 'hostnames' not in task:
+                    self.log_warn(f"Parallel task {task_id} is missing required 'tasks' or 'hostnames' field.")
                     continue
                 valid_task_count += 1
             elif task.get('type') == 'conditional':

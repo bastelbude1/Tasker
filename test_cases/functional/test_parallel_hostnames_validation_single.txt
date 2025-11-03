@@ -1,0 +1,10 @@
+# TEST_METADATA: {"description": "Parallel hostnames validation: single hostname not allowed", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+# Validation test: parallel block with only 1 hostname (should use hostname= instead)
+# Expected: Validation error - minimum 2 hostnames required
+
+task=0
+type=parallel
+hostnames=web1
+command=echo
+arguments=test
+exec=local

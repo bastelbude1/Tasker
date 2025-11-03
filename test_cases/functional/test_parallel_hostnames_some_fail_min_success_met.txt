@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Parallel hostnames: some fail but min_success=3 met", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# Failure handling test: 5 hosts, 3 succeed, 2 fail; min_success=3 met
+# Expected: Tasks 0,1,2 succeed, tasks 3,4 fail; overall success due to min_success=3
+
+task=0
+type=parallel
+hostnames=localhost,localhost,localhost,localhost,localhost
+command=success_pattern.sh
+arguments=@task@ 100000,100001,100002
+exec=local
+success=min_success=3
+on_success=10
+on_failure=99
+
+task=10
+hostname=localhost
+command=echo
+arguments=min_success_met
+exec=local
+
+task=99
+hostname=localhost
+command=echo
+arguments=ERROR_should_not_reach
+exec=local

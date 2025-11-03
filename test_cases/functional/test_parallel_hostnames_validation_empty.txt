@@ -1,0 +1,10 @@
+# TEST_METADATA: {"description": "Parallel hostnames validation: empty hostnames list", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+# Validation test: parallel block with empty hostnames= parameter
+# Expected: Validation error about empty hostnames field
+
+task=0
+type=parallel
+hostnames=
+command=echo
+arguments=test
+exec=local

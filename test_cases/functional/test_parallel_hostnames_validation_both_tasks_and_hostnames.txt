@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Parallel hostnames validation: tasks and hostnames mutually exclusive", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+# Validation test: parallel block cannot use both tasks= and hostnames=
+# Expected: Validation error about mutually exclusive parameters
+
+task=0
+type=parallel
+tasks=1,2,3
+hostnames=web1,web2,web3
+command=echo
+arguments=test
+exec=local
+
+task=1
+hostname=localhost
+command=echo
+arguments=subtask1
+
+task=2
+hostname=localhost
+command=echo
+arguments=subtask2
+
+task=3
+hostname=localhost
+command=echo
+arguments=subtask3

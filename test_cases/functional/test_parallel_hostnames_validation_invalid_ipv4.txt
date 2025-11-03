@@ -1,0 +1,10 @@
+# TEST_METADATA: {"description": "Parallel hostnames validation: reject invalid IPv4 addresses", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+# Validation test: IPv4 addresses must be in valid range (0-255)
+# Expected: Validation error for out-of-range IPv4 octets
+
+task=0
+type=parallel
+hostnames=192.168.1.1,999.999.999.999,10.0.0.1
+command=echo
+arguments=test
+exec=local

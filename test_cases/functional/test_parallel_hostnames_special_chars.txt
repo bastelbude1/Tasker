@@ -1,0 +1,17 @@
+# TEST_METADATA: {"description": "Parallel hostnames: RFC-compliant special characters", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# Edge case test: hostnames with hyphens, dots, numbers (RFC-compliant)
+# Expected: All hostnames valid, execution succeeds
+
+task=0
+type=parallel
+hostnames=web-server-01.example.com,app-host-02.test.local,192.168.1.100
+command=echo
+arguments=test
+exec=local
+on_success=10
+
+task=10
+hostname=localhost
+command=echo
+arguments=special_chars_handled
+exec=local

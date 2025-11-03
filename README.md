@@ -311,6 +311,44 @@ on_failure=99
 
 > **Note**: This is a syntax illustration showing parallel block configuration. For a complete working example with all subtasks defined, see `test_cases/readme_examples/readme_05_parallel_basic.txt`
 
+#### Simplified Multi-Host Parallel Execution (hostnames= Parameter)
+
+**NEW in v2.1**: Execute identical commands across multiple hosts without defining individual subtasks.
+
+**Example - Health check across 20 servers (11 lines instead of 160+):**
+
+```bash
+task=0
+type=parallel
+hostnames=web1,web2,web3,web4,web5,web6,web7,web8,web9,web10,web11,web12,web13,web14,web15,web16,web17,web18,web19,web20
+command=curl
+arguments=-sf http://localhost/health
+exec=local
+max_parallel=20
+timeout=30
+success=min_success=15  # At least 75% must succeed
+on_success=10
+on_failure=99
+```
+
+**How It Works:**
+- TASKER automatically generates one subtask per hostname
+- Each subtask gets a unique ID in the reserved range (100000+)
+- Generated IDs follow formula: `100000 + parent_task_id * 10000 + index`
+  - task=0: generates 100000, 100001, 100002, ...
+  - task=1: generates 110000, 110001, 110002, ...
+  - task=42: generates 520000, 520001, 520002, ...
+- All subtasks execute the same command with their assigned hostname
+- Supports all parallel block features: `max_parallel`, retry, success criteria
+
+**Validation Rules:**
+- `hostnames=` and `tasks=` are mutually exclusive (use one or the other)
+- `hostnames=` requires `command=` parameter
+- Minimum 2 hostnames (use `hostname=` for single server)
+- Maximum 1000 hostnames per parallel block
+- Hostnames must be RFC-compliant (valid DNS names or IP addresses)
+- Reserved ID range 100000-999999 cannot be used for manually defined tasks
+
 **Parameters:** See [Parallel Execution Parameters](#parallel-execution-parameters) table below
 
 **Important Parallel Execution Behavior:**
@@ -2778,8 +2816,12 @@ Parameters for executing multiple tasks concurrently:
 | Parameter | Type | Required | Description | Valid Values |
 |-----------|------|----------|-------------|-------------|
 | `type` | String | **Yes** | Must be "parallel" | `parallel` |
-| `tasks` | String | **Yes** | Comma-separated task IDs to execute | "10,11,12" |
-| `max_parallel` | Integer | No | Max concurrent tasks | 1-50 (default: all) |
+| `tasks` | String | **Conditional** | Comma-separated task IDs to execute (mutually exclusive with hostnames) | "10,11,12" |
+| `hostnames` | String | **Conditional** | Comma-separated hostnames for identical command execution (mutually exclusive with tasks) | "web1,web2,web3" (min 2, max 1000) |
+| `command` | String | **Conditional** | Command to execute (required when using hostnames) | Any valid command |
+| `arguments` | String | No | Command arguments (when using hostnames) | String with variable substitution |
+| `exec` | String | No | Execution method (when using hostnames) | local/pbrun/p7s/wwrs_clir |
+| `max_parallel` | Integer | No | Max concurrent tasks | 1-50 (default: 8) |
 | `timeout` | Integer | No | Master timeout for all tasks | 5-3600 seconds |
 | `retry_count` | Integer | No | Number of retry attempts (enables retry) | 1-1000 (default: 1) |
 | `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |

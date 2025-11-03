@@ -1,0 +1,17 @@
+# TEST_METADATA: {"description": "Parallel hostnames: whitespace handling around commas", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# Edge case test: hostnames with spaces around commas (should be trimmed)
+# Expected: Whitespace trimmed, all 3 hosts execute successfully
+
+task=0
+type=parallel
+hostnames=localhost, localhost , localhost
+command=echo
+arguments=test
+exec=local
+on_success=10
+
+task=10
+hostname=localhost
+command=echo
+arguments=whitespace_handled
+exec=local

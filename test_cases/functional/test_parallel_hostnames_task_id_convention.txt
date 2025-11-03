@@ -1,0 +1,17 @@
+# TEST_METADATA: {"description": "Parallel hostnames: subtask ID convention for task=1", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [1, 10], "expected_subtasks": ["1-110000", "1-110001", "1-110002"], "expected_warnings": 2}
+# Edge case test: task=1 with 3 hosts should generate subtasks 110000, 110001, 110002
+# Expected: Subtask IDs follow convention: 100000 + task_id * 10000 + index (reserved range)
+
+task=1
+type=parallel
+hostnames=localhost,localhost,localhost
+command=echo
+arguments=test
+exec=local
+on_success=10
+
+task=10
+hostname=localhost
+command=echo
+arguments=subtask_ids_correct
+exec=local

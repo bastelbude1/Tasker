@@ -1,0 +1,33 @@
+# TEST_METADATA: {"description": "Parallel hostnames: conditional routing with @0_success@", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_execution_path": [0, 1, 2], "expected_subtasks": ["0-100000", "0-100001", "0-100002"]}
+# Integration test: Use @0_success@ variable for conditional routing
+# Expected: All 3 hosts succeed, @0_success@ is "True", route to task 2
+
+task=0
+type=parallel
+hostnames=localhost,localhost,localhost
+command=echo
+arguments=test_@task@
+exec=local
+on_success=1
+on_failure=99
+
+task=1
+hostname=localhost
+command=echo
+arguments=parallel_block_succeeded
+condition=@0_success@=True
+exec=local
+on_success=2
+on_failure=99
+
+task=2
+hostname=localhost
+command=echo
+arguments=routing_successful
+exec=local
+
+task=99
+hostname=localhost
+command=echo
+arguments=ERROR_should_not_reach
+exec=local

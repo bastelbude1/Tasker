@@ -2505,12 +2505,17 @@ class TaskExecutor:
                         }
                     # Determine intended next task from executor result
                     # result contains the next task ID (from routing decision)
-                    # If result is None (task failed without routing), retry the same task
                     if isinstance(result, int):
                         intended_next = result
                     elif result is None:
-                        # Task failed without routing - retry this task on recovery
-                        intended_next = int(task_id)
+                        # None can mean task failed OR task intentionally stopped/succeeded
+                        # Check failure_info to distinguish: if failure_info exists, retry; otherwise no retry
+                        if failure_info is not None:
+                            # Task failed without routing - retry this task on recovery
+                            intended_next = int(task_id)
+                        else:
+                            # Task succeeded or intentionally stopped - no retry needed
+                            intended_next = None
                     else:
                         # result is "LOOP" or other string - no next task to save
                         intended_next = None

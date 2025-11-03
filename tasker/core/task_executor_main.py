@@ -2363,7 +2363,7 @@ class TaskExecutor:
                                         print(f"    Saved value: '{var_info['saved_value']}'")
 
                                 if changed_vars:
-                                    print("\nℹ️  Environment variables CHANGED since first run:")
+                                    print("\nINFO:  Environment variables CHANGED since first run:")
                                     for var_info in changed_vars:
                                         print(f"  - {var_info['name']}: '{var_info['old_value']}' → '{var_info['new_value']}'")
 

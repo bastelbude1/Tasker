@@ -1,0 +1,81 @@
+# TEST_METADATA: {"description": "Auto-recovery: Parallel routing LIMITATION", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "requires_wrapper": "recovery_test_wrapper.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "KNOWN BUG: Recovery resumes at WRONG task after parallel block routing"}
+# Automated recovery test for parallel block routing
+# **CRITICAL BUG DEMONSTRATED:** Recovery does NOT properly handle parallel block routing
+# After parallel block routes via on_success=2, recovery resumes at task 99 (on_failure target) instead
+# This test DOCUMENTS the limitation - do NOT use --auto-recovery with parallel blocks that have routing!
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
+# Global variables
+HOST_PREFIX=localhost
+
+# Task 0: Setup task
+task=0
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Starting_min_success_test
+
+# Task 1: Parallel block with min_success=3 (need 3 of 5 to succeed)
+task=1
+type=parallel
+tasks=10,11,12,13,14
+max_parallel=5
+success=min_success=3
+on_success=2
+on_failure=99
+
+# Parallel subtasks (10-14) - all should succeed
+task=10
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Subtask_10_executed
+
+task=11
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Subtask_11_executed
+
+task=12
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Subtask_12_executed
+
+task=13
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Subtask_13_executed
+
+task=14
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Subtask_14_executed
+
+# Task 2: Stateful task after parallel block - fails first run
+task=2
+hostname=@HOST_PREFIX@
+exec=local
+command=recovery_helper.sh
+arguments=test_auto_recovery_multi_task_success_min
+
+# Task 3: Final success marker
+task=3
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=Recovery_completed_min_success_evaluation_preserved
+
+# Task 99: Failure handler (should NOT execute - min_success met)
+task=99
+hostname=@HOST_PREFIX@
+exec=local
+command=echo
+arguments=ERROR_Failure_handler_should_not_execute
+return=1

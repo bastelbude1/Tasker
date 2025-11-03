@@ -9,6 +9,7 @@ unused variable warnings, inline comment detection, PARALLEL TASKS, RETRY LOGIC,
 """
 import os
 import re
+import ipaddress
 from .input_sanitizer import InputSanitizer
 from ..core.constants import MAX_VARIABLE_EXPANSION_DEPTH
 
@@ -1136,22 +1137,35 @@ class TaskValidator:
                         f"Consider breaking into multiple parallel blocks or reviewing architecture."
                     )
 
-                # Validate each hostname format (RFC-compliant)
-                import re
+                # Validate each hostname format (RFC-compliant or IPv4)
                 # RFC 1123 hostname pattern: alphanumeric, hyphens, dots; max 253 chars
-                # Also allow IPv4 addresses: XXX.XXX.XXX.XXX
+                # IPv4 addresses validated separately using ipaddress module
                 hostname_pattern = re.compile(
                     r'^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)*'  # subdomain parts
-                    r'[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$|'  # domain part
-                    r'^(\d{1,3}\.){3}\d{1,3}$'  # OR IPv4 address
+                    r'[a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?$'  # domain part
                 )
+                # Pattern to detect IPv4-like format (4 dot-separated numeric segments)
+                ipv4_like_pattern = re.compile(r'^(\d+\.){3}\d+$')
 
                 invalid_hostnames = []
                 for hostname in hostnames:
+                    # Check if it looks like an IPv4 address (4 dot-separated numbers)
+                    if ipv4_like_pattern.match(hostname):
+                        # Looks like IPv4, validate strictly as IPv4
+                        try:
+                            ipaddress.IPv4Address(hostname)
+                            # Valid IPv4, no further checks needed
+                            continue
+                        except (ipaddress.AddressValueError, ValueError) as e:
+                            # Invalid IPv4 format
+                            invalid_hostnames.append(f"{hostname} (invalid IPv4 address)")
+                            continue
+
+                    # Not IPv4-like, validate as hostname
                     if len(hostname) > 253:
-                        invalid_hostnames.append(f"{hostname} (too long: {len(hostname)} chars > 253)")
+                        invalid_hostnames.append(f"{hostname} (hostname too long: {len(hostname)} chars > 253)")
                     elif not hostname_pattern.match(hostname):
-                        invalid_hostnames.append(f"{hostname} (invalid format)")
+                        invalid_hostnames.append(f"{hostname} (invalid hostname format)")
 
                 if invalid_hostnames:
                     self.errors.append(

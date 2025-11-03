@@ -139,6 +139,7 @@ class TaskValidator:
         global_vars = {}
         errors = []
         unexpanded_vars = {}  # Track unexpanded variables for deferred validation
+        metadata = {}  # Track whether variables come from environment or are literals
         sanitizer = InputSanitizer()
 
         if not os.path.exists(task_file):
@@ -265,12 +266,21 @@ class TaskValidator:
                 # Store sanitized value (not the raw expanded value)
                 global_vars[key] = sanitize_result['value']
 
+                # Capture metadata: track if this variable came from environment or is literal
+                if original_value != expanded_value:
+                    # Variable was expanded from environment variable
+                    metadata[key] = {'source': 'env', 'template': original_value}
+                else:
+                    # Variable is a literal value
+                    metadata[key] = {'source': 'literal'}
+
         # Return success=False if any errors were accumulated during parsing
         return {
             'success': len(errors) == 0,
             'errors': errors,
             'global_vars': global_vars,
-            'unexpanded_vars': unexpanded_vars
+            'unexpanded_vars': unexpanded_vars,
+            'metadata': metadata  # Variable source tracking for recovery
         }
 
     @staticmethod

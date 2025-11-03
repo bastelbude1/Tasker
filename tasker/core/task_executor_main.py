@@ -1308,6 +1308,9 @@ class TaskExecutor:
 
         # Use the expanded global variables from TaskValidator
         self.global_vars = parse_result['global_vars']
+        metadata = parse_result.get('metadata', {})
+        # Store global vars and metadata in state manager
+        self._state_manager.set_global_vars(self.global_vars, metadata)
         global_count = len(self.global_vars)
         self.log_info(f"# Found {global_count} global variables")
         unexp = parse_result.get('unexpanded_vars', {})
@@ -2302,9 +2305,28 @@ class TaskExecutor:
                         task_id = int(task_id_str)
                         self._state_manager.store_task_result(task_id, result)
 
-                    # Restore global variables
+                    # Restore global variables with intelligent re-expansion
                     if 'global_vars' in recovery_data:
-                        self._state_manager.set_global_vars(recovery_data['global_vars'])
+                        restored_vars = recovery_data['global_vars'].copy()
+                        metadata = recovery_data.get('global_vars_metadata', {})
+
+                        # Re-expand environment-sourced variables to handle changed environment
+                        for var_name, meta in metadata.items():
+                            if meta.get('source') == 'env':
+                                template = meta.get('template', '')
+                                # Re-expand from current environment
+                                re_expanded = os.path.expandvars(template)
+                                old_value = restored_vars.get(var_name, '')
+
+                                # Only log if value changed
+                                if re_expanded != old_value:
+                                    self.log_info(f"# Re-expanded {var_name}: '{old_value}' → '{re_expanded}'")
+
+                                # Use re-expanded value (respects current environment)
+                                restored_vars[var_name] = re_expanded
+
+                        # Store restored/re-expanded variables with metadata
+                        self._state_manager.set_global_vars(restored_vars, metadata)
 
                     # Restore execution path
                     self._state_manager.set_execution_path(execution_path)

@@ -1,0 +1,36 @@
+# TEST SCENARIO: What happens when environment variable changes between runs?
+# This is a demonstration/discussion file, not an automated test
+
+# Scenario: Global variable uses environment variable
+DEPLOYMENT_TARGET=$DEPLOY_ENV
+LOG_PATH=/var/log/tasker_$HOSTNAME.log
+
+# First run with DEPLOY_ENV=production
+# Recovery state saves: DEPLOYMENT_TARGET=production
+
+# Second run with DEPLOY_ENV=staging (changed!)
+# Question: Should recovery use "production" (from state) or "staging" (from env)?
+
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Deploying to @DEPLOYMENT_TARGET@
+
+# PROBLEM SCENARIOS:
+#
+# 1. Stale credentials
+#    - First run: API_KEY=$API_KEY (expires in 1 hour)
+#    - Recovery: API_KEY from state is expired, but env has fresh key
+#
+# 2. Time-sensitive values
+#    - First run: BUILD_TIMESTAMP=$(date +%s)
+#    - Recovery: Uses old timestamp, but new builds need fresh timestamp
+#
+# 3. Hostname changes
+#    - First run: HOSTNAME=server1
+#    - Recovery: HOSTNAME changed to server2, but uses server1 from state
+#
+# 4. Session IDs
+#    - First run: SESSION_ID=$SESSION_ID (from login)
+#    - Recovery: Session expired, new login created new SESSION_ID

@@ -1,0 +1,34 @@
+# TEST_METADATA: {"description": "Auto-recovery: Environment variable re-expansion", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "requires_wrapper": "recovery_test_wrapper_env.sh", "wrapper_args": "--skip-host-validation", "skip_host_validation": true, "note": "Tests env-sourced globals re-expand during recovery"}
+# Automated recovery test for environment variable re-expansion
+# Validates that environment-sourced global variables are re-expanded during recovery
+# This ensures recovery uses current environment values, not stale saved values
+
+# File-defined arguments
+--auto-recovery
+--skip-host-validation
+
+# Global variables - mix of env-sourced and literal
+DEPLOYMENT_HOST=$TASKER_DEPLOY_HOST
+STATIC_PATH=/var/data
+BUILD_ID=$TASKER_BUILD_ID
+
+# Task 0: Display initial values
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Host:@DEPLOYMENT_HOST@ Path:@STATIC_PATH@ Build:@BUILD_ID@
+
+# Task 1: Stateful task that fails first run
+task=1
+hostname=localhost
+exec=local
+command=recovery_helper.sh
+arguments=test_auto_recovery_env_var_reexpand
+
+# Task 2: Display recovered values (should show re-expanded env vars)
+task=2
+hostname=localhost
+exec=local
+command=echo
+arguments=Recovered_Host:@DEPLOYMENT_HOST@_Build:@BUILD_ID@

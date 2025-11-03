@@ -113,6 +113,7 @@ class RecoveryStateManager:
         # Get current state from StateManager
         task_results = state_manager.get_all_task_results()
         global_vars = state_manager.get_global_vars()
+        global_vars_metadata = state_manager.get_global_vars_metadata()
         current_task = state_manager.get_current_task()
 
         # Build execution_path from successful tasks if not provided
@@ -138,6 +139,7 @@ class RecoveryStateManager:
             'intended_next_task': intended_next_task,  # Task that would execute next
             'task_results': task_results,
             'global_vars': global_vars,
+            'global_vars_metadata': global_vars_metadata,  # Variable source tracking (env vs literal)
             'loop_state': {},  # TODO: Add loop state tracking if needed
             'failure_info': failure_info
         }

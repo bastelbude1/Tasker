@@ -15,6 +15,7 @@ command=obb_portcheck_ubsmc_443
 arguments=@TARGET_HOST@
 timeout=@TIMEOUT@
 exec=local
+next=always
 
 # Task 1: Check Port 80 (HTTP - fallback)
 task=1
@@ -23,6 +24,7 @@ command=obb_portcheck_ubsmc_80
 arguments=@TARGET_HOST@
 timeout=@TIMEOUT@
 exec=local
+next=always
 
 # Task 2: Decision - Early Exit if Both Ports Failed
 task=2

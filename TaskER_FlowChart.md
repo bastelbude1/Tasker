@@ -407,39 +407,28 @@ Perfect for branching workflows where different paths handle success vs failure 
 <td width="40%">
 
 ```mermaid
-graph TB
-    %% Task with condition parameter
-    Start([Start]) --> C{Evaluate<br/>condition<br/>parameter}
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Task with<br/>condition parameter] --> B{Evaluate<br/>condition}
+    B -->|FALSE| C[Skip Task<br/>exit_code=-1<br/>skipped=true]
+    B -->|TRUE| D[Execute Task<br/>command + arguments]
+    C --> E[Continue to<br/>next sequential task]
+    D --> E
 
-    %% Conditional skip paths
-    C -->|FALSE| Skip[Task Skipped<br/>exit_code=-1<br/>Continue to next task]
-    C -->|TRUE| Exec[Execute Task<br/>command + arguments]
-
-    Exec --> Success[Store Results<br/>Apply routing]
-    Skip --> Next[Next Sequential Task]
-    Success --> Routing{Routing?}
-    Routing -->|on_success| OS[Jump to<br/>on_success task]
-    Routing -->|on_failure| OF[Jump to<br/>on_failure task]
-    Routing -->|next| Seq[Continue<br/>Sequentially]
-
-    %% Style
-    style C fill:#ede7f6,stroke:#7b1fa2,stroke-width:2px
-    style Skip fill:#E0E0E0
-    style Exec fill:#E1F5FE
-    style Success fill:#C8E6C9
-    style Routing fill:#FFE4E1
-    style OS fill:#90EE90
-    style OF fill:#FFB6C1
-    style Seq fill:#E6E6FA
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#ede7f6,stroke:#7b1fa2,stroke-width:3px
+    style C fill:#E0E0E0,stroke:#757575,stroke-width:2px
+    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style E fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
 ```
 
 </td>
 <td width="60%">
 
 ### Purpose
-Skip individual tasks based on runtime conditions (regular task parameter)
+Skip individual tasks based on runtime conditions (pre-execution check)
 
-### Required Parameters
+### Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -450,38 +439,33 @@ Skip individual tasks based on runtime conditions (regular task parameter)
 
 ### Example
 ```bash
+# Task 1: Restart service (only if check succeeded)
 task=1
-hostname=web-server
-command=restart_service
-# Skip if previous task failed
+hostname=localhost
 condition=@0_exit@=0
-on_success=10
-on_failure=99
+command=echo
+arguments=Restarting service
+exec=local
 ```
-
 
 ### Entry Point
 Can be entry point or follow any block
 
-
 ### Behavior
 - Evaluates `condition` **before** executing task
-- If `condition` FALSE → Task **skipped**, continue to next sequential task
-- If `condition` TRUE → Task executes normally
-- Skipped tasks store: `exit_code=-1`, `stderr='Task skipped due to condition'`
-- Can be combined with routing (`on_success`, `on_failure`, `next`)
+- **If condition FALSE:**
+  - Task is skipped (not executed)
+  - Result: `exit_code=-1`, `stderr='Task skipped due to condition'`, `skipped=true`
+  - Workflow continues to next sequential task
+- **If condition TRUE:**
+  - Task executes normally
+  - Normal task logic applies (routing, success/failure handling, etc.)
 
-**Key Distinctions:**
-
-| Mechanism | Skip Logic | Routing | Use Case |
-|-----------|------------|---------|----------|
-| Task Condition | Individual task | ✅ Allowed | Skip specific tasks in sequence |
-| Decision Block | No execution | ✅ Purpose | Pure routing based on data |
-| Conditional Block | Task groups | ❌ Not allowed | Execute groups of tasks |
+**Note:** Routing parameters (`on_success`, `on_failure`, `next`) work normally if task executes. See Section 3 for routing details.
 
 ### Next Block
-- If skipped → Continue to next sequential task
-- If executed → Apply routing (`on_success`, `on_failure`) or continue sequentially
+- Always continues to next sequential task (skipped or executed)
+- If executed and has routing: routing applies normally
 
 </td>
 </tr>

@@ -193,11 +193,185 @@ Can follow any block that executes
 </tr>
 </table>
 
-## 4. Decision Block
+## 4. Loop Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Task Execution Block] --> B{LOOP?}
+    B -->|Counter < Max & Break Condition False| A
+    B -->|Counter >= Max OR Break Condition True| C[Continue Workflow]
+
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#fff8e1,stroke:#f57c00,stroke-width:3px
+    style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `loop` | Integer | ✅ Yes | Number of iterations to execute (1-1000) |
+| `next` | String | ✅ Yes | Must be "loop" |
+| `loop_break` | String | ❌ Optional | Condition to break out of loop early |
+
+### Example
+```bash
+task=0
+hostname=localhost
+command=conditional_exit.sh
+arguments=3
+exec=local
+loop=10
+next=loop
+loop_break=exit_0
+```
+
+
+### Entry Point
+Applied to any Execution Block
+
+### Behavior
+- Repeats the same task for specified number of iterations
+- `loop=3` means task executes exactly 3 times (Task X.1, X.2, X.3)
+- `next=loop` is mandatory to enable loop functionality
+- `loop_break` condition can terminate loop early if met
+- **Loop vs Retry**: Loops execute ALL iterations regardless of success/failure (unless `loop_break` is met). This differs from retry logic (Section 9), which ONLY retries tasks that fail.
+- **Only the LAST iteration result is stored** - `@X_stdout@` references get final iteration output
+- Task IDs are displayed with iteration numbers (e.g., Task 5.1, 5.2, 5.3)
+- Useful for retry patterns or periodic checks
+
+</td>
+</tr>
+</table>
+
+## 5. End Block
+
+End blocks provide explicit workflow termination with success or failure status.
+
+### 5.1 End Success Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A((END SUCCESS))
+
+    style A fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `next` | String | ❌ Optional | Must be "never" |
+| `return` | Integer | ❌ Optional | Exit code 0 |
+
+### Examples
+
+**Stop workflow successfully:**
+```bash
+task=99
+next=never
+```
+
+**Explicit success with exit code:**
+```bash
+task=100
+return=0
+```
+
+
+### Entry Point
+Terminal block - workflow ends successfully
+
+### Behavior
+- Workflow terminates with success status
+- Default exit code: 0
+- Overall workflow result: SUCCESS
+
+</td>
+</tr>
+</table>
+
+### 5.2 End Failure Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A((END FAILURE))
+
+    style A fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `next` | String | ❌ Optional | Must be "never" |
+| `return` | Integer | ✅ Yes | Exit code 1-255 |
+
+### Examples
+
+**Stop workflow with failure:**
+```bash
+task=98
+return=1
+```
+
+**Stop with specific error code:**
+```bash
+task=97
+return=14
+```
+
+**Explicit failure with never:**
+```bash
+task=96
+next=never
+return=1
+```
+
+
+### Entry Point
+Terminal block - workflow ends with failure
+
+### Behavior
+- Workflow terminates with failure status
+- Exit code: 1-255 (non-zero = failure)
+- Overall workflow result: FAILURE
+
+</td>
+</tr>
+</table>
+
+## 6. Decision Block
 
 Decision blocks provide lightweight conditional routing without command execution. Two routing patterns available:
 
-### 4.1 Decision Block with next Parameter
+### 6.1 Decision Block with next Parameter
 
 <table>
 <tr>
@@ -260,7 +434,7 @@ Perfect for early exit scenarios where you want to stop if a condition fails.
 </tr>
 </table>
 
-### 4.2 Decision Block with on_success/on_failure
+### 6.2 Decision Block with on_success/on_failure
 
 <table>
 <tr>
@@ -331,7 +505,7 @@ Perfect for branching workflows where different paths handle success vs failure 
 ### Next Block
 → Jump to specified task ID or continue/stop based on routing
 
-## 5. Conditional Execution (Task Level)
+## 7. Conditional Execution (Task Level)
 
 <table>
 <tr>
@@ -392,7 +566,7 @@ Can be entry point or follow any block
   - Task executes normally
   - Normal task logic applies (routing, success/failure handling, etc.)
 
-**Note:** Routing parameters (`on_success`, `on_failure`, `next`) work normally if task executes. See Section 3 for routing details.
+**Note:** Routing parameters (`on_success`, `on_failure`, `next`) work normally if task executes. See Section 2 for routing details.
 
 ### Next Block
 - Always continues to next sequential task (skipped or executed)
@@ -402,73 +576,14 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 6. Loop Block
-
-<table>
-<tr>
-<td width="40%">
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
-flowchart TD
-    A[Task Execution Block] --> B{LOOP?}
-    B -->|Counter < Max & Break Condition False| A
-    B -->|Counter >= Max OR Break Condition True| C[Continue Workflow]
-
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#fff8e1,stroke:#f57c00,stroke-width:3px
-    style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-```
-
-</td>
-<td width="60%">
-
-### Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `loop` | Integer | ✅ Yes | Number of iterations to execute (1-1000) |
-| `next` | String | ✅ Yes | Must be "loop" |
-| `loop_break` | String | ❌ Optional | Condition to break out of loop early |
-
-### Example
-```bash
-task=0
-hostname=localhost
-command=conditional_exit.sh
-arguments=3
-exec=local
-loop=10
-next=loop
-loop_break=exit_0
-```
-
-
-### Entry Point
-Applied to any Execution Block
-
-### Behavior
-- Repeats the same task for specified number of iterations
-- `loop=3` means task executes exactly 3 times (Task X.1, X.2, X.3)
-- `next=loop` is mandatory to enable loop functionality
-- `loop_break` condition can terminate loop early if met
-- **Loop vs Retry**: Loops execute ALL iterations regardless of success/failure (unless `loop_break` is met). This differs from retry logic (Section 8-9), which ONLY retries tasks that fail.
-- **Only the LAST iteration result is stored** - `@X_stdout@` references get final iteration output
-- Task IDs are displayed with iteration numbers (e.g., Task 5.1, 5.2, 5.3)
-- Useful for retry patterns or periodic checks
-
-</td>
-</tr>
-</table>
-
-## 7. Conditional Block
+## 8. Conditional Block
 
 Conditional blocks provide branching logic based on runtime evaluation. Two execution patterns available:
 
-- **Basic Conditional** (7.1): Execute if_true_tasks or if_false_tasks based on condition evaluation
-- **Conditional with Retry** (7.2): Adds automatic retry capability for failed tasks in chosen branch
+- **Basic Conditional** (8.1): Execute if_true_tasks or if_false_tasks based on condition evaluation
+- **Conditional with Retry** (8.2): Adds automatic retry capability for failed tasks in chosen branch
 
-### 7.1 Conditional Block (Basic)
+### 8.1 Conditional Block (Basic)
 
 <table>
 <tr>
@@ -522,7 +637,7 @@ Can be entry point or follow any block
 - If TRUE → Execute tasks in `if_true_tasks` list
 - If FALSE → Execute tasks in `if_false_tasks` list
 - Tasks execute sequentially in specified order (10,11,12)
-- Results feed into Multi-Task Success Evaluation Block (see # 9.1)
+- Results feed into Multi-Task Success Evaluation Block (see # 10.1)
 
 **CRITICAL Routing Restrictions:**
 - **Subtasks CANNOT have routing parameters** (`on_success`, `on_failure`, `next=never/loop`)
@@ -544,7 +659,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-### 7.2 Conditional Block with Retry
+### 8.2 Conditional Block with Retry
 
 <table>
 <tr>
@@ -607,27 +722,27 @@ Can be entry point or follow any block
 - Evaluates boolean condition expression
 - If TRUE → Execute tasks in `if_true_tasks` list
 - If FALSE → Execute tasks in `if_false_tasks` list
-- **Retry vs Loop**: Failed tasks in chosen branch are automatically retried up to `retry_count` times. This differs from loop logic (Section 6), which executes ALL iterations regardless of success/failure.
+- **Retry vs Loop**: Failed tasks in chosen branch are automatically retried up to `retry_count` times. This differs from loop logic (Section 4), which executes ALL iterations regardless of success/failure.
 - Tasks execute sequentially with retry logic
-- Results feed into Multi-Task Success Evaluation Block (see # 9.1)
+- Results feed into Multi-Task Success Evaluation Block (see # 10.1)
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (# 9.1)
+→ Multi-Task Success Evaluation Block (# 10.1)
 
 </td>
 </tr>
 </table>
 
-## 8. Parallel Block
+## 9. Parallel Block
 
 Parallel blocks enable concurrent task execution using threading. Four execution patterns available:
 
-- **Parallel Task Block** (8.1): Execute multiple independent tasks simultaneously
-- **Parallel Task with Retry** (8.2): Adds automatic retry capability for failed tasks
-- **Parallel Host Block** (8.3): Execute same command across multiple hosts (NEW v2.1)
-- **Parallel Host with Retry** (8.4): Combines multi-host execution with retry logic (NEW v2.1)
+- **Parallel Task Block** (9.1): Execute multiple independent tasks simultaneously
+- **Parallel Task with Retry** (9.2): Adds automatic retry capability for failed tasks
+- **Parallel Host Block** (9.3): Execute same command across multiple hosts (NEW v2.1)
+- **Parallel Host with Retry** (9.4): Combines multi-host execution with retry logic (NEW v2.1)
 
-### 8.1 Parallel Task Block
+### 9.1 Parallel Task Block
 
 <table>
 <tr>
@@ -677,7 +792,7 @@ Can be entry point or follow any block
 
 ### Behavior
 - Executes multiple tasks simultaneously with threading
-- Results feed into Multi-Task Success Evaluation Block (see #9)
+- Results feed into Multi-Task Success Evaluation Block (see #10)
 - Faster execution than sequential processing
 
 **CRITICAL Routing Restrictions:**
@@ -694,13 +809,13 @@ Can be entry point or follow any block
 - Use `--skip-subtask-range-validation` to suppress warnings
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (#9)
+→ Multi-Task Success Evaluation Block (#10)
 
 </td>
 </tr>
 </table>
 
-### 8.2 Parallel Task Block with Retry
+### 9.2 Parallel Task Block with Retry
 
 <table>
 <tr>
@@ -764,19 +879,19 @@ Can be entry point or follow any block
 
 ### Behavior
 - Executes multiple tasks simultaneously with threading
-- **Retry vs Loop**: Failed tasks are automatically retried up to `retry_count` times. This differs from loop logic (Section 6), which executes ALL iterations regardless of success/failure.
+- **Retry vs Loop**: Failed tasks are automatically retried up to `retry_count` times. This differs from loop logic (Section 4), which executes ALL iterations regardless of success/failure.
 - `retry_delay` seconds between retry attempts
-- Results feed into Multi-Task Success Evaluation Block (see #9)
+- Results feed into Multi-Task Success Evaluation Block (see #10)
 - More resilient than basic parallel execution
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (#9)
+→ Multi-Task Success Evaluation Block (#10)
 
 </td>
 </tr>
 </table>
 
-### 8.3 Parallel Host Block (NEW v2.1)
+### 9.3 Parallel Host Block (NEW v2.1)
 
 <table>
 <tr>
@@ -854,13 +969,13 @@ Can be entry point or follow any block
 
 ### Next Block
 
-→ Multi-Task Success Evaluation Block (#9)
+→ Multi-Task Success Evaluation Block (#10)
 
 </td>
 </tr>
 </table>
 
-### 8.4 Parallel Host Block with Retry (NEW v2.1)
+### 9.4 Parallel Host Block with Retry (NEW v2.1)
 
 <table>
 <tr>
@@ -943,20 +1058,20 @@ Can be entry point or follow any block
 - Example: `arguments=-sf http://localhost/health?id=@task@`
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (#9)
+→ Multi-Task Success Evaluation Block (#10)
 
 </td>
 </tr>
 </table>
 
-## 9. Multi-Task Success Evaluation Block
+## 10. Multi-Task Success Evaluation Block
 
 Multi-task success evaluation determines workflow routing after parallel or conditional blocks complete. Two routing patterns available:
 
-- **Using next Parameter** (9.1): Continue or stop workflow based on success criteria
-- **Using on_success/on_failure** (9.2): Jump to specific task IDs based on success criteria
+- **Using next Parameter** (10.1): Continue or stop workflow based on success criteria
+- **Using on_success/on_failure** (10.2): Jump to specific task IDs based on success criteria
 
-### 9.1 Multi-Task Success Evaluation Block (next)
+### 10.1 Multi-Task Success Evaluation Block (next)
 
 <table>
 <tr>
@@ -1011,7 +1126,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-### 9.2 Multi-Task Success Evaluation Block (on_success/on_failure)
+### 10.2 Multi-Task Success Evaluation Block (on_success/on_failure)
 
 <table>
 <tr>
@@ -1064,118 +1179,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-## 10. End Success Block
-
-<table>
-<tr>
-<td width="40%">
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
-flowchart TD
-    A((END SUCCESS))
-
-    style A fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-```
-
-</td>
-<td width="60%">
-
-### Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `task` | Integer | ✅ Yes | Unique task identifier |
-| `next` | String | ❌ Optional | Must be "never" |
-| `return` | Integer | ❌ Optional | Exit code 0 |
-
-### Examples
-
-**Stop workflow successfully:**
-```bash
-task=99
-next=never
-```
-
-**Explicit success with exit code:**
-```bash
-task=100
-return=0
-```
-
-
-### Entry Point
-Terminal block - workflow ends successfully
-
-### Behavior
-- Workflow terminates with success status
-- Default exit code: 0
-- Overall workflow result: SUCCESS
-
-</td>
-</tr>
-</table>
-
-## 11. End Failure Block
-
-<table>
-<tr>
-<td width="40%">
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
-flowchart TD
-    A((END FAILURE))
-
-    style A fill:#ffcdd2,stroke:#c62828,stroke-width:3px
-```
-
-</td>
-<td width="60%">
-
-### Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `task` | Integer | ✅ Yes | Unique task identifier |
-| `next` | String | ❌ Optional | Must be "never" |
-| `return` | Integer | ✅ Yes | Exit code 1-255 |
-
-### Examples
-
-**Stop workflow with failure:**
-```bash
-task=98
-return=1
-```
-
-**Stop with specific error code:**
-```bash
-task=97
-return=14
-```
-
-**Explicit failure with never:**
-```bash
-task=96
-next=never
-return=1
-```
-
-
-### Entry Point
-Terminal block - workflow ends with failure
-
-### Behavior
-- Workflow terminates with failure status
-- Exit code: 1-255 (non-zero = failure)
-- Overall workflow result: FAILURE
-
-</td>
-</tr>
-</table>
-
-## 12. Configuration Definition Block
+## 11. Configuration Definition Block
 
 <table>
 <tr>
@@ -1239,7 +1243,7 @@ exec=pbrun               # Override default exec type
 </tr>
 </table>
 
-## 13. File-Defined Arguments Block
+## 12. File-Defined Arguments Block
 
 <table>
 <tr>
@@ -1354,7 +1358,7 @@ ENVIRONMENT=production
 </tr>
 </table>
 
-## 14. Global Variable Definition Block
+## 13. Global Variable Definition Block
 
 <table>
 <tr>
@@ -1401,7 +1405,7 @@ Must be at the beginning of workflow file
 </tr>
 </table>
 
-## 15. Output Processing Block
+## 14. Output Processing Block
 
 <table>
 <tr>

@@ -1,5 +1,7 @@
 # TaskER FlowChart Block Inventory
 
+<!-- markdownlint-disable MD024 - Duplicate headings (Parameters, Example, Entry Point, Behavior) are intentional for consistent block structure -->
+
 This document provides a visual inventory of TaskER workflow blocks with their corresponding parameters.
 
 ## Table of Contents
@@ -106,7 +108,7 @@ next=success
 
 ### Entry Point
 
-Follows after Task Execution Block
+This block follows after the Task Execution Block.
 
 ### Behavior
 
@@ -161,7 +163,7 @@ on_failure=99
 
 ### Entry Point
 
-Follows after Task Execution Block
+This block follows after the Task Execution Block.
 
 ### Behavior
 
@@ -209,7 +211,7 @@ sleep=5
 
 ### Entry Point
 
-Can follow any block that executes
+This block can follow any block that executes.
 
 ### Behavior
 
@@ -265,7 +267,7 @@ loop_break=exit_0
 
 ### Entry Point
 
-Applied to any Execution Block
+This parameter is applied to any Execution Block.
 
 ### Behavior
 
@@ -329,7 +331,7 @@ return=0
 
 ### Entry Point
 
-Terminal block - workflow ends successfully
+This is a terminal block that ends the workflow successfully.
 
 ### Behavior
 
@@ -392,7 +394,7 @@ return=1
 
 ### Entry Point
 
-Terminal block - workflow ends with failure
+This is a terminal block that ends the workflow with failure.
 
 ### Behavior
 
@@ -604,7 +606,7 @@ exec=local
 
 ### Entry Point
 
-Can be entry point or follow any block
+This block can be an entry point or follow any block.
 
 ### Behavior
 
@@ -682,7 +684,7 @@ if_false_tasks=20,21
 
 ### Entry Point
 
-Can be entry point or follow any block
+This block can be an entry point or follow any block.
 
 ### Behavior
 
@@ -703,7 +705,8 @@ Can be entry point or follow any block
 - Recommended: Task N subtasks in range `[N*100, (N+1)*100-1]`
 - Example: Task 2 subtasks → 200-299 (calculation: 2×100=200 to 3×100-1=299)
 - Example: Task 1 subtasks → 100-199, Task 5 subtasks → 500-599
-- Use `--skip-subtask-range-validation` to suppress warnings
+- Use `--skip-subtask-range-validation` CLI flag to suppress warnings if using custom numbering schemes
+- **When to deviate**: Legacy workflows, specific organizational standards, or complex multi-level branching
 
 ### Next Block
 
@@ -770,7 +773,7 @@ retry_delay=3
 
 ### Entry Point
 
-Can be entry point or follow any block
+This block can be an entry point or follow any block.
 
 ### Behavior
 
@@ -844,7 +847,7 @@ max_parallel=2
 
 ### Entry Point
 
-Can be entry point or follow any block
+This block can be an entry point or follow any block.
 
 ### Behavior
 
@@ -863,7 +866,8 @@ Can be entry point or follow any block
 - Recommended: Task N subtasks in range `[N*100, (N+1)*100-1]`
 - Example: Task 2 subtasks → 200-299 (calculation: 2×100=200 to 3×100-1=299)
 - Example: Task 1 subtasks → 100-199, Task 5 subtasks → 500-599
-- Use `--skip-subtask-range-validation` to suppress warnings
+- Use `--skip-subtask-range-validation` CLI flag to suppress warnings if using custom numbering schemes
+- **When to deviate**: Legacy workflows, specific organizational standards, or complex multi-level branching
 
 ### Next Block
 
@@ -933,7 +937,7 @@ retry_delay=5
 
 ### Entry Point
 
-Can be entry point or follow any block
+This block can be an entry point or follow any block.
 
 ### Behavior
 
@@ -1005,7 +1009,7 @@ on_success=10
 
 ### Entry Point
 
-Can be entry point or follow any block
+This block can be an entry point or follow any block.
 
 ### Behavior
 
@@ -1103,7 +1107,7 @@ on_success=10
 
 ### Entry Point
 
-Can be entry point or follow any block
+This block can be an entry point or follow any block.
 
 ### Behavior
 
@@ -1180,7 +1184,7 @@ next=min_success=3
 
 ### Entry Point
 
-Follows after Parallel Block or Conditional Block
+This block follows after a Parallel Block or Conditional Block.
 
 ### Behavior
 
@@ -1237,7 +1241,7 @@ on_failure=99
 
 ### Entry Point
 
-Follows after Parallel Block or Conditional Block
+This block follows after a Parallel Block or Conditional Block.
 
 ### Behavior
 
@@ -1293,7 +1297,7 @@ exec=pbrun                # Override default exec type
 
 ### Entry Point
 
-Applied to individual tasks to override TASKER defaults
+This block is applied to individual tasks to override TASKER defaults.
 
 ### Behavior
 
@@ -1481,7 +1485,7 @@ HOME_DIR=$HOME
 
 ### Entry Point
 
-Must be at the beginning of workflow file
+This block must be at the beginning of the workflow file.
 
 ### Behavior
 
@@ -1556,7 +1560,7 @@ stderr_split=space,0    # Split by spaces, get 1st element
 
 ### Entry Point
 
-Applied to any task that produces output
+This block is applied to any task that produces output.
 
 ### Behavior
 

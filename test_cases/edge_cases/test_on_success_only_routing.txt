@@ -1,0 +1,32 @@
+# TEST_METADATA: {"description": "Test on_success ONLY routing - success jumps, failure exits with code 10", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 10], "expected_final_task": 10}
+
+# Test Pattern 2: on_success ONLY
+# Expected behavior:
+# - If task succeeds: jumps to on_success target (task 10)
+# - If task fails: workflow exits with code 10 (no on_failure specified)
+
+# Global variables
+SERVER=localhost
+
+# Task 0: Command that succeeds - should jump to task 10
+task=0
+hostname=@SERVER@
+command=echo
+arguments=Task 0 succeeded
+exec=local
+on_success=10
+
+# Task 1: Should be SKIPPED (not in execution path because task 0 jumps to 10)
+task=1
+hostname=@SERVER@
+command=echo
+arguments=Task 1 should never execute
+exec=local
+
+# Task 10: Success target (jumped to from task 0)
+task=10
+hostname=@SERVER@
+command=echo
+arguments=SUCCESS: Jumped to task 10 via on_success
+exec=local
+next=never

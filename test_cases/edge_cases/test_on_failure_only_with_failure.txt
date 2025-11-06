@@ -1,0 +1,33 @@
+# TEST_METADATA: {"description": "Test on_failure ONLY when task FAILS - should jump to failure handler", "test_type": "positive", "expected_exit_code": 1, "expected_success": false, "expected_execution_path": [0, 99], "expected_final_task": 99}
+
+# Test Pattern 1 FAILURE case: on_failure ONLY with failing task
+# Expected behavior:
+# - Task fails (exit code 1)
+# - on_failure specified → jumps to error handler (task 99)
+# - Error handler executes and returns with code 1
+
+# Global variables
+SERVER=localhost
+
+# Task 0: Command that FAILS - should jump to task 99
+task=0
+hostname=@SERVER@
+command=sh
+arguments=-c "echo 'Task 0 failed' && exit 1"
+exec=local
+on_failure=99
+
+# Task 1: Should be SKIPPED (task 0 failed and jumped to 99)
+task=1
+hostname=@SERVER@
+command=echo
+arguments=Task 1 should never execute
+exec=local
+
+# Task 99: Error handler (should execute via on_failure jump)
+task=99
+hostname=@SERVER@
+command=echo
+arguments=ERROR HANDLER: Caught failure via on_failure routing
+exec=local
+return=1

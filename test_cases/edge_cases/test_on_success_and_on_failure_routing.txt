@@ -1,0 +1,42 @@
+# TEST_METADATA: {"description": "Test BOTH on_success and on_failure routing - explicit routing for all outcomes", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 10], "expected_final_task": 10}
+
+# Test Pattern 3: BOTH on_success and on_failure
+# Expected behavior:
+# - If task succeeds: jumps to on_success target
+# - If task fails: jumps to on_failure target
+# - Explicit routing for all outcomes
+
+# Global variables
+SERVER=localhost
+
+# Task 0: Command that succeeds - should jump to task 10
+task=0
+hostname=@SERVER@
+command=echo
+arguments=Task 0 succeeded
+exec=local
+on_success=10
+on_failure=99
+
+# Task 1: Should be SKIPPED (not in execution path)
+task=1
+hostname=@SERVER@
+command=echo
+arguments=Task 1 should never execute
+exec=local
+
+# Task 10: Success target
+task=10
+hostname=@SERVER@
+command=echo
+arguments=SUCCESS: Explicit routing to success handler
+exec=local
+next=never
+
+# Task 99: Failure target (should NOT execute in this test)
+task=99
+hostname=@SERVER@
+command=echo
+arguments=ERROR: Should never reach here in success case
+exec=local
+return=1

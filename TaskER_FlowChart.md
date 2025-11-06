@@ -193,14 +193,282 @@ Can follow any block that executes
 </tr>
 </table>
 
-## 4. Conditional Block
+## 4. Decision Block
+
+Decision blocks provide lightweight conditional routing without command execution. Two routing patterns available:
+
+### 4.1 Decision Block with next Parameter
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Decision Block<br/>Evaluate Condition] --> B{SUCCESS}
+    B -->|next condition met| C[Continue to Next Task]
+    B -->|next condition not met| D((END))
+
+    style A fill:#FFE4E1,stroke:#DC143C,stroke-width:3px
+    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Purpose
+Simple pass/fail gate using `next` parameter for routing
+
+### Required Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `type` | String | ✅ Yes | Must be "decision" |
+| `success` | String | ✅ Yes* | Success condition to evaluate |
+| `next` | String | ⚠️ Optional | Routing: always, never, success (default) |
+
+*Either `success` OR `failure` is required.
+
+### Example
+```bash
+# Early exit if both ports failed
+task=2
+type=decision
+success=@0_exit@=0|@1_exit@=0
+next=success
+# If TRUE → continue (next=success evaluates TRUE)
+# If FALSE → stop (next=success evaluates FALSE)
+```
+
+### Behavior
+**Default behavior (`next=success` if missing):**
+- Condition TRUE → Continue to next task
+- Condition FALSE → **Workflow STOPS**
+
+**Other `next` values:**
+- `next=always` → Always continue regardless
+- `next=never` → Always stop regardless
+
+### Use Case
+Perfect for early exit scenarios where you want to stop if a condition fails.
+
+</td>
+</tr>
+</table>
+
+### 4.2 Decision Block with on_success/on_failure
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Decision Block<br/>Evaluate Condition] --> B{SUCCESS}
+    B -->|Success| C[Jump to on_success Task]
+    B -->|Failure| D[Jump to on_failure Task]
+
+    style A fill:#FFE4E1,stroke:#DC143C,stroke-width:3px
+    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Purpose
+Explicit routing to different task paths based on condition result
+
+### Required Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `type` | String | ✅ Yes | Must be "decision" |
+| `success` | String | ✅ Yes* | Success condition to evaluate |
+| `on_success` | Integer | ⚠️ Optional** | Task ID for TRUE path |
+| `on_failure` | Integer | ⚠️ Optional** | Task ID for FALSE path |
+
+*Either `success` OR `failure` is required.
+**At least one routing parameter recommended.
+
+### Example
+```bash
+# Route based on port availability
+task=2
+type=decision
+success=@0_exit@=0|@1_exit@=0
+on_success=3
+on_failure=99
+# If TRUE → jump to task 3 (try downloads)
+# If FALSE → jump to task 99 (error handler)
+```
+
+### Behavior
+**Routing Priority:**
+1. Check `on_success` or `on_failure` based on condition result
+2. If not defined, falls back to `next` parameter logic
+
+### Use Case
+Perfect for branching workflows where different paths handle success vs failure differently.
+
+</td>
+</tr>
+</table>
+
+### Key Differences from Conditional Block
+- No command execution (no `hostname`, `command`, `arguments`)
+- No task branches (`if_true_tasks`, `if_false_tasks`)
+- Pure routing logic - lighter weight
+- Uses familiar success/failure condition syntax
+
+### Next Block
+→ Jump to specified task ID or continue/stop based on routing
+
+## 5. Task-Level Conditional Execution
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Task with<br/>condition parameter] --> B{Evaluate<br/>condition}
+    B -->|FALSE| C[Skip Task<br/>exit_code=-1<br/>skipped=true]
+    B -->|TRUE| D[Execute Task<br/>command + arguments]
+    C --> E[Continue to<br/>next sequential task]
+    D --> E
+
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#ede7f6,stroke:#7b1fa2,stroke-width:3px
+    style C fill:#E0E0E0,stroke:#757575,stroke-width:2px
+    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style E fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+```
+
+</td>
+<td width="60%">
+
+### Purpose
+Skip individual tasks based on runtime conditions (pre-execution check)
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `condition` | String | ✅ Yes | Condition to evaluate before execution |
+| `command` | String | ✅ Yes | Command to execute if condition TRUE |
+| `hostname` | String | ✅ Yes | Target host |
+
+### Example
+```bash
+# Task 1: Restart service (only if check succeeded)
+task=1
+hostname=localhost
+condition=@0_exit@=0
+command=echo
+arguments=Restarting service
+exec=local
+```
+
+### Entry Point
+Can be entry point or follow any block
+
+### Behavior
+- Evaluates `condition` **before** executing task
+- **If condition FALSE:**
+  - Task is skipped (not executed)
+  - Result: `exit_code=-1`, `stderr='Task skipped due to condition'`, `skipped=true`
+  - Workflow continues to next sequential task
+- **If condition TRUE:**
+  - Task executes normally
+  - Normal task logic applies (routing, success/failure handling, etc.)
+
+**Note:** Routing parameters (`on_success`, `on_failure`, `next`) work normally if task executes. See Section 3 for routing details.
+
+### Next Block
+- Always continues to next sequential task (skipped or executed)
+- If executed and has routing: routing applies normally
+
+</td>
+</tr>
+</table>
+
+## 6. Loop Block
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A[Task Execution Block] --> B{LOOP?}
+    B -->|Counter < Max & Break Condition False| A
+    B -->|Counter >= Max OR Break Condition True| C[Continue Workflow]
+
+    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style B fill:#fff8e1,stroke:#f57c00,stroke-width:3px
+    style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `loop` | Integer | ✅ Yes | Number of iterations to execute (1-1000) |
+| `next` | String | ✅ Yes | Must be "loop" |
+| `loop_break` | String | ❌ Optional | Condition to break out of loop early |
+
+### Example
+```bash
+task=0
+hostname=localhost
+command=conditional_exit.sh
+arguments=3
+exec=local
+loop=10
+next=loop
+loop_break=exit_0
+```
+
+
+### Entry Point
+Applied to any Execution Block
+
+### Behavior
+- Repeats the same task for specified number of iterations
+- `loop=3` means task executes exactly 3 times (Task X.1, X.2, X.3)
+- `next=loop` is mandatory to enable loop functionality
+- `loop_break` condition can terminate loop early if met
+- **Loop vs Retry**: Loops execute ALL iterations regardless of success/failure (unless `loop_break` is met). This differs from retry logic (Section 8-9), which ONLY retries tasks that fail.
+- **Only the LAST iteration result is stored** - `@X_stdout@` references get final iteration output
+- Task IDs are displayed with iteration numbers (e.g., Task 5.1, 5.2, 5.3)
+- Useful for retry patterns or periodic checks
+
+</td>
+</tr>
+</table>
+
+## 7. Conditional Block
 
 Conditional blocks provide branching logic based on runtime evaluation. Two execution patterns available:
 
-- **Basic Conditional** (4.1): Execute if_true_tasks or if_false_tasks based on condition evaluation
-- **Conditional with Retry** (4.2): Adds automatic retry capability for failed tasks in chosen branch
+- **Basic Conditional** (7.1): Execute if_true_tasks or if_false_tasks based on condition evaluation
+- **Conditional with Retry** (7.2): Adds automatic retry capability for failed tasks in chosen branch
 
-### 4.1 Conditional Block (Basic)
+### 7.1 Conditional Block (Basic)
 
 <table>
 <tr>
@@ -276,7 +544,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-### 4.2 Conditional Block with Retry
+### 7.2 Conditional Block with Retry
 
 <table>
 <tr>
@@ -345,274 +613,6 @@ Can be entry point or follow any block
 
 ### Next Block
 → Multi-Task Success Evaluation Block (# 9.1)
-
-</td>
-</tr>
-</table>
-
-## 5. Decision Block
-
-Decision blocks provide lightweight conditional routing without command execution. Two routing patterns available:
-
-### 5.1 Decision Block with next Parameter
-
-<table>
-<tr>
-<td width="40%">
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
-flowchart TD
-    A[Decision Block<br/>Evaluate Condition] --> B{SUCCESS}
-    B -->|next condition met| C[Continue to Next Task]
-    B -->|next condition not met| D((END))
-
-    style A fill:#FFE4E1,stroke:#DC143C,stroke-width:3px
-    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
-    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-    style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
-```
-
-</td>
-<td width="60%">
-
-### Purpose
-Simple pass/fail gate using `next` parameter for routing
-
-### Required Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `task` | Integer | ✅ Yes | Unique task identifier |
-| `type` | String | ✅ Yes | Must be "decision" |
-| `success` | String | ✅ Yes* | Success condition to evaluate |
-| `next` | String | ⚠️ Optional | Routing: always, never, success (default) |
-
-*Either `success` OR `failure` is required.
-
-### Example
-```bash
-# Early exit if both ports failed
-task=2
-type=decision
-success=@0_exit@=0|@1_exit@=0
-next=success
-# If TRUE → continue (next=success evaluates TRUE)
-# If FALSE → stop (next=success evaluates FALSE)
-```
-
-### Behavior
-**Default behavior (`next=success` if missing):**
-- Condition TRUE → Continue to next task
-- Condition FALSE → **Workflow STOPS**
-
-**Other `next` values:**
-- `next=always` → Always continue regardless
-- `next=never` → Always stop regardless
-
-### Use Case
-Perfect for early exit scenarios where you want to stop if a condition fails.
-
-</td>
-</tr>
-</table>
-
-### 5.2 Decision Block with on_success/on_failure
-
-<table>
-<tr>
-<td width="40%">
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
-flowchart TD
-    A[Decision Block<br/>Evaluate Condition] --> B{SUCCESS}
-    B -->|Success| C[Jump to on_success Task]
-    B -->|Failure| D[Jump to on_failure Task]
-
-    style A fill:#FFE4E1,stroke:#DC143C,stroke-width:3px
-    style B fill:#ffecb3,stroke:#f57f17,stroke-width:3px
-    style C fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-    style D fill:#ffcdd2,stroke:#c62828,stroke-width:3px
-```
-
-</td>
-<td width="60%">
-
-### Purpose
-Explicit routing to different task paths based on condition result
-
-### Required Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `task` | Integer | ✅ Yes | Unique task identifier |
-| `type` | String | ✅ Yes | Must be "decision" |
-| `success` | String | ✅ Yes* | Success condition to evaluate |
-| `on_success` | Integer | ⚠️ Optional** | Task ID for TRUE path |
-| `on_failure` | Integer | ⚠️ Optional** | Task ID for FALSE path |
-
-*Either `success` OR `failure` is required.
-**At least one routing parameter recommended.
-
-### Example
-```bash
-# Route based on port availability
-task=2
-type=decision
-success=@0_exit@=0|@1_exit@=0
-on_success=3
-on_failure=99
-# If TRUE → jump to task 3 (try downloads)
-# If FALSE → jump to task 99 (error handler)
-```
-
-### Behavior
-**Routing Priority:**
-1. Check `on_success` or `on_failure` based on condition result
-2. If not defined, falls back to `next` parameter logic
-
-### Use Case
-Perfect for branching workflows where different paths handle success vs failure differently.
-
-</td>
-</tr>
-</table>
-
-### Key Differences from Conditional Block
-- No command execution (no `hostname`, `command`, `arguments`)
-- No task branches (`if_true_tasks`, `if_false_tasks`)
-- Pure routing logic - lighter weight
-- Uses familiar success/failure condition syntax
-
-### Next Block
-→ Jump to specified task ID or continue/stop based on routing
-
-## 6. Task-Level Conditional Execution
-
-<table>
-<tr>
-<td width="40%">
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
-flowchart TD
-    A[Task with<br/>condition parameter] --> B{Evaluate<br/>condition}
-    B -->|FALSE| C[Skip Task<br/>exit_code=-1<br/>skipped=true]
-    B -->|TRUE| D[Execute Task<br/>command + arguments]
-    C --> E[Continue to<br/>next sequential task]
-    D --> E
-
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#ede7f6,stroke:#7b1fa2,stroke-width:3px
-    style C fill:#E0E0E0,stroke:#757575,stroke-width:2px
-    style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style E fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
-```
-
-</td>
-<td width="60%">
-
-### Purpose
-Skip individual tasks based on runtime conditions (pre-execution check)
-
-### Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `task` | Integer | ✅ Yes | Unique task identifier |
-| `condition` | String | ✅ Yes | Condition to evaluate before execution |
-| `command` | String | ✅ Yes | Command to execute if condition TRUE |
-| `hostname` | String | ✅ Yes | Target host |
-
-### Example
-```bash
-# Task 1: Restart service (only if check succeeded)
-task=1
-hostname=localhost
-condition=@0_exit@=0
-command=echo
-arguments=Restarting service
-exec=local
-```
-
-### Entry Point
-Can be entry point or follow any block
-
-### Behavior
-- Evaluates `condition` **before** executing task
-- **If condition FALSE:**
-  - Task is skipped (not executed)
-  - Result: `exit_code=-1`, `stderr='Task skipped due to condition'`, `skipped=true`
-  - Workflow continues to next sequential task
-- **If condition TRUE:**
-  - Task executes normally
-  - Normal task logic applies (routing, success/failure handling, etc.)
-
-**Note:** Routing parameters (`on_success`, `on_failure`, `next`) work normally if task executes. See Section 3 for routing details.
-
-### Next Block
-- Always continues to next sequential task (skipped or executed)
-- If executed and has routing: routing applies normally
-
-</td>
-</tr>
-</table>
-
-## 7. Loop Block
-
-<table>
-<tr>
-<td width="40%">
-
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
-flowchart TD
-    A[Task Execution Block] --> B{LOOP?}
-    B -->|Counter < Max & Break Condition False| A
-    B -->|Counter >= Max OR Break Condition True| C[Continue Workflow]
-
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-    style B fill:#fff8e1,stroke:#f57c00,stroke-width:3px
-    style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
-```
-
-</td>
-<td width="60%">
-
-### Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `loop` | Integer | ✅ Yes | Number of iterations to execute (1-1000) |
-| `next` | String | ✅ Yes | Must be "loop" |
-| `loop_break` | String | ❌ Optional | Condition to break out of loop early |
-
-### Example
-```bash
-task=0
-hostname=localhost
-command=conditional_exit.sh
-arguments=3
-exec=local
-loop=10
-next=loop
-loop_break=exit_0
-```
-
-
-### Entry Point
-Applied to any Execution Block
-
-### Behavior
-- Repeats the same task for specified number of iterations
-- `loop=3` means task executes exactly 3 times (Task X.1, X.2, X.3)
-- `next=loop` is mandatory to enable loop functionality
-- `loop_break` condition can terminate loop early if met
-- **Loop vs Retry**: Loops execute ALL iterations regardless of success/failure (unless `loop_break` is met). This differs from retry logic (Section 8-9), which ONLY retries tasks that fail.
-- **Only the LAST iteration result is stored** - `@X_stdout@` references get final iteration output
-- Task IDs are displayed with iteration numbers (e.g., Task 5.1, 5.2, 5.3)
-- Useful for retry patterns or periodic checks
 
 </td>
 </tr>

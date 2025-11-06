@@ -1472,7 +1472,7 @@ flowchart TD
 | `semicolon` | Semicolon | `stdout_split=semicolon,1` | `"foo;bar;baz"` → `"bar"` |
 | `semi` | Semicolon (alias) | `stdout_split=semi,2` | `"a;b;c;d"` → `"c"` |
 | `colon` | Colon | `stdout_split=colon,2` | `"user:x:1000:1000"` → `"1000"` |
-| `pipe` | Pipe character | `stdout_split=pipe,1` | `"cmd1|cmd2|cmd3"` → `"cmd2"` |
+| `pipe` | Pipe character | `stdout_split=pipe,1` | `"cmd1\|cmd2\|cmd3"` → `"cmd2"` |
 | `newline` | Line break(s) | `stdout_split=newline,0` | `"line1\nline2\nline3"` → `"line1"` |
 
 **Important Notes:**

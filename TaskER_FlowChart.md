@@ -1403,10 +1403,16 @@ flowchart TD
 
 ### Examples
 ```bash
+# Define static values
 ENVIRONMENT=production
 DATABASE_HOST=db.company.com
 RETRY_COUNT=3
 TIMEOUT_SECONDS=30
+
+# Reference shell environment variables
+HOSTNAME=$SERVER
+TARGET_USER=$USER
+HOME_DIR=$HOME
 ```
 
 
@@ -1419,8 +1425,9 @@ Must be at the beginning of workflow file
 - Use @VARIABLE_NAME@ syntax to reference in tasks
 - Case-sensitive variable names (recommended: UPPERCASE)
 - Automatic creation - any KEY=VALUE that's not a task parameter
-- **Environment variables**: Shell environment variables are automatically accessible using @ENV_VARIABLE_NAME@ syntax (e.g., @PATH@, @HOME@, @USER@)
-- Environment variables can be referenced without explicit definition in the workflow file
+- **Shell environment variables**: Can be referenced using `$ENV_NAME` syntax (e.g., `$SERVER`, `$USER`, `$HOME`)
+- TASKER automatically expands `$ENV_NAME` to shell environment variable values
+- Example: `HOSTNAME=$SERVER` defines a TASKER variable from shell env var, then use `@HOSTNAME@` in tasks
 
 </td>
 </tr>

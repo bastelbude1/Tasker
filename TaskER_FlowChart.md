@@ -188,6 +188,13 @@ Can follow any block that executes
 
 ## 5. Conditional Block
 
+Conditional blocks provide branching logic based on runtime evaluation. Two execution patterns available:
+
+- **Basic Conditional** (5.1): Execute if_true_tasks or if_false_tasks based on condition evaluation
+- **Conditional with Retry** (5.2): Adds automatic retry capability for failed tasks in chosen branch
+
+### 5.1 Conditional Block (Basic)
+
 <table>
 <tr>
 <td width="40%">
@@ -240,7 +247,7 @@ Can be entry point or follow any block
 - If TRUE → Execute tasks in `if_true_tasks` list
 - If FALSE → Execute tasks in `if_false_tasks` list
 - Tasks execute sequentially in specified order (10,11,12)
-- Results feed into Multi-Task Success Evaluation Block (see # 11.1)
+- Results feed into Multi-Task Success Evaluation Block (see # 10.1)
 
 **CRITICAL Routing Restrictions:**
 - **Subtasks CANNOT have routing parameters** (`on_success`, `on_failure`, `next=never/loop`)
@@ -256,7 +263,81 @@ Can be entry point or follow any block
 - Use `--skip-subtask-range-validation` to suppress warnings
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (# 11.1)
+→ Multi-Task Success Evaluation Block (# 10.1)
+
+</td>
+</tr>
+</table>
+
+### 5.2 Conditional Block with Retry
+
+<table>
+<tr>
+<td width="40%">
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
+flowchart TD
+    A{CONDITION} -->|TRUE| B[Execute if_true_tasks]
+    A -->|FALSE| C[Execute if_false_tasks]
+    B --> D{Retry?}
+    C --> E{Retry?}
+    D -->|Failed & Retries Left| B
+    D -->|Success OR Retries Exhausted| F[Multi-Task Success Evaluation]
+    E -->|Failed & Retries Left| C
+    E -->|Success OR Retries Exhausted| F
+
+    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style C fill:#ffcdd2,stroke:#c62828,stroke-width:3px
+    style D fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style E fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
+    style F fill:#ffecb3,stroke:#f57f17,stroke-width:3px
+```
+
+</td>
+<td width="60%">
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task` | Integer | ✅ Yes | Unique task identifier |
+| `type` | String | ✅ Yes | Must be "conditional" |
+| `condition` | String | ✅ Yes | Boolean expression to evaluate |
+| `if_true_tasks` | String | ✅ Yes | Task IDs for TRUE branch (non-empty) |
+| `if_false_tasks` | String | ✅ Yes | Task IDs for FALSE branch (non-empty) |
+| `retry_count` | Integer | ❌ Optional | Number of retry attempts (1-1000, default: 1, enables retry) |
+| `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
+
+**Both branches are required and must be non-empty** (validation error otherwise).
+
+### Example
+```bash
+task=2
+type=conditional
+condition=@0_stdout@=OPEN
+if_true_tasks=10,11,12
+if_false_tasks=20,21
+retry_count=2
+retry_delay=3
+```
+
+
+### Entry Point
+Can be entry point or follow any block
+
+
+### Behavior
+- Evaluates boolean condition expression
+- If TRUE → Execute tasks in `if_true_tasks` list
+- If FALSE → Execute tasks in `if_false_tasks` list
+- **Retry vs Loop**: Failed tasks in chosen branch are automatically retried up to `retry_count` times. This differs from loop logic (Section 6), which executes ALL iterations regardless of success/failure.
+- Tasks execute sequentially with retry logic
+- Results feed into Multi-Task Success Evaluation Block (see # 10.1)
+
+### Next Block
+→ Multi-Task Success Evaluation Block (# 10.1)
 
 </td>
 </tr>
@@ -530,7 +611,16 @@ Applied to any Execution Block
 </tr>
 </table>
 
-## 9. Parallel Task Block
+## 9. Parallel Block
+
+Parallel blocks enable concurrent task execution using threading. Four execution patterns available:
+
+- **Parallel Task Block** (9.1): Execute multiple independent tasks simultaneously
+- **Parallel Task with Retry** (9.2): Adds automatic retry capability for failed tasks
+- **Parallel Host Block** (9.3): Execute same command across multiple hosts (NEW v2.1)
+- **Parallel Host with Retry** (9.4): Combines multi-host execution with retry logic (NEW v2.1)
+
+### 9.1 Parallel Task Block
 
 <table>
 <tr>
@@ -603,7 +693,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 10. Parallel Task Block with Retry
+### 9.2 Parallel Task Block with Retry
 
 <table>
 <tr>
@@ -679,7 +769,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 11. Parallel Host Block (NEW v2.1)
+### 9.3 Parallel Host Block (NEW v2.1)
 
 <table>
 <tr>
@@ -757,13 +847,13 @@ Can be entry point or follow any block
 
 ### Next Block
 
-→ Multi-Task Success Evaluation Block (#12)
+→ Multi-Task Success Evaluation Block (#10)
 
 </td>
 </tr>
 </table>
 
-## 12. Parallel Host Block with Retry (NEW v2.1)
+### 9.4 Parallel Host Block with Retry (NEW v2.1)
 
 <table>
 <tr>
@@ -846,88 +936,20 @@ Can be entry point or follow any block
 - Example: `arguments=-sf http://localhost/health?id=@task@`
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (#12)
+→ Multi-Task Success Evaluation Block (#10)
 
 </td>
 </tr>
 </table>
 
-## 13. Conditional Block with Retry
+## 10. Multi-Task Success Evaluation Block
 
-<table>
-<tr>
-<td width="40%">
+Multi-task success evaluation determines workflow routing after parallel or conditional blocks complete. Two routing patterns available:
 
-```mermaid
-%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#ffffff'}}}%%
-flowchart TD
-    A{CONDITION} -->|TRUE| B[Execute if_true_tasks]
-    A -->|FALSE| C[Execute if_false_tasks]
-    B --> D{Retry?}
-    C --> E{Retry?}
-    D -->|Failed & Retries Left| B
-    D -->|Success OR Retries Exhausted| F[Multi-Task Success Evaluation]
-    E -->|Failed & Retries Left| C
-    E -->|Success OR Retries Exhausted| F
+- **Using next Parameter** (10.1): Continue or stop workflow based on success criteria
+- **Using on_success/on_failure** (10.2): Jump to specific task IDs based on success criteria
 
-    style A fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
-    style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-    style C fill:#ffcdd2,stroke:#c62828,stroke-width:3px
-    style D fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
-    style E fill:#fff3e0,stroke:#ef6c00,stroke-width:3px
-    style F fill:#ffecb3,stroke:#f57f17,stroke-width:3px
-```
-
-</td>
-<td width="60%">
-
-### Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `task` | Integer | ✅ Yes | Unique task identifier |
-| `type` | String | ✅ Yes | Must be "conditional" |
-| `condition` | String | ✅ Yes | Boolean expression to evaluate |
-| `if_true_tasks` | String | ✅ Yes | Task IDs for TRUE branch (non-empty) |
-| `if_false_tasks` | String | ✅ Yes | Task IDs for FALSE branch (non-empty) |
-| `retry_count` | Integer | ❌ Optional | Number of retry attempts (1-1000, default: 1, enables retry) |
-| `retry_delay` | Integer | ❌ Optional | Delay between retries (0-300 seconds, default: 1) |
-
-**Both branches are required and must be non-empty** (validation error otherwise).
-
-### Example
-```bash
-task=2
-type=conditional
-condition=@0_stdout@=OPEN
-if_true_tasks=10,11,12
-if_false_tasks=20,21
-retry_count=2
-retry_delay=3
-```
-
-
-### Entry Point
-Can be entry point or follow any block
-
-
-### Behavior
-- Evaluates boolean condition expression
-- If TRUE → Execute tasks in `if_true_tasks` list
-- If FALSE → Execute tasks in `if_false_tasks` list
-- **Retry vs Loop**: Failed tasks in chosen branch are automatically retried up to `retry_count` times. This differs from loop logic (Section 6), which executes ALL iterations regardless of success/failure.
-- Tasks execute sequentially with retry logic
-- Results feed into Multi-Task Success Evaluation Block (see # 11.1)
-
-### Next Block
-→ Multi-Task Success Evaluation Block (# 11.1)
-
-</td>
-</tr>
-</table>
-
-
-## 14. Multi-Task Success Evaluation Block (next)
+### 10.1 Multi-Task Success Evaluation Block (next)
 
 <table>
 <tr>
@@ -982,7 +1004,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-## 15. Multi-Task Success Evaluation Block (on_success/on_failure)
+### 10.2 Multi-Task Success Evaluation Block (on_success/on_failure)
 
 <table>
 <tr>
@@ -1035,7 +1057,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-## 16. End Success Block
+## 11. End Success Block
 
 <table>
 <tr>
@@ -1087,7 +1109,7 @@ Terminal block - workflow ends successfully
 </tr>
 </table>
 
-## 17. End Failure Block
+## 12. End Failure Block
 
 <table>
 <tr>
@@ -1146,7 +1168,7 @@ Terminal block - workflow ends with failure
 </tr>
 </table>
 
-## 18. Configuration Definition Block
+## 13. Configuration Definition Block
 
 <table>
 <tr>
@@ -1210,7 +1232,7 @@ exec=pbrun               # Override default exec type
 </tr>
 </table>
 
-## 19. File-Defined Arguments Block
+## 14. File-Defined Arguments Block
 
 <table>
 <tr>
@@ -1325,7 +1347,7 @@ ENVIRONMENT=production
 </tr>
 </table>
 
-## 20. Global Variable Definition Block
+## 15. Global Variable Definition Block
 
 <table>
 <tr>
@@ -1372,7 +1394,7 @@ Must be at the beginning of workflow file
 </tr>
 </table>
 
-## 21. Output Processing Block
+## 16. Output Processing Block
 
 <table>
 <tr>

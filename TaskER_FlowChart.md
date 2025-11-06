@@ -331,7 +331,7 @@ Perfect for branching workflows where different paths handle success vs failure 
 ### Next Block
 → Jump to specified task ID or continue/stop based on routing
 
-## 5. Task-Level Conditional Execution
+## 5. Conditional Execution (Task Level)
 
 <table>
 <tr>

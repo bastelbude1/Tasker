@@ -23,7 +23,7 @@ command=echo
 arguments=Task 1 executed - task 0 succeeded so we continued
 exec=local
 
-# Task 2: Final success task
+# Task 2: Workflow completion
 task=2
 hostname=@SERVER@
 command=echo

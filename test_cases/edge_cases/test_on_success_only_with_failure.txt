@@ -1,0 +1,33 @@
+# TEST_METADATA: {"description": "Test on_success ONLY when task FAILS - should exit with code 10", "test_type": "negative", "expected_exit_code": 10, "expected_success": false, "expected_execution_path": [0], "expected_final_task": 0}
+
+# Test Pattern 2 FAILURE case: on_success ONLY with failing task
+# Expected behavior:
+# - Task fails (exit code 1)
+# - No on_failure specified
+# - Workflow should exit with code 10 (default failure exit code)
+
+# Global variables
+SERVER=localhost
+
+# Task 0: Command that FAILS - should exit workflow with code 10
+task=0
+hostname=@SERVER@
+command=sh
+arguments=-c "echo 'Task 0 failed' && exit 1"
+exec=local
+on_success=10
+
+# Task 1: Should be SKIPPED (task 0 failed and exits)
+task=1
+hostname=@SERVER@
+command=echo
+arguments=Task 1 should never execute
+exec=local
+
+# Task 10: Success target (should NOT execute because task 0 failed)
+task=10
+hostname=@SERVER@
+command=echo
+arguments=Should never reach here
+exec=local
+next=never

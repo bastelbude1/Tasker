@@ -1,0 +1,40 @@
+# TEST_METADATA: {"description": "Test on_failure ONLY routing - success continues, failure jumps to handler", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_final_task": 2}
+
+# Test Pattern 1: on_failure ONLY
+# Expected behavior:
+# - If task succeeds: continues to next sequential task
+# - If task fails: jumps to on_failure target (error handler)
+
+# Global variables
+SERVER=localhost
+
+# Task 0: Command that succeeds - should continue to task 1
+task=0
+hostname=@SERVER@
+command=echo
+arguments=Task 0 succeeded
+exec=local
+on_failure=99
+
+# Task 1: Sequential continuation (executed because task 0 succeeded)
+task=1
+hostname=@SERVER@
+command=echo
+arguments=Task 1 executed - task 0 succeeded so we continued
+exec=local
+
+# Task 2: Final success task
+task=2
+hostname=@SERVER@
+command=echo
+arguments=SUCCESS: Workflow completed normally
+exec=local
+next=never
+
+# Task 99: Error handler (should NOT execute in this test)
+task=99
+hostname=@SERVER@
+command=echo
+arguments=ERROR: Should never reach here in success case
+exec=local
+return=1

@@ -40,7 +40,14 @@ arguments=-la /var/log
 </tr>
 </table>
 
-## 2. Success Check Block (with next)
+## 2. Success Check Block
+
+Success Check blocks determine workflow routing based on task execution results. Two routing patterns available:
+
+- **Using next Parameter** (2.1): Continue or stop workflow based on success criteria
+- **Using on_success/on_failure** (2.2): Jump to specific task IDs based on success criteria
+
+### 2.1 Success Check Block (with next)
 
 <table>
 <tr>
@@ -89,7 +96,7 @@ Follows after Task Execution Block
 </tr>
 </table>
 
-## 3. Success Check Block (with on_success/on_failure)
+### 2.2 Success Check Block (with on_success/on_failure)
 
 <table>
 <tr>
@@ -141,7 +148,7 @@ Follows after Task Execution Block
 </tr>
 </table>
 
-## 4. Sleep Block
+## 3. Sleep Block
 
 <table>
 <tr>
@@ -186,14 +193,14 @@ Can follow any block that executes
 </tr>
 </table>
 
-## 5. Conditional Block
+## 4. Conditional Block
 
 Conditional blocks provide branching logic based on runtime evaluation. Two execution patterns available:
 
-- **Basic Conditional** (5.1): Execute if_true_tasks or if_false_tasks based on condition evaluation
-- **Conditional with Retry** (5.2): Adds automatic retry capability for failed tasks in chosen branch
+- **Basic Conditional** (4.1): Execute if_true_tasks or if_false_tasks based on condition evaluation
+- **Conditional with Retry** (4.2): Adds automatic retry capability for failed tasks in chosen branch
 
-### 5.1 Conditional Block (Basic)
+### 4.1 Conditional Block (Basic)
 
 <table>
 <tr>
@@ -247,7 +254,7 @@ Can be entry point or follow any block
 - If TRUE → Execute tasks in `if_true_tasks` list
 - If FALSE → Execute tasks in `if_false_tasks` list
 - Tasks execute sequentially in specified order (10,11,12)
-- Results feed into Multi-Task Success Evaluation Block (see # 10.1)
+- Results feed into Multi-Task Success Evaluation Block (see # 9.1)
 
 **CRITICAL Routing Restrictions:**
 - **Subtasks CANNOT have routing parameters** (`on_success`, `on_failure`, `next=never/loop`)
@@ -263,13 +270,13 @@ Can be entry point or follow any block
 - Use `--skip-subtask-range-validation` to suppress warnings
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (# 10.1)
+→ Multi-Task Success Evaluation Block (# 9.1)
 
 </td>
 </tr>
 </table>
 
-### 5.2 Conditional Block with Retry
+### 4.2 Conditional Block with Retry
 
 <table>
 <tr>
@@ -334,20 +341,20 @@ Can be entry point or follow any block
 - If FALSE → Execute tasks in `if_false_tasks` list
 - **Retry vs Loop**: Failed tasks in chosen branch are automatically retried up to `retry_count` times. This differs from loop logic (Section 6), which executes ALL iterations regardless of success/failure.
 - Tasks execute sequentially with retry logic
-- Results feed into Multi-Task Success Evaluation Block (see # 10.1)
+- Results feed into Multi-Task Success Evaluation Block (see # 9.1)
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (# 10.1)
+→ Multi-Task Success Evaluation Block (# 9.1)
 
 </td>
 </tr>
 </table>
 
-## 6. Decision Block
+## 5. Decision Block
 
 Decision blocks provide lightweight conditional routing without command execution. Two routing patterns available:
 
-### 6.1 Decision Block with next Parameter
+### 5.1 Decision Block with next Parameter
 
 <table>
 <tr>
@@ -410,7 +417,7 @@ Perfect for early exit scenarios where you want to stop if a condition fails.
 </tr>
 </table>
 
-### 6.2 Decision Block with on_success/on_failure
+### 5.2 Decision Block with on_success/on_failure
 
 <table>
 <tr>
@@ -481,7 +488,7 @@ Perfect for branching workflows where different paths handle success vs failure 
 ### Next Block
 → Jump to specified task ID or continue/stop based on routing
 
-## 7. Task-Level Conditional Execution
+## 6. Task-Level Conditional Execution
 
 <table>
 <tr>
@@ -552,7 +559,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-## 8. Loop Block
+## 7. Loop Block
 
 <table>
 <tr>
@@ -611,16 +618,16 @@ Applied to any Execution Block
 </tr>
 </table>
 
-## 9. Parallel Block
+## 8. Parallel Block
 
 Parallel blocks enable concurrent task execution using threading. Four execution patterns available:
 
-- **Parallel Task Block** (9.1): Execute multiple independent tasks simultaneously
-- **Parallel Task with Retry** (9.2): Adds automatic retry capability for failed tasks
-- **Parallel Host Block** (9.3): Execute same command across multiple hosts (NEW v2.1)
-- **Parallel Host with Retry** (9.4): Combines multi-host execution with retry logic (NEW v2.1)
+- **Parallel Task Block** (8.1): Execute multiple independent tasks simultaneously
+- **Parallel Task with Retry** (8.2): Adds automatic retry capability for failed tasks
+- **Parallel Host Block** (8.3): Execute same command across multiple hosts (NEW v2.1)
+- **Parallel Host with Retry** (8.4): Combines multi-host execution with retry logic (NEW v2.1)
 
-### 9.1 Parallel Task Block
+### 8.1 Parallel Task Block
 
 <table>
 <tr>
@@ -670,7 +677,7 @@ Can be entry point or follow any block
 
 ### Behavior
 - Executes multiple tasks simultaneously with threading
-- Results feed into Multi-Task Success Evaluation Block (see #10)
+- Results feed into Multi-Task Success Evaluation Block (see #9)
 - Faster execution than sequential processing
 
 **CRITICAL Routing Restrictions:**
@@ -687,13 +694,13 @@ Can be entry point or follow any block
 - Use `--skip-subtask-range-validation` to suppress warnings
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (#10)
+→ Multi-Task Success Evaluation Block (#9)
 
 </td>
 </tr>
 </table>
 
-### 9.2 Parallel Task Block with Retry
+### 8.2 Parallel Task Block with Retry
 
 <table>
 <tr>
@@ -759,17 +766,17 @@ Can be entry point or follow any block
 - Executes multiple tasks simultaneously with threading
 - **Retry vs Loop**: Failed tasks are automatically retried up to `retry_count` times. This differs from loop logic (Section 6), which executes ALL iterations regardless of success/failure.
 - `retry_delay` seconds between retry attempts
-- Results feed into Multi-Task Success Evaluation Block (see #10)
+- Results feed into Multi-Task Success Evaluation Block (see #9)
 - More resilient than basic parallel execution
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (#10)
+→ Multi-Task Success Evaluation Block (#9)
 
 </td>
 </tr>
 </table>
 
-### 9.3 Parallel Host Block (NEW v2.1)
+### 8.3 Parallel Host Block (NEW v2.1)
 
 <table>
 <tr>
@@ -847,13 +854,13 @@ Can be entry point or follow any block
 
 ### Next Block
 
-→ Multi-Task Success Evaluation Block (#10)
+→ Multi-Task Success Evaluation Block (#9)
 
 </td>
 </tr>
 </table>
 
-### 9.4 Parallel Host Block with Retry (NEW v2.1)
+### 8.4 Parallel Host Block with Retry (NEW v2.1)
 
 <table>
 <tr>
@@ -936,20 +943,20 @@ Can be entry point or follow any block
 - Example: `arguments=-sf http://localhost/health?id=@task@`
 
 ### Next Block
-→ Multi-Task Success Evaluation Block (#10)
+→ Multi-Task Success Evaluation Block (#9)
 
 </td>
 </tr>
 </table>
 
-## 10. Multi-Task Success Evaluation Block
+## 9. Multi-Task Success Evaluation Block
 
 Multi-task success evaluation determines workflow routing after parallel or conditional blocks complete. Two routing patterns available:
 
-- **Using next Parameter** (10.1): Continue or stop workflow based on success criteria
-- **Using on_success/on_failure** (10.2): Jump to specific task IDs based on success criteria
+- **Using next Parameter** (9.1): Continue or stop workflow based on success criteria
+- **Using on_success/on_failure** (9.2): Jump to specific task IDs based on success criteria
 
-### 10.1 Multi-Task Success Evaluation Block (next)
+### 9.1 Multi-Task Success Evaluation Block (next)
 
 <table>
 <tr>
@@ -1004,7 +1011,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-### 10.2 Multi-Task Success Evaluation Block (on_success/on_failure)
+### 9.2 Multi-Task Success Evaluation Block (on_success/on_failure)
 
 <table>
 <tr>
@@ -1057,7 +1064,7 @@ Follows after Parallel Block or Conditional Block
 </tr>
 </table>
 
-## 11. End Success Block
+## 10. End Success Block
 
 <table>
 <tr>
@@ -1109,7 +1116,7 @@ Terminal block - workflow ends successfully
 </tr>
 </table>
 
-## 12. End Failure Block
+## 11. End Failure Block
 
 <table>
 <tr>
@@ -1168,7 +1175,7 @@ Terminal block - workflow ends with failure
 </tr>
 </table>
 
-## 13. Configuration Definition Block
+## 12. Configuration Definition Block
 
 <table>
 <tr>
@@ -1232,7 +1239,7 @@ exec=pbrun               # Override default exec type
 </tr>
 </table>
 
-## 14. File-Defined Arguments Block
+## 13. File-Defined Arguments Block
 
 <table>
 <tr>
@@ -1347,7 +1354,7 @@ ENVIRONMENT=production
 </tr>
 </table>
 
-## 15. Global Variable Definition Block
+## 14. Global Variable Definition Block
 
 <table>
 <tr>
@@ -1394,7 +1401,7 @@ Must be at the beginning of workflow file
 </tr>
 </table>
 
-## 16. Output Processing Block
+## 15. Output Processing Block
 
 <table>
 <tr>

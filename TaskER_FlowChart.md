@@ -2,6 +2,25 @@
 
 This document provides a visual inventory of TaskER workflow blocks with their corresponding parameters.
 
+## Table of Contents
+
+1. [Execution Block](#1-execution-block)
+2. [Success Check Block](#2-success-check-block)
+3. [Sleep Block](#3-sleep-block)
+4. [Loop Block](#4-loop-block)
+5. [End Block](#5-end-block)
+6. [Decision Block](#6-decision-block)
+7. [Conditional Execution (Task Level)](#7-conditional-execution-task-level)
+8. [Conditional Block](#8-conditional-block)
+9. [Parallel Block](#9-parallel-block)
+10. [Multi-Task Success Evaluation Block](#10-multi-task-success-evaluation-block)
+11. [Configuration Definition Block](#11-configuration-definition-block)
+12. [File-Defined Arguments Block](#12-file-defined-arguments-block)
+13. [Global Variable Definition Block](#13-global-variable-definition-block)
+14. [Output Processing Block](#14-output-processing-block)
+
+---
+
 ## 1. Execution Block
 
 <table>
@@ -739,8 +758,8 @@ Parallel blocks enable concurrent task execution using threading. Four execution
 
 - **Parallel Task Block** (9.1): Execute multiple independent tasks simultaneously
 - **Parallel Task with Retry** (9.2): Adds automatic retry capability for failed tasks
-- **Parallel Host Block** (9.3): Execute same command across multiple hosts (NEW v2.1)
-- **Parallel Host with Retry** (9.4): Combines multi-host execution with retry logic (NEW v2.1)
+- **Parallel Host Block** (9.3): Execute same command across multiple hosts
+- **Parallel Host with Retry** (9.4): Combines multi-host execution with retry logic
 
 ### 9.1 Parallel Task Block
 
@@ -891,7 +910,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-### 9.3 Parallel Host Block (NEW v2.1)
+### 9.3 Parallel Host Block
 
 <table>
 <tr>
@@ -975,7 +994,7 @@ Can be entry point or follow any block
 </tr>
 </table>
 
-### 9.4 Parallel Host Block with Retry (NEW v2.1)
+### 9.4 Parallel Host Block with Retry
 
 <table>
 <tr>
@@ -1400,6 +1419,8 @@ Must be at the beginning of workflow file
 - Use @VARIABLE_NAME@ syntax to reference in tasks
 - Case-sensitive variable names (recommended: UPPERCASE)
 - Automatic creation - any KEY=VALUE that's not a task parameter
+- **Environment variables**: Shell environment variables are automatically accessible using @ENV_VARIABLE_NAME@ syntax (e.g., @PATH@, @HOME@, @USER@)
+- Environment variables can be referenced without explicit definition in the workflow file
 
 </td>
 </tr>

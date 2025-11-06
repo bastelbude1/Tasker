@@ -1,6 +1,6 @@
 # TaskER FlowChart Block Inventory
 
-<!-- markdownlint-disable MD024 - Duplicate headings (Parameters, Example, Entry Point, Behavior) are intentional for consistent block structure -->
+<!-- markdownlint-disable MD024 MD051 - Duplicate headings (Parameters, Example, Entry Point, Behavior) are intentional for consistent block structure. TOC fragment links work correctly in GitHub markdown despite linter warnings. -->
 
 This document provides a visual inventory of TaskER workflow blocks with their corresponding parameters.
 
@@ -286,7 +286,7 @@ This parameter is applied to any Execution Block.
 
 ## 5. End Block
 
-End blocks provide explicit workflow termination with success or failure status.
+End blocks provide explicit workflow termination by success or failure status.
 
 ### 5.1 End Success Block
 
@@ -335,8 +335,7 @@ This is a terminal block that ends the workflow successfully.
 
 ### Behavior
 
-- Workflow terminates with success status
-- Default exit code: 0
+- Workflow terminates with success (exit code 0)
 - Overall workflow result: SUCCESS
 
 </td>

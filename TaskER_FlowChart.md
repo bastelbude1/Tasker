@@ -108,7 +108,7 @@ next=success
 
 ### Entry Point
 
-This block follows after the Task Execution Block.
+This block follows the Task Execution Block.
 
 ### Behavior
 
@@ -163,7 +163,7 @@ on_failure=99
 
 ### Entry Point
 
-This block follows after the Task Execution Block.
+This block follows the Task Execution Block.
 
 ### Behavior
 
@@ -1184,7 +1184,7 @@ next=min_success=3
 
 ### Entry Point
 
-This block follows after a Parallel Block or Conditional Block.
+This block follows a Parallel Block or Conditional Block.
 
 ### Behavior
 
@@ -1241,7 +1241,7 @@ on_failure=99
 
 ### Entry Point
 
-This block follows after a Parallel Block or Conditional Block.
+This block follows a Parallel Block or Conditional Block.
 
 ### Behavior
 

@@ -286,6 +286,10 @@ Examples:
     parser.add_argument('--alert-on-failure', metavar='SCRIPT_PATH',
                        help='Execute alert script when workflow fails (receives context via environment variables: TASKER_LOG_FILE, TASKER_STATE_FILE, TASKER_TASK_FILE, TASKER_FAILED_TASK, TASKER_EXIT_CODE, TASKER_ERROR, TASKER_TIMESTAMP)')
 
+    # Output and Reporting
+    parser.add_argument('--output-json', metavar='PATH',
+                       help='Generate machine-readable workflow summary in JSON format at specified path (contains execution metadata, task results, variables, and metrics)')
+
     # Keep -d/--debug as convenient shorthand for --log-level=DEBUG
     parser.add_argument('-d', '--debug', action='store_true',
                        help='Enable debug logging (shorthand for --log-level=DEBUG)')
@@ -394,7 +398,8 @@ Examples:
         auto_recovery=args.auto_recovery,
         show_recovery_info=args.show_recovery_info,
         auto_confirm=args.yes,
-        alert_on_failure=getattr(args, 'alert_on_failure', None)
+        alert_on_failure=getattr(args, 'alert_on_failure', None),
+        output_json=getattr(args, 'output_json', None)
     ) as executor:
         executor.run()
 

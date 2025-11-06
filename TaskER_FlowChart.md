@@ -48,6 +48,7 @@ flowchart TD
 | `arguments` | String | ❌ Optional | Command arguments |
 
 ### Example
+
 ```bash
 task=0
 hostname=server01
@@ -96,17 +97,19 @@ flowchart TD
 | `next` | String | ❌ Optional | Flow control (never, return=X, task ID) |
 
 ### Example
+
 ```bash
 # Applied to existing task:
 success=exit_0&stdout~running
 next=success
 ```
 
-
 ### Entry Point
+
 Follows after Task Execution Block
 
 ### Behavior
+
 - Evaluates success criteria
 - If `next` condition met → Continue to next sequential task
 - If `next` condition not met → End workflow or return with code
@@ -145,7 +148,10 @@ flowchart TD
 | `on_success` | Integer | ❌ Optional | Task ID to jump to on success |
 | `on_failure` | Integer | ❌ Optional | Task ID to jump to on failure |
 
+**Note:** `on_success` and `on_failure` can be used independently or together. If only one is specified, the other follows default behavior (continue to next task or end workflow).
+
 ### Example
+
 ```bash
 # Applied to existing task:
 success=exit_0&stdout~running
@@ -153,11 +159,12 @@ on_success=20
 on_failure=99
 ```
 
-
 ### Entry Point
+
 Follows after Task Execution Block
 
 ### Behavior
+
 - Evaluates success criteria
 - If success → Jump to `on_success` task ID
 - If failure → Jump to `on_failure` task ID
@@ -194,16 +201,18 @@ flowchart TD
 | `sleep` | Integer | ❌ Optional | Sleep duration (0-300 seconds) |
 
 ### Example
+
 ```bash
 # Applied to existing task:
 sleep=5
 ```
 
-
 ### Entry Point
+
 Can follow any block that executes
 
 ### Behavior
+
 - Pauses workflow execution for specified seconds
 - Useful for rate limiting or waiting for external processes
 - Does not affect task success/failure status
@@ -242,6 +251,7 @@ flowchart TD
 | `loop_break` | String | ❌ Optional | Condition to break out of loop early |
 
 ### Example
+
 ```bash
 task=0
 hostname=localhost
@@ -253,11 +263,12 @@ next=loop
 loop_break=exit_0
 ```
 
-
 ### Entry Point
+
 Applied to any Execution Block
 
 ### Behavior
+
 - Repeats the same task for specified number of iterations
 - `loop=3` means task executes exactly 3 times (Task X.1, X.2, X.3)
 - `next=loop` is mandatory to enable loop functionality
@@ -303,22 +314,25 @@ flowchart TD
 ### Examples
 
 **Stop workflow successfully:**
+
 ```bash
 task=99
 next=never
 ```
 
 **Explicit success with exit code:**
+
 ```bash
 task=100
 return=0
 ```
 
-
 ### Entry Point
+
 Terminal block - workflow ends successfully
 
 ### Behavior
+
 - Workflow terminates with success status
 - Default exit code: 0
 - Overall workflow result: SUCCESS
@@ -355,29 +369,33 @@ flowchart TD
 ### Examples
 
 **Stop workflow with failure:**
+
 ```bash
 task=98
 return=1
 ```
 
 **Stop with specific error code:**
+
 ```bash
 task=97
 return=14
 ```
 
 **Explicit failure with never:**
+
 ```bash
 task=96
 next=never
 return=1
 ```
 
-
 ### Entry Point
+
 Terminal block - workflow ends with failure
 
 ### Behavior
+
 - Workflow terminates with failure status
 - Exit code: 1-255 (non-zero = failure)
 - Overall workflow result: FAILURE
@@ -413,6 +431,7 @@ flowchart TD
 <td width="60%">
 
 ### Purpose
+
 Simple pass/fail gate using `next` parameter for routing
 
 ### Required Parameters
@@ -427,6 +446,7 @@ Simple pass/fail gate using `next` parameter for routing
 *Either `success` OR `failure` is required.
 
 ### Example
+
 ```bash
 # Early exit if both ports failed
 task=2
@@ -438,6 +458,7 @@ next=success
 ```
 
 ### Behavior
+
 **Default behavior (`next=success` if missing):**
 - Condition TRUE → Continue to next task
 - Condition FALSE → **Workflow STOPS**
@@ -447,6 +468,7 @@ next=success
 - `next=never` → Always stop regardless
 
 ### Use Case
+
 Perfect for early exit scenarios where you want to stop if a condition fails.
 
 </td>
@@ -476,6 +498,7 @@ flowchart TD
 <td width="60%">
 
 ### Purpose
+
 Explicit routing to different task paths based on condition result
 
 ### Required Parameters
@@ -492,6 +515,7 @@ Explicit routing to different task paths based on condition result
 **At least one routing parameter recommended.
 
 ### Example
+
 ```bash
 # Route based on port availability
 task=2
@@ -504,11 +528,13 @@ on_failure=99
 ```
 
 ### Behavior
+
 **Routing Priority:**
 1. Check `on_success` or `on_failure` based on condition result
 2. If not defined, falls back to `next` parameter logic
 
 ### Use Case
+
 Perfect for branching workflows where different paths handle success vs failure differently.
 
 </td>
@@ -516,12 +542,14 @@ Perfect for branching workflows where different paths handle success vs failure 
 </table>
 
 ### Key Differences from Conditional Block
+
 - No command execution (no `hostname`, `command`, `arguments`)
 - No task branches (`if_true_tasks`, `if_false_tasks`)
 - Pure routing logic - lighter weight
 - Uses familiar success/failure condition syntax
 
 ### Next Block
+
 → Jump to specified task ID or continue/stop based on routing
 
 ## 7. Conditional Execution (Task Level)
@@ -550,6 +578,7 @@ flowchart TD
 <td width="60%">
 
 ### Purpose
+
 Skip individual tasks based on runtime conditions (pre-execution check)
 
 ### Parameters
@@ -562,6 +591,7 @@ Skip individual tasks based on runtime conditions (pre-execution check)
 | `hostname` | String | ✅ Yes | Target host |
 
 ### Example
+
 ```bash
 # Task 1: Restart service (only if check succeeded)
 task=1
@@ -573,9 +603,11 @@ exec=local
 ```
 
 ### Entry Point
+
 Can be entry point or follow any block
 
 ### Behavior
+
 - Evaluates `condition` **before** executing task
 - **If condition FALSE:**
   - Task is skipped (not executed)
@@ -588,6 +620,7 @@ Can be entry point or follow any block
 **Note:** Routing parameters (`on_success`, `on_failure`, `next`) work normally if task executes. See Section 2 for routing details.
 
 ### Next Block
+
 - Always continues to next sequential task (skipped or executed)
 - If executed and has routing: routing applies normally
 
@@ -638,6 +671,7 @@ flowchart TD
 **Both branches are required and must be non-empty** (validation error otherwise).
 
 ### Example
+
 ```bash
 task=2
 type=conditional
@@ -646,12 +680,12 @@ if_true_tasks=10,11,12
 if_false_tasks=20,21
 ```
 
-
 ### Entry Point
+
 Can be entry point or follow any block
 
-
 ### Behavior
+
 - Evaluates boolean condition expression
 - If TRUE → Execute tasks in `if_true_tasks` list
 - If FALSE → Execute tasks in `if_false_tasks` list
@@ -672,6 +706,7 @@ Can be entry point or follow any block
 - Use `--skip-subtask-range-validation` to suppress warnings
 
 ### Next Block
+
 → Multi-Task Success Evaluation Block (# 9.1)
 
 </td>
@@ -722,6 +757,7 @@ flowchart TD
 **Both branches are required and must be non-empty** (validation error otherwise).
 
 ### Example
+
 ```bash
 task=2
 type=conditional
@@ -732,12 +768,12 @@ retry_count=2
 retry_delay=3
 ```
 
-
 ### Entry Point
+
 Can be entry point or follow any block
 
-
 ### Behavior
+
 - Evaluates boolean condition expression
 - If TRUE → Execute tasks in `if_true_tasks` list
 - If FALSE → Execute tasks in `if_false_tasks` list
@@ -746,6 +782,7 @@ Can be entry point or follow any block
 - Results feed into Multi-Task Success Evaluation Block (see # 10.1)
 
 ### Next Block
+
 → Multi-Task Success Evaluation Block (# 10.1)
 
 </td>
@@ -797,6 +834,7 @@ flowchart TD
 | `max_parallel` | Integer | ❌ Optional | Max concurrent tasks (1-50, default: all) |
 
 ### Example
+
 ```bash
 task=8
 type=parallel
@@ -804,12 +842,12 @@ tasks=10,11,12
 max_parallel=2
 ```
 
-
 ### Entry Point
+
 Can be entry point or follow any block
 
-
 ### Behavior
+
 - Executes multiple tasks simultaneously with threading
 - Results feed into Multi-Task Success Evaluation Block (see #10)
 - Faster execution than sequential processing
@@ -828,6 +866,7 @@ Can be entry point or follow any block
 - Use `--skip-subtask-range-validation` to suppress warnings
 
 ### Next Block
+
 → Multi-Task Success Evaluation Block (#10)
 
 </td>
@@ -882,6 +921,7 @@ flowchart TD
 
 
 ### Example
+
 ```bash
 task=8
 type=parallel
@@ -891,12 +931,12 @@ retry_count=3
 retry_delay=5
 ```
 
-
 ### Entry Point
+
 Can be entry point or follow any block
 
-
 ### Behavior
+
 - Executes multiple tasks simultaneously with threading
 - **Retry vs Loop**: Failed tasks are automatically retried up to `retry_count` times. This differs from loop logic (Section 4), which executes ALL iterations regardless of success/failure.
 - `retry_delay` seconds between retry attempts
@@ -904,6 +944,7 @@ Can be entry point or follow any block
 - More resilient than basic parallel execution
 
 ### Next Block
+
 → Multi-Task Success Evaluation Block (#10)
 
 </td>
@@ -967,6 +1008,7 @@ on_success=10
 Can be entry point or follow any block
 
 ### Behavior
+
 - **NEW in v2.1**: Simplified syntax for identical commands across multiple hosts
 - **Auto-generates** one subtask per hostname (IDs: 100000+)
 - No manual subtask definitions needed
@@ -1064,6 +1106,7 @@ on_success=10
 Can be entry point or follow any block
 
 ### Behavior
+
 - **NEW in v2.1**: Combines simplified multi-host syntax with retry logic
 - Auto-generates one subtask per hostname with retry capability
 - Failed hosts are automatically retried up to `retry_count` times
@@ -1077,6 +1120,7 @@ Can be entry point or follow any block
 - Example: `arguments=-sf http://localhost/health?id=@task@`
 
 ### Next Block
+
 → Multi-Task Success Evaluation Block (#10)
 
 </td>
@@ -1119,6 +1163,7 @@ flowchart TD
 | `next` | String | ✅ Yes | Success evaluation condition |
 
 ### Available Conditions
+
 | Condition | Logic | Example |
 |-----------|-------|---------|
 | `min_success=N` | success_count ≥ N | `min_success=3` |
@@ -1128,15 +1173,17 @@ flowchart TD
 | `majority_success` | success_count > total_tasks/2 | `majority_success` |
 
 ### Example
+
 ```bash
 next=min_success=3
 ```
 
-
 ### Entry Point
+
 Follows after Parallel Block or Conditional Block
 
 ### Behavior
+
 - Evaluates success condition against task results
 - If condition met → Continue to next sequential task
 - If condition not met → End workflow (default behavior)
@@ -1174,21 +1221,26 @@ flowchart TD
 | `on_success` | Integer | ❌ Optional | Task ID if condition met |
 | `on_failure` | Integer | ❌ Optional | Task ID if condition not met |
 
+**Note:** `on_success` and `on_failure` can be used independently or together. If only one is specified, the other follows default behavior (continue to next task or end workflow).
+
 ### Default Behavior (no explicit condition)
+
 - **`on_success`** → `all_success` (100% success required)
 - **`on_failure`** → Any failure triggers this path
 
 ### Example
+
 ```bash
 on_success=20
 on_failure=99
 ```
 
-
 ### Entry Point
+
 Follows after Parallel Block or Conditional Block
 
 ### Behavior
+
 - Evaluates default success condition (all_success) against task results
 - If condition met → Jump to `on_success` task ID
 - If condition not met → Jump to `on_failure` task ID
@@ -1223,6 +1275,7 @@ flowchart TD
 | `exec` | String | ❌ Optional | Override default execution type for this specific task (pbrun, p7s, local, wwrs) |
 
 ### Examples
+
 ```bash
 # Configuration parameters within a task
 task=0
@@ -1233,14 +1286,17 @@ exec=pbrun                # Override default exec type
 ```
 
 ### Note on Project Parameter
+
 **`project` is NOT a task parameter** - it only works as command-line option:
 - ✅ **Command-line**: `tasker -p PROJECT_NAME tasks.txt` (creates shared summary files)
 - ❌ **Task parameter**: `project=PROJECT_NAME` (NOT implemented in TASKER)
 
 ### Entry Point
+
 Applied to individual tasks to override TASKER defaults
 
 ### Behavior
+
 - **Must be part of a task definition** (unlike global variables)
 - **timeout**: Overrides default timeout for this specific task
 - **exec**: Overrides default execution method for this specific task
@@ -1249,6 +1305,7 @@ Applied to individual tasks to override TASKER defaults
 - **Key Distinction**: Global variables are standalone KEY=VALUE, these are task parameters
 
 ### Task-Level Override Example
+
 ```bash
 # Task with configuration overrides
 task=1
@@ -1286,6 +1343,7 @@ flowchart TD
 | CLI argument | String | ✅ Yes | Any valid TASKER CLI argument |
 
 ### Examples
+
 ```bash
 # File-defined arguments (must be first!)
 --auto-recovery
@@ -1294,11 +1352,12 @@ flowchart TD
 --timeout=60
 ```
 
-
 ### Entry Point
+
 **MUST be at the very beginning of the task file** - before global variables and tasks
 
 ### Behavior
+
 - Defines TASKER command-line arguments directly in task files
 - Self-documenting workflows - requirements visible in file
 - Parser stops at first line with `=` not starting with `-` or `--`
@@ -1310,6 +1369,7 @@ flowchart TD
 - Security warnings: Sensitive flags warned (`--skip-security-validation`)
 
 ### Placement Rules
+
 ```bash
 # ✅ CORRECT ORDER
 # File-defined arguments (FIRST!)
@@ -1332,6 +1392,7 @@ ENVIRONMENT=production
 ```
 
 ### Supported Arguments
+
 | Argument | Type | Notes |
 |----------|------|-------|
 | `--run` / `-r` | Boolean | Execute tasks |
@@ -1351,12 +1412,14 @@ ENVIRONMENT=production
 | `--no-task-backup` | Boolean | Disable backups |
 
 ### CLI-Only Flags (Blocked)
+
 | Argument | Reason |
 |----------|--------|
 | `--help` / `-h` | Interactive only |
 | `--version` | Interactive only |
 
 ### Common Patterns
+
 ```bash
 # Recovery workflow
 --auto-recovery
@@ -1402,6 +1465,7 @@ flowchart TD
 | `value` | String | ✅ Yes | Variable value or expression |
 
 ### Examples
+
 ```bash
 # Define static values
 ENVIRONMENT=production
@@ -1415,11 +1479,12 @@ TARGET_USER=$USER
 HOME_DIR=$HOME
 ```
 
-
 ### Entry Point
+
 Must be at the beginning of workflow file
 
 ### Behavior
+
 - Defines reusable variables for entire workflow
 - Variables are read-only and available throughout file
 - Use @VARIABLE_NAME@ syntax to reference in tasks
@@ -1463,6 +1528,7 @@ flowchart TD
 | `stderr_split` | String | ❌ Optional | Split stderr by delimiter and select element at index | `DELIMITER,INDEX` |
 
 ### Supported Delimiter Keywords
+
 | Keyword | Splits On | Example | Input → Output |
 |---------|-----------|---------|----------------|
 | `space` | Space character(s) only | `stdout_split=space,1` | `"alpha beta gamma"` → `"beta"` |
@@ -1481,17 +1547,19 @@ flowchart TD
 - The split operation occurs AFTER command execution but BEFORE placeholder storage
 
 ### Example
+
 ```bash
 # Applied to existing task:
 stdout_split=comma,1    # Split by comma, get 2nd element (0-indexed)
 stderr_split=space,0    # Split by spaces, get 1st element
 ```
 
-
 ### Entry Point
+
 Applied to any task that produces output
 
 ### Behavior
+
 - Splits stdout/stderr by specified delimiter keyword and selects element by index (0-based)
 - Format: `DELIMITER,INDEX` where DELIMITER is one of the supported keywords
 - Modified output replaces original for subsequent processing and placeholder storage

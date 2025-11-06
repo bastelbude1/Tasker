@@ -4,20 +4,20 @@ This document provides a visual inventory of TaskER workflow blocks with their c
 
 ## Table of Contents
 
-1. [Execution Block](#1-execution-block)
-2. [Success Check Block](#2-success-check-block)
-3. [Sleep Block](#3-sleep-block)
-4. [Loop Block](#4-loop-block)
-5. [End Block](#5-end-block)
-6. [Decision Block](#6-decision-block)
-7. [Conditional Execution (Task Level)](#7-conditional-execution-task-level)
-8. [Conditional Block](#8-conditional-block)
-9. [Parallel Block](#9-parallel-block)
-10. [Multi-Task Success Evaluation Block](#10-multi-task-success-evaluation-block)
-11. [Configuration Definition Block](#11-configuration-definition-block)
-12. [File-Defined Arguments Block](#12-file-defined-arguments-block)
-13. [Global Variable Definition Block](#13-global-variable-definition-block)
-14. [Output Processing Block](#14-output-processing-block)
+1. [Execution Block](#1.-execution-block)
+2. [Success Check Block](#2.-success-check-block)
+3. [Sleep Block](#3.-sleep-block)
+4. [Loop Block](#4.-loop-block)
+5. [End Block](#5.-end-block)
+6. [Decision Block](#6.-decision-block)
+7. [Conditional Execution (Task Level)](#7.-conditional-execution-task-level)
+8. [Conditional Block](#8.-conditional-block)
+9. [Parallel Block](#9.-parallel-block)
+10. [Multi-Task Success Evaluation Block](#10.-multi-task-success-evaluation-block)
+11. [Configuration Definition Block](#11.-configuration-definition-block)
+12. [File-Defined Arguments Block](#12.-file-defined-arguments-block)
+13. [Global Variable Definition Block](#13.-global-variable-definition-block)
+14. [Output Processing Block](#14.-output-processing-block)
 
 ---
 

@@ -1,0 +1,30 @@
+# TEST_METADATA: {"description": "Test JSON output with simple successful workflow", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "expected_json_status": "success", "expected_json_succeeded": 3, "expected_execution_path": [0, 1, 2]}
+
+# Test JSON output generation for simple successful workflow
+# Expected: Complete JSON with all tasks succeeded, correct execution path
+
+# Global variables
+TEST_VAR=hello_world
+ENVIRONMENT=testing
+
+# Task 0: Simple echo
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0: Testing JSON output
+exec=local
+
+# Task 1: Echo with variable
+task=1
+hostname=localhost
+command=echo
+arguments=Task 1: Variable is @TEST_VAR@ in @ENVIRONMENT@
+exec=local
+
+# Task 2: Final task
+task=2
+hostname=localhost
+command=echo
+arguments=Task 2: Workflow complete
+exec=local
+next=never

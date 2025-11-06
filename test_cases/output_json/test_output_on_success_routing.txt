@@ -1,0 +1,30 @@
+# TEST_METADATA: {"description": "Test JSON output with on_success routing", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "expected_json_status": "success", "expected_execution_path": [0, 10]}
+
+# Test JSON output generation for on_success routing workflow
+# Expected: execution_path shows jump to task 10, skipped tasks NOT in path
+
+# Global variables
+ROUTING_TEST=success_routing
+
+# Task 0: Jump to task 10 on success
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0: @ROUTING_TEST@
+exec=local
+on_success=10
+
+# Task 1: Should be SKIPPED (task 0 jumps to 10)
+task=1
+hostname=localhost
+command=echo
+arguments=Should never execute
+exec=local
+
+# Task 10: Success target
+task=10
+hostname=localhost
+command=echo
+arguments=Jumped to task 10 via on_success
+exec=local
+next=never

@@ -1,0 +1,23 @@
+# TEST_METADATA: {"description": "Test JSON output without --auto-recovery flag (should warn)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_output_json_verification": true}
+
+# Test JSON output behavior when --auto-recovery is NOT provided
+# Expected: Warning logged, no JSON file created (graceful degradation)
+# Note: This test should be run WITHOUT --auto-recovery flag
+
+# Global variables
+NO_RECOVERY_TEST=test_value
+
+# Task 0: Simple task
+task=0
+hostname=localhost
+command=echo
+arguments=Task without auto-recovery: @NO_RECOVERY_TEST@
+exec=local
+
+# Task 1: Final task
+task=1
+hostname=localhost
+command=echo
+arguments=Complete
+exec=local
+next=never

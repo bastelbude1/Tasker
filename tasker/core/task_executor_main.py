@@ -745,6 +745,11 @@ class TaskExecutor:
         if not self.output_json:
             return  # No output JSON requested
 
+        # Validate auto-recovery requirement early (before calculating metrics)
+        if not (self.auto_recovery and self.recovery_manager):
+            self.log_warn("# --output-json requires --auto-recovery to be enabled")
+            return
+
         try:
             # Calculate workflow end time and duration
             workflow_end_time = time.time()
@@ -768,56 +773,53 @@ class TaskExecutor:
             }
 
             # Save enhanced recovery file with workflow metrics
-            if self.auto_recovery and self.recovery_manager:
-                execution_path = self._state_manager.get_execution_path()
+            execution_path = self._state_manager.get_execution_path()
 
-                # Build failure_info with defensive attribute access
-                failure_info = None
-                if workflow_status != 'success':
-                    failure_info = {
-                        'task_id': getattr(self, 'final_task_id', None),
-                        'exit_code': getattr(self, 'final_exit_code', None),
-                        'error': 'Workflow failed'
-                    }
+            # Build failure_info with defensive attribute access
+            failure_info = None
+            if workflow_status != 'success':
+                failure_info = {
+                    'task_id': getattr(self, 'final_task_id', None),
+                    'exit_code': getattr(self, 'final_exit_code', None),
+                    'error': 'Workflow failed'
+                }
 
-                self.recovery_manager.save_state(
-                    execution_path=execution_path,
-                    state_manager=self._state_manager,
-                    log_file=self.log_file_path if self.log_file_path else '',
-                    failure_info=failure_info,
-                    intended_next_task=None,
-                    workflow_metrics=workflow_metrics
-                )
+            self.recovery_manager.save_state(
+                execution_path=execution_path,
+                state_manager=self._state_manager,
+                log_file=self.log_file_path if self.log_file_path else '',
+                failure_info=failure_info,
+                intended_next_task=None,
+                workflow_metrics=workflow_metrics
+            )
 
-                # Load the enhanced recovery data
-                recovery_data = self.recovery_manager.load_state()
-                if recovery_data:
-                    # Transform to clean output JSON
-                    output_data = self.recovery_manager.transform_to_output_json(recovery_data)
+            # Load the enhanced recovery data
+            recovery_data = self.recovery_manager.load_state()
+            if recovery_data:
+                # Transform to clean output JSON
+                output_data = self.recovery_manager.transform_to_output_json(recovery_data)
 
-                    # Write to specified output path
-                    output_path = os.path.expanduser(self.output_json)
-                    if not os.path.isabs(output_path):
-                        output_path = os.path.abspath(output_path)
+                # Write to specified output path
+                output_path = os.path.expanduser(self.output_json)
+                if not os.path.isabs(output_path):
+                    output_path = os.path.abspath(output_path)
 
-                    # Atomic write: temp file + rename
-                    tmp_path = output_path + ".tmp"
-                    with open(tmp_path, 'w') as f:
-                        json.dump(output_data, f, indent=2, ensure_ascii=True)
-                        f.flush()
-                        os.fsync(f.fileno())
-                    os.replace(tmp_path, output_path)
+                # Atomic write: temp file + rename
+                tmp_path = output_path + ".tmp"
+                with open(tmp_path, 'w') as f:
+                    json.dump(output_data, f, indent=2, ensure_ascii=True)
+                    f.flush()
+                    os.fsync(f.fileno())
+                os.replace(tmp_path, output_path)
 
-                    self.log_info(f"# Workflow output written to: {output_path}")
-            else:
-                self.log_warn("# --output-json requires --auto-recovery to be enabled")
+                self.log_info(f"# Workflow output written to: {output_path}")
 
         except json.JSONDecodeError as e:
             self.log_warn(f"Failed to generate workflow output JSON - JSON decode error: {e}")
         except (TypeError, ValueError) as e:
             self.log_warn(f"Failed to generate workflow output JSON - data serialization error: {e}")
-        except OSError as e:
-            self.log_warn(f"Failed to generate workflow output JSON - file I/O error: {e}")
+        except (OSError, RuntimeError) as e:
+            self.log_warn(f"Failed to generate workflow output JSON - file I/O or state management error: {e}")
         except Exception as e:
             # Safety net for unexpected errors - log as critical and include exception type
             self.log_warn(f"Failed to generate workflow output JSON - unexpected error ({type(e).__name__}): {e}")

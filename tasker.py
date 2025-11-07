@@ -376,12 +376,12 @@ Examples:
         print("WARNING: Fire-and-forget mode enabled - failed tasks will NOT stop execution!")
 
     # Auto-enable --auto-recovery when --output-json is specified (required dependency)
-    if hasattr(args, 'output_json') and args.output_json and not args.auto_recovery:
+    if args.output_json and not args.auto_recovery:
         args.auto_recovery = True
         print("INFO: --auto-recovery automatically enabled (required by --output-json)")
 
     # Generate default output JSON path if flag used without value
-    if hasattr(args, 'output_json') and args.output_json is True:
+    if args.output_json is True:
         # Create default output directory
         default_output_dir = os.path.expanduser('~/TASKER/output')
         os.makedirs(default_output_dir, exist_ok=True)
@@ -416,8 +416,8 @@ Examples:
         auto_recovery=args.auto_recovery,
         show_recovery_info=args.show_recovery_info,
         auto_confirm=args.yes,
-        alert_on_failure=getattr(args, 'alert_on_failure', None),
-        output_json=getattr(args, 'output_json', None)
+        alert_on_failure=args.alert_on_failure,
+        output_json=args.output_json
     ) as executor:
         executor.run()
 

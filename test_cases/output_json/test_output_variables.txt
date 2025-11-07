@@ -1,0 +1,33 @@
+# TEST_METADATA: {"description": "Test JSON output with complex variables", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "expected_json_status": "success"}
+
+# Test JSON output generation for complex variable scenarios
+# Expected: All variables captured in output JSON, including derived variables
+
+# Global variables
+STATIC_VAR=static_value
+ENV_VAR=$USER
+MULTI_WORD=hello world test
+SPECIAL_CHARS=test-value_123
+
+# Task 0: Create derived variable from stdout
+task=0
+hostname=localhost
+command=echo
+arguments=derived_output
+exec=local
+stdout_split=none,0
+
+# Task 1: Use derived variable
+task=1
+hostname=localhost
+command=echo
+arguments=Static: @STATIC_VAR@, Env: @ENV_VAR@, Multi: @MULTI_WORD@, Special: @SPECIAL_CHARS@, Derived: @0_stdout@
+exec=local
+
+# Task 2: Final task
+task=2
+hostname=localhost
+command=echo
+arguments=Variables test complete
+exec=local
+next=never

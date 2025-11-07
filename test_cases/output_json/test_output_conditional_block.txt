@@ -1,0 +1,39 @@
+# TEST_METADATA: {"description": "Test JSON output with conditional block execution", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "expected_json_status": "success"}
+
+# Test JSON output generation for conditional block workflow
+# Expected: Conditional tasks in task_results, correct execution_path
+
+# Global variables
+CONDITION_VAR=true
+
+# Task 0: Decision block
+task=0
+type=decision
+condition=exit_0
+if_true_tasks=1
+if_false_tasks=2
+hostname=localhost
+command=true
+exec=local
+
+# Task 1: Executed if condition is true
+task=1
+hostname=localhost
+command=echo
+arguments=Condition was true
+exec=local
+
+# Task 2: Should NOT execute (condition was true)
+task=2
+hostname=localhost
+command=echo
+arguments=Condition was false
+exec=local
+
+# Task 3: Final task
+task=3
+hostname=localhost
+command=echo
+arguments=Workflow complete
+exec=local
+next=never

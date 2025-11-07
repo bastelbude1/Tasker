@@ -49,13 +49,14 @@ Enhanced Features:
 import os
 import sys
 import argparse
+from datetime import datetime
 
 # Add the current directory to the path to ensure modules can be imported
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # Import the core TaskExecutor and utilities
 from tasker.core.task_executor_main import TaskExecutor
-from tasker.core.utilities import get_log_directory
+from tasker.core.utilities import get_log_directory, sanitize_filename
 
 # Version information
 VERSION = "2.1.0"
@@ -286,6 +287,10 @@ Examples:
     parser.add_argument('--alert-on-failure', metavar='SCRIPT_PATH',
                        help='Execute alert script when workflow fails (receives context via environment variables: TASKER_LOG_FILE, TASKER_STATE_FILE, TASKER_TASK_FILE, TASKER_FAILED_TASK, TASKER_EXIT_CODE, TASKER_ERROR, TASKER_TIMESTAMP)')
 
+    # Output and Reporting
+    parser.add_argument('--output-json', metavar='PATH', nargs='?', const=True,
+                       help='Generate machine-readable workflow summary in JSON format. If PATH is provided, saves to that location. If flag is used without PATH, auto-generates filename (taskfile_YYYYMMDD_HHMMSS_microsec.json) in ~/TASKER/output/. Automatically enables --auto-recovery.')
+
     # Keep -d/--debug as convenient shorthand for --log-level=DEBUG
     parser.add_argument('-d', '--debug', action='store_true',
                        help='Enable debug logging (shorthand for --log-level=DEBUG)')
@@ -370,6 +375,27 @@ Examples:
     if args.fire_and_forget:
         print("WARNING: Fire-and-forget mode enabled - failed tasks will NOT stop execution!")
 
+    # Auto-enable --auto-recovery when --output-json is specified (required dependency)
+    if args.output_json and not args.auto_recovery:
+        args.auto_recovery = True
+        print("INFO: --auto-recovery automatically enabled (required by --output-json)")
+
+    # Generate default output JSON path if flag used without value
+    if args.output_json is True:
+        # Create default output directory
+        default_output_dir = os.path.expanduser('~/TASKER/output')
+        try:
+            os.makedirs(default_output_dir, exist_ok=True)
+        except OSError as e:
+            print(f"ERROR: Failed to create output directory {default_output_dir}: {e}", file=sys.stderr)
+            sys.exit(1)
+
+        # Generate filename using same pattern as log files
+        sanitized_prefix = sanitize_filename(args.task_file)
+        file_ts = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        args.output_json = os.path.join(default_output_dir, f"{sanitized_prefix}_{file_ts}.json")
+        print(f"INFO: JSON output will be saved to: {args.output_json}")
+
     # Execute tasks with context manager for proper cleanup
     with TaskExecutor(
         task_file=args.task_file,
@@ -394,7 +420,8 @@ Examples:
         auto_recovery=args.auto_recovery,
         show_recovery_info=args.show_recovery_info,
         auto_confirm=args.yes,
-        alert_on_failure=getattr(args, 'alert_on_failure', None)
+        alert_on_failure=args.alert_on_failure,
+        output_json=args.output_json
     ) as executor:
         executor.run()
 

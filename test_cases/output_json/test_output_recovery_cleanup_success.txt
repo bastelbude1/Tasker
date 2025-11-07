@@ -1,0 +1,34 @@
+# TEST_METADATA: {"description": "Verify recovery file deleted on successful completion", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "verify_recovery_cleanup": true, "expected_json_status": "success", "expected_json_succeeded": 3}
+
+# Test recovery file lifecycle: deletion on success
+# Expected: Recovery file created during execution, deleted after success
+# Expected: JSON output created successfully
+#
+# Manual Verification Steps:
+# 1. Run: tasker -r --output-json test_cases/output_json/test_output_recovery_cleanup_success.txt --log-dir=/tmp/test_recovery_cleanup
+# 2. Check during execution: ls /tmp/test_recovery_cleanup/recovery/*.json (should exist)
+# 3. Check after success: ls /tmp/test_recovery_cleanup/recovery/*.json (should NOT exist)
+# 4. Verify log shows: "# Auto-recovery: Deleted recovery file (workflow completed successfully)"
+# 5. Verify JSON output exists and status=success
+
+# Task 0: First task
+task=0
+hostname=localhost
+command=echo
+arguments=Recovery cleanup test - task 0
+exec=local
+
+# Task 1: Second task
+task=1
+hostname=localhost
+command=echo
+arguments=Recovery cleanup test - task 1
+exec=local
+
+# Task 2: Third task
+task=2
+hostname=localhost
+command=echo
+arguments=Recovery cleanup test - task 2
+exec=local
+next=never

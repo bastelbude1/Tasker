@@ -122,6 +122,7 @@ TASKER 2.1 is a next-generation task automation framework that reads task defini
 - **Context-Aware Security**: Different validation rules for shell vs direct execution
 - **Enterprise Scaling**: Support for 1-1000+ servers with robust timeout management
 - **Professional Logging**: Structured output with debug capabilities and project tracking
+- **Machine-Readable Output**: JSON workflow summaries with execution metadata, task results, and metrics
 
 ---
 
@@ -4328,6 +4329,224 @@ tasker -r -p PROD_DEPLOY --start-from=11 --skip-task-validation deployment.txt
 tasker -r -p PROD_DEPLOY --start-from=26 --skip-task-validation deployment.txt
 ```
 
+## Structured Workflow Output
+
+TASKER can generate machine-readable JSON summaries of workflow execution, perfect for integration with monitoring systems, CI/CD pipelines, and automation dashboards.
+
+### Basic Usage
+
+```bash
+# Auto-generate JSON output to ~/TASKER/output/ with timestamped filename
+tasker -r --output-json deployment.txt
+
+# Specify custom output path
+tasker -r --output-json=/tmp/deployment_results.json deployment.txt
+
+# Works with all other flags
+tasker -r --output-json -p PROD_DEPLOY --log-level=DEBUG deployment.txt
+```
+
+**Key Behavior:**
+- ✅ **Auto-enables `--auto-recovery`**: JSON output requires state tracking (automatically enabled)
+- ✅ **Atomic writes**: Uses temp file + rename to prevent partial/corrupt output
+- ✅ **Auto-cleanup**: Recovery files deleted on success (no accumulation)
+- ✅ **Both success and failure**: JSON output generated regardless of workflow outcome
+
+### JSON Output Structure
+
+The output contains four main sections:
+
+```json
+{
+  "workflow_metadata": {
+    "task_file": "/path/to/workflow.txt",
+    "execution_id": "a1b2c3d4",
+    "status": "success",
+    "start_time": "2025-11-07T10:30:00.123456",
+    "end_time": "2025-11-07T10:30:45.789012",
+    "duration_seconds": 45.67,
+    "log_file": "/path/to/logs/workflow_20251107_103000.log"
+  },
+  "execution_summary": {
+    "total_tasks": 10,
+    "executed": 10,
+    "succeeded": 9,
+    "failed": 1,
+    "timeouts": 0,
+    "execution_path": [0, 1, 2, 5, 6, 7, 8, 9],
+    "final_task": 9,
+    "failure_info": {
+      "task_id": 3,
+      "exit_code": 1,
+      "error": "Workflow failed"
+    }
+  },
+  "task_results": {
+    "0": {
+      "exit_code": 0,
+      "stdout": "Task 0 output\n",
+      "stderr": "",
+      "success": true
+    },
+    "1": {
+      "exit_code": 0,
+      "stdout": "Task 1 output\n",
+      "stderr": "",
+      "success": true
+    }
+  },
+  "variables": {
+    "ENVIRONMENT": "production",
+    "VERSION": "2.1.0"
+  }
+}
+```
+
+### Field Descriptions
+
+**workflow_metadata:**
+- `task_file`: Full path to the executed task file
+- `execution_id`: Unique 8-character hash identifying this execution
+- `status`: `"success"` or `"failed"`
+- `start_time`: ISO 8601 timestamp when workflow execution began (excludes validation overhead)
+- `end_time`: ISO 8601 timestamp when workflow execution completed
+- `duration_seconds`: Execution duration in seconds (decimal precision)
+- `log_file`: Path to the detailed log file
+
+**execution_summary:**
+- `total_tasks`: Total number of tasks defined in the workflow
+- `executed`: Number of tasks actually executed
+- `succeeded`: Number of tasks that completed successfully
+- `failed`: Number of tasks that failed
+- `timeouts`: Number of tasks that timed out
+- `execution_path`: Array of task IDs that were executed (in order)
+- `final_task`: Last task ID that completed
+- `failure_info`: (Only present on failure) Details about what failed
+  - `task_id`: ID of the task that caused failure
+  - `exit_code`: Exit code of the failed task
+  - `error`: Error description
+
+**task_results:**
+- Dictionary keyed by task ID (as string)
+- Each task contains:
+  - `exit_code`: Numeric exit code
+  - `stdout`: Standard output (string)
+  - `stderr`: Standard error (string)
+  - `success`: Boolean indicating if task met success criteria
+
+**variables:**
+- All global variables defined in the workflow
+- Includes both static definitions and environment variable expansions
+
+### Integration Examples
+
+**CI/CD Pipeline Integration:**
+
+```bash
+#!/bin/bash
+# deploy.sh - CI/CD deployment script
+
+# Run deployment with JSON output
+tasker -r --output-json=/tmp/deploy_result.json production_deploy.txt
+
+# Parse results with jq
+STATUS=$(jq -r '.workflow_metadata.status' /tmp/deploy_result.json)
+DURATION=$(jq -r '.workflow_metadata.duration_seconds' /tmp/deploy_result.json)
+SUCCEEDED=$(jq -r '.execution_summary.succeeded' /tmp/deploy_result.json)
+
+if [ "$STATUS" == "success" ]; then
+    echo "✅ Deployment successful: $SUCCEEDED tasks completed in ${DURATION}s"
+    exit 0
+else
+    FAILED_TASK=$(jq -r '.execution_summary.failure_info.task_id' /tmp/deploy_result.json)
+    EXIT_CODE=$(jq -r '.execution_summary.failure_info.exit_code' /tmp/deploy_result.json)
+    echo "❌ Deployment failed at task $FAILED_TASK (exit code: $EXIT_CODE)"
+    exit 1
+fi
+```
+
+**Monitoring Dashboard:**
+
+```python
+#!/usr/bin/env python3
+# monitor.py - Parse TASKER JSON for dashboard
+
+import json
+import sys
+
+with open(sys.argv[1]) as f:
+    workflow = json.load(f)
+
+# Extract key metrics
+metadata = workflow['workflow_metadata']
+summary = workflow['execution_summary']
+
+print(f"Workflow: {metadata['task_file']}")
+print(f"Status: {metadata['status']}")
+print(f"Duration: {metadata['duration_seconds']}s")
+print(f"Success Rate: {summary['succeeded']}/{summary['total_tasks']} tasks")
+print(f"Execution Path: {' → '.join(map(str, summary['execution_path']))}")
+
+# Check for failures
+if 'failure_info' in summary:
+    fail = summary['failure_info']
+    print(f"❌ Failed at task {fail['task_id']} (exit code: {fail['exit_code']})")
+```
+
+**Automated Testing:**
+
+```bash
+#!/bin/bash
+# test_workflow.sh - Automated workflow testing
+
+# Run test workflow with JSON output
+tasker -r --output-json test_results.json test_workflow.txt
+
+# Validate execution path matches expected
+EXPECTED_PATH="[0,1,2,5,10]"
+ACTUAL_PATH=$(jq -c '.execution_summary.execution_path' test_results.json)
+
+if [ "$ACTUAL_PATH" == "$EXPECTED_PATH" ]; then
+    echo "✅ Execution path correct: $ACTUAL_PATH"
+else
+    echo "❌ Execution path mismatch!"
+    echo "   Expected: $EXPECTED_PATH"
+    echo "   Actual: $ACTUAL_PATH"
+    exit 1
+fi
+
+# Validate all tasks succeeded
+FAILED=$(jq -r '.execution_summary.failed' test_results.json)
+if [ "$FAILED" -eq 0 ]; then
+    echo "✅ All tasks succeeded"
+else
+    echo "❌ $FAILED task(s) failed"
+    exit 1
+fi
+```
+
+### Common Use Cases
+
+**Deployment Tracking:**
+- Record deployment metrics (duration, success rate, failures)
+- Track which steps succeeded/failed for rollback decisions
+- Feed data to monitoring dashboards (Grafana, Datadog, etc.)
+
+**Automated Testing:**
+- Validate workflow execution paths match expected flow
+- Assert task success rates meet requirements
+- Capture test output for analysis
+
+**Audit Trails:**
+- Permanent record of automation execution
+- Compliance documentation with timestamps and results
+- Historical analysis of workflow performance
+
+**Alert Integration:**
+- Parse failure info to trigger targeted alerts
+- Extract task output for error context
+- Feed metrics to incident management systems
+
 ## Validation Systems
 
 TASKER provides comprehensive validation to catch errors before execution.
@@ -4701,6 +4920,12 @@ tasker recovery_workflow.txt --show-effective-args
 | `--fire-and-forget` | Continue workflow execution even when tasks fail (WARNING: Failed tasks will not stop execution) | `tasker -r --fire-and-forget tasks.txt` |
 | `--no-task-backup` | Disable task file backup creation - reduces file clutter, useful for testing | `tasker -r --no-task-backup tasks.txt` |
 | `--alert-on-failure` | Execute custom alert script when workflow fails or is interrupted - receives context via environment variables (TASKER_LOG_FILE, TASKER_STATE_FILE, TASKER_TASK_FILE, TASKER_FAILED_TASK, TASKER_EXIT_CODE, TASKER_ERROR, TASKER_TIMESTAMP) | `tasker -r --alert-on-failure /path/to/alert.sh tasks.txt` |
+
+#### Output and Reporting
+
+| Option | Description | Example |
+|--------|-------------|---------|
+| `--output-json [PATH]` | Generate machine-readable workflow summary in JSON format. If PATH provided, saves to that location. If used without PATH, auto-generates timestamped filename in `~/TASKER/output/`. Automatically enables `--auto-recovery`. Contains workflow metadata (status, duration, timestamps), execution summary (task counts, execution path), task results (exit codes, stdout/stderr), and global variables. | `tasker -r --output-json tasks.txt`<br>`tasker -r --output-json=/tmp/workflow.json tasks.txt` |
 
 ### Complete Usage Reference
 

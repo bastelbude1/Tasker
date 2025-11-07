@@ -1,0 +1,39 @@
+# TEST_METADATA: {"description": "Test JSON output with on_failure routing", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "expected_json_status": "success", "expected_json_succeeded": 2, "expected_json_failed": 1, "expected_execution_path": [2, 3]}
+
+# Test JSON output with on_failure routing
+# Expected: Execution path shows successful tasks after failure routing: [2, 3]
+# Task 0 fails and routes to task 2 (not in execution_path because it failed)
+# Task 1 should be skipped (not in execution_path)
+
+# Task 0: Intentionally fail to trigger on_failure routing
+task=0
+hostname=localhost
+command=sh
+arguments=-c "echo 'Task 0 fails' && exit 1"
+exec=local
+success=exit_0
+on_success=1
+on_failure=2
+
+# Task 1: Should NOT execute (success path not taken)
+task=1
+hostname=localhost
+command=echo
+arguments=Should never execute
+exec=local
+next=never
+
+# Task 2: Failure handler (reached via on_failure=2)
+task=2
+hostname=localhost
+command=echo
+arguments=Handling failure from task 0
+exec=local
+
+# Task 3: Continue after failure handling
+task=3
+hostname=localhost
+command=echo
+arguments=Cleanup after failure handling
+exec=local
+next=never

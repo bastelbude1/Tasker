@@ -1,0 +1,28 @@
+# TEST_METADATA: {"description": "Test JSON output when task fails", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "verify_json_output": true, "expected_json_status": "failed", "expected_json_succeeded": 1, "expected_json_failed": 1}
+
+# Test JSON output generation for workflow with task failure
+# Expected: JSON output shows failed status, failure_info, correct task counts
+
+# Global variables
+TEST_VAR=failure_test
+
+# Task 0: Successful task
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0 succeeded
+exec=local
+
+# Task 1: Failing task
+task=1
+hostname=localhost
+command=sh
+arguments=-c "echo 'Task 1 failed' && exit 1"
+exec=local
+
+# Task 2: Should NOT execute (previous task failed)
+task=2
+hostname=localhost
+command=echo
+arguments=Should never execute
+exec=local

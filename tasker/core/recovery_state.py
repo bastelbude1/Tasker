@@ -96,7 +96,8 @@ class RecoveryStateManager:
 
     def save_state(self, execution_path: list, state_manager, log_file: str,
                    failure_info: Optional[Dict[str, Any]] = None,
-                   intended_next_task: Optional[int] = None) -> None:
+                   intended_next_task: Optional[int] = None,
+                   workflow_metrics: Optional[Dict[str, Any]] = None) -> None:
         """
         Save current execution state to recovery file.
 
@@ -106,6 +107,7 @@ class RecoveryStateManager:
             log_file: Path to log file
             failure_info: Optional failure information (task_id, exit_code, error)
             intended_next_task: The task ID that would execute next (from executor routing decision)
+            workflow_metrics: Optional workflow-level metrics (status, timing, task counts) - only provided on final save
         """
         # Calculate task file hash for integrity verification
         task_file_hash = self._calculate_file_hash()
@@ -143,6 +145,10 @@ class RecoveryStateManager:
             'loop_state': {},  # TODO: Add loop state tracking if needed
             'failure_info': failure_info
         }
+
+        # Add workflow metrics if provided (final save only)
+        if workflow_metrics:
+            recovery_data['workflow_metrics'] = workflow_metrics
 
         # If recovery file exists, preserve created timestamp
         if os.path.exists(self.recovery_file):
@@ -260,3 +266,54 @@ class RecoveryStateManager:
         }
 
         return info
+
+    def transform_to_output_json(self, recovery_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Transform recovery data into clean JSON output format.
+
+        Removes recovery-specific fields and restructures into user-friendly format.
+
+        Args:
+            recovery_data: Recovery state dictionary
+
+        Returns:
+            Clean output dictionary with workflow_metadata, execution_summary, task_results, variables
+        """
+        # Extract workflow metrics if available
+        workflow_metrics = recovery_data.get('workflow_metrics', {})
+
+        # Get execution hash (first 8 chars of task file hash for execution ID)
+        execution_id = recovery_data.get('task_file_hash', 'unknown')[:8]
+
+        # Extract execution_path once for reuse
+        execution_path = recovery_data.get('execution_path', [])
+
+        # Build clean output structure
+        output = {
+            'workflow_metadata': {
+                'task_file': recovery_data.get('task_file_path'),
+                'execution_id': execution_id,
+                'status': workflow_metrics.get('workflow_status', 'unknown'),
+                'start_time': workflow_metrics.get('workflow_start_time'),
+                'end_time': workflow_metrics.get('workflow_end_time'),
+                'duration_seconds': workflow_metrics.get('workflow_duration_seconds'),
+                'log_file': recovery_data.get('log_file')
+            },
+            'execution_summary': {
+                'total_tasks': workflow_metrics.get('tasks_total', 0),
+                'executed': len(execution_path),
+                'succeeded': workflow_metrics.get('tasks_succeeded', 0),
+                'failed': workflow_metrics.get('tasks_failed', 0),
+                'timeouts': workflow_metrics.get('tasks_timeout', 0),
+                'execution_path': execution_path,
+                'final_task': recovery_data.get('last_successful_task')
+            },
+            'task_results': recovery_data.get('task_results', {}),
+            'variables': recovery_data.get('global_vars', {})
+        }
+
+        # Add failure info if present
+        if recovery_data.get('failure_info'):
+            output['execution_summary']['failure_info'] = recovery_data['failure_info']
+
+        return output

@@ -1,0 +1,29 @@
+# TEST_METADATA: {"description": "Test JSON output when task times out", "test_type": "negative", "expected_exit_code": 10, "expected_success": false, "verify_json_output": true, "expected_json_status": "failed", "expected_json_timeouts": 1}
+
+# Test JSON output generation for timeout scenario
+# Expected: JSON shows timeout in stats, task result has exit_code 124
+
+# Global variables
+TIMEOUT_TEST=timeout_scenario
+
+# Task 0: Successful task
+task=0
+hostname=localhost
+command=echo
+arguments=Task 0 before timeout
+exec=local
+
+# Task 1: Task that will timeout
+task=1
+hostname=localhost
+command=sleep
+arguments=10
+exec=local
+timeout=1
+
+# Task 2: Should NOT execute (previous task timed out)
+task=2
+hostname=localhost
+command=echo
+arguments=Should never execute
+exec=local

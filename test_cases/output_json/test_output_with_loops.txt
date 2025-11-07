@@ -1,0 +1,23 @@
+# TEST_METADATA: {"description": "Test JSON output with loop execution", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "expected_json_status": "success"}
+
+# Test JSON output generation for loop workflow
+# Expected: Loop iterations in execution_path, multiple task results
+
+# Global variables
+LOOP_VAR=loop_test
+
+# Task 0: Loop 3 times
+task=0
+hostname=localhost
+command=echo
+arguments=Loop iteration @LOOP_VAR@
+exec=local
+loop=3
+
+# Task 1: After loop
+task=1
+hostname=localhost
+command=echo
+arguments=Loop completed
+exec=local
+next=never

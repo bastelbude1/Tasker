@@ -31,6 +31,7 @@ import signal
 import stat
 import tempfile
 import hashlib
+import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Import from our library package
@@ -98,7 +99,8 @@ class TaskExecutor:
                  skip_security_validation=False, skip_subtask_range_validation=False,
                  strict_env_validation=False, show_plan=False, validate_only=False,
                  fire_and_forget=False, no_task_backup=False, auto_recovery=False,
-                 show_recovery_info=False, auto_confirm=False, alert_on_failure=None):
+                 show_recovery_info=False, auto_confirm=False, alert_on_failure=None,
+                 output_json=None):
         """
         Initialize a TaskExecutor instance and prepare environment, logging, state, and modular components for task orchestration.
 
@@ -128,6 +130,7 @@ class TaskExecutor:
             show_recovery_info: If true, displays recovery information and exits without executing tasks.
             auto_confirm: If true, automatically confirms prompts during recovery (non-interactive mode).
             alert_on_failure: Optional path to an alert script to execute on workflow failure; script receives context via environment variables (TASKER_EXIT_CODE, TASKER_ERROR, TASKER_TASK_FILE, TASKER_LOG_FILE, TASKER_STATE_FILE, TASKER_FAILED_TASK, TASKER_TIMESTAMP).
+            output_json: Optional path where machine-readable workflow summary JSON will be written on workflow completion (contains execution metadata, task results, variables, metrics).
         """
         # Clear debug logging cache for new execution session
         from .condition_evaluator import ConditionEvaluator
@@ -241,6 +244,10 @@ class TaskExecutor:
         self.show_recovery_info = show_recovery_info
         self.auto_confirm = auto_confirm  # Auto-confirm prompts (use saved env values)
         self.recovery_manager = None  # Will be initialized after StateManager
+
+        # Output JSON parameters
+        self.output_json = output_json  # Path for structured JSON output
+        self.workflow_start_time = time.time()  # Fallback timestamp - updated before execution for accuracy
 
         # Log resume information
         if self.start_from_task is not None:
@@ -727,6 +734,95 @@ class TaskExecutor:
         """Clean up resources when exiting the context manager."""
         self.cleanup()
         return False  # Don't suppress exceptions
+
+    def _generate_workflow_output_json(self, workflow_status):
+        """
+        Generate workflow output JSON if --output-json flag is set.
+
+        Args:
+            workflow_status: 'success' or 'failed'
+        """
+        if not self.output_json:
+            return  # No output JSON requested
+
+        # Validate auto-recovery requirement early (before calculating metrics)
+        if not (self.auto_recovery and self.recovery_manager):
+            self.log_warn("# --output-json requires --auto-recovery to be enabled")
+            return
+
+        try:
+            # Calculate workflow end time and duration
+            workflow_end_time = time.time()
+            workflow_duration = workflow_end_time - self.workflow_start_time
+
+            # Get task statistics from result_collector
+            task_results = self._state_manager.get_all_task_results()
+            results_list = list(task_results.values())
+            stats = self._result_collector.analyze_results(results_list)
+
+            # Build workflow metrics
+            workflow_metrics = {
+                'workflow_status': workflow_status,
+                'workflow_start_time': datetime.fromtimestamp(self.workflow_start_time).isoformat(),
+                'workflow_end_time': datetime.fromtimestamp(workflow_end_time).isoformat(),
+                'workflow_duration_seconds': round(workflow_duration, 2),
+                'tasks_total': len(self.tasks),
+                'tasks_succeeded': stats.get('SUCCESS', 0),
+                'tasks_failed': stats.get('FAILED', 0),
+                'tasks_timeout': stats.get('TIMEOUT', 0)
+            }
+
+            # Save enhanced recovery file with workflow metrics
+            execution_path = self._state_manager.get_execution_path()
+
+            # Build failure_info with defensive attribute access
+            failure_info = None
+            if workflow_status != 'success':
+                failure_info = {
+                    'task_id': getattr(self, 'final_task_id', None),
+                    'exit_code': getattr(self, 'final_exit_code', None),
+                    'error': 'Workflow failed'
+                }
+
+            self.recovery_manager.save_state(
+                execution_path=execution_path,
+                state_manager=self._state_manager,
+                log_file=self.log_file_path if self.log_file_path else '',
+                failure_info=failure_info,
+                intended_next_task=None,
+                workflow_metrics=workflow_metrics
+            )
+
+            # Load the enhanced recovery data
+            recovery_data = self.recovery_manager.load_state()
+            if recovery_data:
+                # Transform to clean output JSON
+                output_data = self.recovery_manager.transform_to_output_json(recovery_data)
+
+                # Write to specified output path
+                output_path = os.path.expanduser(self.output_json)
+                if not os.path.isabs(output_path):
+                    output_path = os.path.abspath(output_path)
+
+                # Atomic write: temp file + rename
+                tmp_path = output_path + ".tmp"
+                with open(tmp_path, 'w') as f:
+                    json.dump(output_data, f, indent=2, ensure_ascii=True)
+                    f.flush()
+                    os.fsync(f.fileno())
+                os.replace(tmp_path, output_path)
+
+                self.log_info(f"# Workflow output written to: {output_path}")
+
+        except json.JSONDecodeError as e:
+            self.log_warn(f"Failed to generate workflow output JSON - JSON decode error: {e}")
+        except (TypeError, ValueError) as e:
+            self.log_warn(f"Failed to generate workflow output JSON - data serialization error: {e}")
+        except (OSError, RuntimeError) as e:
+            self.log_warn(f"Failed to generate workflow output JSON - file I/O or state management error: {e}")
+        except Exception as e:
+            # Safety net for unexpected errors - log as critical and include exception type
+            self.log_warn(f"Failed to generate workflow output JSON - unexpected error ({type(e).__name__}): {e}")
 
     def cleanup(self):
         """
@@ -2447,6 +2543,11 @@ class TaskExecutor:
         next_task_id = start_task_id
         tasks_executed_count = 0  # Track how many tasks actually executed
 
+        # Update workflow start time just before task execution begins (for accurate timing)
+        # This excludes validation, parsing, and user prompts from execution duration
+        if self.output_json:
+            self.workflow_start_time = time.time()
+
         # HYBRID STARTING STRATEGY: Try starting task, auto-fallback for user-friendliness
         if next_task_id not in self.tasks:
             available_tasks = sorted(self.tasks.keys())
@@ -2574,6 +2675,10 @@ class TaskExecutor:
 
                         # Normal task failure (not signal-related)
                         self.log_error(f"FAILED: Workflow stopped - last task (Task {self.current_task}) failed with exit code {self.final_exit_code}.")
+
+                        # Generate workflow output JSON if requested
+                        self._generate_workflow_output_json('failed')
+
                         # Write summary before exiting
                         if self.summary_log and self.final_task_id is not None:
                             try:
@@ -2607,7 +2712,10 @@ class TaskExecutor:
                             self.log_warn(f"Failed to write final summary: {e}")
                     ExitHandler.exit_with_code(ExitCodes.TASK_FAILED, "No tasks executed", False)
 
-            # Delete recovery file on successful completion
+            # Generate workflow output JSON if requested
+            self._generate_workflow_output_json('success')
+
+            # Delete recovery file on successful completion (JSON output is already atomic)
             if self.auto_recovery and self.recovery_manager:
                 try:
                     self.recovery_manager.delete_recovery_file()
@@ -2636,13 +2744,18 @@ class TaskExecutor:
             else:
                 # We've successfully completed tasks
                 self.log_info(f"SUCCESS: Task execution completed - {tasks_executed_count} task(s) executed successfully.")
-                # Delete recovery file on successful completion
+
+                # Generate workflow output JSON if requested
+                self._generate_workflow_output_json('success')
+
+                # Delete recovery file on successful completion (JSON output is already atomic)
                 if self.auto_recovery and self.recovery_manager:
                     try:
                         self.recovery_manager.delete_recovery_file()
                         self.log_info("# Auto-recovery: Deleted recovery file (workflow completed successfully)")
                     except (OSError, IOError) as e:
                         self.log_warn(f"Failed to delete recovery file: {e}")
+
                 # Write summary before exiting
                 if self.summary_log and self.final_task_id is not None:
                     try:

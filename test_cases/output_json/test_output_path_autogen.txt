@@ -1,0 +1,20 @@
+# TEST_METADATA: {"description": "Test JSON output path auto-generation", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "verify_autogen_path": true, "expected_json_status": "success", "expected_json_succeeded": 2}
+
+# Test JSON output path auto-generation to ~/TASKER/output/
+# Expected: JSON file created with timestamped filename in ~/TASKER/output/
+# Filename pattern: test_output_path_autogen_{YYYYMMDD_HHMMSS_microsec}.json
+
+# Task 0: First task
+task=0
+hostname=localhost
+command=echo
+arguments=Path autogen test - task 0
+exec=local
+
+# Task 1: Second task
+task=1
+hostname=localhost
+command=echo
+arguments=Path autogen test - task 1
+exec=local
+next=never

@@ -1,0 +1,42 @@
+# TEST_METADATA: {"description": "Test JSON output with parallel block execution", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "expected_json_status": "success", "expected_json_succeeded": 3}
+
+# Test JSON output generation for parallel block workflow
+# Expected: All parallel tasks in task_results, correct execution_path
+
+# Global variables
+PARALLEL_TEST=parallel_execution
+
+# Task 0: Parallel block (3 tasks)
+task=0
+type=parallel
+tasks=1,2,3
+max_parallel=3
+
+# Task 1: Parallel task 1
+task=1
+hostname=localhost
+command=echo
+arguments=Parallel task 1: @PARALLEL_TEST@
+exec=local
+
+# Task 2: Parallel task 2
+task=2
+hostname=localhost
+command=echo
+arguments=Parallel task 2
+exec=local
+
+# Task 3: Parallel task 3
+task=3
+hostname=localhost
+command=echo
+arguments=Parallel task 3
+exec=local
+
+# Task 4: Continuation after parallel block
+task=4
+hostname=localhost
+command=echo
+arguments=After parallel block
+exec=local
+next=never

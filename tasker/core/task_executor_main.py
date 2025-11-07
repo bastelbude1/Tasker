@@ -247,7 +247,7 @@ class TaskExecutor:
 
         # Output JSON parameters
         self.output_json = output_json  # Path for structured JSON output
-        self.workflow_start_time = time.time()  # Track workflow start for duration calculation
+        self.workflow_start_time = time.time()  # Fallback timestamp - updated before execution for accuracy
 
         # Log resume information
         if self.start_from_task is not None:
@@ -2540,6 +2540,11 @@ class TaskExecutor:
 
         next_task_id = start_task_id
         tasks_executed_count = 0  # Track how many tasks actually executed
+
+        # Update workflow start time just before task execution begins (for accurate timing)
+        # This excludes validation, parsing, and user prompts from execution duration
+        if self.output_json:
+            self.workflow_start_time = time.time()
 
         # HYBRID STARTING STRATEGY: Try starting task, auto-fallback for user-friendliness
         if next_task_id not in self.tasks:

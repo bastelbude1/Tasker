@@ -1,0 +1,22 @@
+# TEST_METADATA: {"description": "Test JSON output with large stdout/stderr", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "expected_json_status": "success", "expected_json_succeeded": 2}
+# NOTE: Uses --skip-security-validation to allow command generation patterns
+
+# Test JSON output with large stdout/stderr (>10KB per task)
+# Expected: JSON serialization handles large data correctly
+# Expected: No performance or memory issues
+# Run with: --skip-security-validation
+
+# Task 0: Generate ~100KB of stdout using Python
+task=0
+hostname=localhost
+command=python3
+arguments=-c "for i in range(1000): print(f'This is line {i} with some padding text to make it longer xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')"
+exec=local
+
+# Task 1: Generate ~100KB of stderr using Python
+task=1
+hostname=localhost
+command=python3
+arguments=-c "import sys; [print(f'Error line {i} with some padding text to make it longer xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', file=sys.stderr) for i in range(1000)]"
+exec=local
+next=never

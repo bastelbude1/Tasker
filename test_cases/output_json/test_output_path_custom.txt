@@ -1,0 +1,20 @@
+# TEST_METADATA: {"description": "Test JSON output with custom path", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "expected_json_status": "success", "expected_json_succeeded": 2}
+
+# Test JSON output with custom path specification
+# Expected: JSON file created at exact custom path specified
+# Test will use: --output-json=/tmp/custom_test_output.json
+
+# Task 0: First task
+task=0
+hostname=localhost
+command=echo
+arguments=Custom path test - task 0
+exec=local
+
+# Task 1: Second task
+task=1
+hostname=localhost
+command=echo
+arguments=Custom path test - task 1
+exec=local
+next=never

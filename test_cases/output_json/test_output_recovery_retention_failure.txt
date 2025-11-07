@@ -1,0 +1,33 @@
+# TEST_METADATA: {"description": "Verify recovery file retained on workflow failure", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "verify_json_output": true, "verify_recovery_retention": true, "expected_json_status": "failed", "expected_json_succeeded": 1, "expected_json_failed": 1}
+
+# Test recovery file lifecycle: retention on failure
+# Expected: Recovery file created during execution, RETAINED after failure
+# Expected: JSON output created with failed status
+#
+# Manual Verification Steps:
+# 1. Run: tasker -r --output-json test_cases/output_json/test_output_recovery_retention_failure.txt --log-dir=/tmp/test_recovery_retention
+# 2. Check after failure: ls /tmp/test_recovery_retention/recovery/*.json (should EXIST)
+# 3. Verify recovery file contains correct state for resume
+# 4. Verify JSON output exists and status=failed
+# 5. Verify failure_info in JSON contains task_id=1, exit_code=1
+
+# Task 0: Successful task
+task=0
+hostname=localhost
+command=echo
+arguments=Recovery retention test - task 0 succeeds
+exec=local
+
+# Task 1: Failing task (triggers failure and workflow stop)
+task=1
+hostname=localhost
+command=sh
+arguments=-c "echo 'Task 1 fails' && exit 1"
+exec=local
+
+# Task 2: Should NOT execute (previous task failed)
+task=2
+hostname=localhost
+command=echo
+arguments=Should never execute
+exec=local

@@ -1,6 +1,6 @@
 # TEST_METADATA: {"description": "Test JSON output for minimal single-task workflow", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "expected_json_status": "success", "expected_json_succeeded": 1, "expected_json_total_tasks": 1, "expected_execution_path": [0]}
 
-# Test JSON output for edge case: single task workflow
+# Test JSON output for edge case: single-task workflow
 # Expected: JSON structure correct for minimal workflow
 # Expected: total_tasks=1, executed=1, execution_path=[0]
 

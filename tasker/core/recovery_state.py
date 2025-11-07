@@ -285,6 +285,9 @@ class RecoveryStateManager:
         # Get execution hash (first 8 chars of task file hash for execution ID)
         execution_id = recovery_data.get('task_file_hash', 'unknown')[:8]
 
+        # Extract execution_path once for reuse
+        execution_path = recovery_data.get('execution_path', [])
+
         # Build clean output structure
         output = {
             'workflow_metadata': {
@@ -298,11 +301,11 @@ class RecoveryStateManager:
             },
             'execution_summary': {
                 'total_tasks': workflow_metrics.get('tasks_total', 0),
-                'executed': len(recovery_data.get('execution_path', [])),
+                'executed': len(execution_path),
                 'succeeded': workflow_metrics.get('tasks_succeeded', 0),
                 'failed': workflow_metrics.get('tasks_failed', 0),
                 'timeouts': workflow_metrics.get('tasks_timeout', 0),
-                'execution_path': recovery_data.get('execution_path', []),
+                'execution_path': execution_path,
                 'final_task': recovery_data.get('last_successful_task')
             },
             'task_results': recovery_data.get('task_results', {}),

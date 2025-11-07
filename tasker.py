@@ -384,7 +384,11 @@ Examples:
     if args.output_json is True:
         # Create default output directory
         default_output_dir = os.path.expanduser('~/TASKER/output')
-        os.makedirs(default_output_dir, exist_ok=True)
+        try:
+            os.makedirs(default_output_dir, exist_ok=True)
+        except OSError as e:
+            print(f"ERROR: Failed to create output directory {default_output_dir}: {e}", file=sys.stderr)
+            sys.exit(1)
 
         # Generate filename using same pattern as log files
         sanitized_prefix = sanitize_filename(args.task_file)

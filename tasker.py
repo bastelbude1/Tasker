@@ -288,7 +288,7 @@ Examples:
 
     # Output and Reporting
     parser.add_argument('--output-json', metavar='PATH',
-                       help='Generate machine-readable workflow summary in JSON format at specified path (contains execution metadata, task results, variables, and metrics)')
+                       help='Generate machine-readable workflow summary in JSON format at specified path (contains execution metadata, task results, variables, and metrics). Automatically enables --auto-recovery.')
 
     # Keep -d/--debug as convenient shorthand for --log-level=DEBUG
     parser.add_argument('-d', '--debug', action='store_true',
@@ -373,6 +373,11 @@ Examples:
 
     if args.fire_and_forget:
         print("WARNING: Fire-and-forget mode enabled - failed tasks will NOT stop execution!")
+
+    # Auto-enable --auto-recovery when --output-json is specified (required dependency)
+    if hasattr(args, 'output_json') and args.output_json and not args.auto_recovery:
+        args.auto_recovery = True
+        print("INFO: --auto-recovery automatically enabled (required by --output-json)")
 
     # Execute tasks with context manager for proper cleanup
     with TaskExecutor(

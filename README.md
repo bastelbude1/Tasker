@@ -4441,6 +4441,7 @@ The output contains four main sections:
 ### Integration Examples
 
 **CI/CD Pipeline Integration:**
+
 ```bash
 #!/bin/bash
 # deploy.sh - CI/CD deployment script
@@ -4465,6 +4466,7 @@ fi
 ```
 
 **Monitoring Dashboard:**
+
 ```python
 #!/usr/bin/env python3
 # monitor.py - Parse TASKER JSON for dashboard
@@ -4492,6 +4494,7 @@ if 'failure_info' in summary:
 ```
 
 **Automated Testing:**
+
 ```bash
 #!/bin/bash
 # test_workflow.sh - Automated workflow testing
@@ -4919,6 +4922,7 @@ tasker recovery_workflow.txt --show-effective-args
 | `--alert-on-failure` | Execute custom alert script when workflow fails or is interrupted - receives context via environment variables (TASKER_LOG_FILE, TASKER_STATE_FILE, TASKER_TASK_FILE, TASKER_FAILED_TASK, TASKER_EXIT_CODE, TASKER_ERROR, TASKER_TIMESTAMP) | `tasker -r --alert-on-failure /path/to/alert.sh tasks.txt` |
 
 #### Output and Reporting
+
 | Option | Description | Example |
 |--------|-------------|---------|
 | `--output-json [PATH]` | Generate machine-readable workflow summary in JSON format. If PATH provided, saves to that location. If used without PATH, auto-generates timestamped filename in `~/TASKER/output/`. Automatically enables `--auto-recovery`. Contains workflow metadata (status, duration, timestamps), execution summary (task counts, execution path), task results (exit codes, stdout/stderr), and global variables. | `tasker -r --output-json tasks.txt`<br>`tasker -r --output-json=/tmp/workflow.json tasks.txt` |

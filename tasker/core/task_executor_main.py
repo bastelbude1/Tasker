@@ -2715,8 +2715,8 @@ class TaskExecutor:
             # Generate workflow output JSON if requested
             self._generate_workflow_output_json('success')
 
-            # Delete recovery file on successful completion (unless output_json is set, recovery file serves as backup)
-            if self.auto_recovery and self.recovery_manager and not self.output_json:
+            # Delete recovery file on successful completion (JSON output is already atomic)
+            if self.auto_recovery and self.recovery_manager:
                 try:
                     self.recovery_manager.delete_recovery_file()
                     self.log_info("# Auto-recovery: Deleted recovery file (workflow completed successfully)")
@@ -2748,8 +2748,8 @@ class TaskExecutor:
                 # Generate workflow output JSON if requested
                 self._generate_workflow_output_json('success')
 
-                # Delete recovery file on successful completion (unless output_json is set)
-                if self.auto_recovery and self.recovery_manager and not self.output_json:
+                # Delete recovery file on successful completion (JSON output is already atomic)
+                if self.auto_recovery and self.recovery_manager:
                     try:
                         self.recovery_manager.delete_recovery_file()
                         self.log_info("# Auto-recovery: Deleted recovery file (workflow completed successfully)")

@@ -458,19 +458,12 @@ on_failure=99
 **When to Use Conditional vs Decision Blocks:**
 
 | Feature | Conditional Blocks | Decision Blocks |
-
 |---------|-------------------|-----------------|
-
 | Execute multiple tasks | ✅ Yes (if_true_tasks, if_false_tasks) | ❌ No (routing only) |
-
 | Multi-Task Success Evaluation | ✅ Yes (all_success, min_success, etc.) | ❌ No |
-
 | Subtask routing allowed | ❌ **NO** - Validation error | ✅ Yes (this is the whole point) |
-
 | Retry support | ✅ Yes (for branch tasks) | ❌ No |
-
 | Use case | Execute groups of tasks based on condition | Route based on previous task results |
-
 | Example | Deploy to prod/staging environments | Fallback logic (try port 80, else try 443) |
 
 **Example - Port availability check:**
@@ -822,13 +815,9 @@ File-defined arguments use **identical syntax** to command-line arguments:
 When both file and CLI arguments are present:
 
 | Argument Type | Behavior | Example |
-
 |--------------|----------|---------|
-
 | **Boolean flags** | File OR CLI (additive) | File: `--skip-host-validation` + CLI: `-r` → Both active |
-
 | **Value options** | CLI overrides file | File: `--log-level=DEBUG` + CLI: `--log-level=INFO` → INFO wins |
-
 | **task_file** | Always from CLI | File args cannot override task file path |
 
 ```bash
@@ -936,51 +925,30 @@ These flags generate warnings but are allowed:
 **Supported in File-Defined Arguments:**
 
 | Argument | Type | Example |
-
 |----------|------|---------|
-
 | `--run` / `-r` | Boolean | `--run` or `-r` |
-
 | `--debug` / `-d` | Boolean | `--debug` or `-d` |
-
 | `--log-level=LEVEL` | Value | `--log-level=DEBUG` |
-
 | `--timeout=N` | Value | `--timeout=60` |
-
 | `--start-from=N` | Value | `--start-from=5` |
-
 | `--auto-recovery` | Boolean | `--auto-recovery` |
-
 | `--skip-host-validation` | Boolean | `--skip-host-validation` |
-
 | `--skip-task-validation` | Boolean | `--skip-task-validation` |
-
 | `--skip-command-validation` | Boolean | `--skip-command-validation` |
-
 | `--skip-security-validation` | Boolean | `--skip-security-validation` (warns) |
-
 | `--strict-env-validation` | Boolean | `--strict-env-validation` |
-
 | `--skip-validation` | Boolean | `--skip-validation` (warns) |
-
 | `--fire-and-forget` | Boolean | `--fire-and-forget` (warns) |
-
 | `--show-plan` | Boolean | `--show-plan` |
-
 | `--validate-only` | Boolean | `--validate-only` |
-
 | `--no-task-backup` | Boolean | `--no-task-backup` |
 
 **NOT Supported (CLI Only):**
 
 | Argument | Reason |
-
 |----------|--------|
-
 | `--help` / `-h` | Must be interactive |
-
 | `--version` | Must be interactive |
-
 | `task_file` | Always from CLI |
 
 ### Debugging File-Defined Arguments
@@ -1774,21 +1742,13 @@ hostname=localhost
 Alert scripts receive comprehensive failure context:
 
 | Variable | Description | Example |
-
 |----------|-------------|---------|
-
 | `TASKER_LOG_FILE` | Full path to workflow log file | `/home/user/TASKER/log/workflow_20251025_123456.log` |
-
 | `TASKER_STATE_FILE` | Recovery/state file path (if --auto-recovery enabled) | `/home/user/TASKER/recovery/workflow.state` |
-
 | `TASKER_TASK_FILE` | Task definition file path | `workflow.txt` |
-
 | `TASKER_FAILED_TASK` | Task ID that failed | `5` |
-
 | `TASKER_EXIT_CODE` | Exit code that triggered alert | `1` |
-
 | `TASKER_ERROR` | Error message | `Last task failed` |
-
 | `TASKER_TIMESTAMP` | Failure timestamp | `2025-10-25 12:34:56` |
 
 #### Advanced Alert Examples
@@ -2068,13 +2028,9 @@ exec=local
 **Important Distinctions:**
 
 | Mechanism | Type | Purpose | Routing Allowed |
-
 |-----------|------|---------|-----------------|
-
 | **Task Condition** | Regular task parameter | Skip individual tasks | ✅ Yes |
-
 | **Conditional Block** | `type=conditional` | Execute task groups | ❌ No (subtasks) |
-
 | **Decision Block** | `type=decision` | Pure routing logic | ✅ Yes (the purpose) |
 
 **When to Use Task Conditions:**
@@ -2257,15 +2213,10 @@ condition=@1_stderr@~threshold >= 50                 # Ambiguous: ~ or >= ?
 **When to use quoted patterns:**
 
 | Pattern Type | Requires Quotes | Example |
-
 |-------------|----------------|---------|
-
 | Contains operators (`=`, `>=`, etc.) | ✅ YES | `~"value >= 50"` |
-
 | Contains special chars (`:`, `{`, `}`) | ✅ YES | `~"status: { ok }"` |
-
 | Contains spaces only | ⚠️ RECOMMENDED | `~"hello world"` |
-
 | Simple alphanumeric | ❌ NO | `~production` |
 
 **Quote styles supported:**
@@ -2546,15 +2497,10 @@ on_failure=99
 **When to use `failure=` vs `success=`:**
 
 | Scenario | Using `success=` | Using `failure=` |
-
 |----------|------------------|------------------|
-
 | Fail on exit 1 only | `success=exit_0\|exit_2\|exit_3\|...` | `failure=exit_1` ✅ |
-
 | Success on exit 0 only | `success=exit_0` ✅ | `failure=exit_1\|exit_2\|exit_3\|...` |
-
 | Fail if task 0 failed | `success=@0_success@=true` | `failure=@0_success@=false` ✅ |
-
 | Success if stdout contains "OK" | `success=stdout~OK` ✅ | `failure=stdout!~OK` |
 
 - **Use `failure=`** when most exit codes are acceptable (simpler - fewer codes to list)
@@ -2856,23 +2802,14 @@ This section provides a comprehensive reference of all valid task parameters in 
 These parameters are fundamental to all task types:
 
 | Parameter | Required | Type | Description | Valid Values/Range |
-
 |-----------|----------|------|-------------|-------------------|
-
 | `task` | **Yes** | Integer | Unique task identifier | 0, 1, 2, ... (sequential recommended) |
-
 | `hostname` | Yes* | String | Target server hostname | Any valid hostname, IP, or `@VARIABLE@` |
-
 | `command` | Yes* | String | Command to execute | Any executable command |
-
 | `arguments` | No | String | Command arguments | Any valid arguments |
-
 | `exec` | No | String | Execution method | `local`, `shell`, `pbrun`, `p7s`, `wwrs` (default: pbrun for remote) - [See Execution Types](#execution-types-exec) |
-
 | `timeout` | No | Integer | Command timeout in seconds | 5-3600 (default: 30) |
-
 | `sleep` | No | Integer | Delay after task completion | 0-300 seconds |
-
 | `success` | No | String | Custom success criteria | `exit_0` (default), `stdout~text`, combinations |
 
 *Required for standard tasks executing commands. Not required for `type=parallel`, `type=conditional`, or `return` tasks.
@@ -2882,21 +2819,13 @@ These parameters are fundamental to all task types:
 Parameters specific to sequential task execution:
 
 | Parameter | Type | Description | Example Values |
-
 |-----------|------|-------------|----------------|
-
 | `condition` | String | Pre-execution condition (skip if false) | `@VAR@=value`, boolean expressions |
-
 | `next` | String | Post-execution flow control | `exit_0`, `success`, `never`, `loop` |
-
 | `on_success` | Integer | Task ID to jump to on success | Any valid task ID |
-
 | `on_failure` | Integer | Task ID to jump to on failure | Any valid task ID |
-
 | `return` | Integer | Exit workflow with return code | 0-255 |
-
 | `loop` | Integer | Additional execution iterations | 1-1000 (sequential tasks only) |
-
 | `loop_break` | String | Condition to break loop early | Any valid condition (sequential only) |
 
 **Important Notes:**
@@ -3024,35 +2953,20 @@ exec=local
 Parameters for executing multiple tasks concurrently:
 
 | Parameter | Type | Required | Description | Valid Values |
-
 |-----------|------|----------|-------------|-------------|
-
 | `type` | String | **Yes** | Must be "parallel" | `parallel` |
-
 | `tasks` | String | **Conditional** | Comma-separated task IDs to execute (mutually exclusive with hostnames) | "10,11,12" |
-
 | `hostnames` | String | **Conditional** | Comma-separated hostnames for identical command execution (mutually exclusive with tasks) | "web1,web2,web3" (min 2, max 1000) |
-
 | `command` | String | **Conditional** | Command to execute (required when using hostnames) | Any valid command |
-
 | `arguments` | String | No | Command arguments (when using hostnames) | String with variable substitution |
-
 | `exec` | String | No | Execution method (when using hostnames) | local/pbrun/p7s/wwrs_clir |
-
 | `max_parallel` | Integer | No | Max concurrent tasks | 1-50 (default: 8) |
-
 | `timeout` | Integer | No | Master timeout for all tasks | 5-3600 seconds |
-
 | `retry_count` | Integer | No | Number of retry attempts (enables retry) | 1-1000 (default: 1) |
-
 | `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |
-
 | `next` | String | No | Success evaluation condition | See below |
-
 | `success` | String | No | Success condition for flexible routing | Same as `next` conditions |
-
 | `on_success` | Integer | No | Task ID if success/next condition met | Any valid task ID |
-
 | `on_failure` | Integer | No | Task ID if success/next condition not met | Any valid task ID |
 
 **Parallel `next` and `success` Conditions:** See [Multi-Task Success Evaluation Conditions](#multi-task-success-evaluation-conditions) below.
@@ -3075,27 +2989,16 @@ Parameters for executing multiple tasks concurrently:
 Parameters for branching based on runtime conditions:
 
 | Parameter | Type | Required | Description | Example |
-
 |-----------|------|----------|-------------|----------|
-
 | `type` | String | **Yes** | Must be "conditional" | `conditional` |
-
 | `condition` | String | **Yes** | Boolean expression to evaluate | `@ENV@=prod&@0_success@=true` |
-
 | `if_true_tasks` | String | **Yes** | Task IDs for TRUE branch (non-empty) | "100,300,150" (custom order) |
-
 | `if_false_tasks` | String | **Yes** | Task IDs for FALSE branch (non-empty) | "200,205,210" (skip tasks) |
-
 | `next` | String | No | Success evaluation condition | Same as parallel conditions |
-
 | `success` | String | No | Success condition for flexible routing | Same as `next` conditions |
-
 | `on_success` | Integer | No | Task ID if success/next condition met | Any valid task ID |
-
 | `on_failure` | Integer | No | Task ID if success/next condition not met | Any valid task ID |
-
 | `retry_count` | Integer | No | Number of retry attempts (enables retry) | 1-1000 (default: 1) |
-
 | `retry_delay` | Integer | No | Delay between retries | 0-300 seconds (default: 1) |
 
 **Both branches are required and must be non-empty** (validation error otherwise).
@@ -3107,19 +3010,12 @@ Parameters for branching based on runtime conditions:
 Parameters for lightweight conditional routing without command execution:
 
 | Parameter | Type | Required | Description | Example |
-
 |-----------|------|----------|-------------|----------|
-
 | `type` | String | **Yes** | Must be "decision" | `decision` |
-
 | `success` | String | No* | Success condition to evaluate | `@0_exit@=0\|@1_exit@=0` |
-
 | `failure` | String | No* | Failure condition to evaluate | `@ENV@!=production` |
-
 | `on_success` | Int | No | Task to jump to if condition is TRUE | `10` |
-
 | `on_failure` | Int | No | Task to jump to if condition is FALSE | `99` |
-
 | `next` | String | No | Default routing if no conditions match | `never`, `end`, or conditional |
 
 *Either `success` OR `failure` is required (not both)
@@ -3147,17 +3043,11 @@ The `exec` parameter determines how commands are executed. TASKER supports multi
 ### Available Execution Types
 
 | Type | Description | Use Case | Command Execution |
-
 |------|-------------|----------|-------------------|
-
 | `local` | Direct subprocess execution (no shell) | Simple commands without shell syntax | `subprocess.Popen(['command', 'arg1', 'arg2'])` |
-
 | `shell` | Shell execution via `/bin/bash -c` | Commands requiring shell features (pipes, redirects, substitution) | `/bin/bash -c "command arg1 arg2"` |
-
 | `pbrun` | PowerBroker sudo execution | Privileged remote operations | `pbrun -h hostname command args` |
-
 | `p7s` | P7S execution engine | Enterprise P7S environments | `p7s command execution` |
-
 | `wwrs` | WWRS execution engine | WWRS-managed systems | `wwrs_clir command execution` |
 
 **Default Behavior:** If `exec` is not specified, TASKER defaults to `pbrun` for remote hosts and `local` for localhost.
@@ -3216,15 +3106,10 @@ exec=shell
 For convenience, TASKER recognizes common aliases that map to `exec=shell`:
 
 | Alias | Maps To | Example |
-
 |-------|---------|---------|
-
 | `bash` | `shell` | `exec=bash` → `exec=shell` |
-
 | `sh` | `shell` | `exec=sh` → `exec=shell` |
-
 | `/bin/bash` | `shell` | `exec=/bin/bash` → `exec=shell` |
-
 | `/bin/sh` | `shell` | `exec=/bin/sh` → `exec=shell` |
 
 ### Execution Type Examples
@@ -3286,23 +3171,14 @@ exec=@EXEC_MODE@
 ### When to Use Which exec Type?
 
 | Scenario | Recommended Type | Reason |
-
 |----------|------------------|--------|
-
 | Run a single command | `local` | Faster, safer |
-
 | Use pipes (`\|`) or redirects (`>`) | `shell` | Shell features required |
-
 | Command substitution `$(...)` or `` `...` `` | `shell` | Shell expansion needed |
-
 | Wildcards (`*.txt`) | `shell` | Shell globbing required |
-
 | Simple date/echo/ls commands | `local` | No shell needed |
-
 | Multi-command sequences | `shell` | Shell chaining needed |
-
 | Privileged remote operations | `pbrun` | Enterprise sudo |
-
 | Complex text processing | `shell` or `local` with tools | Depends on complexity |
 
 ## Multi-Task Success Evaluation Conditions
@@ -3312,17 +3188,11 @@ These `next` conditions are shared by both **Parallel Execution** and **Conditio
 ### Available Conditions
 
 | Condition | Description | Example | Logic |
-
 |-----------|-------------|---------|-------|
-
 | `min_success=N` | At least N tasks must succeed | `min_success=3` | success_count ≥ N |
-
 | `max_failed=N` | At most N tasks can fail | `max_failed=1` | failed_count ≤ N |
-
 | `all_success` | All tasks must succeed | `all_success` | success_count = total_tasks |
-
 | `any_success` | At least one task must succeed | `any_success` | success_count > 0 |
-
 | `majority_success` | More than 50% must succeed | `majority_success` | success_count > total_tasks/2 |
 
 ### Usage Context
@@ -3363,35 +3233,22 @@ on_failure=99
 Simple extraction functions for any task that executes a command:
 
 | Parameter | Type | Description | Format | Example |
-
 |-----------|------|-------------|--------|---------|
-
 | `stdout_split` | String | Split stdout by delimiter and select element at index | `DELIMITER,INDEX` | `stdout_split=comma,1` |
-
 | `stderr_split` | String | Split stderr by delimiter and select element at index | `DELIMITER,INDEX` | `stderr_split=space,0` |
 
 **Supported Delimiter Keywords:**
 
 | Keyword | Splits On | Example Usage | Input → Output |
-
 |---------|-----------|---------------|----------------|
-
 | `space` | Space character(s) only | `stdout_split=space,1` | `"alpha beta gamma"` → `"beta"` |
-
 | `whitespace` | Any whitespace (spaces, tabs, newlines) | `stdout_split=whitespace,1` | `"word1  word2\t\tword3"` → `"word2"` |
-
 | `tab` | Tab character(s) | `stdout_split=tab,2` | `"A\tB\tC\tD"` → `"C"` |
-
 | `comma` | Comma | `stdout_split=comma,0` | `"red,green,blue"` → `"red"` |
-
 | `semicolon` | Semicolon | `stdout_split=semicolon,1` | `"foo;bar;baz"` → `"bar"` |
-
 | `colon` | Colon | `stdout_split=colon,2` | `"user:x:1000:1000"` → `"1000"` |
-
 | `pipe` | Pipe character | `stdout_split=pipe,1` | `"cmd1|cmd2|cmd3"` → `"cmd2"` |
-
 | `newline` | Line break(s) | `stdout_split=newline,0` | `"line1\nline2\nline3"` → `"line1"` |
-
 | `semi` | Semicolon (alias) | `stdout_split=semi,2` | `"a;b;c;d"` → `"c"` |
 
 **Important Notes:**
@@ -3433,9 +3290,7 @@ exec=local
 The following parameters are recognized but **not yet implemented**:
 
 | Parameter | Planned Purpose | Status |
-
 |-----------|----------------|--------|
-
 | *(No reserved parameters at this time)* | | |
 
 ### Parameter Validation Rules
@@ -3467,13 +3322,9 @@ The following parameters are recognized but **not yet implemented**:
 TASKER applies different validation rules based on the execution type:
 
 | exec Type | Validation Mode | Shell Syntax | Dangerous Patterns |
-
 |-----------|-----------------|--------------|-------------------|
-
 | `exec=local` | **Strict** | ❌ Blocked | ⚠️ Warned |
-
 | `exec=shell` | **Relaxed** | ✅ Allowed | ⚠️ Warned |
-
 | `exec=pbrun/p7s/wwrs` | **Strict** | ❌ Blocked | ⚠️ Warned |
 
 **Validation Behavior:**
@@ -4069,19 +3920,12 @@ on_success=2
 #### Summary: Choose the Right Model
 
 | Scenario | Use Model | Why |
-
 |----------|-----------|-----|
-
 | Route based on variable values | **Conditional** | Evaluates data before execution |
-
 | Route based on task outcomes | **Sequential** | Handles success/failure after execution |
-
 | Multiple parallel branches | **Conditional** | Cleaner than complex on_success chains |
-
 | Simple linear workflow | **Sequential** | Simpler and more readable |
-
 | Environment-specific logic | **Conditional** | Data-driven decision making |
-
 | Error handling and retries | **Sequential** | Outcome-based flow control |
 
 ```mermaid
@@ -4480,19 +4324,12 @@ TASKER automatically captures execution data from every task for use in subseque
 For every executed task, TASKER captures:
 
 | Data Type | Variable Format | Description | Storage Limit |
-
 |-----------|----------------|-------------|---------------|
-
 | **Standard Output** | `@TASK-ID_stdout@` | Complete stdout from command (or split result) | 4,096 characters |
-
 | **Standard Error** | `@TASK-ID_stderr@` | Complete stderr from command (or split result) | 4,096 characters |
-
 | **Exit Code** | `@TASK-ID_exit@` | Command exit code (0-255) | No limit |
-
 | **Hostname** | `@TASK-ID_hostname@` | Actual hostname used (resolved from @HOSTNAME@) | 256 characters |
-
 | **Success Status** | `@TASK-ID_success@` | Boolean success status (True/False) | No limit |
-
 | **Timing Data** | `@TASK-ID_duration@` | Execution time in seconds (decimal) | No limit |
 
 ### Complete Variable Reference
@@ -5133,17 +4970,11 @@ Benefits:
 **Pattern Comparison:**
 
 | Aspect | Old Pattern | Optimized Pattern |
-
 |--------|-------------|-------------------|
-
 | Port Checks | Sequential, interleaved | Upfront, parallelizable |
-
 | Decision Blocks | 2 (one per port) | 1 (early exit) |
-
 | Download Logic | Decision-based routing | Condition-based execution |
-
 | Extensibility | Add more decision blocks | Add more conditional tasks |
-
 | Early Exit | No | Yes (avoids wasted work) |
 
 ---
@@ -5269,79 +5100,50 @@ tasker recovery_workflow.txt --show-effective-args
 #### Execution Control
 
 | Option | Description | Example |
-
 |--------|-------------|---------|
-
 | `-r, --run` | Execute commands (not dry run) | `tasker -r tasks.txt` |
-
 | `-p, --project` | Project name for summary logging and tracking | `tasker -r -p DEPLOY_2024 tasks.txt` |
-
 | `-l, --log-dir` | Custom log directory (default: ~/TASKER/) | `tasker -r -l /custom/logs tasks.txt` |
-
 | `--log-level` | Logging level (ERROR/WARN/INFO/DEBUG) | `tasker -r --log-level=DEBUG tasks.txt` |
-
 | `-d, --debug` | Shorthand for --log-level=DEBUG | `tasker -r -d tasks.txt` |
-
 | `-t, --type` | Default execution type (pbrun/p7s/local/wwrs/shell) | `tasker -r -t local tasks.txt` |
-
 | `-o, --timeout` | Default timeout in seconds (5-1000, default: 30) | `tasker -r -o 60 tasks.txt` |
 
 #### Planning and Validation
 
 | Option | Description | Example |
-
 |--------|-------------|---------|
-
 | `--show-plan` | Display execution plan and ask for confirmation | `tasker --show-plan -r tasks.txt` |
-
 | `--validate-only` | Perform complete validation (task + host + command + security) and exit | `tasker --validate-only tasks.txt` |
-
 | `--show-effective-args` | Display effective arguments (file + CLI merged) and exit - useful for debugging file-defined arguments | `tasker --show-effective-args tasks.txt` |
-
 | `-c, --connection-test` | Enable host connectivity testing | `tasker -r -c tasks.txt` |
-
 | `--skip-task-validation` | Skip task file and dependency validation (use for faster resume) | `tasker -r --skip-task-validation tasks.txt` |
-
 | `--skip-host-validation` | Skip host validation - use hostnames as-is (WARNING: may cause connection failures) | `tasker -r --skip-host-validation tasks.txt` |
-
 | `--skip-command-validation` | Skip command existence validation (WARNING: may cause execution failures) | `tasker -r --skip-command-validation tasks.txt` |
-
 | `--skip-security-validation` | Skip security pattern validation - disables input sanitization (WARNING: allows risky patterns) | `tasker -r --skip-security-validation tasks.txt` |
-
 | `--strict-env-validation` | Require TASKER_ prefix for environment variables in global variables (security: prevents accidental secret leakage) | `tasker -r --strict-env-validation tasks.txt` |
-
 | `--skip-validation` | Skip ALL validation (task + host + command + security) | `tasker -r --skip-validation tasks.txt` |
 
 #### Resume and Recovery
 
 | Option | Description | Example |
-
 |--------|-------------|---------|
-
 | `--start-from` | Resume execution from specific task ID | `tasker -r --start-from=5 tasks.txt` |
-
 | `--auto-recovery` | Enable automatic error recovery - saves state after each task and auto-resumes on failure | `tasker -r --auto-recovery tasks.txt` |
-
 | `--show-recovery-info` | Display recovery state information and exit without execution | `tasker --show-recovery-info tasks.txt` |
 
 #### Execution Behavior
 
 | Option | Description | Example |
-
 |--------|-------------|---------|
-
 | `--fire-and-forget` | Continue workflow execution even when tasks fail (WARNING: Failed tasks will not stop execution) | `tasker -r --fire-and-forget tasks.txt` |
-
 | `--no-task-backup` | Disable task file backup creation - reduces file clutter, useful for testing | `tasker -r --no-task-backup tasks.txt` |
-
 | `--alert-on-failure` | Execute custom alert script when workflow fails or is interrupted - receives context via environment variables (TASKER_LOG_FILE, TASKER_STATE_FILE, TASKER_TASK_FILE, TASKER_FAILED_TASK, TASKER_EXIT_CODE, TASKER_ERROR, TASKER_TIMESTAMP) | `tasker -r --alert-on-failure /path/to/alert.sh tasks.txt` |
 
 #### Output and Reporting
 
 | Option | Description | Example |
-
 |--------|-------------|---------|
-
 | `--output-json [PATH]` | Generate machine-readable workflow summary in JSON format. If PATH provided, saves to that location. If used without PATH, auto-generates timestamped filename in `~/TASKER/output/`. Automatically enables `--auto-recovery`. Contains workflow metadata (status, duration, timestamps), execution summary (task counts, execution path), task results (exit codes, stdout/stderr), and global variables. | `tasker -r --output-json tasks.txt`<br>`tasker -r --output-json=/tmp/workflow.json tasks.txt` |
 
 ### Complete Usage Reference
@@ -5507,15 +5309,10 @@ TASKER 2.1 Project Structure
 Configure TASKER behavior using environment variables:
 
 | Variable | Description | Default | Example |
-
 |----------|-------------|---------|---------|
-
 | `TASK_EXECUTOR_DEBUG` | Enable debug logging | `false` | `export TASK_EXECUTOR_DEBUG=true` |
-
 | `TASK_EXECUTOR_LOG_DIR` | Custom log directory | `~/TASKER` | `export TASK_EXECUTOR_LOG_DIR=/var/log/tasker` |
-
 | `TASK_EXECUTOR_TIMEOUT` | Default command timeout | `30` | `export TASK_EXECUTOR_TIMEOUT=60` |
-
 | `TASK_EXECUTOR_EXEC_TYPE` | Default execution type | `pbrun` | `export TASK_EXECUTOR_EXEC_TYPE=local` |
 
 **Priority Order**: Task file parameters > Command line arguments > Environment variables
@@ -5663,51 +5460,30 @@ TASKER uses specific exit codes to indicate different types of failures:
 ### Standard Exit Codes
 
 | Exit Code | Constant | Description | Resolution |
-
 |-----------|----------|-------------|------------|
-
 | 0 | SUCCESS | Task execution completed successfully | N/A |
-
 | 1 | GENERAL_ERROR | General task execution failure | Check task logs for details |
-
 | 124 | TIMEOUT | Task exceeded timeout limit | Increase timeout or optimize task |
-
 | 130 | SIGNAL_INTERRUPT | Execution interrupted (Ctrl+C) | N/A - User initiated |
 
 ### TASKER-Specific Exit Codes
 
 | Exit Code | Constant | Description | Resolution |
-
 |-----------|----------|-------------|------------|
-
 | 10 | INVALID_ARGUMENTS | Invalid command-line arguments | Check command syntax |
-
 | 11 | TASK_FILE_NOT_FOUND | Task file doesn't exist | Verify file path |
-
 | 12 | TASK_FILE_EMPTY | Task file is empty | Add task definitions |
-
 | 13 | TASK_FILE_PARSE_ERROR | Cannot parse task file | Check file syntax |
-
 | 14 | CONDITIONAL_EXECUTION_FAILED | Conditional 'next' condition not met | Review condition logic |
-
 | 15 | SIGNAL_INTERRUPT | Interrupted by signal (SIGINT/SIGTERM) | N/A - System initiated |
-
 | 16 | PARALLEL_EXECUTION_FAILURE | Parallel task execution failed | Check individual task logs |
-
 | 17 | CONDITIONAL_TASK_FAILURE | Conditional branch execution failed | Review branch logic |
-
 | 18 | TASK_FAILED | Individual task execution failed | Check task configuration |
-
 | 19 | TASK_DEPENDENCY_FAILED | Task dependency not satisfied | Verify task dependencies |
-
 | 20 | TASK_FILE_VALIDATION_FAILED | Task file validation errors | Fix validation errors |
-
 | 21 | HOST_VALIDATION_FAILED | Host connectivity validation failed | Verify host accessibility |
-
 | 22 | HOST_CONNECTION_FAILED | Cannot connect to remote host | Check network/credentials |
-
 | 23 | HOST_RESOLUTION_FAILED | Cannot resolve hostname | Verify DNS/hostname |
-
 | 24 | EXEC_TYPE_VALIDATION_FAILED | Execution type validation failed | Check pbrun/p7s/wwrs setup |
 
 ### Using Exit Codes in Workflows

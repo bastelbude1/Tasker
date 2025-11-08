@@ -525,7 +525,7 @@ tasker -r tasks.txt
 tasker -r -p PROJECT_NAME tasks.txt
 
 # Execute with debug logging
-tasker -r --log-level=DEBUG tasks.txt
+tasker -r -d tasks.txt
 
 # Resume from specific task
 tasker -r --start-from=5 tasks.txt
@@ -681,7 +681,7 @@ tasker -r --skip-host-validation emergency_fix.txt
 
 ```bash
 # Enable debug logging for parallel tasks
-tasker -r --log-level=DEBUG parallel_workflow.txt
+tasker -r -d parallel_workflow.txt
 
 # Check for resource contention and timeout issues
 # Review individual task logs in ~/TASKER/
@@ -691,7 +691,7 @@ tasker -r --log-level=DEBUG parallel_workflow.txt
 
 ```bash
 # Use debug logging to trace condition evaluation
-tasker -r --log-level=DEBUG complex_workflow.txt
+tasker -r -d complex_workflow.txt
 
 # Verify variable replacement and condition logic
 # Check task result data availability
@@ -713,7 +713,7 @@ tasker -r --auto-recovery workflow.txt
 ### Debug Steps
 
 1. **Validation Issues**: `tasker --validate-only tasks.txt`
-2. **Debug Execution**: `tasker -r --log-level=DEBUG tasks.txt`
+2. **Debug Execution**: `tasker -r -d tasks.txt`
 3. **Check Connectivity**: `tasker -r -c tasks.txt`
 4. **Review Logs**: Check timestamped files in `~/TASKER/`
 5. **Test Resume**: `tasker --start-from=X --validate-only tasks.txt`

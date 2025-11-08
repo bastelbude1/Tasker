@@ -44,7 +44,7 @@ flowchart TD
     style T2 fill:#ffcdd2,stroke:#c62828,stroke-width:3px
     style T3 fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style End fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
-```bash
+```
 
 **The simple text configuration:**
 
@@ -89,7 +89,7 @@ command=echo
 arguments=Attempting to restart service...
 exec=local
 # Workflow ends after restart attempt
-```bash
+```
 
 **Run it:** `tasker -r health_check.txt` ✨
 
@@ -3910,7 +3910,7 @@ flowchart TD
     style C fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style D fill:#e1f5fe,stroke:#01579b,stroke-width:3px
     style E fill:#ffe0b2,stroke:#f57f17,stroke-width:3px
-```bash
+```
 
 **When to use**: Deploy to multiple servers simultaneously, or run independent tasks in parallel. See [TaskER FlowChart - Parallel Block](TaskER_FlowChart.md#9-parallel-block) for details.
 
@@ -4096,7 +4096,7 @@ flowchart TD
     style B fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
     style C fill:#ffcdd2,stroke:#c62828,stroke-width:3px
     style D fill:#ffe0b2,stroke:#f57f17,stroke-width:3px
-```bash
+```
 
 **When to use**: Different execution paths based on environment, conditions, or runtime decisions. See [TaskER FlowChart - Conditional Block](TaskER_FlowChart.md#5-conditional-block) for details.
 
@@ -5010,7 +5010,7 @@ flowchart TD
     style Failed2 fill:#ffcdd2,stroke:#c62828,stroke-width:3px
     style Complete fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
     style Stop fill:#ffcdd2,stroke:#c62828,stroke-width:3px
-```bash
+```
 
 **Configuration file** (optimized pattern):
 

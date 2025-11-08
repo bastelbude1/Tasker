@@ -245,6 +245,7 @@ These flags generate warnings but are allowed:
 |----------|------|---------|
 | `--run` / `-r` | Boolean | `--run` or `-r` |
 | `--debug` / `-d` | Boolean | `--debug` or `-d` |
+| `--connection-test` / `-c` | Boolean | `--connection-test` or `-c` |
 | `--log-level=LEVEL` | Value | `--log-level=DEBUG` |
 | `--timeout=N` | Value | `--timeout=60` |
 | `--start-from=N` | Value | `--start-from=5` |

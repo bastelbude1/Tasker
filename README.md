@@ -418,7 +418,7 @@ on_success=10
 - **CRITICAL:** Individual task routing (`on_success`, `on_failure`, `next`) is **NOT ALLOWED** in subtasks
   - Subtasks cannot have routing parameters - control must return to the conditional block
   - Validation will **FAIL** if subtasks have routing parameters
-  - Use **Decision Blocks** instead if individual task routing is needed
+  - Use **sequential execution** with `on_success`/`on_failure` if individual task routing is needed
 - Individual task `success` criteria IS RESPECTED for determining success/retry
 - Retry applies to individual tasks within the branch, not the condition evaluation
 

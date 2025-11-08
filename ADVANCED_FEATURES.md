@@ -884,8 +884,8 @@ command=analyze_massive_dataset
 
 #### Memory Thresholds
 
-- **In-Memory Limit**: 10MB per task (hardcoded for optimal performance)
-- **Buffer Size**: 1MB chunks for optimal I/O performance
+- **In-Memory Buffer**: 1MB (switches to temp files at 10MB)
+- **Buffer Size**: 1MB with 8KB read chunks
 - **Maximum Memory**: 100MB absolute limit per task
 - **Temp File Location**: System temp directory (`/tmp` on Linux)
 
@@ -1019,9 +1019,9 @@ Tasks that trigger streaming are automatically logged:
 
 **Solution**: TASKER automatically uses streaming - no configuration needed. If you still encounter memory issues, check:
 
-1. Log file rotation - disable with `--no-log-rotation` if needed
-2. Concurrent task count - reduce `max_parallel` in parallel blocks
-3. System available memory
+1. Concurrent task count - reduce `max_parallel` in parallel blocks
+2. System available memory
+3. Task output size - verify streaming threshold is working correctly
 
 ---
 

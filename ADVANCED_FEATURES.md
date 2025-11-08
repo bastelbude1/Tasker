@@ -9,6 +9,7 @@ This guide covers advanced TASKER features for power users. For basic usage, see
 - [File-Defined Arguments](#file-defined-arguments)
 - [Global Variables](#global-variables)
 - [Memory-Efficient Output Streaming](#memory-efficient-output-streaming)
+- [Alert-on-Failure: Workflow Monitoring](#alert-on-failure-workflow-monitoring)
 - [Execution Models](#execution-models)
 - [Advanced Flow Control](#advanced-flow-control)
 - [Task Result Storage and Data Flow](#task-result-storage-and-data-flow)
@@ -35,6 +36,8 @@ File-defined arguments allow you to embed TASKER command-line options directly i
 
 ### Basic Example
 
+**Task file (`workflow.txt`):**
+
 ```bash
 # File-defined arguments (must be at the very top)
 --auto-recovery
@@ -53,13 +56,13 @@ arguments=Deploying to @ENVIRONMENT@ environment on @TARGET_HOST@
 exec=local
 ```
 
-**Execute with:**
+**Execution:**
 
 ```bash
-# File-defined arguments are automatically applied
+# File-defined arguments are automatically applied - no need to specify them!
 python3 tasker.py workflow.txt -r
 
-# CLI args can override file args
+# CLI args can override file args if needed
 python3 tasker.py workflow.txt -r --log-level=INFO  # Overrides DEBUG
 ```
 
@@ -624,6 +627,8 @@ MY_TASK=my_custom_value
 
 #### 2. Task Field Names
 
+Common task field names that cannot be used as global variables:
+
 ```bash
 # ❌ BLOCKED - Silently ignored, causes confusion
 hostname=myvalue
@@ -639,6 +644,10 @@ on_failure=myvalue
 loop=myvalue
 sleep=myvalue
 return=myvalue
+type=myvalue
+tasks=myvalue
+max_parallel=myvalue
+retry_count=myvalue
 
 # ✅ USE INSTEAD - Add prefix or make uppercase
 MY_HOSTNAME=myvalue
@@ -647,7 +656,9 @@ HOSTNAME=myvalue
 COMMAND=myvalue
 ```
 
-**Why blocked:** These names are filtered out during parsing because they're task field names. Variables appear to be defined but report "undefined variable" errors when referenced - extremely confusing behavior.
+**Why blocked:** These names are filtered out during parsing because they're task field names. Variables appear to be defined but report "undefined variable" errors when referenced - confusing behavior.
+
+**Note:** This list includes the most common task parameters. For a complete task parameter reference, see [TaskER_FlowChart.md](TaskER_FlowChart.md).
 
 **Validation Error Example:**
 
@@ -993,11 +1004,31 @@ Tasks that trigger streaming are automatically logged:
 [02Oct25 15:47:21] Task 0: STDOUT: Large dataset line 000000 with data: XXX... (20839999 chars total)
 ```
 
-### Alert-on-Failure: Workflow Monitoring
+### System Compatibility
+
+#### Python Version Support
+
+- **Python 3.6.8+**: Full compatibility with legacy systems
+- **Platform**: Built for Linux, can be updated for Windows (SSH-only remote execution)
+- **Memory Management**: Uses standard Python tempfile module
+
+#### Troubleshooting Memory Issues
+
+**Symptom**: Out of memory errors for large task outputs
+
+**Solution**: TASKER automatically uses streaming - no configuration needed. If you still encounter memory issues, check:
+
+1. Log file rotation - disable with `--no-log-rotation` if needed
+2. Concurrent task count - reduce `max_parallel` in parallel blocks
+3. System available memory
+
+---
+
+## Alert-on-Failure: Workflow Monitoring
 
 Get instant notifications when workflows fail or are interrupted with custom alert scripts.
 
-#### Basic Alert Script
+### Basic Alert Script
 
 Create a simple alert script that receives failure context via environment variables:
 
@@ -1606,6 +1637,20 @@ Combine multiple conditions using boolean operators:
 - `AND`: AND operator (textual, case-insensitive)
 - `OR`: OR operator (textual, case-insensitive)
 - `()`: Grouping (simple conditions only)
+
+**Grouping Limitations:**
+
+Grouping supports single-level parentheses only. Nested or multiple grouped expressions are not supported.
+
+```bash
+# ✅ Simple grouping (supported)
+success=(exit_0 & stdout~OK)
+condition=@0_exit@=0&(@0_stdout@~success|@0_stdout@~complete)
+
+# ❌ Complex grouping (NOT supported)
+success=((exit_0 | exit_1) & (stdout~A | stdout~B))
+condition=((@0_exit@=0 | @1_exit@=0) & (@0_stdout@~OK | @1_stdout@~OK))
+```
 
 **Operator Forms:**
 

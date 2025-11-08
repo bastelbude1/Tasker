@@ -8,7 +8,7 @@
 
 ## 📜 License & Copyright
 
-**Copyright (C) 2024-2025 Bastelbude and Contributors**
+### Copyright (C) 2024-2025 Bastelbude and Contributors
 
 TASKER is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. This strong copyleft license ensures the software remains free while preventing unauthorized commercial exploitation.
 
@@ -47,7 +47,8 @@ flowchart TD
 ```
 
 **The simple text configuration:**
-```
+
+```bash
 # health_check.txt - Your first TASKER workflow!
 # This example demonstrates basic routing based on success criteria
 
@@ -93,6 +94,7 @@ exec=local
 **Run it:** `tasker -r health_check.txt` ✨
 
 **🎯 What This Example Shows:**
+
 - **`success=exit_0`**: Define success as exit code 0
 - **`on_success=1`**: Jump to task 1 if success criteria is met
 - **`on_failure=2`**: Jump to task 2 if success criteria is not met
@@ -100,6 +102,7 @@ exec=local
 - **Default flow**: Task 2 continues to task 3 automatically (no `next` condition)
 
 **🚀 Why TASKER?**
+
 - **Zero Coding Required**: Write workflows in simple text files
 - **Smart Decision Making**: Automatic routing based on command results
 - **Built-in Intelligence**: Detects success/failure from exit codes, stdout, stderr
@@ -114,6 +117,7 @@ A sophisticated Python-based task execution system for running commands on remot
 TASKER 2.1 is a next-generation task automation framework that reads task definitions from configuration files and executes them with advanced orchestration capabilities. Built on a modular architecture for maximum maintainability and scalability.
 
 **Key Features:**
+
 - **Multiple Execution Models**: Sequential, parallel, and conditional task execution
 - **Multiple Execution Types**: Direct subprocess (`local`), shell execution (`shell`), enterprise tools (`pbrun`, `p7s`, `wwrs`)
 - **Advanced Flow Control**: Complex conditions, loops, branching, and error handling
@@ -126,7 +130,7 @@ TASKER 2.1 is a next-generation task automation framework that reads task defini
 
 ---
 
-# PART 1: Getting Started
+## PART 1: Getting Started
 
 Get up and running with TASKER quickly - learn the essentials to start automating your workflows.
 
@@ -135,16 +139,19 @@ Get up and running with TASKER quickly - learn the essentials to start automatin
 ### Basic Usage
 
 Execute tasks in a file (dry run mode - doesn't actually execute commands):
+
 ```bash
 tasker tasks.txt
 ```
 
 Actually execute the commands:
+
 ```bash
 tasker -r tasks.txt
 ```
 
 Execute with project tracking and logging:
+
 ```bash
 tasker -r -p DEPLOYMENT_2024 deployment_tasks.txt
 ```
@@ -152,7 +159,8 @@ tasker -r -p DEPLOYMENT_2024 deployment_tasks.txt
 ### Your First Task File
 
 Create a simple task file `hello.txt`:
-```
+
+```bash
 # hello.txt - Your first TASKER task file
 # Simple sequential execution with local commands
 
@@ -169,6 +177,7 @@ exec=local
 ```
 
 Run it:
+
 ```bash
 tasker -r hello.txt
 ```
@@ -189,7 +198,8 @@ TASKER uses a simple key-value format where each task is defined by parameters. 
 - **Rationale**: Inline comments can cause parsing errors and interfere with security validation
 
 **❌ INCORRECT (Inline Comments):**
-```
+
+```bash
 task=0
 hostname=server1
 command=deploy
@@ -198,7 +208,8 @@ success=exit_0&stdout~ok    # This will also fail!
 ```
 
 **✅ CORRECT (Separate Comment Lines):**
-```
+
+```bash
 task=0
 hostname=server1
 command=deploy
@@ -211,7 +222,8 @@ success=exit_0&stdout~ok
 ### Sequential Execution (Default)
 
 **Example - Simple sequential execution (task by task):**
-```
+
+```bash
 # Simple sequential tasks - execute in order 0, 1, 2, 3
 task=0
 hostname=localhost
@@ -239,7 +251,8 @@ exec=local
 ```
 
 **Example - Sequential with simple flow control (next parameter):**
-```
+
+```bash
 # Continue to next task only if success criteria is met
 task=0
 hostname=server1
@@ -257,7 +270,8 @@ command=verify_deployment
 ```
 
 **Example - Sequential with routing (jumps on success/failure):**
-```
+
+```bash
 # Jump to different tasks based on success/failure
 task=0
 hostname=localhost
@@ -292,7 +306,8 @@ return=1
 ### Parallel Execution
 
 **Example - Parallel task with retry:**
-```
+
+```bash
 task=1
 # Required
 type=parallel
@@ -333,6 +348,7 @@ on_failure=99
 ```
 
 **How It Works:**
+
 - TASKER automatically generates one subtask per hostname
 - Each subtask gets a unique ID in the reserved range (100000+)
 - Generated IDs follow formula: `100000 + parent_task_id * 10000 + index`
@@ -343,6 +359,7 @@ on_failure=99
 - Supports all parallel block features: `max_parallel`, retry, success criteria
 
 **Validation Rules:**
+
 - `hostnames=` and `tasks=` are mutually exclusive (use one or the other)
 - `hostnames=` requires `command=` parameter
 - Minimum 2 hostnames (use `hostname=` for single server)
@@ -353,6 +370,7 @@ on_failure=99
 **Parameters:** See [Parallel Execution Parameters](#parallel-execution-parameters) table below
 
 **Important Parallel Execution Behavior:**
+
 - **CRITICAL:** Individual task routing (`on_success`, `on_failure`, `next`) is **NOT ALLOWED** in subtasks
   - Subtasks cannot have routing parameters - control must return to the parallel block
   - Validation will **FAIL** if subtasks have routing parameters
@@ -361,6 +379,7 @@ on_failure=99
 - Retry applies to individual tasks within the parallel group
 
 **Subtask ID Range Convention (Recommended):**
+
 - Use distinct ID ranges to clearly separate subtasks from main workflow
 - Recommended: Task N subtasks in range `[N*100, (N+1)*100-1]`
 - Example: Task 1 subtasks should be 100-199, Task 2 subtasks should be 200-299
@@ -370,7 +389,8 @@ on_failure=99
 ### Conditional Execution
 
 **Example - Conditional branching:**
-```
+
+```bash
 task=5
 # Required
 type=conditional
@@ -393,15 +413,17 @@ on_success=10
 **Parameters:** See [Conditional Execution Parameters](#conditional-execution-parameters) table below
 
 **Important Conditional Execution Behavior:**
+
 - Tasks in branches execute in the exact order listed (e.g., `100,300,150` executes in that order)
 - **CRITICAL:** Individual task routing (`on_success`, `on_failure`, `next`) is **NOT ALLOWED** in subtasks
   - Subtasks cannot have routing parameters - control must return to the conditional block
   - Validation will **FAIL** if subtasks have routing parameters
-  - Use **Decision Blocks** instead if individual task routing is needed
+  - Use **sequential execution** with `on_success`/`on_failure` if individual task routing is needed
 - Individual task `success` criteria IS RESPECTED for determining success/retry
 - Retry applies to individual tasks within the branch, not the condition evaluation
 
 **Subtask ID Range Convention (Recommended):**
+
 - Use distinct ID ranges to clearly separate subtasks from main workflow
 - Recommended: Task N subtasks in range `[N*100, (N+1)*100-1]`
 - Example: Task 1 subtasks should be 100-199, Task 2 subtasks should be 200-299
@@ -412,7 +434,7 @@ on_success=10
 
 **Lightweight conditional routing** - Evaluate conditions without executing commands:
 
-```
+```bash
 task=2
 # Required
 type=decision
@@ -427,6 +449,7 @@ on_failure=99
 **Parameters:** See [Decision Block Parameters](#decision-block-parameters) table below
 
 **Key Decision Block Features:**
+
 - Pure routing logic - no command execution
 - Uses familiar `success=` or `failure=` syntax (same as regular tasks)
 - Standard flow control with `on_success`, `on_failure`, and `next`
@@ -444,7 +467,8 @@ on_failure=99
 | Example | Deploy to prod/staging environments | Fallback logic (try port 80, else try 443) |
 
 **Example - Port availability check:**
-```
+
+```bash
 # Task 0: Check port 80
 task=0
 hostname=server1
@@ -513,6 +537,7 @@ success=exit_0
 The Output Processing Block provides simple yet powerful text extraction capabilities for task outputs. These parameters allow you to split command output by delimiters and extract specific fields, making it easy to parse structured data like CSV, logs, configuration files, and more.
 
 **Supported Delimiter Keywords:**
+
 - `space` - Split by any whitespace character(s) (spaces, tabs, etc.)
 - `tab` - Split by tab character(s)
 - `newline` - Split by line break(s)
@@ -522,7 +547,7 @@ The Output Processing Block provides simple yet powerful text extraction capabil
 - `pipe` - Split by pipe character (`|`)
 - `semi` - Alias for `semicolon` (backward compatibility)
 
-```
+```bash
 task=0
 hostname=localhost
 command=printf
@@ -603,12 +628,13 @@ exec=local
 **Parameters:** See [Output Processing Parameters](#output-processing-parameters-all-standard-tasks) table below.
 
 **Format:** `stdout_split=DELIMITER,INDEX` or `stderr_split=DELIMITER,INDEX`
+
 - `DELIMITER`: One of the supported keywords above
 - `INDEX`: Zero-based index of the element to extract (0 = first, 1 = second, etc.)
 
 **Practical Examples:**
 
-```
+```bash
 # Practical Disk Usage Parsing Example
 # Extract disk usage percentage from df output
 # Demonstrates stdout_split for field extraction
@@ -670,6 +696,7 @@ arguments=First error: @3_stderr@
 ### Complete Parameter Reference
 
 For detailed parameter specifications and valid ranges, see the [Complete Parameter Field Reference](#complete-parameter-field-reference) section below, which includes:
+
 - [Core Task Parameters](#core-task-parameters-all-execution-models) - Common to all tasks
 - [Sequential Execution Parameters](#sequential-execution-parameters-default-mode) - Default mode with flow control
 - [Parallel Execution Parameters](#parallel-execution-parameters) - Concurrent task execution
@@ -685,6 +712,7 @@ For detailed parameter specifications and valid ranges, see the [Complete Parame
 File-defined arguments allow you to embed TASKER command-line options directly in task files. Instead of remembering which flags to use when running a workflow, the task file itself declares its requirements.
 
 **Benefits:**
+
 - ✅ **Self-documenting**: Requirements visible directly in task files
 - ✅ **Automation-friendly**: No need to remember or manage flags externally
 - ✅ **Reduces errors**: Operators can't forget required flags
@@ -712,6 +740,7 @@ exec=local
 ```
 
 **Execute with:**
+
 ```bash
 # File-defined arguments are automatically applied
 python3 tasker.py workflow.txt -r
@@ -722,7 +751,7 @@ python3 tasker.py workflow.txt -r --log-level=INFO  # Overrides DEBUG
 
 ### How File-Defined Arguments Work
 
-**1. Argument Placement Rules**
+#### 1. Argument Placement Rules
 
 File-defined arguments **MUST** appear at the **very beginning** of the task file:
 
@@ -756,7 +785,7 @@ task=0
 
 **Parser stopping rule**: The parser stops reading file-defined arguments at the **first line containing `=` that doesn't start with `-` or `--`**.
 
-**2. Valid Argument Syntax**
+#### 2. Valid Argument Syntax
 
 File-defined arguments use **identical syntax** to command-line arguments:
 
@@ -781,7 +810,7 @@ File-defined arguments use **identical syntax** to command-line arguments:
 --log-level = DEBUG  # Must be --log-level=DEBUG
 ```
 
-**3. Argument Precedence**
+#### 3. Argument Precedence
 
 When both file and CLI arguments are present:
 
@@ -811,7 +840,8 @@ python3 tasker.py workflow.txt -r --log-level=INFO --timeout=60
 
 **Parser stops at first non-argument line:**
 
-**Case 1: Arguments after global variables**
+#### Case 1: Arguments after global variables
+
 ```bash
 # Global variables appear first - parser stops here
 ENVIRONMENT=production
@@ -824,7 +854,8 @@ task=0
 ...
 ```
 
-**Case 2: Arguments mid-file**
+#### Case 2: Arguments mid-file
+
 ```bash
 # Proper file-defined arguments
 --auto-recovery
@@ -843,7 +874,8 @@ task=1
 ...
 ```
 
-**Case 3: Arguments after task definitions**
+#### Case 3: Arguments after task definitions
+
 ```bash
 # Tasks come first
 task=0
@@ -859,7 +891,7 @@ command=deploy
 
 ### Security Controls
 
-**CLI-Only Flags (Hard Blocked)**
+#### CLI-Only Flags (Hard Blocked)
 
 These flags are **forbidden** in file-defined arguments and will cause immediate failure:
 
@@ -873,7 +905,7 @@ These flags are **forbidden** in file-defined arguments and will cause immediate
 # ERROR: File-defined argument '--help' is not allowed (CLI-only flag)
 ```
 
-**Security-Sensitive Flags (Warning)**
+#### Security-Sensitive Flags (Warning)
 
 These flags generate warnings but are allowed:
 
@@ -928,7 +960,8 @@ python3 tasker.py workflow.txt --show-effective-args
 ```
 
 **Output:**
-```
+
+```bash
 Effective TASKER arguments (file + CLI merged):
 ============================================================
 File-defined arguments from workflow.txt:
@@ -945,7 +978,8 @@ Final effective arguments:
 
 ### Common Patterns
 
-**Pattern 1: Recovery Workflows**
+#### Pattern 1: Recovery Workflows
+
 ```bash
 # Workflow with automatic recovery enabled
 --auto-recovery
@@ -956,7 +990,8 @@ task=0
 ...
 ```
 
-**Pattern 2: Development Testing**
+#### Pattern 2: Development Testing
+
 ```bash
 # Development workflow with debug logging
 --log-level=DEBUG
@@ -968,7 +1003,8 @@ task=0
 ...
 ```
 
-**Pattern 3: Production Deployment**
+#### Pattern 3: Production Deployment
+
 ```bash
 # Production deployment with resume capability
 --auto-recovery
@@ -983,7 +1019,8 @@ task=0
 ...
 ```
 
-**Pattern 4: Validation-Only Workflows**
+#### Pattern 4: Validation-Only Workflows
+
 ```bash
 # Workflow that only validates syntax
 --validate-only
@@ -997,6 +1034,7 @@ task=0
 ### Best Practices
 
 **1. Keep arguments at the top:**
+
 ```bash
 # ✅ GOOD
 # File-defined arguments (line 1)
@@ -1012,6 +1050,7 @@ task=0
 ```
 
 **2. Comment your argument choices:**
+
 ```bash
 # ✅ GOOD - Explain why flags are needed
 # File-defined arguments
@@ -1027,6 +1066,7 @@ task=0
 ```
 
 **3. Don't duplicate CLI and file args:**
+
 ```bash
 # ❌ BAD - Redundant
 # workflow.txt contains --auto-recovery
@@ -1038,6 +1078,7 @@ python3 tasker.py workflow.txt -r  # Simpler
 ```
 
 **4. Use file args for workflow requirements:**
+
 ```bash
 # ✅ GOOD - Workflow needs these to function correctly
 --auto-recovery        # Required for recovery
@@ -1045,6 +1086,7 @@ python3 tasker.py workflow.txt -r  # Simpler
 ```
 
 **5. Use CLI args for runtime decisions:**
+
 ```bash
 # ✅ GOOD - Override at runtime
 python3 tasker.py workflow.txt -r --log-level=DEBUG  # Debug run
@@ -1067,11 +1109,13 @@ Define reusable variables at the top of your task file for configuration managem
 ### ✅ Environment Variable Support
 
 **TASKER automatically expands environment variables** like `$HOME`, `$USER`, `$PWD`, etc. in:
+
 - ✅ **Task arguments field** - Expanded at execution time
 - ✅ **Global variable definitions** - Expanded at parse time (NEW!)
 
 **✅ Environment variables in task arguments:**
-```
+
+```bash
 task=0
 hostname=localhost
 command=rm
@@ -1102,11 +1146,13 @@ exec=local
 ```
 
 **Supported syntax:**
+
 - **Simple**: `$USER`, `$HOME`, `$PWD`
 - **Braces**: `${USER}`, `${HOME}` (useful for disambiguation)
 - **Example**: `PATH_WITH_USER=/home/${USER}/bin` (braces prevent interpreting `/bin` as part of variable name)
 
 **Supported environment variables:**
+
 - `$HOME` - User's home directory
 - `$USER` - Current username
 - `$PWD` - Current working directory
@@ -1115,12 +1161,13 @@ exec=local
 - Any other environment variables available in the system
 
 **Expansion timing:**
+
 - **Global variables**: Expanded **once** at parse time (start of execution)
 - **Arguments field**: Expanded at **task execution** time (allows dynamic values like `$PWD` after `cd` commands)
 
 ### Basic Global Variables
 
-```
+```bash
 # Global variable definitions (at top of task file)
 ENVIRONMENT=production
 SERVICE_NAME=web-api
@@ -1144,7 +1191,8 @@ This makes your task files work like templates - update one variable, all tasks 
 **Common Use Cases:**
 
 **1. Template-Based Task Files:**
-```
+
+```bash
 # Define once, use many times
 TARGET_HOST=prod-db-01
 PACKAGE_NAME=nginx
@@ -1175,7 +1223,8 @@ arguments=@SERVICE_NAME@
 ```
 
 **2. Environment-Specific Deployments:**
-```
+
+```bash
 # Switch entire workflow by changing one variable
 # Change to 'production' for prod deployment
 ENVIRONMENT=staging
@@ -1198,7 +1247,8 @@ arguments=--version=@APP_VERSION@
 ```
 
 **3. Repeated Command Arguments:**
-```
+
+```bash
 # Same options used across multiple tasks
 BACKUP_OPTIONS=--compress --encrypt --verify
 BACKUP_PATH=/backup/2024
@@ -1225,7 +1275,7 @@ arguments=@BACKUP_OPTIONS@ --dest=@BACKUP_PATH@/config
 
 **Alternative for Dynamic Data**: Use task output variables (`@TASK_ID_stdout@`) for values that change during execution:
 
-```
+```bash
 # Get dynamic value from task
 task=0
 hostname=config-server
@@ -1246,7 +1296,8 @@ TASKER validates global variable names to prevent conflicts with internal keywor
 #### ❌ Reserved Keywords (Cannot Be Used)
 
 **1. The `task` Keyword**
-```
+
+```bash
 # ❌ BLOCKED - Causes parser crash
 task=my_custom_value
 
@@ -1254,10 +1305,12 @@ task=my_custom_value
 TASK_NAME=my_custom_value
 MY_TASK=my_custom_value
 ```
+
 **Why blocked:** `task` is reserved for task ID definitions and must be followed by an integer. Using it as a global variable causes parser crashes with `ValueError: invalid literal for int()`.
 
-**2. Task Field Names**
-```
+#### 2. Task Field Names
+
+```bash
 # ❌ BLOCKED - Silently ignored, causes confusion
 hostname=myvalue
 command=myvalue
@@ -1279,10 +1332,12 @@ TARGET_HOSTNAME=myvalue
 HOSTNAME=myvalue
 COMMAND=myvalue
 ```
+
 **Why blocked:** These names are filtered out during parsing because they're task field names. Variables appear to be defined but report "undefined variable" errors when referenced - extremely confusing behavior.
 
 **Validation Error Example:**
-```
+
+```bash
 # This triggers validation error
 hostname=web-server.com
 
@@ -1295,7 +1350,7 @@ Task field names are reserved. Use a different name like 'HOSTNAME' or 'MY_HOSTN
 
 **Important Discovery:** Names like `stdout`, `stderr`, `exit`, `exit_0`, `exit_1` are **100% SAFE** to use as global variable names!
 
-```
+```bash
 # ✅ PERFECTLY SAFE - No conflicts!
 stdout=my_custom_stdout_value
 stderr=my_custom_stderr_value
@@ -1321,6 +1376,7 @@ exec=local
 ```
 
 **Why these are safe:** TASKER uses different regex patterns for each:
+
 - **Global variables**: `@([a-zA-Z_][a-zA-Z0-9_]*)@` matches `@stdout@`, `@exit@`, etc.
 - **Task results**: `@(\d+)_(stdout|stderr|success|exit)@` matches `@0_stdout@`, `@1_exit@`, etc.
 
@@ -1331,7 +1387,8 @@ The patterns are mutually exclusive - no conflict possible!
 TASKER supports **nested variable expansion** (variable chaining) with a maximum depth of **10 iterations** to prevent infinite loops in circular references.
 
 **How Variable Chaining Works:**
-```
+
+```bash
 # Variables can reference other variables
 BASE_PATH=/opt/myapp
 CONFIG_PATH=@BASE_PATH@/config
@@ -1345,7 +1402,8 @@ FULL_CONFIG=@CONFIG_PATH@/app.conf
 ```
 
 **Circular Reference Handling:**
-```
+
+```bash
 # Self-referencing variable (intentional or accidental)
 VAR_A=prefix_@VAR_A@_suffix
 
@@ -1355,12 +1413,14 @@ VAR_A=prefix_@VAR_A@_suffix
 ```
 
 **Technical Details:**
+
 - **Constant**: `MAX_VARIABLE_EXPANSION_DEPTH = 10`
 - **Location**: `tasker/core/constants.py`
 - **Usage**: Used consistently in both validation phase (`task_validator.py`) and runtime execution (`condition_evaluator.py`)
 - **Benefit**: Prevents infinite loops while allowing reasonable chaining depth
 
 **Best Practices:**
+
 - Keep variable chains under 3-4 levels deep for maintainability
 - Avoid circular references (TASKER handles them safely, but they indicate a design issue)
 - Use descriptive names to make variable relationships clear
@@ -1368,7 +1428,8 @@ VAR_A=prefix_@VAR_A@_suffix
 #### Variable Naming Best Practices
 
 **✅ Recommended Naming Patterns:**
-```
+
+```bash
 # 1. ALL_CAPS for true constants
 ENVIRONMENT=production
 VERSION=v2.1.0
@@ -1391,7 +1452,8 @@ RETRY_DELAY=5
 ```
 
 **❌ Names to Avoid:**
-```
+
+```bash
 # Too generic - unclear what they represent
 VALUE=something
 DATA=mydata
@@ -1438,6 +1500,7 @@ command=cat /var/log/application.log
 The streaming system implements a sophisticated three-tier approach:
 
 #### Tier 1: In-Memory Buffering (Up to 10MB)
+
 For small to medium outputs, everything stays in memory for maximum performance:
 
 ```text
@@ -1448,6 +1511,7 @@ For small to medium outputs, everything stays in memory for maximum performance:
 ```
 
 #### Tier 2: Temporary File Streaming (10MB+)
+
 When outputs exceed 10MB, TASKER automatically streams to temporary files:
 
 ```text
@@ -1458,6 +1522,7 @@ When outputs exceed 10MB, TASKER automatically streams to temporary files:
 ```
 
 #### Tier 3: Memory Protection (100MB+ per task)
+
 Absolute limits prevent system overload:
 
 ```text
@@ -1492,39 +1557,46 @@ command=analyze_massive_dataset
 ### Technical Implementation Details
 
 #### Memory Thresholds
+
 - **In-Memory Limit**: 10MB per task (hardcoded for optimal performance)
 - **Buffer Size**: 1MB chunks for optimal I/O performance
 - **Maximum Memory**: 100MB absolute limit per task
 - **Temp File Location**: System temp directory (`/tmp` on Linux)
 
 #### Streaming Process
+
 1. **Real-time Processing**: Output is processed as it's generated
 2. **Threshold Detection**: Automatically switches to temp files at 10MB
 3. **Memory Management**: Constant memory usage regardless of output size
 4. **Resource Cleanup**: Temporary files automatically deleted after task completion
 
 #### File Naming Convention
+
 ```text
 /tmp/tasker_stdout_XXXXXX  # Standard output temp file
 /tmp/tasker_stderr_XXXXXX  # Standard error temp file
 ```
+
 Where `XXXXXX` is a random 6-character suffix for uniqueness.
 
 ### Performance Characteristics
 
 #### Small Outputs (< 10MB)
+
 - **Memory Usage**: Actual output size
 - **Processing Time**: Near-instant
 - **Disk I/O**: None
 - **Best for**: Configuration commands, status checks, small reports
 
 #### Large Outputs (10MB - 100MB)
+
 - **Memory Usage**: ~10MB constant
 - **Processing Time**: <1 second processing overhead
 - **Disk I/O**: Sequential write to temp files
 - **Best for**: Database exports, large file operations, comprehensive logs
 
 #### Massive Outputs (100MB+)
+
 - **Memory Usage**: ~10MB constant (protected)
 - **Processing Time**: Minimal streaming overhead
 - **Disk I/O**: Efficient streaming with automatic cleanup
@@ -1533,6 +1605,7 @@ Where `XXXXXX` is a random 6-character suffix for uniqueness.
 ### Real-World Examples
 
 #### Database Operations
+
 ```bash
 # Large database export - streams automatically
 task=0
@@ -1544,6 +1617,7 @@ exec=pbrun
 ```
 
 #### Log Analysis
+
 ```bash
 # Process massive log files without memory issues
 task=1
@@ -1561,6 +1635,7 @@ exec=local
 ```
 
 #### System Monitoring
+
 ```bash
 # Generate comprehensive system reports
 task=0
@@ -1581,6 +1656,7 @@ exec=local
 ### Monitoring and Debugging
 
 #### Debug Information
+
 Enable debug logging to see streaming behavior:
 
 ```bash
@@ -1588,11 +1664,13 @@ tasker -r --log-level=DEBUG large_output_workflow.txt
 ```
 
 Debug output shows:
+
 ```text
 [02Oct25 15:47:21] DEBUG: Task 0: Used temp files for large output (stdout: 20840000 bytes, stderr: 0 bytes)
 ```
 
 #### Memory Usage Awareness
+
 Tasks that trigger streaming are automatically logged:
 
 ```text
@@ -1759,6 +1837,7 @@ Alerts are executed in these failure scenarios:
 5. **Dependency Failures**: Missing commands or connection failures
 
 **Alert is NOT triggered on:**
+
 - Successful workflow completion (all tasks succeed)
 - Dry-run mode (no actual execution)
 - Validation-only mode (--validate-only flag)
@@ -1799,11 +1878,13 @@ See `examples/alerts/simple_alert.sh` for a working example alert script.
 ### System Compatibility
 
 #### Python Version Support
+
 - **Python 3.6.8+**: Full compatibility with legacy systems
 - **Platform**: Built for Linux, can be updated for Windows (SSH-only remote execution)
 - **Memory Management**: Uses standard Python tempfile module
 
 #### Resource Requirements
+
 - **Minimum Memory**: 50MB free RAM for streaming operations
 - **Temp Space**: Sufficient disk space in `/tmp` for largest expected output
 - **File Descriptors**: Standard subprocess file descriptor usage
@@ -1811,16 +1892,19 @@ See `examples/alerts/simple_alert.sh` for a working example alert script.
 ### Benefits for Enterprise Operations
 
 #### Reliability
+
 - **No OOM Crashes**: System remains stable with any output size
 - **Predictable Memory Usage**: Constant memory footprint prevents resource exhaustion
 - **Automatic Recovery**: Graceful handling of unexpected large outputs
 
 #### Performance
+
 - **Efficient Processing**: Minimal overhead for small outputs
 - **Scalable Architecture**: Handles outputs from KB to GB range
 - **Resource Optimization**: Uses memory efficiently across all scenarios
 
 #### Operational Excellence
+
 - **Transparent Operation**: No configuration changes required
 - **Backward Compatibility**: All existing workflows continue working
 - **Diagnostic Support**: Clear logging of memory-efficient operations
@@ -1828,6 +1912,7 @@ See `examples/alerts/simple_alert.sh` for a working example alert script.
 ### Migration and Adoption
 
 #### Zero Configuration Required
+
 Existing workflows automatically benefit from streaming:
 
 ```bash
@@ -1839,6 +1924,7 @@ command=tar -czf - /data | split -b 100M
 ```
 
 #### Gradual Enhancement
+
 Teams can gradually adopt larger-scale operations:
 
 ```bash
@@ -1861,6 +1947,7 @@ command=full_system_backup
 ### Troubleshooting Large Output Issues
 
 #### Insufficient Temp Space
+
 ```bash
 # Check available temp space
 df -h /tmp
@@ -1870,6 +1957,7 @@ sudo find /tmp -name "tasker_*" -mtime +1 -delete
 ```
 
 #### Memory Warnings
+
 ```bash
 # Monitor memory usage during execution
 tasker -r --log-level=DEBUG memory_intensive_workflow.txt
@@ -1879,6 +1967,7 @@ tasker -r --log-level=DEBUG memory_intensive_workflow.txt
 ```
 
 #### Performance Optimization
+
 ```bash
 # For very large outputs, consider pre-processing
 task=0
@@ -1930,6 +2019,7 @@ exec=local
 ```
 
 **How Task-Level Conditions Work:**
+
 - If `condition` evaluates to **FALSE** → task is **skipped**, execution continues to next sequential task
 - If `condition` evaluates to **TRUE** → task executes normally
 - Skipped tasks store `exit_code=-1` and `stderr='Task skipped due to condition'`
@@ -1944,11 +2034,13 @@ exec=local
 | **Decision Block** | `type=decision` | Pure routing logic | ✅ Yes (the purpose) |
 
 **When to Use Task Conditions:**
+
 - ✅ Skip individual tasks based on previous results
 - ✅ Simple sequential workflows with conditional steps
 - ✅ When you need both execution and routing on same task
 
 **When NOT to Use Task Conditions:**
+
 - ❌ Pure routing logic → Use **Decision Blocks** instead (clearer intent)
 - ❌ Executing groups of tasks → Use **Conditional Blocks** instead
 - ❌ Complex branching → Use **Decision Blocks** for better maintainability
@@ -1960,11 +2052,13 @@ exec=local
 Exit codes are numeric values (0-255) returned by commands. **Exit code 0 means success**, non-zero indicates failure.
 
 **Common flow control with exit codes:**
+
 - `next=exit_0`: Continue only if command succeeded
 - `next=exit_1`: Continue only if command failed with code 1
 - `next=exit_127`: Continue only if command not found
 
 **Using `next` for flow control based on exit codes:**
+
 ```bash
 # Task 0: Health check
 task=0
@@ -2030,7 +2124,8 @@ exec=local
 Use task output for conditional execution and flow control:
 
 **Flow Control with Output Patterns (using `next`):**
-```
+
+```bash
 # Task 0: Detect environment
 task=0
 hostname=localhost
@@ -2125,11 +2220,13 @@ condition=@1_stderr@~threshold >= 50                 # Ambiguous: ~ or >= ?
 | Simple alphanumeric | ❌ NO | `~production` |
 
 **Quote styles supported:**
+
 - Double quotes: `condition=@0_stdout@~"pattern with = signs"`
 - Single quotes: `condition=@0_stdout@~'pattern with >= signs'`
 - Escaped quotes: `condition=@0_stdout@~"He said: \"Hello\""`
 
 **Edge case behavior:**
+
 ```bash
 # Works: Single operator, no ambiguity
 condition=@0_stdout@~value = 100
@@ -2145,6 +2242,7 @@ condition=@0_stderr@~"threshold >= 50"
 **Why this matters:**
 
 Without quotes, TASKER must decide which operator to use for parsing:
+
 - `output~pattern >= value` - Is this a pattern match (~) or comparison (>=)?
 - Using quotes makes your intent explicit: `output~"pattern >= value"` (pattern match)
 - Unquoted patterns with single operators work for backward compatibility
@@ -2158,19 +2256,21 @@ Define custom success conditions beyond just exit codes.
 
 **🎉 NEW: Case-Insensitive Support (v2.1)**
 TASKER now supports case-insensitive conditions! Use uppercase, lowercase, or mixed case as you prefer:
+
 - ✅ `success=stdout~complete` (lowercase)
 - ✅ `success=STDOUT~COMPLETE` (uppercase)
 - ✅ `success=StdOut~Complete` (mixed case)
 - ✅ `@0_STDOUT@`, `@0_EXIT@`, `@0_SUCCESS@` (uppercase placeholders)
 
 All work identically! This applies to:
+
 - `stdout`, `stderr`, `exit`, `success` keywords
 - Variable placeholders like `@task_stdout@`
 - All condition contexts: `success=`, `condition=`, `failure=`
 
 **Define custom success conditions:**
 
-```
+```bash
 task=0
 hostname=backup-server
 command=backup_database
@@ -2203,7 +2303,8 @@ When you use `next=success`, it simply evaluates to whatever the task's success 
 - Result: Continue if success=true, stop if success=false
 
 **Example - Custom Success with Flow Control:**
-```
+
+```bash
 # Task 0: Database backup
 task=0
 hostname=localhost
@@ -2254,6 +2355,7 @@ exec=local
 ```
 
 **Important Notes:**
+
 - **CRITICAL**: `next` and `on_success/on_failure` are mutually exclusive for sequential tasks
 - Use EITHER `next` for conditional continuation OR `on_success/on_failure` for routing
 - Without `next`, tasks continue to next sequential task by default
@@ -2265,18 +2367,21 @@ exec=local
 The `failure=` parameter provides an **inverse alternative** to `success=` for simpler workflow definitions when most exit codes represent success.
 
 **Instead of listing all success codes:**
-```
+
+```bash
 # Complex: List all success codes
 success=exit_0,exit_2,exit_3,exit_4,exit_5
 ```
 
 **Use the simpler inverse approach:**
-```
+
+```bash
 # Simple: List only failure code(s)
 failure=exit_1
 ```
 
 **How it works:**
+
 1. Task is assumed to succeed by default
 2. Failure condition is evaluated
 3. If failure condition is TRUE → task failed
@@ -2285,6 +2390,7 @@ failure=exit_1
 **Examples:**
 
 Single failure code:
+
 ```bash
 task=1
 hostname=deployment-server
@@ -2295,6 +2401,7 @@ failure=exit_1
 ```
 
 Multiple failure codes:
+
 ```bash
 task=1
 hostname=database-server
@@ -2304,6 +2411,7 @@ failure=exit_1|exit_2|exit_127
 ```
 
 Complex failure conditions:
+
 ```bash
 task=1
 hostname=app-server
@@ -2323,6 +2431,7 @@ failure=@stdout@~ERROR
 **Validation Rules:**
 
 **1. Mutual Exclusion:**
+
 - ❌ `success` and `failure` **cannot** be used together on the same task
 - ✅ Both support the same condition syntax (exit codes, variables, expressions)
 
@@ -2332,6 +2441,7 @@ The `failure` parameter is **only supported for sequential tasks** (regular task
 The `success` parameter is supported for **all task types** (sequential, parallel, and conditional).
 
 ✅ **VALID - Parallel blocks can use success for flexible routing:**
+
 ```bash
 task=1
 type=parallel
@@ -2343,6 +2453,7 @@ on_failure=200         # Jump to failure handler
 ```
 
 ✅ **VALID - Conditional blocks can use success for flexible routing:**
+
 ```bash
 task=1
 type=conditional
@@ -2355,6 +2466,7 @@ on_failure=200        # Jump to failure handler
 ```
 
 ❌ **INVALID - Parallel/conditional blocks cannot use failure:**
+
 ```bash
 task=1
 type=parallel
@@ -2371,6 +2483,7 @@ failure=exit_1     # ERROR: failure parameter not allowed
 - `majority_success` - Majority of subtasks must succeed
 
 ✅ **VALID - Use aggregate conditions for blocks:**
+
 ```bash
 task=1
 type=parallel
@@ -2398,6 +2511,7 @@ on_failure=99
 TASKER supports comprehensive comparison operators for sophisticated condition evaluation:
 
 **Comparison Operators:**
+
 - `=` : Equal to (string or numeric)
 - `!=` : Not equal to
 - `~` : Contains (substring search)
@@ -2408,7 +2522,8 @@ TASKER supports comprehensive comparison operators for sophisticated condition e
 - `>=` : Greater than or equal to
 
 **Examples:**
-```
+
+```bash
 # Numeric comparisons with task results
 # Exit code equals 0
 condition=@0_exit@=0
@@ -2458,6 +2573,7 @@ condition=(@0_stdout@~done)|(@0_stdout@~finished)
 
 **Note on Parentheses Support:**
 Parentheses can only wrap simple conditions without operators inside them. Operators (`&`, `|`, `AND`, `OR`) must be placed OUTSIDE parentheses:
+
 - ✅ **Supported:** `(exit_0)`, `(stdout~OK)`, `(exit_0)&(stdout~OK)`, `(exit_0) AND (stdout~OK)`
 - ❌ **Not Supported:** `(exit_0&stdout~OK)`, `(exit_0 AND stdout~OK)`, `(exit_0|exit_1)`, `(exit_0 OR exit_1)`
 
@@ -2473,11 +2589,13 @@ The `stdout_count` and `stderr_count` operators are fully implemented for counti
 Advanced retry logic for robust task execution in parallel and conditional workflows:
 
 **Retry Configuration Parameters:**
+
 - `retry_count=N` : Number of retry attempts (1-1000, default: 1). Setting this automatically enables retry.
 - `retry_delay=N` : Delay between retries in seconds (0-300, default: 1)
 
 **Parallel Task Retries:**
-```
+
+```bash
 # Parallel deployment with automatic retry
 task=10
 type=parallel
@@ -2494,7 +2612,8 @@ next=majority_success
 > **Note**: This is a syntax illustration. For a complete working example, see `test_cases/readme_examples/readme_19_parallel_retry.txt`
 
 **Conditional Task Retries:**
-```
+
+```bash
 # Conditional execution with retry
 task=30
 type=conditional
@@ -2511,12 +2630,14 @@ retry_delay=5
 > **Note**: This is a syntax illustration. For a complete working example, see `test_cases/readme_examples/readme_20_conditional_retry.txt`
 
 **Retry Display in Logs:**
+
 - Initial attempt: `Task 10-20: Executing`
 - First retry: `Task 10-20.2: Retrying (attempt 2/4)`
 - Second retry: `Task 10-20.3: Retrying (attempt 3/4)`
 - Final retry: `Task 10-20.4: Final attempt (4/4)`
 
 **Important Notes:**
+
 - **Retry vs Loop behavior**: Retries ONLY occur for tasks that fail execution. In contrast, loops (`loop=N`) execute all iterations regardless of success/failure unless `loop_break` condition is met.
 - Each retry uses the same parameters as the original task
 - Variables are re-evaluated on each retry attempt
@@ -2532,10 +2653,12 @@ TASKER supports flexible routing where `on_success` and `on_failure` can be used
 **Use Case**: Firewall/cleanup handlers that execute on failure, while success continues sequentially.
 
 **Behavior**:
+
 - **Success**: Continue to next sequential task (task_id + 1)
 - **Failure**: Jump to error handler task
 
 **Example**:
+
 ```bash
 # Error handler pattern with on_failure only
 # Task 1 succeeds and continues to task 2
@@ -2564,6 +2687,7 @@ return=1
 ```
 
 **Advantages**:
+
 - Clean separation of happy path and error handling
 - Common pattern for firewall/cleanup tasks
 - No need to specify on_success for every task
@@ -2573,10 +2697,12 @@ return=1
 **Use Case**: Workflows where success jumps to a specific task, but failure should terminate immediately.
 
 **Behavior**:
+
 - **Success**: Jump to specified task
 - **Failure**: Workflow exits with code 10 (TASK_FAILED)
 
 **Example**:
+
 ```bash
 # Success-only routing pattern
 # Task 1 succeeds and jumps to task 5, skipping task 2
@@ -2603,6 +2729,7 @@ exec=local
 ```
 
 **Advantages**:
+
 - Enforces that failures are fatal
 - Cleaner for workflows where failures should not continue
 - Exit code 10 provides clear signal to calling scripts
@@ -2612,10 +2739,12 @@ exec=local
 **Use Case**: Complete control over both success and failure paths.
 
 **Behavior**:
+
 - **Success**: Jump to on_success target
 - **Failure**: Jump to on_failure target
 
 **Example**:
+
 ```bash
 # Both on_success AND on_failure routing
 # Task 1 determines the execution path
@@ -2643,6 +2772,7 @@ exec=local
 ```
 
 **Advantages**:
+
 - Most explicit control
 - Both outcomes explicitly handled
 - Traditional TASKER pattern
@@ -2699,6 +2829,7 @@ Parameters specific to sequential task execution:
 | `loop_break` | String | Condition to break loop early | Any valid condition (sequential only) |
 
 **Important Notes:**
+
 - Loop control (`loop`, `loop_break`) is ONLY available for sequential tasks, not for parallel or conditional execution
 - **CRITICAL**: For sequential tasks, `next` and `on_success/on_failure` are MUTUALLY EXCLUSIVE - use one OR the other, never both
 - For parallel/conditional tasks, `next` defines the success evaluation condition and CAN be used with `on_success/on_failure`
@@ -2708,15 +2839,18 @@ Parameters specific to sequential task execution:
 When a task has **no routing parameters** (`next`, `on_success`, `on_failure`), TASKER uses **implicit `next=success` behavior**:
 
 **✅ Task Succeeds** (success condition evaluates to TRUE):
+
 - Workflow continues to the next sequential task
 - Equivalent to having `next=success`
 
 **❌ Task Fails** (success condition evaluates to FALSE):
+
 - Workflow **stops execution** (safe default behavior)
 - Prevents cascading failures in production
 - Use `--fire-and-forget` flag to override this behavior
 
 **Example - Default routing (no parameters):**
+
 ```bash
 # Default routing behavior (implicit sequential)
 # No routing specified - uses implicit next=success
@@ -2769,16 +2903,19 @@ exec=local
 Use `--fire-and-forget` flag to continue execution even when tasks fail:
 
 **Command Line:**
+
 ```bash
 ./tasker.py workflow.txt --fire-and-forget
 ```
 
 **Behavior:**
+
 - Tasks without explicit routing **continue on failure** instead of stopping
 - Useful for best-effort workflows (monitoring, cleanup, bulk operations)
 - **Warning**: Failed tasks may cause downstream task failures
 
 **Example - Best-effort cleanup workflow:**
+
 ```bash
 # Fire-and-forget mode - best-effort cleanup
 # Each cleanup task continues regardless of individual failures
@@ -2804,6 +2941,7 @@ exec=local
 ```
 
 **When to use fire-and-forget:**
+
 - ✅ Monitoring/health checks across multiple servers
 - ✅ Cleanup operations where partial completion is acceptable
 - ✅ Data collection tasks that shouldn't block workflow
@@ -2834,11 +2972,13 @@ Parameters for executing multiple tasks concurrently:
 **Parallel `next` and `success` Conditions:** See [Multi-Task Success Evaluation Conditions](#multi-task-success-evaluation-conditions) below.
 
 **Difference between `next` and `success` parameters:**
+
 - `next`: Evaluates condition → if true, continues to next sequential task; if false, stops execution
 - `success`: Evaluates condition → if true, jumps to `on_success`; if false, jumps to `on_failure`
 - Both use the same evaluation logic (min_success, all_success, etc.) but differ in routing behavior
 
 **Default Parallel Behavior (no `next` or `success` condition specified):**
+
 - Uses `all_success` logic (strictest possible)
 - `on_success` → Triggered only when ALL tasks succeed (100% success rate)
 - `on_failure` → Triggered when at least one task fails (less than 100% success)
@@ -2881,12 +3021,14 @@ Parameters for lightweight conditional routing without command execution:
 *Either `success` OR `failure` is required (not both)
 
 **Key Differences from Conditional Blocks:**
+
 - No `if_true_tasks` or `if_false_tasks` - decision blocks don't execute tasks
 - No `hostname` or `command` - purely evaluates conditions
 - Lighter weight - ideal for simple branching decisions
 - Uses same condition syntax as regular task `success`/`failure` fields
 
 **Default Conditional Behavior (no `next` condition specified):**
+
 - Uses `all_success` logic (same as parallel execution)
 - `on_success` → Triggered only when ALL tasks in chosen branch succeed (100% success rate)
 - `on_failure` → Triggered when at least one task in chosen branch fails (less than 100% success)
@@ -2915,6 +3057,7 @@ The `exec` parameter determines how commands are executed. TASKER supports multi
 The choice between `local` and `shell` is critical for security and functionality:
 
 #### exec=local (Recommended for simple commands)
+
 ```bash
 # Direct execution - NO shell interpretation
 task=0
@@ -2927,6 +3070,7 @@ exec=local
 ```
 
 **Characteristics:**
+
 - ✅ **Faster**: No shell overhead
 - ✅ **Safer**: Shell injection impossible
 - ✅ **Simpler**: Arguments passed directly as array
@@ -2935,6 +3079,7 @@ exec=local
 **Security Note:** TASKER validation blocks shell syntax in `exec=local` to prevent user mistakes.
 
 #### exec=shell (Use for shell features)
+
 ```bash
 # Shell execution - FULL shell interpretation
 task=0
@@ -2947,6 +3092,7 @@ exec=shell
 ```
 
 **Characteristics:**
+
 - ✅ **Powerful**: Full bash shell features available
 - ✅ **Flexible**: Pipes (`|`), redirects (`>`), wildcards (`*`), substitution (`$(...)`)
 - ✅ **Complex**: Multi-command sequences possible
@@ -2969,6 +3115,7 @@ For convenience, TASKER recognizes common aliases that map to `exec=shell`:
 ### Execution Type Examples
 
 #### Example 1: Simple Command (exec=local)
+
 ```bash
 # exec=local - Simple local command execution
 # Executes command directly without shell interpretation
@@ -2980,6 +3127,7 @@ exec=local
 ```
 
 #### Example 2: Shell Piping (exec=shell)
+
 ```bash
 # exec=shell with piping
 # Shell mode enables pipes, redirects, and other shell features
@@ -3006,6 +3154,7 @@ exec=shell
 ```
 
 #### Example 4: Using Global Variables for exec Type
+
 ```bash
 # Global variable for exec type
 # EXEC_MODE controls execution mode dynamically
@@ -3049,7 +3198,8 @@ These `next` conditions are shared by both **Parallel Execution** and **Conditio
 ### Usage Context
 
 **Parallel Execution:**
-```
+
+```bash
 task=0
 type=parallel
 tasks=10,11,12,13
@@ -3060,7 +3210,8 @@ on_failure=99
 ```
 
 **Conditional Execution:**
-```
+
+```bash
 task=1
 type=conditional
 condition=@DEPLOY_ENV@=production
@@ -3101,13 +3252,15 @@ Simple extraction functions for any task that executes a command:
 | `semi` | Semicolon (alias) | `stdout_split=semi,2` | `"a;b;c;d"` → `"c"` |
 
 **Important Notes:**
+
 - Index is zero-based (0 = first element, 1 = second element, etc.)
 - If index is out of bounds, the original output is returned unchanged
 - The split operation occurs AFTER command execution but BEFORE placeholder storage
 - Split results are what gets stored in `@TASK_stdout@` and `@TASK_stderr@` placeholders
 
 **Simple Example:**
-```
+
+```bash
 task=0
 command=echo "apple,banana,cherry"
 # Result: @0_stdout@ = "banana"
@@ -3117,7 +3270,8 @@ stdout_split=comma,1
 **Complex Processing Recommendation:**
 
 For advanced text processing beyond simple splits, use `exec=local` with Unix tools:
-```
+
+```bash
 # Complex extraction with awk/sed/perl
 task=1
 hostname=localhost
@@ -3200,6 +3354,7 @@ exec=shell
 #### Security Error Examples
 
 **Blocked with exec=local (strict validation):**
+
 ```bash
 hostname=localhost; cat /etc/passwd    # Command injection blocked
 arguments=test $(whoami)               # Command substitution blocked
@@ -3208,6 +3363,7 @@ command=ls *.txt                       # Wildcard blocked (use exec=shell)
 ```
 
 **Warned for all exec types (dangerous patterns):**
+
 ```bash
 arguments=rm -rf /                     # Dangerous delete operation
 arguments=chmod 777 /etc/passwd        # Overly permissive permissions
@@ -3216,6 +3372,7 @@ arguments=dd if=/dev/zero of=/dev/sda  # Dangerous disk operation
 ```
 
 **Allowed with exec=shell (relaxed validation):**
+
 ```bash
 arguments=ps aux | grep nginx          # Pipe allowed
 arguments=echo $(whoami)               # Command substitution allowed
@@ -3252,6 +3409,7 @@ exec=local
 ```
 
 **When to use strict mode:**
+
 - Shared/production environments with environment variables containing secrets
 - CI/CD pipelines where environment variables may include tokens/keys
 - Multi-user systems where env vars might contain sensitive data
@@ -3260,6 +3418,7 @@ exec=local
 **Default behavior:** Strict mode is **OPT-IN**. Normal mode allows any environment variable since users typically control both the task file and environment.
 
 **Configuration methods:**
+
 1. **CLI flag**: `tasker --strict-env-validation tasks.txt -r` (per-execution)
 2. **Task file header**: Add `--strict-env-validation` at top of task file (portable, recommended)
 
@@ -3268,6 +3427,7 @@ exec=local
 **Selective masking:** Global variable values are logged by default for operational transparency and debugging. Variables with sensitive prefixes are automatically masked in all logs.
 
 **Auto-masked prefixes** (case-insensitive):
+
 - `SECRET_*`, `MASK_*`, `HIDE_*` - explicit marking
 - `PASSWORD_*`, `TOKEN_*` - common sensitive data types
 - `*_PASSWORD`, `*_TOKEN`, `*_SECRET`, `*_KEY` - suffix-based detection
@@ -3302,7 +3462,7 @@ tasker --skip-validation tasks.txt -r
 
 ### Examples of Parameter Combinations
 
-```
+```bash
 # Global variable for conditional execution
 READY=true
 
@@ -3439,7 +3599,7 @@ return=1
 
 ### Example 1: Basic Sequential Tasks
 
-```
+```bash
 # Example 1: Basic Sequential Tasks
 # Service management workflow (stop -> start -> status)
 # Using echo commands instead of systemctl for testing
@@ -3542,7 +3702,7 @@ exec=local
 
 ---
 
-# PART 2: Advanced Features
+## PART 2: Advanced Features
 
 Once you're comfortable with the basics, explore TASKER's powerful advanced capabilities.
 
@@ -3557,7 +3717,8 @@ Task-by-task execution with flow control and conditions. See [TaskER FlowChart -
 **When to use**: Standard workflows where tasks must complete in order.
 
 **Example**:
-```
+
+```bash
 # Sequential Execution Model
 # Task-by-task execution with flow control
 # Standard workflow where tasks must complete in order
@@ -3605,7 +3766,8 @@ flowchart TD
 **When to use**: Deploy to multiple servers simultaneously, or run independent tasks in parallel. See [TaskER FlowChart - Parallel Block](TaskER_FlowChart.md#9-parallel-block) for details.
 
 **Example**:
-```
+
+```bash
 # Parallel execution master task
 task=0
 type=parallel
@@ -3655,13 +3817,15 @@ Dynamic workflow branching based on runtime conditions - use ONLY when you need 
 **❓ Common Question**: "Why use conditional execution when I can achieve similar results with `on_success`/`on_failure`?"
 
 **Key Difference**:
+
 - **Sequential + on_success/on_failure**: Routes based on task execution **outcome** (success/failure)
 - **Conditional**: Routes based on **data evaluation** before task execution
 
 #### ✅ Use Conditional Model When:
 
-**1. Data-Driven Decisions (BEFORE execution)**
-```
+##### 1. Data-Driven Decisions (BEFORE execution)
+
+```bash
 # Conditional: Choose deployment based on previous detection
 task=0
 hostname=detector
@@ -3678,8 +3842,9 @@ if_true_tasks=10,11
 if_false_tasks=20,21
 ```
 
-**2. Custom Task Sequences with Non-Sequential IDs**
-```
+##### 2. Custom Task Sequences with Non-Sequential IDs
+
+```bash
 # Conditional: Execute tasks in custom order, skipping others
 task=1
 type=conditional
@@ -3695,8 +3860,9 @@ if_false_tasks=300,250,400
 
 #### ✅ Use Sequential + on_success/on_failure When:
 
-**1. Outcome-Based Routing (AFTER execution)**
-```
+##### 1. Outcome-Based Routing (AFTER execution)
+
+```bash
 # Sequential: Route based on deployment result
 task=1
 hostname=app-server
@@ -3707,8 +3873,9 @@ on_success=2
 on_failure=99
 ```
 
-**2. Simple Success/Failure Paths**
-```
+##### 2. Simple Success/Failure Paths
+
+```bash
 # Sequential: Basic error handling
 task=1
 hostname=backup-server
@@ -3722,7 +3889,8 @@ on_failure=90
 #### ❌ Wrong Model Choice Examples:
 
 **Don't use conditional for simple success/failure routing:**
-```
+
+```bash
 # OVERCOMPLICATED - should use on_success/on_failure
 task=1
 hostname=app-server
@@ -3738,7 +3906,8 @@ if_false_tasks=99
 ```
 
 **Don't use on_success/on_failure for pre-determined routing:**
-```
+
+```bash
 # WRONG - on_success/on_failure respond to execution results, not pre-existing data
 task=1
 hostname=server
@@ -3776,7 +3945,8 @@ flowchart TD
 **When to use**: Different execution paths based on environment, conditions, or runtime decisions. See [TaskER FlowChart - Conditional Block](TaskER_FlowChart.md#5-conditional-block) for details.
 
 **Example**:
-```
+
+```bash
 # Environment detection
 task=0
 hostname=env-detector
@@ -3843,7 +4013,8 @@ Understanding TASKER's sequential execution model is crucial for creating reliab
 **Always organize your workflow with the success path in sequential order, and place error handling at the end.**
 
 #### ✅ GOOD: Success Path Sequential
-```
+
+```bash
 # Success path flows naturally 1→2→3→4
 task=0
 hostname=app-server
@@ -3876,7 +4047,8 @@ command=send_failure_alert
 ```
 
 #### ❌ BAD: Mixed Success and Error Tasks
-```
+
+```bash
 # This creates confusion and potential execution bugs
 task=0
 hostname=app-server
@@ -3903,7 +4075,8 @@ command=deploy_application
 Use "firewall" techniques to prevent sequential execution from flowing into conditional branches or error handlers:
 
 #### Method 1: `next=never` (Recommended)
-```
+
+```bash
 task=5
 hostname=final-server
 command=complete_workflow
@@ -3921,7 +4094,8 @@ command=special_operation
 ```
 
 #### Method 2: `return=N` (Exit Workflow)
-```
+
+```bash
 task=5
 hostname=final-server
 command=complete_workflow
@@ -3938,6 +4112,7 @@ command=send_error_alert
 ```
 
 **When to Use Each Method:**
+
 - **`next=never`**: Stop sequential execution but allow explicit routing to continue
 - **`return=N`**: Stop entire workflow and exit with specific return code
 
@@ -3945,7 +4120,7 @@ command=send_error_alert
 
 For workflows with multiple branches (parallel, conditional), organize sections clearly:
 
-```
+```bash
 # === MAIN WORKFLOW (Sequential) ===
 task=0
 task=1
@@ -3981,7 +4156,8 @@ task=202
 **Sequential Execution Risk**: After any task completes (including conditional or parallel tasks), TASKER continues with the next sequential task ID unless explicitly told otherwise.
 
 **Example Problem**:
-```
+
+```bash
 task=1
 type=conditional
 if_true_tasks=10,11
@@ -4019,6 +4195,7 @@ This creates clear separation and prevents accidental cross-execution between di
 Combine multiple conditions using boolean operators:
 
 **Supported Operators:**
+
 - `&`: AND operator (symbolic)
 - `|`: OR operator (symbolic)
 - `AND`: AND operator (textual, case-insensitive)
@@ -4026,7 +4203,8 @@ Combine multiple conditions using boolean operators:
 - `()`: Grouping (simple conditions only)
 
 **Operator Forms:**
-```
+
+```bash
 # Symbolic operators (compact)
 success=exit_0&stdout~OK
 condition=@0_exit@=0|@1_exit@=0
@@ -4038,7 +4216,7 @@ condition=@0_exit@=0 OR @1_exit@=0
 # Both forms are equivalent and can be used interchangeably
 ```
 
-```
+```bash
 # Complex condition example
 task=1
 condition=@0_exit@=0&(@0_stdout@~success|@0_stdout@~complete)
@@ -4047,12 +4225,14 @@ command=continue_workflow
 ```
 
 **Exit Code Conditions:**
+
 - `exit_0`: Command succeeded
 - `exit_1`: Command failed (general error)
 - `exit_127`: Command not found
 - `exit_N`: Any specific exit code
 
 **Output Pattern Matching:**
+
 - `stdout~pattern`: stdout contains "pattern"
 - `stdout!~pattern`: stdout does NOT contain "pattern"
 - `stdout~`: stdout is empty
@@ -4060,17 +4240,20 @@ command=continue_workflow
 - Same operators work for `stderr`
 
 **Output Equality/Inequality:**
+
 - `stdout=value`: stdout equals "value" (exact match)
 - `stdout!=value`: stdout does not equal "value"
 - Same operators work for `stderr`
 
 **Output Line Counting:**
+
 - `stdout_count=N`: stdout has exactly N lines
 - `stdout_count<N`: stdout has fewer than N lines
 - `stdout_count>N`: stdout has more than N lines
 - Same operators work for `stderr_count`
 
 **Output Numeric Comparisons:**
+
 - `stdout<N`: stdout is numeric and less than N
 - `stdout<=N`: stdout is numeric and less than or equal to N
 - `stdout>N`: stdout is numeric and greater than N
@@ -4079,7 +4262,8 @@ command=continue_workflow
 - Same operators work for `stderr`
 
 **Examples:**
-```
+
+```bash
 success=stdout_count>5                    # Success if more than 5 lines
 success=stdout=OK                         # Success if output is exactly "OK"
 success=stdout~SUCCESS&stderr~           # Success if stdout contains "SUCCESS" and stderr is empty
@@ -4090,7 +4274,7 @@ success=stdout>100                        # Success if stdout is numeric and gre
 
 Repeat tasks with the `loop` parameter:
 
-```
+```bash
 task=0
 hostname=retry-server
 command=attempt_connection
@@ -4109,7 +4293,7 @@ exec=pbrun
 
 Control workflow flow with `on_success` and `on_failure`:
 
-```
+```bash
 task=0
 hostname=critical-server
 command=deploy_application
@@ -4151,12 +4335,14 @@ For every executed task, TASKER captures:
 ### Complete Variable Reference
 
 #### Global Variables
+
 - **Definition**: `VARIABLE=value` at top of task file
 - **Usage**: `@VARIABLE@` anywhere in task parameters
 - **Scope**: Read-only during execution
 - **Example**: `ENVIRONMENT=production`, use as `@ENVIRONMENT@`
 
 #### Task Result Variables
+
 - **`@TASK-ID_stdout@`**: Standard output from task TASK-ID (affected by stdout_split)
 - **`@TASK-ID_stderr@`**: Standard error from task TASK-ID (affected by stderr_split)
 - **`@TASK-ID_exit@`**: Exit code from task TASK-ID (0-255)
@@ -4165,12 +4351,15 @@ For every executed task, TASKER captures:
 - **`@TASK-ID_duration@`**: Execution time of task TASK-ID in seconds (e.g., "5.234")
 
 #### Special Variables for Parallel Tasks
+
 When using `type=parallel`, additional aggregated variables are available:
+
 - **`@TASK-ID_success_count@`**: Number of successful parallel subtasks
 - **`@TASK-ID_failed_count@`**: Number of failed parallel subtasks
 - **`@TASK-ID_total_count@`**: Total number of parallel subtasks executed
 
 #### Variable Resolution Notes
+
 - Variables are resolved at task execution time
 - Undefined variables remain as literal text (e.g., `@UNDEFINED@`)
 - Task result variables are only available after the task completes
@@ -4179,7 +4368,8 @@ When using `type=parallel`, additional aggregated variables are available:
 ### Using Task Data
 
 **Basic Data Flow:**
-```
+
+```bash
 task=0
 hostname=config-server
 command=get_database_config
@@ -4194,7 +4384,8 @@ condition=@0_exit@=0
 ```
 
 **Error Handling with Task Data:**
-```
+
+```bash
 task=0
 hostname=backup-server
 command=backup_database
@@ -4210,7 +4401,8 @@ exec=local
 ```
 
 **Performance Monitoring:**
-```
+
+```bash
 task=0
 hostname=batch-processor
 command=process_large_dataset
@@ -4229,7 +4421,7 @@ exec=local
 
 **Output Truncation**: stdout/stderr are limited to 4,096 characters each. For larger output:
 
-```
+```bash
 # Use output splitting to extract specific data
 task=0
 hostname=log-server
@@ -4246,6 +4438,7 @@ TASKER provides powerful resume capabilities for handling failures and workflow 
 ### When to Use Resume
 
 **Common Scenarios:**
+
 - **Task failure recovery**: Fix issues and continue from failure point
 - **Workflow interruption**: Resume after system restart or network issues
 - **Staged deployments**: Execute workflows in approved phases
@@ -4305,6 +4498,7 @@ command=deploy
 ### Production Resume Patterns
 
 **Standard Failure Recovery:**
+
 ```bash
 # Initial execution
 tasker -r -p PROD_DEPLOY deployment.txt
@@ -4318,6 +4512,7 @@ tasker -r -p PROD_DEPLOY --start-from=12 --skip-task-validation deployment.txt
 ```
 
 **Staged Production Deployment:**
+
 ```bash
 # Phase 1: Pre-deployment (0-10)
 tasker -r -p PROD_DEPLOY deployment.txt
@@ -4347,6 +4542,7 @@ tasker -r --output-json -p PROD_DEPLOY --log-level=DEBUG deployment.txt
 ```
 
 **Key Behavior:**
+
 - ✅ **Auto-enables `--auto-recovery`**: JSON output requires state tracking (automatically enabled)
 - ✅ **Atomic writes**: Uses temp file + rename to prevent partial/corrupt output
 - ✅ **Auto-cleanup**: Recovery files deleted on success (no accumulation)
@@ -4405,6 +4601,7 @@ The output contains four main sections:
 ### Field Descriptions
 
 **workflow_metadata:**
+
 - `task_file`: Full path to the executed task file
 - `execution_id`: Unique 8-character hash identifying this execution
 - `status`: `"success"` or `"failed"`
@@ -4414,6 +4611,7 @@ The output contains four main sections:
 - `log_file`: Path to the detailed log file
 
 **execution_summary:**
+
 - `total_tasks`: Total number of tasks defined in the workflow
 - `executed`: Number of tasks actually executed
 - `succeeded`: Number of tasks that completed successfully
@@ -4427,6 +4625,7 @@ The output contains four main sections:
   - `error`: Error description
 
 **task_results:**
+
 - Dictionary keyed by task ID (as string)
 - Each task contains:
   - `exit_code`: Numeric exit code
@@ -4435,6 +4634,7 @@ The output contains four main sections:
   - `success`: Boolean indicating if task met success criteria
 
 **variables:**
+
 - All global variables defined in the workflow
 - Includes both static definitions and environment variable expansions
 
@@ -4528,21 +4728,25 @@ fi
 ### Common Use Cases
 
 **Deployment Tracking:**
+
 - Record deployment metrics (duration, success rate, failures)
 - Track which steps succeeded/failed for rollback decisions
 - Feed data to monitoring dashboards (Grafana, Datadog, etc.)
 
 **Automated Testing:**
+
 - Validate workflow execution paths match expected flow
 - Assert task success rates meet requirements
 - Capture test output for analysis
 
 **Audit Trails:**
+
 - Permanent record of automation execution
 - Compliance documentation with timestamps and results
 - Historical analysis of workflow performance
 
 **Alert Integration:**
+
 - Parse failure info to trigger targeted alerts
 - Extract task output for error context
 - Feed metrics to incident management systems
@@ -4576,6 +4780,7 @@ tasker --validate-only --skip-subtask-range-validation workflow.txt
 ```
 
 **Available Validation Skip Flags:**
+
 - `--skip-task-validation` - Skip task file parsing and structure validation
 - `--skip-host-validation` - Skip hostname FQDN and connectivity checks
 - `--skip-command-validation` - Skip local command existence checks
@@ -4586,6 +4791,7 @@ tasker --validate-only --skip-subtask-range-validation workflow.txt
 ### Host Connectivity Testing
 
 With the `-c` flag, TASKER tests actual connectivity:
+
 - **pbrun**: Tests `pbrun -n -h {hostname} pbtest`
 - **p7s**: Tests `p7s {hostname} pbtest`
 - **wwrs**: Tests `wwrs_clir {hostname} wwrs_test`
@@ -4644,6 +4850,7 @@ flowchart TD
 ```
 
 **Configuration file** (optimized pattern):
+
 ```bash
 # smart_download.txt - Optimized port checking with early exit and conditional execution
 # Global configuration
@@ -4730,21 +4937,25 @@ return=1
 **Why this optimized pattern is superior:**
 
 **1. Efficient Port Checking:**
+
 - ✅ **Check both ports first** - Could even be parallelized for faster execution
 - ✅ **Early exit decision** - Avoids unnecessary curl attempts if both ports are closed
 - ✅ **Fewer decision blocks** - Only 1 decision block instead of 2
 
 **2. Conditional Execution:**
+
 - ✅ **Smart task skipping** - Tasks 3 and 4 use `condition=` to skip if port is closed
 - ✅ **Clean fallback** - HTTPS preferred, HTTP fallback, clear error handling
 - ✅ **No wasted resources** - Skipped tasks don't consume time or resources
 
 **3. Clear Workflow Phases:**
+
 - ✅ **Phase 1: Check** - Gather port availability data
 - ✅ **Phase 2: Decide** - Early exit if no ports available
 - ✅ **Phase 3: Execute** - Conditional downloads based on port status
 
 **4. Optimization Benefits:**
+
 ```text
 BEFORE: Check port 443 → Decide → Download → Check port 80 → Decide → Download
 AFTER:  Check both ports → Decide (early exit) → Try downloads with conditions
@@ -4768,7 +4979,7 @@ Benefits:
 
 ---
 
-# PART 3: Technical Details
+## PART 3: Technical Details
 
 Advanced technical information for system administrators and developers.
 
@@ -4843,6 +5054,7 @@ arguments=@DEPLOY_ENV@
 ```
 
 **Execute with file-defined arguments:**
+
 ```bash
 # Uses file-defined args automatically (--auto-recovery, --skip-host-validation, --log-level=DEBUG)
 tasker -r recovery_workflow.txt
@@ -4855,6 +5067,7 @@ tasker recovery_workflow.txt --show-effective-args
 ```
 
 **Key Features:**
+
 - **Position:** Arguments must appear at file start (before globals and tasks)
 - **Syntax:** Use 1:1 CLI format (`--flag` or `--option=value`)
 - **Precedence:** File args provide baseline, CLI args override/add
@@ -4863,12 +5076,14 @@ tasker recovery_workflow.txt --show-effective-args
 - **Security:** Blocks dangerous flags (`--help`, `--version`), warns about security-sensitive flags
 
 **Benefits:**
+
 - **Automation-Friendly:** Simpler CI/CD scripts (`tasker workflow.txt` vs `tasker workflow.txt --auto-recovery --skip-host-validation`)
 - **Self-Documenting:** Task files show required flags
 - **Error Prevention:** Operators can't forget critical flags
 - **Consistent:** Reuses existing argparse validation
 
 **Security Controls:**
+
 ```bash
 # ❌ NOT ALLOWED: CLI-only flags
 --help        # Reserved for CLI only
@@ -4883,6 +5098,7 @@ tasker recovery_workflow.txt --show-effective-args
 ### Command Line Options
 
 #### Execution Control
+
 | Option | Description | Example |
 |--------|-------------|---------|
 | `-r, --run` | Execute commands (not dry run) | `tasker -r tasks.txt` |
@@ -4894,6 +5110,7 @@ tasker recovery_workflow.txt --show-effective-args
 | `-o, --timeout` | Default timeout in seconds (5-1000, default: 30) | `tasker -r -o 60 tasks.txt` |
 
 #### Planning and Validation
+
 | Option | Description | Example |
 |--------|-------------|---------|
 | `--show-plan` | Display execution plan and ask for confirmation | `tasker --show-plan -r tasks.txt` |
@@ -4908,6 +5125,7 @@ tasker recovery_workflow.txt --show-effective-args
 | `--skip-validation` | Skip ALL validation (task + host + command + security) | `tasker -r --skip-validation tasks.txt` |
 
 #### Resume and Recovery
+
 | Option | Description | Example |
 |--------|-------------|---------|
 | `--start-from` | Resume execution from specific task ID | `tasker -r --start-from=5 tasks.txt` |
@@ -4915,6 +5133,7 @@ tasker recovery_workflow.txt --show-effective-args
 | `--show-recovery-info` | Display recovery state information and exit without execution | `tasker --show-recovery-info tasks.txt` |
 
 #### Execution Behavior
+
 | Option | Description | Example |
 |--------|-------------|---------|
 | `--fire-and-forget` | Continue workflow execution even when tasks fail (WARNING: Failed tasks will not stop execution) | `tasker -r --fire-and-forget tasks.txt` |
@@ -5003,7 +5222,7 @@ Examples:
 
 TASKER creates timestamped logs in the default directory:
 
-```
+```bash
 ~/TASKER/
 ├── tasker_20240115_143015.log              # Detailed execution log
 ├── project_DEPLOYMENT_2024_summary.log     # Project summary
@@ -5013,6 +5232,7 @@ TASKER creates timestamped logs in the default directory:
 ```
 
 Each execution creates:
+
 1. A timestamped log file with detailed execution information
 2. A timestamped copy of the task file for audit trails
 3. Optional project summary logs when using `-p` flag
@@ -5021,7 +5241,7 @@ Each execution creates:
 
 TASKER 2.1 follows a clean modular architecture where each file has a specific purpose:
 
-```
+```bash
 TASKER 2.1 Project Structure
 ./
 ├── tasker.py                    # Main executable script (CLI entry point)
@@ -5052,21 +5272,25 @@ TASKER 2.1 Project Structure
 ### Module Responsibilities
 
 #### Main Script
+
 - **`tasker.py`**: CLI interface and argument parsing, delegates to TaskExecutor
 
 #### Core Framework (`tasker/core/`)
+
 - **`utilities.py`**: Shared infrastructure (exit codes, data conversion, formatting)
 - **`execution_context.py`**: State coordination and unified callback system
 - **`condition_evaluator.py`**: Runtime logic engine (variable replacement, boolean evaluation)
 - **`task_executor_main.py`**: Main orchestrator (workflow lifecycle, logging, engine selection)
 
 #### Execution Engines (`tasker/executors/`)
+
 - **`base_executor.py`**: Common interface and shared functionality
 - **`sequential_executor.py`**: Task-by-task execution with flow control
 - **`parallel_executor.py`**: Multi-threaded execution with retry logic
 - **`conditional_executor.py`**: Runtime branch selection based on conditions
 
 #### Optional Validation (`tasker/validation/`)
+
 - **`task_validator.py`**: Pre-execution safety (syntax, dependencies, flow control)
 - **`host_validator.py`**: Connectivity verification (DNS, ping, execution type testing)
 
@@ -5096,6 +5320,7 @@ Configure TASKER behavior using environment variables:
 ## Best Practices
 
 ### Security
+
 - **Always validate in production**: `tasker -c --validate-only production_tasks.txt`
 - **Use project tracking for audit trails**: `tasker -r -p SECURITY_PATCH_2024Q1 security_updates.txt`
 - **Verify execution types match environment requirements**
@@ -5104,6 +5329,7 @@ Configure TASKER behavior using environment variables:
 ### Performance & Thread Safety
 
 #### Thread Pool Management
+
 TASKER implements intelligent thread pool management to prevent resource exhaustion:
 
 - **Default `max_parallel`**: 8 threads (safe for any system)
@@ -5111,12 +5337,15 @@ TASKER implements intelligent thread pool management to prevent resource exhaust
 - **High parallelism warning**: Triggered when `max_parallel` > 32
 
 #### Parallel Execution Limits
+
 System-based automatic limits (when not running multiple TASKER instances):
+
 - Small systems (≤4 CPU cores): Max 50 threads
 - Medium systems (≤8 CPU cores): Max 75 threads
 - Large systems (>8 CPU cores): Max 100 threads
 
 #### Running Multiple TASKER Instances
+
 When running multiple TASKER instances in parallel (e.g., CI/CD, batch processing):
 
 ```bash
@@ -5134,6 +5363,7 @@ Without `TASKER_PARALLEL_INSTANCES` set, 10 instances × 50 threads = 500 thread
 With `TASKER_PARALLEL_INSTANCES=10`, each instance automatically reduces its thread limit.
 
 #### Best Practices
+
 - **Test parallel workflows in non-production first**
 - **Set `TASKER_PARALLEL_INSTANCES` when running multiple instances**
 - **Use appropriate timeout settings** based on network and server capacity
@@ -5142,6 +5372,7 @@ With `TASKER_PARALLEL_INSTANCES=10`, each instance automatically reduces its thr
 - **Read warnings**: High parallelism warnings indicate potential risks
 
 ### Operational Excellence
+
 - **Implement comprehensive validation** before production execution
 - **Use resume capabilities** for staged deployments and failure recovery
 - **Monitor execution with appropriate logging levels**
@@ -5151,12 +5382,14 @@ With `TASKER_PARALLEL_INSTANCES=10`, each instance automatically reduces its thr
 ### Development Workflow
 
 1. **Design Phase**:
+
    ```bash
    # Start with validation-only to test syntax
    tasker --validate-only new_workflow.txt
    ```
 
 2. **Testing Phase**:
+
    ```bash
    # Test in development environment
    tasker -r --log-level=DEBUG dev_workflow.txt
@@ -5166,6 +5399,7 @@ With `TASKER_PARALLEL_INSTANCES=10`, each instance automatically reduces its thr
    ```
 
 3. **Staging Phase**:
+
    ```bash
    # Full validation with connectivity testing
    tasker -c --validate-only staging_workflow.txt
@@ -5175,6 +5409,7 @@ With `TASKER_PARALLEL_INSTANCES=10`, each instance automatically reduces its thr
    ```
 
 4. **Production Phase**:
+
    ```bash
    # Pre-production validation
    tasker -c --validate-only production_workflow.txt
@@ -5188,6 +5423,7 @@ With `TASKER_PARALLEL_INSTANCES=10`, each instance automatically reduces its thr
 When running TASKER test cases, supporting scripts must be available in your PATH:
 
 **PATH Setup for Test Execution:**
+
 ```bash
 # From main TASKER directory:
 export PATH="/home/baste/tasker/test_cases/bin:$PATH"
@@ -5199,17 +5435,20 @@ export PATH="../bin:$PATH"
 ```
 
 **Supporting Scripts Location:**
+
 - **Directory**: `/home/baste/tasker/test_cases/bin/`
 - **Scripts**: `increment_counter.sh`, `toggle_exit.sh`, `pbrun`, `p7s`, `wwrs_clir`
 - **Purpose**: Mock commands and utilities for test workflow execution
 
 **Why PATH is Required:**
+
 - Test cases use realistic command names (e.g., `increment_counter.sh`) rather than full paths
 - Mirrors production usage where commands are resolved via PATH
 - Enables portable test cases that work across different directory structures
 - Validates TASKER's command resolution and validation logic
 
 **Alternative Approaches:**
+
 - **Full paths**: Use `/home/baste/tasker/test_cases/bin/script.sh` in test files (less portable)
 - **Symbolic links**: Create symlinks in `/usr/local/bin` (requires admin privileges)
 - **Current approach** (recommended): Set PATH as shown above
@@ -5249,7 +5488,7 @@ TASKER uses specific exit codes to indicate different types of failures:
 
 ### Using Exit Codes in Workflows
 
-```
+```bash
 # Return specific exit code from workflow
 task=99
 # Exit with validation failure code
@@ -5283,6 +5522,7 @@ success=exit_0|exit_3
 ### Common Issues & Solutions
 
 #### Task File Syntax Errors
+
 ```bash
 # Validate syntax first
 tasker --validate-only tasks.txt
@@ -5294,6 +5534,7 @@ tasker --validate-only tasks.txt
 ```
 
 #### Host Connectivity Problems
+
 ```bash
 # Test connectivity
 tasker -c --validate-only deployment.txt
@@ -5303,6 +5544,7 @@ tasker -r --skip-host-validation emergency_fix.txt
 ```
 
 #### Parallel Task Failures
+
 ```bash
 # Enable debug logging for parallel tasks
 tasker -r --log-level=DEBUG parallel_workflow.txt
@@ -5312,6 +5554,7 @@ tasker -r --log-level=DEBUG parallel_workflow.txt
 ```
 
 #### Flow Control Debugging
+
 ```bash
 # Use debug logging to trace condition evaluation
 tasker -r --log-level=DEBUG complex_workflow.txt
@@ -5321,6 +5564,7 @@ tasker -r --log-level=DEBUG complex_workflow.txt
 ```
 
 #### Resume Problems
+
 ```bash
 # Validate resume point first
 tasker --start-from=15 --validate-only workflow.txt
@@ -5348,6 +5592,7 @@ This section documents potential enhancements that could improve TASKER's functi
 **Proposed Enhancement**: Allow tasks to update global variables during runtime using `type=update_global` blocks.
 
 **Proposed Implementation**:
+
 ```bash
 # Pre-declare globals (required by default validation)
 DEPLOYMENT_TARGET=localhost
@@ -5374,18 +5619,21 @@ arguments=--version=@APP_VERSION@
 ```
 
 **Use Cases**:
+
 - Dynamic environment configuration based on runtime detection
 - Updating deployment targets based on availability checks
 - Setting global parameters from external configuration services
 - Runtime decision making that affects multiple subsequent tasks
 
 **Architecture Benefits**:
+
 - **Thread Safety**: `type=update_global` blocks execute sequentially by design
 - **Validation**: Pre-declared globals prevent runtime errors
 - **Consistency**: Follows existing `type=parallel` and `type=conditional` patterns
 - **Safety**: Validation prevents `update_global` tasks in parallel execution blocks
 
 **Current Workarounds**:
+
 - Use `@TASK_ID_stdout@` variables for dynamic data flow
 - Load external configuration files during execution
 - Use conditional task execution based on task results
@@ -5395,7 +5643,8 @@ arguments=--version=@APP_VERSION@
 **Current Limitation**: TASKER does not prevent illogical parameter combinations that make no practical sense.
 
 **Example of Illogical Configuration**:
-```
+
+```bash
 task=2
 hostname=app-server
 command=start_service
@@ -5410,12 +5659,14 @@ on_failure=99
 **Problem**: If the service starts successfully on first attempt (`exit_0&stdout~started`), the task jumps to task 3, making `loop=3` meaningless. The loop parameter expects to retry until success, but `on_success` immediately exits the loop.
 
 **Proposed Enhancement**: Add logical validation that detects and warns about conflicting parameter combinations:
+
 - `loop=N` with `on_success` when success condition is achievable on first attempt
 - `if_true_tasks` and `if_false_tasks` both empty in conditional tasks
 - `timeout=0` or negative timeout values
 - `max_parallel=0` or exceeding reasonable limits
 
 **Benefits**:
+
 - **Prevent Configuration Errors**: Catch illogical combinations before execution
 - **Improve Debugging**: Clear warnings about conflicting parameters
 - **Better User Experience**: Guide users toward correct configurations
@@ -5428,7 +5679,8 @@ on_failure=99
 **Current Limitation**: Flow control depends on task success/failure state, requiring complex combinations of `on_success` and `on_failure` to achieve unconditional jumps.
 
 **Example Problem - Current Workaround**:
-```
+
+```bash
 # Want to always go to task 50 regardless of success/failure
 task=10
 hostname=app-server
@@ -5441,6 +5693,7 @@ on_failure=50
 **Proposed Enhancement**: Add `goto` parameter for unconditional task routing that always executes regardless of task outcome.
 
 **Proposed Implementation**:
+
 ```bash
 # Proposed syntax (NOT currently supported)
 task=10
@@ -5459,18 +5712,21 @@ goto=100
 ```
 
 **Use Cases**:
+
 - **Cleanup Operations**: Always proceed to cleanup regardless of deployment success/failure
 - **Workflow Convergence**: Multiple branches that always merge at a common point
 - **Mandatory Notifications**: Always send status updates regardless of outcome
 - **Simplified Flow Control**: Reduce redundant `on_success=X on_failure=X` patterns
 
 **Benefits**:
+
 - **Cleaner Configuration**: Eliminate redundant success/failure routing
 - **Improved Readability**: Clear intent for unconditional flow
 - **Simplified Workflow Organization**: Easier to create convergent workflows
 - **Reduced Configuration Errors**: Less duplication of routing parameters
 
 **Current Workarounds**:
+
 - Use identical `on_success` and `on_failure` parameters
 - Create intermediate tasks that always succeed and route appropriately
 - Rely on sequential execution with careful task numbering
@@ -5482,6 +5738,7 @@ goto=100
 **Proposed Enhancement**: Support JSON and YAML formats for defining complex workflows with nested structures, arrays, and advanced data types.
 
 **Benefits of Structured Formats**:
+
 - **Complex Data Structures**: Arrays, nested objects, multi-line strings
 - **Better Organization**: Logical grouping and hierarchical structure
 - **Validation**: Schema validation and IDE support
@@ -5489,6 +5746,7 @@ goto=100
 - **Advanced Workflows**: More sophisticated task definitions and relationships
 
 **Potential YAML Implementation**:
+
 ```yaml
 # tasks.yaml
 global_variables:
@@ -5519,6 +5777,7 @@ tasks:
 ```
 
 **Advanced Features Enabled**:
+
 - **Template Variables**: `{{ VARIABLE_NAME }}` syntax with Jinja2-style templating
 - **Arrays and Loops**: `with_items` for iterating over lists
 - **Nested Task Groups**: Logical organization and parallel execution groups
@@ -5529,6 +5788,7 @@ tasks:
 - **Schema Validation**: JSON Schema or YAML schema validation
 
 **Migration Strategy**:
+
 - **Maintain backward compatibility** with existing text format
 - **Auto-detect format** based on file extension (.txt, .json, .yaml)
 - **Conversion tools** to migrate existing workflows

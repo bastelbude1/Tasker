@@ -540,14 +540,14 @@ class TaskValidator:
                     self.errors.append(
                         f"Line {line_number}: Task {parent_task_id} ({parent_type}) references {details}. "
                         f"Subtasks cannot have routing parameters - control must return to the {parent_type} block for Multi-Task Success Evaluation. "
-                        f"Use decision blocks if individual task routing is needed."
+                        f"Use sequential execution with on_success/on_failure if individual task routing is needed."
                     )
 
                     # Provide additional guidance in debug mode
                     self.debug_log(
                         f"Task {ref_id}: Routing parameters break {parent_type} block control flow. "
                         f"The {parent_type} block needs to aggregate all subtask results and evaluate success conditions. "
-                        f"If you need individual task routing, use decision blocks instead of {parent_type} blocks."
+                        f"If you need individual task routing, use sequential execution with on_success/on_failure instead of {parent_type} blocks."
                     )
 
     def _check_subtask_id_ranges(self, referenced_task_ids, line_number, parent_task_id, parent_type):

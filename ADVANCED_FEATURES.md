@@ -1776,8 +1776,8 @@ For every executed task, TASKER captures:
 
 | Data Type | Variable Format | Description | Storage Limit |
 |-----------|----------------|-------------|---------------|
-| **Standard Output** | `@TASK-ID_stdout@` | Complete stdout from command (or split result) | 4,096 characters |
-| **Standard Error** | `@TASK-ID_stderr@` | Complete stderr from command (or split result) | 4,096 characters |
+| **Standard Output** | `@TASK-ID_stdout@` | Complete stdout from command (or split result) | Stored in full (10MB buffer, temp files for larger) |
+| **Standard Error** | `@TASK-ID_stderr@` | Complete stderr from command (or split result) | Stored in full (10MB buffer, temp files for larger) |
 | **Exit Code** | `@TASK-ID_exit@` | Command exit code (0-255) | No limit |
 | **Hostname** | `@TASK-ID_hostname@` | Actual hostname used (resolved from @HOSTNAME@) | 256 characters |
 | **Success Status** | `@TASK-ID_success@` | Boolean success status (True/False) | No limit |

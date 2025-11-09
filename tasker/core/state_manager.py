@@ -94,6 +94,36 @@ class StateManager:
         with self._lock:
             return self._task_results.copy()
 
+    def get_task_output(self, task_id: int, output_type: str) -> str:
+        """
+        Get task output, reading from temp file if needed for variable substitution.
+
+        This method provides full output access for variable substitution (@TASK_ID_stdout@)
+        while maintaining memory efficiency by reading from temp files on-demand.
+
+        Args:
+            task_id: Task identifier
+            output_type: 'stdout' or 'stderr'
+
+        Returns:
+            Full output content, reading from temp file if available
+        """
+        with self._lock:
+            result = self._task_results.get(task_id, {})
+
+            # Try temp file first (for large outputs that exceeded preview limit)
+            file_key = f'{output_type}_file'
+            if file_key in result and result[file_key]:
+                try:
+                    with open(result[file_key], 'r') as f:
+                        return f.read()
+                except (IOError, OSError, FileNotFoundError):
+                    # Temp file may have been cleaned up, fall back to preview
+                    pass
+
+            # Fallback to in-memory preview (for small outputs or if temp file unavailable)
+            return result.get(output_type, '')
+
     # ===== CURRENT TASK TRACKING =====
 
     def set_current_task(self, task_id: int) -> None:

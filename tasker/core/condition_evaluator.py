@@ -126,9 +126,27 @@ class ConditionEvaluator:
             task_result = task_results.get(task_num)
             if task_result is not None:
                 if output_type_lower == 'stdout':
-                    value = task_result.get('stdout', '').rstrip('\n')
+                    # Check for temp file reference first (for full output)
+                    if 'stdout_file' in task_result and task_result['stdout_file']:
+                        try:
+                            with open(task_result['stdout_file'], 'r') as f:
+                                value = f.read().rstrip('\n')
+                        except (IOError, OSError, FileNotFoundError):
+                            # Temp file unavailable, use preview
+                            value = task_result.get('stdout', '').rstrip('\n')
+                    else:
+                        value = task_result.get('stdout', '').rstrip('\n')
                 elif output_type_lower == 'stderr':
-                    value = task_result.get('stderr', '').rstrip('\n')
+                    # Check for temp file reference first (for full output)
+                    if 'stderr_file' in task_result and task_result['stderr_file']:
+                        try:
+                            with open(task_result['stderr_file'], 'r') as f:
+                                value = f.read().rstrip('\n')
+                        except (IOError, OSError, FileNotFoundError):
+                            # Temp file unavailable, use preview
+                            value = task_result.get('stderr', '').rstrip('\n')
+                    else:
+                        value = task_result.get('stderr', '').rstrip('\n')
                 elif output_type_lower == 'success':
                     value = str(task_result.get('success', False))
                 elif output_type_lower == 'exit':

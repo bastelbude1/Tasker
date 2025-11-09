@@ -844,7 +844,7 @@ When outputs exceed 1MB, TASKER automatically streams to temporary files:
 └── System Temp Directory (/tmp)
     ├── tasker_stdout_abc123 (stdout content)
     ├── tasker_stderr_def456 (stderr content)
-    └── Automatic cleanup after task completion
+    └── Automatic cleanup at workflow completion
 ```
 
 #### Tier 3: Memory Protection (100MB+ per task)
@@ -1842,8 +1842,8 @@ For every executed task, TASKER captures:
 
 | Data Type | Variable Format | Description | Storage Limit |
 |-----------|----------------|-------------|---------------|
-| **Standard Output** | `@TASK-ID_stdout@` | Complete stdout from command (or split result) | Stored in full (10MB buffer, temp files for larger) |
-| **Standard Error** | `@TASK-ID_stderr@` | Complete stderr from command (or split result) | Stored in full (10MB buffer, temp files for larger) |
+| **Standard Output** | `@TASK-ID_stdout@` | Complete stdout from command (or split result) | < 1MB in memory; ≥1MB in temp files (100KB cmdline truncation, full via `@N_stdout_file@`) |
+| **Standard Error** | `@TASK-ID_stderr@` | Complete stderr from command (or split result) | < 1MB in memory; ≥1MB in temp files (100KB cmdline truncation, full via `@N_stderr_file@`) |
 | **Exit Code** | `@TASK-ID_exit@` | Command exit code (0-255) | No limit |
 | **Hostname** | `@TASK-ID_hostname@` | Actual hostname used (resolved from @HOSTNAME@) | 256 characters |
 | **Success Status** | `@TASK-ID_success@` | Boolean success status (True/False) | No limit |
@@ -2336,6 +2336,7 @@ arguments=-c "wc -c < @0_stdout_file@"
 - Logs errors but doesn't fail workflow
 
 **Manual Cleanup:**
+
 ```bash
 # Find TASKER temp files (diagnostic)
 ls -la /tmp/tasker_stdout_* /tmp/tasker_stderr_*

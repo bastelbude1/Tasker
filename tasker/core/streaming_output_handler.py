@@ -33,6 +33,10 @@ class StreamingOutputHandler:
     CHUNK_SIZE = 8192  # 8KB read chunks
     MAX_IN_MEMORY = 100 * 1024 * 1024  # 100MB absolute memory limit
 
+    # JSON output security limits
+    MAX_JSON_TASK_OUTPUT = 1 * 1024 * 1024  # 1MB per task stdout/stderr in JSON
+    MAX_JSON_TOTAL_SIZE = 100 * 1024 * 1024  # 100MB total JSON file size
+
     def __init__(self, buffer_size=None, temp_threshold=None, temp_dir=None):
         """
         Initialize streaming output handler.
@@ -187,6 +191,95 @@ class StreamingOutputHandler:
             else:
                 return self.stderr_data
         return ""
+
+    def get_preview(self, stream_type, max_bytes=None):
+        """
+        Get truncated preview of output without loading full file into memory.
+
+        Args:
+            stream_type: 'stdout' or 'stderr'
+            max_bytes: Maximum bytes to read (default: MAX_JSON_TASK_OUTPUT)
+
+        Returns:
+            str: Truncated output, base64 encoded if binary data detected
+        """
+        if max_bytes is None:
+            max_bytes = self.MAX_JSON_TASK_OUTPUT
+
+        try:
+            content = self._read_preview(stream_type, max_bytes)
+
+            # Detect and handle binary data
+            if self._is_binary(content):
+                import base64
+                # Encode as base64 for JSON safety
+                return base64.b64encode(content.encode('latin-1', errors='ignore')).decode('ascii')
+
+            return content
+        except (IOError, OSError):
+            return "[Error reading output file]"
+
+    def _read_preview(self, stream_type, max_bytes):
+        """Read preview of output up to max_bytes."""
+        if stream_type == 'stdout':
+            if self.stdout_file:
+                self.stdout_file.seek(0)
+                return self.stdout_file.read(max_bytes)
+            else:
+                # Truncate in-memory data if needed
+                data = self.stdout_data
+                return data[:max_bytes] if len(data) > max_bytes else data
+        elif stream_type == 'stderr':
+            if self.stderr_file:
+                self.stderr_file.seek(0)
+                return self.stderr_file.read(max_bytes)
+            else:
+                data = self.stderr_data
+                return data[:max_bytes] if len(data) > max_bytes else data
+        return ""
+
+    def _is_binary(self, data, sample_size=8192):
+        """
+        Detect binary data by checking for null bytes and non-printable characters.
+
+        Args:
+            data: String data to check
+            sample_size: Number of characters to sample
+
+        Returns:
+            bool: True if binary data detected
+        """
+        if not data:
+            return False
+
+        sample = data[:sample_size]
+
+        # Null bytes are definitive binary indicator
+        if '\x00' in sample:
+            return True
+
+        # Check ratio of non-printable characters
+        # Allow newline, carriage return, tab as printable
+        non_printable = sum(1 for c in sample if ord(c) < 32 and c not in '\n\r\t')
+
+        # If more than 30% non-printable, consider it binary
+        return (non_printable / len(sample)) > 0.3
+
+    def get_temp_file_path(self, stream_type):
+        """
+        Get the path to the temp file for the specified stream, if it exists.
+
+        Args:
+            stream_type: 'stdout' or 'stderr'
+
+        Returns:
+            str or None: Path to temp file, or None if using in-memory storage
+        """
+        if stream_type == 'stdout' and self.stdout_file:
+            return self.stdout_file.name
+        elif stream_type == 'stderr' and self.stderr_file:
+            return self.stderr_file.name
+        return None
 
     def get_memory_usage_info(self):
         """

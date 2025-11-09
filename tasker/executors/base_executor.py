@@ -235,6 +235,12 @@ class BaseExecutor(ABC):
                     'exit_code': 1,
                     'stdout': '',
                     'stderr': str(e),
+                    'stdout_file': None,
+                    'stderr_file': None,
+                    'stdout_size': 0,
+                    'stderr_size': len(str(e)),
+                    'stdout_truncated': False,
+                    'stderr_truncated': False,
                     'success': False,
                     'skipped': False,
                     'sleep_seconds': float(task.get('sleep', 0))
@@ -251,11 +257,27 @@ class BaseExecutor(ABC):
             success = ConditionEvaluator.evaluate_condition(success_condition, exit_code, processed_stdout, processed_stderr, execution_context.global_vars, execution_context.task_results, execution_context.log_debug)
             execution_context.log(f"Task {task_display_id}: Success condition '{success_condition}' evaluated to: {success}")
 
+            # 12. Store temp file references and truncated previews for memory efficiency
+            # Get temp file paths and sizes from output handler
+            stdout_file_path = output_handler.get_temp_file_path('stdout') if output_handler else None
+            stderr_file_path = output_handler.get_temp_file_path('stderr') if output_handler else None
+            memory_info = output_handler.get_memory_usage_info() if output_handler else {}
+
+            # Get truncated previews instead of storing full content
+            stdout_preview = output_handler.get_preview('stdout') if output_handler else processed_stdout
+            stderr_preview = output_handler.get_preview('stderr') if output_handler else processed_stderr
+
             return {
                 'task_id': task_id,
                 'exit_code': exit_code,
-                'stdout': processed_stdout,
-                'stderr': processed_stderr,
+                'stdout': stdout_preview,  # Truncated preview (max 1MB)
+                'stderr': stderr_preview,  # Truncated preview (max 1MB)
+                'stdout_file': stdout_file_path,  # Path to temp file for full content
+                'stderr_file': stderr_file_path,  # Path to temp file for full content
+                'stdout_size': memory_info.get('stdout_size', len(processed_stdout)),
+                'stderr_size': memory_info.get('stderr_size', len(processed_stderr)),
+                'stdout_truncated': memory_info.get('stdout_size', len(processed_stdout)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False,
+                'stderr_truncated': memory_info.get('stderr_size', len(processed_stderr)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False,
                 'success': success,
                 'skipped': False,
                 'sleep_seconds': float(task.get('sleep', 0))
@@ -263,11 +285,18 @@ class BaseExecutor(ABC):
 
         except Exception as e:
             execution_context.log_error(f"Task {task_display_id}: Unexpected error during execution: {str(e)}")
+            error_msg = f'Execution error: {str(e)}'
             return {
                 'task_id': task_id,
                 'exit_code': 255,
                 'stdout': '',
-                'stderr': f'Execution error: {str(e)}',
+                'stderr': error_msg,
+                'stdout_file': None,
+                'stderr_file': None,
+                'stdout_size': 0,
+                'stderr_size': len(error_msg),
+                'stdout_truncated': False,
+                'stderr_truncated': False,
                 'success': False,
                 'skipped': False,
                 'sleep_seconds': 0

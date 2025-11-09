@@ -94,6 +94,61 @@ class RecoveryStateManager:
         """
         return os.path.exists(self.recovery_file)
 
+    def _prepare_task_results_for_json(self, task_results: Dict[int, Dict[str, Any]]) -> Dict[int, Dict[str, Any]]:
+        """
+        Prepare task results for JSON output by removing temp file paths and
+        keeping only JSON-safe data with truncation information.
+
+        Args:
+            task_results: Raw task results from StateManager
+
+        Returns:
+            JSON-safe task results dictionary
+        """
+        json_safe_results = {}
+        for task_id, result in task_results.items():
+            # Create clean result dict with only JSON-relevant fields
+            json_safe_results[task_id] = {
+                'exit_code': result.get('exit_code', 0),
+                'stdout': result.get('stdout', ''),  # Already truncated preview
+                'stderr': result.get('stderr', ''),  # Already truncated preview
+                'success': result.get('success', False),
+                'skipped': result.get('skipped', False),
+                # Add truncation metadata for transparency
+                'stdout_truncated': result.get('stdout_truncated', False),
+                'stderr_truncated': result.get('stderr_truncated', False),
+                'stdout_size': result.get('stdout_size', len(result.get('stdout', ''))),
+                'stderr_size': result.get('stderr_size', len(result.get('stderr', '')))
+            }
+            # Note: stdout_file and stderr_file are NOT included - they're internal temp paths
+        return json_safe_results
+
+    def _estimate_json_size(self, data: Dict[str, Any]) -> int:
+        """
+        Estimate JSON size before serialization to enforce size limits.
+
+        Args:
+            data: Dictionary to be serialized
+
+        Returns:
+            Estimated size in bytes
+        """
+        # Quick estimate: sum of string lengths in task results
+        # This is an underestimate (doesn't include JSON formatting overhead)
+        # but provides a fast check before full serialization
+        estimated_size = 0
+
+        task_results = data.get('task_results', {})
+        for result in task_results.values():
+            estimated_size += len(result.get('stdout', ''))
+            estimated_size += len(result.get('stderr', ''))
+
+        # Add overhead for other fields (rough estimate: 10KB per task + base overhead)
+        estimated_size += len(task_results) * 10 * 1024  # 10KB per task for metadata
+        estimated_size += 100 * 1024  # 100KB base overhead for workflow data
+
+        return estimated_size
+
     def save_state(self, execution_path: list, state_manager, log_file: str,
                    failure_info: Optional[Dict[str, Any]] = None,
                    intended_next_task: Optional[int] = None,
@@ -126,6 +181,9 @@ class RecoveryStateManager:
                 if result.get('success', False):
                     execution_path.append(task_id)
 
+        # Prepare task results for JSON - remove temp file paths and keep only JSON-safe data
+        json_safe_results = self._prepare_task_results_for_json(task_results)
+
         # Build recovery state
         recovery_data = {
             'version': self.RECOVERY_VERSION,
@@ -139,7 +197,7 @@ class RecoveryStateManager:
             'last_successful_task': execution_path[-1] if execution_path else None,
             'current_task': current_task,
             'intended_next_task': intended_next_task,  # Task that would execute next
-            'task_results': task_results,
+            'task_results': json_safe_results,  # Use JSON-safe results with truncation info
             'global_vars': global_vars,
             'global_vars_metadata': global_vars_metadata,  # Variable source tracking (env vs literal)
             'loop_state': {},  # TODO: Add loop state tracking if needed
@@ -158,6 +216,16 @@ class RecoveryStateManager:
                     recovery_data['created'] = existing_data.get('created', recovery_data['created'])
             except (IOError, json.JSONDecodeError):
                 pass  # Use new timestamp if can't read existing file
+
+        # Check total JSON size before writing (enforce 100MB limit)
+        estimated_size = self._estimate_json_size(recovery_data)
+        max_size = 100 * 1024 * 1024  # 100MB limit
+        if estimated_size > max_size:
+            raise ValueError(
+                "Recovery state JSON would exceed size limit: {} bytes > {} bytes (100MB). "
+                "This indicates extremely large task outputs. Consider reducing output size or "
+                "reviewing task configurations.".format(estimated_size, max_size)
+            )
 
         # Write recovery state to file atomically
         try:

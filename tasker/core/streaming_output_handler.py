@@ -29,7 +29,7 @@ class StreamingOutputHandler:
 
     # Configuration constants
     DEFAULT_BUFFER_SIZE = 1024 * 1024  # 1MB memory buffer
-    DEFAULT_TEMP_THRESHOLD = 1 * 1024 * 1024  # 1MB threshold for temp files (lowered from 10MB to fix cross-task variable substitution)
+    DEFAULT_TEMP_THRESHOLD = 1 * 1024 * 1024  # 1MB threshold for temp files (aligned with MAX_JSON_TASK_OUTPUT to ensure consistent temp-file handling for outputs that exceed JSON preview limits)
     CHUNK_SIZE = 8192  # 8KB read chunks
     MAX_IN_MEMORY = 100 * 1024 * 1024  # 100MB absolute memory limit
 

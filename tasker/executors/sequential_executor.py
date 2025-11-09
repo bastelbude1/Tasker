@@ -197,7 +197,7 @@ class SequentialExecutor(BaseExecutor):
                 import subprocess
 
                 # Create memory-efficient output handler with 10MB default limit
-                max_memory_mb = 10
+                max_memory_mb = 1  # Aligned with temp threshold to prevent dead zones
 
                 with create_memory_efficient_handler(max_memory_mb) as output_handler:
                     with subprocess.Popen(

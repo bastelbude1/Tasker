@@ -13,8 +13,8 @@ exec=local
 task=1
 type=decision
 success=@0_exit@=0
-if_true_tasks=2
-if_false_tasks=3
+on_success=2
+on_failure=3
 
 # Task 2: Executed if condition is true
 task=2

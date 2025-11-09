@@ -267,6 +267,15 @@ class BaseExecutor(ABC):
             stdout_preview = output_handler.get_preview('stdout') if output_handler else processed_stdout
             stderr_preview = output_handler.get_preview('stderr') if output_handler else processed_stderr
 
+            # Preserve processed output if split operations were applied (prevents workflow breakage)
+            stdout_modified = processed_stdout != raw_stdout
+            stderr_modified = processed_stderr != raw_stderr
+
+            if stdout_modified:
+                stdout_preview = processed_stdout
+            if stderr_modified:
+                stderr_preview = processed_stderr
+
             return {
                 'task_id': task_id,
                 'exit_code': exit_code,

@@ -112,10 +112,11 @@ class StateManager:
             Full output content, reading from temp file if available
         """
         # CRITICAL: Hold lock ONLY for copying values (fast operation)
+        # Create immutable snapshot to prevent races after lock release
         with self._lock:
-            result = self._task_results.get(task_id, {})
+            result = dict(self._task_results.get(task_id, {}))
             file_key = f'{output_type}_file'
-            temp_file_path = result.get(file_key) if file_key in result else None
+            temp_file_path = result.get(file_key)
             preview_fallback = result.get(output_type, '')
 
         # CRITICAL: Release lock BEFORE heavy I/O operations

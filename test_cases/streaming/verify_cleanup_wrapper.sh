@@ -24,12 +24,21 @@ if [ ! -f "$JSON_OUTPUT" ]; then
 fi
 
 # Extract temp file paths from JSON and verify they don't exist
-python3 << 'EOF'
+# Pass JSON_OUTPUT path as argument to Python script
+python3 - "$JSON_OUTPUT" << 'EOF'
 import json
 import os
 import sys
 
-with open('/tmp/cleanup_test_output.json', 'r') as f:
+# Get JSON path from command line argument
+if len(sys.argv) < 2:
+    print("ERROR: JSON output path not provided")
+    print("Usage: python3 script.py <json_output_path>")
+    sys.exit(1)
+
+json_path = sys.argv[1]
+
+with open(json_path, 'r') as f:
     data = json.load(f)
 
 # Check task results for temp file paths

@@ -1,0 +1,16 @@
+# TEST_METADATA: {"description": "Cross-task variable substitution with 100KB output (verifies exact 100KB transfer)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1]}
+# Test cross-task variable substitution with 100KB output (under arg limit)
+# Task 0: Generate 100KB output
+task=0
+hostname=localhost
+exec=local
+command=python3
+arguments=-c "print('X' * 102400)"
+
+# Task 1: Check the length of what we got from task 0
+task=1
+hostname=localhost
+exec=local
+command=python3
+arguments=-c "import sys; data = '@0_stdout@'; print(f'Received {len(data)} bytes from task 0')"
+success=stdout~"Received 102400 bytes from task 0"

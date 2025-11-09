@@ -917,7 +917,53 @@ class TaskExecutor:
             finally:
                 self.summary_log = None
 
-        # PHASE 3: Error reporting
+        # PHASE 3: Temp file cleanup for large outputs
+        # Clean up any temp files created for large stdout/stderr outputs
+        try:
+            temp_dir = tempfile.gettempdir()
+
+            # Collect all temp file references from task results
+            temp_files_to_delete = set()
+            for task_result in self.task_results.values():
+                if isinstance(task_result, dict):
+                    stdout_file = task_result.get('stdout_file')
+                    stderr_file = task_result.get('stderr_file')
+
+                    if stdout_file:
+                        temp_files_to_delete.add(stdout_file)
+                    if stderr_file:
+                        temp_files_to_delete.add(stderr_file)
+
+            if temp_files_to_delete:
+                self.log_debug(f"Cleaning up {len(temp_files_to_delete)} temporary output file(s)")
+
+                for temp_file in temp_files_to_delete:
+                    try:
+                        # Safety checks before deletion
+                        # 1. Verify file is in system temp directory
+                        if not temp_file.startswith(temp_dir):
+                            self.log_debug(f"Skipping temp file outside temp dir: {temp_file}")
+                            continue
+
+                        # 2. Verify file matches allowed prefixes (tasker_stdout_ or tasker_stderr_)
+                        basename = os.path.basename(temp_file)
+                        if not (basename.startswith('tasker_stdout_') or basename.startswith('tasker_stderr_')):
+                            self.log_debug(f"Skipping temp file with unexpected prefix: {temp_file}")
+                            continue
+
+                        # 3. Verify file exists before attempting deletion
+                        if os.path.exists(temp_file):
+                            os.remove(temp_file)
+                            self.log_debug(f"Deleted temp file: {temp_file}")
+                        else:
+                            self.log_debug(f"Temp file already deleted: {temp_file}")
+
+                    except (OSError, IOError) as e:
+                        cleanup_errors.append(f"Failed to delete temp file {temp_file}: {e}")
+        except (OSError, IOError, RuntimeError, ValueError) as temp_cleanup_error:
+            cleanup_errors.append(f"Temp file cleanup phase failed: {temp_cleanup_error}")
+
+        # PHASE 4: Error reporting
         if cleanup_errors:
             error_count = len(cleanup_errors)
             error_summary = f"Cleanup completed with {error_count} error(s):"
@@ -2533,7 +2579,7 @@ class TaskExecutor:
             
             # Warning about unresolved dependencies
             if start_task_id > 0:
-                self.log_warn(f"# WARNING: Task dependencies @X_stdout@, @X_stderr@, @X_success@ for tasks 0-{start_task_id-1} will be unresolved")
+                self.log_warn(f"# WARNING: Task dependencies @X_stdout@, @X_stderr@, @X_stdout_file@, @X_stderr_file@, @X_success@ for tasks 0-{start_task_id-1} will be unresolved")
                 self.log_warn(f"# Tasks {start_task_id}+ may fail if they depend on results from earlier tasks")
                 
             self.log_info(f"# Starting execution from Task {start_task_id}")
@@ -2566,7 +2612,7 @@ class TaskExecutor:
                 auto_start = available_tasks[0]
                 self.log_info(f"Task 0 not found, auto-starting from lowest available task {auto_start}")
                 if auto_start > 0:
-                    self.log_warn(f"# WARNING: Task dependencies @X_stdout@, @X_stderr@, @X_success@ for tasks 0-{auto_start-1} will be unresolved")
+                    self.log_warn(f"# WARNING: Task dependencies @X_stdout@, @X_stderr@, @X_stdout_file@, @X_stderr_file@, @X_success@ for tasks 0-{auto_start-1} will be unresolved")
                     self.log_warn(f"# Tasks {auto_start}+ may fail if they depend on results from earlier tasks")
                 next_task_id = auto_start
             else:

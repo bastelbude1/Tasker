@@ -28,17 +28,15 @@ class StreamingOutputHandler:
     """
 
     # Configuration constants
-    DEFAULT_BUFFER_SIZE = 1024 * 1024  # 1MB memory buffer
-    DEFAULT_TEMP_THRESHOLD = 10 * 1024 * 1024  # 10MB threshold for temp files
+    DEFAULT_TEMP_THRESHOLD = 1 * 1024 * 1024  # 1MB threshold for temp files (aligned to prevent dead zones)
     CHUNK_SIZE = 8192  # 8KB read chunks
     MAX_IN_MEMORY = 100 * 1024 * 1024  # 100MB absolute memory limit
 
-    def __init__(self, buffer_size=None, temp_threshold=None, temp_dir=None):
+    def __init__(self, temp_threshold=None, temp_dir=None):
         """
         Initialize streaming output handler.
 
         Args:
-            buffer_size: Memory buffer size before switching to temp files
             temp_threshold: Size threshold for using temp files
             temp_dir: Directory for temporary files (default: system temp)
         """
@@ -168,6 +166,19 @@ class StreamingOutputHandler:
         stdout_content = self._get_final_output('stdout')
         stderr_content = self._get_final_output('stderr')
 
+        # Close file handles to avoid FD exhaustion
+        # Files persist on disk (delete=False) for cross-task access
+        if self.stdout_file and not self.stdout_file.closed:
+            try:
+                self.stdout_file.close()
+            except Exception:
+                pass  # Ignore errors on close
+        if self.stderr_file and not self.stderr_file.closed:
+            try:
+                self.stderr_file.close()
+            except Exception:
+                pass  # Ignore errors on close
+
         return stdout_content, stderr_content, exit_code, timed_out
 
     def _get_final_output(self, stream_type):
@@ -187,6 +198,22 @@ class StreamingOutputHandler:
             else:
                 return self.stderr_data
         return ""
+
+    def get_temp_file_path(self, stream_type):
+        """
+        Get the temp file path if it exists for the given stream.
+
+        Args:
+            stream_type: 'stdout' or 'stderr'
+
+        Returns:
+            str: Path to temp file or None if no temp file
+        """
+        if stream_type == 'stdout' and self.stdout_file:
+            return self.stdout_file.name
+        elif stream_type == 'stderr' and self.stderr_file:
+            return self.stderr_file.name
+        return None
 
     def get_memory_usage_info(self):
         """
@@ -229,7 +256,14 @@ class StreamingOutputHandler:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
-        Context manager exit with automatic cleanup.
+        Context manager exit - temp file cleanup deferred to workflow level.
+
+        CRITICAL: Do not cleanup temp files here - they're needed for:
+        1. Cross-task variable substitution (@N_stdout@)
+        2. Success condition evaluation in subsequent tasks
+        3. Output splitting operations
+
+        Cleanup should happen at workflow completion, not after individual tasks.
 
         Args:
             exc_type: Exception type (if any)
@@ -239,12 +273,7 @@ class StreamingOutputHandler:
         Returns:
             None (do not suppress exceptions)
         """
-        try:
-            self.cleanup()
-        except Exception:
-            # Ensure cleanup errors don't mask original exceptions
-            import logging
-            logging.debug("StreamingOutputHandler cleanup failed in __exit__", exc_info=True)
+        # CRITICAL: Do not call cleanup() here - temp files must persist for cross-task access
         # Return None to propagate any original exception
 
 
@@ -258,9 +287,8 @@ def create_memory_efficient_handler(max_memory_mb=10):
     Returns:
         StreamingOutputHandler instance configured for memory efficiency
     """
-    buffer_size = min(max_memory_mb * 1024 * 1024, StreamingOutputHandler.MAX_IN_MEMORY)
+    threshold_bytes = min(max_memory_mb * 1024 * 1024, StreamingOutputHandler.MAX_IN_MEMORY)
     return StreamingOutputHandler(
-        buffer_size=buffer_size,
-        temp_threshold=buffer_size,
+        temp_threshold=threshold_bytes,
         temp_dir=None  # Use system default
     )

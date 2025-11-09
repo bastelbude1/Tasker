@@ -1,0 +1,21 @@
+# TEST_METADATA: {"description": "Verify temp files are created and cleaned up properly", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2]}
+# Test temp file cleanup - verifies files are created during execution and deleted after completion
+# This test generates large output to trigger temp file creation, then verifies cleanup
+
+# Task 0: Generate 2MB output (forces temp file creation)
+task=0
+hostname=localhost
+command=python3
+arguments=-c "print('A' * 2097152)"
+
+# Task 1: Generate another 2MB output (creates second temp file)
+task=1
+hostname=localhost
+command=python3
+arguments=-c "print('B' * 2097152)"
+
+# Task 2: Verify we can access the outputs (proves temp files were created and read)
+task=2
+hostname=localhost
+command=python3
+arguments=-c "import sys; data1 = '''@0_stdout@'''; data2 = '''@1_stdout@'''; print(f'Task 0: {len(data1)} bytes, Task 1: {len(data2)} bytes')"

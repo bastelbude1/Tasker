@@ -144,6 +144,8 @@ logs/
 *.dryrun
 *_test_*.txt_*
 *_test_*_*.log
+# Dummy/placeholder files created by tests to satisfy validation requirements
+__dummy__
 
 # Backup and temporary files
 *.backup

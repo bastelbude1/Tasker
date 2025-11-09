@@ -134,6 +134,8 @@ class BaseExecutor(ABC):
                         'exit_code': -1,
                         'stdout': '',
                         'stderr': 'Task skipped due to condition',
+                        'stdout_file': None,
+                        'stderr_file': None,
                         'success': False,
                         'skipped': True
                     }
@@ -147,6 +149,8 @@ class BaseExecutor(ABC):
                     'exit_code': return_code,
                     'stdout': '',
                     'stderr': f'Return task: {return_code}',
+                    'stdout_file': None,
+                    'stderr_file': None,
                     'success': (return_code == 0),
                     'skipped': False
                 }
@@ -180,6 +184,8 @@ class BaseExecutor(ABC):
                     'exit_code': 0,
                     'stdout': 'DRY RUN - Command not executed',
                     'stderr': '',
+                    'stdout_file': None,
+                    'stderr_file': None,
                     'success': True,
                     'skipped': False,
                     'sleep_seconds': float(task.get('sleep', 0))
@@ -188,8 +194,8 @@ class BaseExecutor(ABC):
             # 8. Real execution with memory-efficient streaming
             start_time = time.time()
             try:
-                # Create memory-efficient output handler with 10MB default limit
-                max_memory_mb = 10
+                # Create memory-efficient output handler with 1MB limit (aligned with temp threshold)
+                max_memory_mb = 1
 
                 with create_memory_efficient_handler(max_memory_mb) as output_handler:
                     # Use Popen pattern for Python 3.6.8 compatibility
@@ -235,6 +241,8 @@ class BaseExecutor(ABC):
                     'exit_code': 1,
                     'stdout': '',
                     'stderr': str(e),
+                    'stdout_file': None,
+                    'stderr_file': None,
                     'success': False,
                     'skipped': False,
                     'sleep_seconds': float(task.get('sleep', 0))
@@ -251,11 +259,17 @@ class BaseExecutor(ABC):
             success = ConditionEvaluator.evaluate_condition(success_condition, exit_code, processed_stdout, processed_stderr, execution_context.global_vars, execution_context.task_results, execution_context.log_debug)
             execution_context.log(f"Task {task_display_id}: Success condition '{success_condition}' evaluated to: {success}")
 
+            # Get temp file paths for cross-task access (Bug fix: enables @N_stdout@ for large outputs)
+            stdout_file_path = output_handler.get_temp_file_path('stdout') if output_handler else None
+            stderr_file_path = output_handler.get_temp_file_path('stderr') if output_handler else None
+
             return {
                 'task_id': task_id,
                 'exit_code': exit_code,
                 'stdout': processed_stdout,
                 'stderr': processed_stderr,
+                'stdout_file': stdout_file_path,  # Path to temp file for large stdout
+                'stderr_file': stderr_file_path,  # Path to temp file for large stderr
                 'success': success,
                 'skipped': False,
                 'sleep_seconds': float(task.get('sleep', 0))
@@ -268,6 +282,8 @@ class BaseExecutor(ABC):
                 'exit_code': 255,
                 'stdout': '',
                 'stderr': f'Execution error: {str(e)}',
+                'stdout_file': None,
+                'stderr_file': None,
                 'success': False,
                 'skipped': False,
                 'sleep_seconds': 0

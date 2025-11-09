@@ -88,6 +88,10 @@ class SequentialExecutor(BaseExecutor):
             else:
                 executor_instance.log(f"Task {task_id}{loop_display}: Condition '{task['condition']}' evaluated to TRUE, executing task")
 
+        # Initialize temp file paths (may be set later if outputs are large)
+        stdout_file = None
+        stderr_file = None
+
         # Update tracking for summary
         executor_instance.final_task_id = task_id
         executor_instance.final_hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', 'N/A'), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
@@ -196,8 +200,8 @@ class SequentialExecutor(BaseExecutor):
                 # Execute using context manager for automatic cleanup
                 import subprocess
 
-                # Create memory-efficient output handler with 10MB default limit
-                max_memory_mb = 10
+                # Create memory-efficient output handler with a 1MB threshold to match the temp-file cutoff
+                max_memory_mb = 1  # Aligned with temp threshold to prevent dead zones
 
                 with create_memory_efficient_handler(max_memory_mb) as output_handler:
                     with subprocess.Popen(
@@ -219,6 +223,10 @@ class SequentialExecutor(BaseExecutor):
                         stdout, stderr, exit_code, timed_out = output_handler.stream_process_output(
                             process, timeout=task_timeout, shutdown_check=shutdown_check
                         )
+
+                        # Get temp file paths for cross-task access (if outputs were large)
+                        stdout_file = output_handler.get_temp_file_path('stdout')
+                        stderr_file = output_handler.get_temp_file_path('stderr')
 
                         # Log memory usage for large outputs
                         memory_info = output_handler.get_memory_usage_info()
@@ -271,6 +279,11 @@ class SequentialExecutor(BaseExecutor):
             if formatted_split_stdout:
                 executor_instance.log(f"Task {task_id}{loop_display}: Split STDOUT: {formatted_split_stdout}")
             executor_instance.log_debug(f"Task {task_id}{loop_display}: Split STDOUT (stdout_split={task['stdout_split']}): '{stdout_stripped}' -> '{stdout}'")
+            # Clear temp file reference when split is applied (temp file contains unsplit data)
+            # TODO: If split result is >1MB, should write to new temp file to avoid memory issues
+            if stdout_file:
+                executor_instance.log_debug(f"Task {task_id}{loop_display}: Clearing stdout temp file reference after split operation")
+                stdout_file = None
 
         if 'stderr_split' in task:
             stderr = ConditionEvaluator.split_output(stderr, task['stderr_split'])
@@ -279,7 +292,12 @@ class SequentialExecutor(BaseExecutor):
             if formatted_split_stderr:
                 executor_instance.log(f"Task {task_id}{loop_display}: Split STDERR: {formatted_split_stderr}")
             executor_instance.log_debug(f"Task {task_id}{loop_display}: Split STDERR (stderr_split={task['stderr_split']}): '{stderr_stripped}' -> '{stderr}'")
-        
+            # Clear temp file reference when split is applied (temp file contains unsplit data)
+            # TODO: If split result is >1MB, should write to new temp file to avoid memory issues
+            if stderr_file:
+                executor_instance.log_debug(f"Task {task_id}{loop_display}: Clearing stderr temp file reference after split operation")
+                stderr_file = None
+
         # Evaluate success condition if defined, otherwise default to exit_code == 0
         # Support for 'failure' parameter: inverse of success condition
         if 'success' in task:
@@ -323,12 +341,21 @@ class SequentialExecutor(BaseExecutor):
             executor_instance.log_debug(f"Task {task_id}{loop_display}: Success (default): {success_result}")
         
         # CRITICAL: Store the results for future reference - THREAD SAFE
-        executor_instance.store_task_result(task_id, {
+        task_result_data = {
             'exit_code': exit_code,
             'stdout': stdout,
             'stderr': stderr,
             'success': success_result
-        })
+        }
+
+        # Include temp file paths if they exist and haven't been cleared by split operations
+        # This allows cross-task access to full data when no splits are applied
+        if stdout_file:
+            task_result_data['stdout_file'] = stdout_file
+        if stderr_file:
+            task_result_data['stderr_file'] = stderr_file
+
+        executor_instance.store_task_result(task_id, task_result_data)
         
         # Check if we should sleep before the next task
         if 'sleep' in task:

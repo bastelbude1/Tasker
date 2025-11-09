@@ -1,0 +1,16 @@
+# TEST_METADATA: {"description": "Cross-task variable substitution with 2MB output using temp files", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1]}
+# Test cross-task variable substitution with 2MB output
+# Task 0: Generate 2MB output
+task=0
+hostname=localhost
+exec=local
+command=python3
+arguments=-c "print('X' * 2097152)"
+
+# Task 1: Check just the length of what we got from task 0
+task=1
+hostname=localhost
+exec=local
+command=python3
+arguments=-c "import sys; data = '@0_stdout@'; print(f'Received {len(data)} bytes')"
+success=stdout~"Received 102400 bytes"

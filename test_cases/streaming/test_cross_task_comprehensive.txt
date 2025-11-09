@@ -1,0 +1,36 @@
+# TEST_METADATA: {"description": "Cross-task variable substitution with different output sizes (50KB, 2MB)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3, 4]}
+# Test cross-task variable substitution with different output sizes
+# This tests the three-tier memory-efficient streaming:
+# Tier 1: Small outputs (<100KB) - full data in memory
+# Tier 2: Medium outputs (100KB-1MB) - full data in memory but may hit cmdline limits
+# Tier 3: Large outputs (>1MB) - temp files with truncated cmdline substitution
+
+# Task 0: Generate 50KB output (well under command-line limit)
+task=0
+hostname=localhost
+command=python3
+arguments=-c "print('A' * 51200)"
+
+# Task 1: Verify we get complete 50KB via @0_stdout@
+task=1
+hostname=localhost
+command=python3
+arguments=-c "data = '@0_stdout@'; print(f'Task 1: Received {len(data)} bytes from task 0 (expected 51200)')"
+
+# Task 2: Generate 2MB output (triggers temp file)
+task=2
+hostname=localhost
+command=python3
+arguments=-c "print('B' * 2097152)"
+
+# Task 3: Check truncated data via @2_stdout@ and file path via @2_stdout_file@
+task=3
+hostname=localhost
+command=python3
+arguments=-c "data = '@2_stdout@'; file_path = '@2_stdout_file@'; print(f'Task 3: Received {len(data)} bytes via stdout (truncated), temp file: {file_path}')"
+
+# Task 4: Read full data from temp file if available
+task=4
+hostname=localhost
+command=python3
+arguments=-c "import os; file_path = '@2_stdout_file@'; size = os.path.getsize(file_path) if file_path and os.path.exists(file_path) else 0; print(f'Task 4: Temp file size: {size} bytes (expected ~2097152)')"

@@ -97,8 +97,9 @@ class SequentialExecutor(BaseExecutor):
 
         # Update tracking for summary
         executor_instance.final_task_id = task_id
-        executor_instance.final_hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', 'N/A'), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
-        executor_instance.final_command, _ = ConditionEvaluator.replace_variables(task.get('command', 'N/A'), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
+        state_mgr = getattr(executor_instance, '_state_manager', None)
+        executor_instance.final_hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', 'N/A'), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug, state_mgr)
+        executor_instance.final_command, _ = ConditionEvaluator.replace_variables(task.get('command', 'N/A'), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug, state_mgr)
         
         # Check if this is a return-only task (has return but no command)
         if 'return' in task and 'command' not in task:
@@ -182,9 +183,10 @@ class SequentialExecutor(BaseExecutor):
             return None
         
         # Replace variables in command and arguments
-        hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', ''), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
-        command, _ = ConditionEvaluator.replace_variables(task.get('command', ''), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
-        arguments, _ = ConditionEvaluator.replace_variables(task.get('arguments', ''), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
+        state_mgr = getattr(executor_instance, '_state_manager', None)
+        hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', ''), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug, state_mgr)
+        command, _ = ConditionEvaluator.replace_variables(task.get('command', ''), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug, state_mgr)
+        arguments, _ = ConditionEvaluator.replace_variables(task.get('arguments', ''), executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug, state_mgr)
 
         # Determine execution type (from task, args, env, or default)
         exec_type = executor_instance.determine_execution_type(task, task_id, loop_display)
@@ -423,7 +425,8 @@ class SequentialExecutor(BaseExecutor):
         # Check if we should sleep before the next task
         if 'sleep' in task:
             try:
-                sleep_time_str, resolved = ConditionEvaluator.replace_variables(task['sleep'], executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug)
+                state_mgr = getattr(executor_instance, '_state_manager', None)
+                sleep_time_str, resolved = ConditionEvaluator.replace_variables(task['sleep'], executor_instance.global_vars, executor_instance.task_results, executor_instance.log_debug, state_mgr)
                 if resolved:
                     sleep_time = float(sleep_time_str)
                     executor_instance.log(f"Task {task_id}{loop_display}: Sleeping for {sleep_time} seconds")

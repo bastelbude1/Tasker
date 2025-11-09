@@ -35,7 +35,8 @@ class ExecutionContext:
         # State access
         self.global_vars = executor_instance.global_vars
         self.task_results = executor_instance.task_results
-        
+        self.state_manager = getattr(executor_instance, '_state_manager', None)
+
         # Configuration
         self.dry_run = executor_instance.dry_run
         self.timeout = executor_instance.timeout

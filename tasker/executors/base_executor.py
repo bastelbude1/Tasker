@@ -166,9 +166,9 @@ class BaseExecutor(ABC):
                 }
             
             # 3. Variable replacement
-            hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', ''), execution_context.global_vars, execution_context.task_results, execution_context.log_debug)
-            command, _ = ConditionEvaluator.replace_variables(task.get('command', ''), execution_context.global_vars, execution_context.task_results, execution_context.log_debug)
-            arguments, _ = ConditionEvaluator.replace_variables(task.get('arguments', ''), execution_context.global_vars, execution_context.task_results, execution_context.log_debug)
+            hostname, _ = ConditionEvaluator.replace_variables(task.get('hostname', ''), execution_context.global_vars, execution_context.task_results, execution_context.log_debug, execution_context.state_manager)
+            command, _ = ConditionEvaluator.replace_variables(task.get('command', ''), execution_context.global_vars, execution_context.task_results, execution_context.log_debug, execution_context.state_manager)
+            arguments, _ = ConditionEvaluator.replace_variables(task.get('arguments', ''), execution_context.global_vars, execution_context.task_results, execution_context.log_debug, execution_context.state_manager)
 
             # 4. Execution type and command building
             exec_type = execution_context.determine_execution_type(task, task_display_id)

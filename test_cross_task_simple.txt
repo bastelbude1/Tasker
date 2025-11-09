@@ -1,0 +1,12 @@
+# Test cross-task variable substitution with 2MB output
+# Task 0: Generate 2MB output
+task=0
+hostname=localhost
+command=python3
+arguments=-c "print('X' * 2097152)"
+
+# Task 1: Check just the length of what we got from task 0
+task=1
+hostname=localhost
+command=python3
+arguments=-c "import sys; data = '@0_stdout@'; print(f'Received {len(data)} bytes')"

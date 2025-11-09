@@ -825,20 +825,20 @@ command=cat /var/log/application.log
 
 The streaming system implements a sophisticated three-tier approach:
 
-#### Tier 1: In-Memory Buffering (Up to 10MB)
+#### Tier 1: In-Memory Buffering (Up to 1MB)
 
-For small to medium outputs, everything stays in memory for maximum performance:
+For small outputs, everything stays in memory for maximum performance:
 
 ```text
-└── Memory Buffer (1MB chunks)
+└── Memory Buffer
     ├── Fast access for small outputs
     ├── Zero disk I/O overhead
-    └── Instant variable resolution
+    └── Complete data available via @N_stdout@ / @N_stderr@
 ```
 
-#### Tier 2: Temporary File Streaming (10MB+)
+#### Tier 2: Temporary File Streaming (1MB+)
 
-When outputs exceed 10MB, TASKER automatically streams to temporary files:
+When outputs exceed 1MB, TASKER automatically streams to temporary files:
 
 ```text
 └── System Temp Directory (/tmp)
@@ -884,17 +884,19 @@ command=analyze_massive_dataset
 
 #### Memory Thresholds
 
-- **In-Memory Buffer**: 1MB (switches to temp files at 10MB)
-- **Buffer Size**: 1MB with 8KB read chunks
+- **In-Memory Buffer**: Up to 1MB (complete data retained)
+- **Temp File Threshold**: 1MB (switches to temp files for outputs ≥1MB)
+- **Buffer Size**: 8KB read chunks for streaming
 - **Maximum Memory**: 100MB absolute limit per task
+- **Command-Line Limit**: 100KB for @N_stdout@ / @N_stderr@ substitution
 - **Temp File Location**: System temp directory (`/tmp` on Linux)
 
 #### Streaming Process
 
 1. **Real-time Processing**: Output is processed as it's generated
-2. **Threshold Detection**: Automatically switches to temp files at 10MB
+2. **Threshold Detection**: Automatically switches to temp files at 1MB
 3. **Memory Management**: Constant memory usage regardless of output size
-4. **Resource Cleanup**: Temporary files automatically deleted after task completion
+4. **Resource Cleanup**: Temporary files persist until workflow completion for cross-task access
 
 #### File Naming Convention
 
@@ -907,25 +909,28 @@ Where `XXXXXX` is a random 6-character suffix for uniqueness.
 
 ### Performance Characteristics
 
-#### Small Outputs (< 10MB)
+#### Small Outputs (< 1MB)
 
 - **Memory Usage**: Actual output size
 - **Processing Time**: Near-instant
 - **Disk I/O**: None
+- **Cross-Task**: Complete data available via @N_stdout@/@N_stderr@
 - **Best for**: Configuration commands, status checks, small reports
 
-#### Large Outputs (10MB - 100MB)
+#### Large Outputs (1MB - 100MB)
 
-- **Memory Usage**: ~10MB constant
+- **Memory Usage**: ~1MB constant
 - **Processing Time**: <1 second processing overhead
 - **Disk I/O**: Sequential write to temp files
+- **Cross-Task**: Truncated data (100KB) via @N_stdout@, full data via @N_stdout_file@
 - **Best for**: Database exports, large file operations, comprehensive logs
 
 #### Massive Outputs (100MB+)
 
-- **Memory Usage**: ~10MB constant (protected)
+- **Memory Usage**: ~1MB constant (protected)
 - **Processing Time**: Minimal streaming overhead
-- **Disk I/O**: Efficient streaming with automatic cleanup
+- **Disk I/O**: Efficient streaming with deferred cleanup
+- **Cross-Task**: Same as large outputs
 - **Best for**: Full system backups, massive dataset processing, extensive logging
 
 ### Real-World Examples
@@ -1022,6 +1027,67 @@ Tasks that trigger streaming are automatically logged:
 1. Concurrent task count - reduce `max_parallel` in parallel blocks
 2. System available memory
 3. Task output size - verify streaming threshold is working correctly
+
+### Cross-Task Data Sharing with Large Outputs
+
+TASKER provides intelligent handling for sharing large outputs between tasks:
+
+#### For Outputs < 1MB (In Memory)
+
+Complete data is available via standard cross-task variables:
+
+```bash
+task=0
+hostname=server1
+command=generate_report
+# Generates 500KB output
+
+task=1
+hostname=server2
+command=process_data
+arguments=@0_stdout@  # Gets complete 500KB data
+```
+
+#### For Outputs ≥ 1MB (Temp Files)
+
+Large outputs are automatically managed to prevent command-line argument overflow:
+
+```bash
+task=0
+hostname=database
+command=mysqldump production_db
+# Generates 50MB output → stored in temp file
+
+task=1
+hostname=backup-server
+command=python3
+arguments=-c "data='@0_stdout@'; print(f'Received {len(data)} bytes')"
+# @0_stdout@ provides truncated data (100KB) to avoid "Argument list too long" error
+
+task=2
+hostname=backup-server
+command=python3
+arguments=-c "import shutil; shutil.copy('@0_stdout_file@', '/backup/db.sql')"
+# @0_stdout_file@ provides the temp file path for full data access
+```
+
+#### Available Cross-Task Variables
+
+- **@N_stdout@**: Task N's standard output
+  - For outputs < 1MB: Complete data
+  - For outputs ≥ 1MB: Truncated to 100KB for command-line safety
+- **@N_stderr@**: Task N's standard error (same rules as stdout)
+- **@N_stdout_file@**: Path to temp file containing full stdout (only for outputs ≥ 1MB)
+- **@N_stderr_file@**: Path to temp file containing full stderr (only for outputs ≥ 1MB)
+- **@N_exit@**: Task N's exit code
+- **@N_success@**: Task N's success status (true/false)
+
+#### Best Practices
+
+1. **For small outputs (<1MB)**: Use @N_stdout@ directly
+2. **For large outputs (≥1MB)**: Use @N_stdout_file@ to access the full data
+3. **For command-line arguments**: Be aware of the 100KB truncation for large outputs
+4. **For file operations**: Read from temp files using @N_stdout_file@ when available
 
 ---
 

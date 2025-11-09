@@ -1,0 +1,12 @@
+# Test cross-task variable substitution with 100KB output (under arg limit)
+# Task 0: Generate 100KB output
+task=0
+hostname=localhost
+command=python3
+arguments=-c "print('X' * 102400)"
+
+# Task 1: Check the length of what we got from task 0
+task=1
+hostname=localhost
+command=python3
+arguments=-c "import sys; data = '@0_stdout@'; print(f'Received {len(data)} bytes from task 0')"

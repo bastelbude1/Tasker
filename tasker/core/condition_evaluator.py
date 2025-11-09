@@ -108,7 +108,8 @@ class ConditionEvaluator:
 
         # Enhanced pattern to match both task result variables and global variables
         # CASE INSENSITIVE: Accept @0_stdout@, @0_STDOUT@, @0_StdOut@, etc.
-        task_result_pattern = r'@(\d+)_(stdout|stderr|success|exit)@'
+        # Also support @N_stdout_file@ and @N_stderr_file@ for temp file paths
+        task_result_pattern = r'@(\d+)_(stdout|stderr|stdout_file|stderr_file|success|exit)@'
         global_var_pattern = r'@([a-zA-Z_][a-zA-Z0-9_]*)@'
 
         replaced_text = text
@@ -129,26 +130,76 @@ class ConditionEvaluator:
                     # Check for temp file first (for outputs ≥1MB)
                     stdout_file = task_result.get('stdout_file')
                     if stdout_file:
+                        # For large outputs in temp files, provide a truncated version
+                        # to prevent "Argument list too long" errors in command-line substitution
+                        # Full data is accessible via @N_stdout_file@
                         try:
                             with open(stdout_file, 'r', errors='replace') as f:
-                                value = f.read().rstrip('\n')
+                                # CRITICAL: Limit substitution to prevent "Argument list too long" errors
+                                # Most OS have ARG_MAX limits between 128KB-2MB
+                                # We use 100KB as a safe limit for command line substitution
+                                MAX_CMDLINE_SUBST = 100 * 1024  # 100KB safe limit
+                                value = f.read(MAX_CMDLINE_SUBST).rstrip('\n')
+                                # Check if we truncated
+                                f.seek(0, 2)  # Seek to end
+                                file_size = f.tell()
+                                if file_size > MAX_CMDLINE_SUBST:
+                                    if debug_callback:
+                                        debug_callback(f"WARNING: Large output truncated for @{task_num}_stdout@ "
+                                                     f"substitution ({file_size} bytes → {MAX_CMDLINE_SUBST} bytes). "
+                                                     f"Use @{task_num}_stdout_file@ to access full data from: {stdout_file}")
                         except (FileNotFoundError, IOError):
-                            # Fallback to preview if temp file unavailable
+                            # Fallback to in-memory data if temp file unavailable
                             value = task_result.get('stdout', '').rstrip('\n')
                     else:
+                        # For outputs in memory (<1MB), provide the COMPLETE data
+                        # This is Tier 1: full data sharing for small to medium outputs
                         value = task_result.get('stdout', '').rstrip('\n')
                 elif output_type_lower == 'stderr':
                     # Check for temp file first (for outputs ≥1MB)
                     stderr_file = task_result.get('stderr_file')
                     if stderr_file:
+                        # For large outputs in temp files, provide a truncated version
+                        # to prevent "Argument list too long" errors in command-line substitution
+                        # Full data is accessible via @N_stderr_file@
                         try:
                             with open(stderr_file, 'r', errors='replace') as f:
-                                value = f.read().rstrip('\n')
+                                # CRITICAL: Limit substitution to prevent "Argument list too long" errors
+                                # Most OS have ARG_MAX limits between 128KB-2MB
+                                # We use 100KB as a safe limit for command line substitution
+                                MAX_CMDLINE_SUBST = 100 * 1024  # 100KB safe limit
+                                value = f.read(MAX_CMDLINE_SUBST).rstrip('\n')
+                                # Check if we truncated
+                                f.seek(0, 2)  # Seek to end
+                                file_size = f.tell()
+                                if file_size > MAX_CMDLINE_SUBST:
+                                    if debug_callback:
+                                        debug_callback(f"WARNING: Large output truncated for @{task_num}_stderr@ "
+                                                     f"substitution ({file_size} bytes → {MAX_CMDLINE_SUBST} bytes). "
+                                                     f"Use @{task_num}_stderr_file@ to access full data from: {stderr_file}")
                         except (FileNotFoundError, IOError):
-                            # Fallback to preview if temp file unavailable
+                            # Fallback to in-memory data if temp file unavailable
                             value = task_result.get('stderr', '').rstrip('\n')
                     else:
+                        # For outputs in memory (<1MB), provide the COMPLETE data
+                        # This is Tier 1: full data sharing for small to medium outputs
                         value = task_result.get('stderr', '').rstrip('\n')
+                elif output_type_lower == 'stdout_file':
+                    # Return the temp file path for large stdout
+                    value = task_result.get('stdout_file', '')
+                    if not value:
+                        # No temp file exists (output was small enough to stay in memory)
+                        value = ''
+                        if debug_callback:
+                            debug_callback(f"Task {task_num} stdout is in memory (no temp file needed)")
+                elif output_type_lower == 'stderr_file':
+                    # Return the temp file path for large stderr
+                    value = task_result.get('stderr_file', '')
+                    if not value:
+                        # No temp file exists (output was small enough to stay in memory)
+                        value = ''
+                        if debug_callback:
+                            debug_callback(f"Task {task_num} stderr is in memory (no temp file needed)")
                 elif output_type_lower == 'success':
                     value = str(task_result.get('success', False))
                 elif output_type_lower == 'exit':

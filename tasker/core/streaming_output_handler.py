@@ -60,6 +60,10 @@ class StreamingOutputHandler:
         self.stderr_size = 0
         self.using_temp_files = False
 
+        # Preview truncation tracking
+        self.stdout_preview_truncated = False
+        self.stderr_preview_truncated = False
+
     def _create_temp_file(self, prefix):
         """Create a temporary file for large output storage."""
         temp_file = tempfile.NamedTemporaryFile(
@@ -211,6 +215,8 @@ class StreamingOutputHandler:
         accurate truncation detection. This prevents silent data loss where we read
         1MB, truncate to 786KB for base64, but still report "not truncated".
 
+        Sets preview_truncated flag when output exceeds preview limit.
+
         Args:
             stream_type: 'stdout' or 'stderr'
             max_bytes: Maximum bytes to read (default: MAX_JSON_TASK_OUTPUT)
@@ -242,10 +248,29 @@ class StreamingOutputHandler:
                 content = self._read_preview(stream_type, safe_input_len)
                 content_bytes = content.encode('latin-1', errors='replace')
 
+                # Track truncation: if actual size > safe_input_len, we truncated
+                actual_size = self.stdout_size if stream_type == 'stdout' else self.stderr_size
+                was_truncated = actual_size > safe_input_len
+
+                if stream_type == 'stdout':
+                    self.stdout_preview_truncated = was_truncated
+                else:
+                    self.stderr_preview_truncated = was_truncated
+
                 return base64.b64encode(content_bytes).decode('ascii')
             else:
                 # Text data - read up to max_bytes
                 content = self._read_preview(stream_type, max_bytes)
+
+                # Track truncation: if actual size > max_bytes, we truncated
+                actual_size = self.stdout_size if stream_type == 'stdout' else self.stderr_size
+                was_truncated = actual_size > max_bytes
+
+                if stream_type == 'stdout':
+                    self.stdout_preview_truncated = was_truncated
+                else:
+                    self.stderr_preview_truncated = was_truncated
+
                 return content
         except (IOError, OSError):
             return "[Error reading output file]"
@@ -295,6 +320,26 @@ class StreamingOutputHandler:
 
         # If more than 30% non-printable, consider it binary
         return (non_printable / len(sample)) > 0.3
+
+    def preview_was_truncated(self, stream_type):
+        """
+        Check if the preview for a stream was truncated.
+
+        This is set by get_preview() when it determines that the actual output
+        size exceeds the preview limit (either max_bytes for text or safe_input_len
+        for binary data).
+
+        Args:
+            stream_type: 'stdout' or 'stderr'
+
+        Returns:
+            bool: True if preview was truncated, False otherwise
+        """
+        if stream_type == 'stdout':
+            return self.stdout_preview_truncated
+        elif stream_type == 'stderr':
+            return self.stderr_preview_truncated
+        return False
 
     def get_temp_file_path(self, stream_type):
         """

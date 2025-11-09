@@ -316,7 +316,13 @@ class BaseExecutor(ABC):
             else:
                 # No split - use preview/temp file logic
                 # (stdout_preview already set by lines 287-298)
-                stdout_truncated = memory_info.get('stdout_size', len(processed_stdout)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False
+                # CRITICAL: Check BOTH size threshold AND handler's preview truncation flag
+                # Handler flag catches binary data truncated to fit base64 under 1MB
+                stdout_truncated = (
+                    (memory_info.get('stdout_size', len(processed_stdout)) > output_handler.MAX_JSON_TASK_OUTPUT
+                     if output_handler else False) or
+                    (output_handler.preview_was_truncated('stdout') if output_handler else False)
+                )
                 stdout_size = memory_info.get('stdout_size', len(processed_stdout))
 
             if stderr_modified:
@@ -327,7 +333,13 @@ class BaseExecutor(ABC):
             else:
                 # No split - use preview/temp file logic
                 # (stderr_preview already set by lines 299-302)
-                stderr_truncated = memory_info.get('stderr_size', len(processed_stderr)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False
+                # CRITICAL: Check BOTH size threshold AND handler's preview truncation flag
+                # Handler flag catches binary data truncated to fit base64 under 1MB
+                stderr_truncated = (
+                    (memory_info.get('stderr_size', len(processed_stderr)) > output_handler.MAX_JSON_TASK_OUTPUT
+                     if output_handler else False) or
+                    (output_handler.preview_was_truncated('stderr') if output_handler else False)
+                )
                 stderr_size = memory_info.get('stderr_size', len(processed_stderr))
 
             return {

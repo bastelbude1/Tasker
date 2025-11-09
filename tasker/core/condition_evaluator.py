@@ -9,7 +9,7 @@ Provides modular, testable components for the TASKER system.
 import re
 from typing import ClassVar
 from .utilities import convert_value, convert_to_number
-from .constants import MAX_VARIABLE_EXPANSION_DEPTH
+from .constants import MAX_VARIABLE_EXPANSION_DEPTH, MAX_CMDLINE_SUBST
 
 
 class ConditionEvaluator:
@@ -138,7 +138,6 @@ class ConditionEvaluator:
                                 # CRITICAL: Limit substitution to prevent "Argument list too long" errors
                                 # Most OS have ARG_MAX limits between 128KB-2MB
                                 # We use 100KB as a safe limit for command line substitution
-                                MAX_CMDLINE_SUBST = 100 * 1024  # 100KB safe limit
                                 value = f.read(MAX_CMDLINE_SUBST).rstrip('\n')
                                 # Check if we truncated
                                 f.seek(0, 2)  # Seek to end
@@ -167,7 +166,6 @@ class ConditionEvaluator:
                                 # CRITICAL: Limit substitution to prevent "Argument list too long" errors
                                 # Most OS have ARG_MAX limits between 128KB-2MB
                                 # We use 100KB as a safe limit for command line substitution
-                                MAX_CMDLINE_SUBST = 100 * 1024  # 100KB safe limit
                                 value = f.read(MAX_CMDLINE_SUBST).rstrip('\n')
                                 # Check if we truncated
                                 f.seek(0, 2)  # Seek to end

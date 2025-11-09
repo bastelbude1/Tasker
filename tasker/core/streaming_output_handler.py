@@ -226,8 +226,14 @@ class StreamingOutputHandler:
                 # Encode as base64 for JSON safety
                 # Use 'replace' to prevent size expansion from backslashreplace (λ → \u03bb)
                 content_bytes = content.encode('latin-1', errors='replace')
-                # Clip to max_bytes to prevent memory bloat from encoding expansion
-                content_bytes = content_bytes[:max_bytes]
+
+                # Calculate safe input length to guarantee base64 output ≤ max_bytes
+                # Base64 expands by 33% (4 bytes output per 3 bytes input)
+                # So: safe_input_len = (max_bytes // 4) * 3
+                # Example: max_bytes=1MB → safe_input_len=786,432 → base64=1,048,576 bytes (exactly 1MB)
+                safe_input_len = (max_bytes // 4) * 3
+                content_bytes = content_bytes[:safe_input_len]
+
                 return base64.b64encode(content_bytes).decode('ascii')
             else:
                 # Return text content as-is

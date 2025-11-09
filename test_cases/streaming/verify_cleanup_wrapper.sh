@@ -7,15 +7,24 @@
 
 set -e  # Exit on error
 
+# Validate arguments
+if [ -z "$1" ]; then
+    echo "ERROR: Task file argument required"
+    echo "Usage: $0 <task_file>"
+    exit 1
+fi
+
 TASK_FILE="$1"
-JSON_OUTPUT="/tmp/cleanup_test_output.json"
+# Use unique name to avoid parallel test conflicts
+JSON_OUTPUT="/tmp/cleanup_test_output_$$.json"
 
 # Remove old JSON output if exists
 rm -f "$JSON_OUTPUT"
 
-# Run TASKER workflow
-# Note: --output-json is already specified in the task file
-python3 ../../tasker.py "$TASK_FILE" -r --no-task-backup
+# Run TASKER workflow (use script directory for relative path)
+# Override --output-json from task file with our unique path
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+python3 "$SCRIPT_DIR/../../tasker.py" "$TASK_FILE" -r --no-task-backup --output-json="$JSON_OUTPUT"
 
 # Check if JSON output was created
 if [ ! -f "$JSON_OUTPUT" ]; then

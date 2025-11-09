@@ -24,14 +24,15 @@
 task=0
 hostname=localhost
 command=python3
-arguments=-c "data='X'*10000; [print(data) for _ in range(499)]; print('MARKER_END_5MB')"
+arguments=-c "data='X'*10000; import sys; _ = [sys.stdout.write(data + '\\n') for i in range(499)]; print('MARKER_END_5MB')"
 exec=local
 
-# Task 1: Verify full output accessible via @0_stdout@
+# Task 1: Verify full output accessible via success condition (avoids ARG_MAX)
 # This requires temp file to be preserved (not deleted at task end)
+# Uses success condition pattern matching instead of command-line substitution
 task=1
 hostname=localhost
-command=python3
-arguments=-c "import sys; data = '''@0_stdout@'''; sys.exit(0 if 'MARKER_END_5MB' in data else 1)"
+command=echo
+arguments=Checking marker
 exec=local
-success=exit_0
+success=@0_stdout@~MARKER_END_5MB

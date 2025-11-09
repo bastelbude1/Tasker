@@ -29,19 +29,19 @@
 task=0
 hostname=localhost
 command=python3
-arguments=-c "data='X'*10000; [print(data) for _ in range(49)]; print('END_500KB')"
+arguments=-c "data='X'*10000; import sys; _ = [sys.stdout.write(data + '\n') for i in range(49)]; print('END_500KB')"
 exec=local
 
 # Task 1: Medium output (5MB) - should be truncated to 1MB preview in JSON
 task=1
 hostname=localhost
 command=python3
-arguments=-c "data='X'*10000; [print(data) for _ in range(499)]; print('END_5MB')"
+arguments=-c "data='X'*10000; import sys; _ = [sys.stdout.write(data + '\n') for i in range(499)]; print('END_5MB')"
 exec=local
 
 # Task 2: Large output (15MB) - should be truncated to 1MB preview in JSON
 task=2
 hostname=localhost
 command=python3
-arguments=-c "data='X'*10000; [print(data) for _ in range(1499)]; print('END_15MB')"
+arguments=-c "data='X'*10000; import sys; _ = [sys.stdout.write(data + '\n') for i in range(1499)]; print('END_15MB')"
 exec=local

@@ -1,7 +1,7 @@
 # TEST_METADATA: {"description": "Test JSON output with conditional block execution", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "expected_json_status": "success", "expected_execution_path": [0, 1, 2, 4]}
 
 # Test JSON output generation for conditional block workflow
-# Expected: Conditional tasks in task_results, correct execution_path
+# Expected: Task 0 runs, decision block (Task 1) evaluates @0_exit@=0 as true, routes to Task 2, then Task 4
 
 # Task 0: Check condition (regular task)
 task=0

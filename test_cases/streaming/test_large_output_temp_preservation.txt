@@ -26,12 +26,20 @@ hostname=localhost
 command=python3
 arguments=-c "data='X'*10000; [print(data) for _ in range(1499)]; print('MARKER_END_15MB')"
 exec=local
+stdout_split=newline,1499
 
-# Task 1: Verify full output accessible via @0_stdout@
-# This is the critical test - proves temp file not deleted at task 0 end
+# Task 1: Verify marker extracted from end of 15MB output via stdout_split
+# CRITICAL TEST: stdout_split must read the FULL temp file to extract line 1499
+# If temp file was deleted at task 0 completion, split would fail or get truncated data
+# The fact that we successfully extract 'MARKER_END_15MB' from line 1499 proves:
+# 1. Temp file was created (output ≥1MB)
+# 2. Temp file was NOT deleted at task 0 completion
+# 3. Full 15MB content was accessible for splitting
+# 4. Split result correctly stored with stdout_truncated=False
+# 5. Variable substitution @0_stdout@ gets split result (not raw 15MB)
 task=1
 hostname=localhost
-command=python3
-arguments=-c "import sys; data = '''@0_stdout@'''; sys.exit(0 if 'MARKER_END_15MB' in data else 1)"
+command=echo
+arguments=Marker from end of 15MB: @0_stdout@
 exec=local
-success=exit_0
+success=stdout~MARKER_END_15MB

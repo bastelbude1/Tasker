@@ -310,6 +310,19 @@ class BaseExecutor(ABC):
             if stderr_modified:
                 stderr_preview = processed_stderr
 
+            # Calculate truncation flags
+            # CRITICAL: When split operations are applied, the stored output is the FULL split result (not truncated)
+            # Only mark as truncated if raw output exceeded limit AND no split was applied
+            if stdout_modified:
+                stdout_truncated = False  # Split result stored in full
+            else:
+                stdout_truncated = memory_info.get('stdout_size', len(processed_stdout)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False
+
+            if stderr_modified:
+                stderr_truncated = False  # Split result stored in full
+            else:
+                stderr_truncated = memory_info.get('stderr_size', len(processed_stderr)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False
+
             return {
                 'task_id': task_id,
                 'exit_code': exit_code,
@@ -319,8 +332,8 @@ class BaseExecutor(ABC):
                 'stderr_file': stderr_file_path,  # Path to temp file for full content
                 'stdout_size': memory_info.get('stdout_size', len(processed_stdout)),
                 'stderr_size': memory_info.get('stderr_size', len(processed_stderr)),
-                'stdout_truncated': memory_info.get('stdout_size', len(processed_stdout)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False,
-                'stderr_truncated': memory_info.get('stderr_size', len(processed_stderr)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False,
+                'stdout_truncated': stdout_truncated,
+                'stderr_truncated': stderr_truncated,
                 'success': success,
                 'skipped': False,
                 'sleep_seconds': float(task.get('sleep', 0))

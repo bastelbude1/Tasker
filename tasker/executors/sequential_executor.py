@@ -204,6 +204,7 @@ class SequentialExecutor(BaseExecutor):
         #executor_instance.log(f"Task {task_id}{loop_display}: Using timeout of {task_timeout} [s]")
 
         # Execute the command (or simulate in dry run mode)
+        output_handler = None  # Initialize for dry-run mode compatibility
         if executor_instance.dry_run:
             executor_instance.log(f"Task {task_id}{loop_display}: [DRY RUN] Would execute: {full_command_display}")
             exit_code = 0
@@ -373,6 +374,19 @@ class SequentialExecutor(BaseExecutor):
         if stderr_modified:
             stderr_preview = stderr  # Use split result
 
+        # Calculate truncation flags
+        # CRITICAL: When split operations are applied, the stored output is the FULL split result (not truncated)
+        # Only mark as truncated if raw output exceeded limit AND no split was applied
+        if stdout_modified:
+            stdout_truncated = False  # Split result stored in full
+        else:
+            stdout_truncated = memory_info.get('stdout_size', len(stdout)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False
+
+        if stderr_modified:
+            stderr_truncated = False  # Split result stored in full
+        else:
+            stderr_truncated = memory_info.get('stderr_size', len(stderr)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False
+
         # CRITICAL: Store the results for future reference - THREAD SAFE
         executor_instance.store_task_result(task_id, {
             'exit_code': exit_code,
@@ -382,8 +396,8 @@ class SequentialExecutor(BaseExecutor):
             'stderr_file': stderr_file_path,  # Temp file path for cross-task access
             'stdout_size': memory_info.get('stdout_size', len(stdout)),
             'stderr_size': memory_info.get('stderr_size', len(stderr)),
-            'stdout_truncated': memory_info.get('stdout_size', len(stdout)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False,
-            'stderr_truncated': memory_info.get('stderr_size', len(stderr)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False,
+            'stdout_truncated': stdout_truncated,
+            'stderr_truncated': stderr_truncated,
             'success': success_result
         })
         

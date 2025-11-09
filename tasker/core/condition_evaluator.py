@@ -126,8 +126,11 @@ class ConditionEvaluator:
             task_result = task_results.get(task_num)
             if task_result is not None:
                 if output_type_lower == 'stdout':
-                    # Check for temp file reference first (for full output)
-                    if 'stdout_file' in task_result and task_result['stdout_file']:
+                    # CRITICAL: Prioritize stored stdout over temp file
+                    # Stored stdout contains split results (when stdout_split is used)
+                    # Only read temp file if stdout was truncated (≥1MB raw output without split)
+                    if task_result.get('stdout_truncated', False) and 'stdout_file' in task_result and task_result['stdout_file']:
+                        # Output was truncated - read full output from temp file
                         try:
                             with open(task_result['stdout_file'], 'r') as f:
                                 value = f.read().rstrip('\n')
@@ -135,10 +138,14 @@ class ConditionEvaluator:
                             # Temp file unavailable, use preview
                             value = task_result.get('stdout', '').rstrip('\n')
                     else:
+                        # Use stored stdout (contains split result if splitting was applied, or full output if <1MB)
                         value = task_result.get('stdout', '').rstrip('\n')
                 elif output_type_lower == 'stderr':
-                    # Check for temp file reference first (for full output)
-                    if 'stderr_file' in task_result and task_result['stderr_file']:
+                    # CRITICAL: Prioritize stored stderr over temp file
+                    # Stored stderr contains split results (when stderr_split is used)
+                    # Only read temp file if stderr was truncated (≥1MB raw output without split)
+                    if task_result.get('stderr_truncated', False) and 'stderr_file' in task_result and task_result['stderr_file']:
+                        # Output was truncated - read full output from temp file
                         try:
                             with open(task_result['stderr_file'], 'r') as f:
                                 value = f.read().rstrip('\n')
@@ -146,6 +153,7 @@ class ConditionEvaluator:
                             # Temp file unavailable, use preview
                             value = task_result.get('stderr', '').rstrip('\n')
                     else:
+                        # Use stored stderr (contains split result if splitting was applied, or full output if <1MB)
                         value = task_result.get('stderr', '').rstrip('\n')
                 elif output_type_lower == 'success':
                     value = str(task_result.get('success', False))

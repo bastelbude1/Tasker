@@ -2089,6 +2089,90 @@ The output contains four main sections:
 - All global variables defined in the workflow
 - Includes both static definitions and environment variable expansions
 
+### Memory Protection and Security Limits
+
+JSON output leverages TASKER's memory-efficient streaming infrastructure to prevent memory exhaustion and disk space issues, especially critical when running large parallel workflows.
+
+**Security Limits:**
+
+- **Per-task output limit**: 1MB per stdout/stderr in JSON (1,048,576 characters)
+- **Total JSON size limit**: 100MB maximum file size (hard limit)
+- **Binary data handling**: Automatically detected and base64 encoded
+- **Memory usage**: Constant regardless of output size (streaming architecture)
+
+**Truncation Behavior:**
+
+When task output exceeds 1MB, TASKER automatically truncates and adds metadata:
+
+```json
+{
+  "task_results": {
+    "0": {
+      "exit_code": 0,
+      "stdout": "... first 1MB of output ...",
+      "stderr": "",
+      "success": true,
+      "skipped": false,
+      "stdout_truncated": true,
+      "stderr_truncated": false,
+      "stdout_size": 52428800,
+      "stderr_size": 0
+    }
+  }
+}
+```
+
+**Truncation Fields:**
+
+- `stdout_truncated`: Boolean indicating if stdout was truncated
+- `stderr_truncated`: Boolean indicating if stderr was truncated
+- `stdout_size`: Original size in characters before truncation
+- `stderr_size`: Original size in characters before truncation
+
+**Binary Data Handling:**
+
+Tasks that output binary data (null bytes, non-printable characters) are automatically detected and base64 encoded for JSON safety:
+
+```json
+{
+  "task_results": {
+    "0": {
+      "stdout": "QmluYXJ5AGRhdGEBd2l0aAJudWxscwNhbmT/bm9uLXByaW50YWJsZQBjaGFycw==",
+      "stdout_truncated": false
+    }
+  }
+}
+```
+
+**Size Limit Enforcement:**
+
+If the total JSON output would exceed 100MB, TASKER fails with a clear error:
+
+```
+ValueError: Recovery state JSON would exceed size limit: 105906176 bytes > 104857600 bytes (100MB).
+This indicates extremely large task outputs. Consider reducing output size or reviewing task configurations.
+```
+
+**Best Practices:**
+
+- ✅ **Design tasks with reasonable output**: Keep task outputs focused and concise
+- ✅ **Use log files for verbose output**: Direct detailed logs to files, not stdout
+- ✅ **Monitor truncation flags**: Check `stdout_truncated` in JSON to detect large outputs
+- ✅ **Review size warnings**: If approaching 100MB limit, optimize task outputs
+- ❌ **Avoid dumping large files to stdout**: Use file transfer mechanisms instead
+
+**Memory Efficiency:**
+
+The streaming architecture ensures constant memory usage:
+
+```
+100 parallel tasks × 10MB output each = 1GB of data
+├─ During execution: ~10MB memory usage (streaming to temp files)
+├─ Task results: 100MB in memory (1MB previews × 100 tasks)
+├─ JSON output: 100MB file size (at limit)
+└─ Variable substitution: Reads from temp files on-demand
+```
+
 ### Integration Examples
 
 **CI/CD Pipeline Integration:**

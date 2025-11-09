@@ -6,9 +6,9 @@
 # Global variables
 CONDITION_VAR=true
 
-# Task 0: Decision block
+# Task 0: Conditional block
 task=0
-type=decision
+type=conditional
 condition=exit_0
 if_true_tasks=1
 if_false_tasks=2

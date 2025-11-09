@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Test JSON output when task times out", "test_type": "negative", "expected_exit_code": 10, "expected_success": false, "verify_json_output": true, "expected_json_status": "failed", "expected_json_timeouts": 1}
+# TEST_METADATA: {"description": "Test JSON output when task times out", "test_type": "negative", "expected_exit_code": 124, "expected_success": false, "verify_json_output": true, "expected_json_status": "failed", "expected_json_timeouts": 1, "expected_warnings": 1}
 
 # Test JSON output generation for timeout scenario
 # Expected: JSON shows timeout in stats, task result has exit_code 124

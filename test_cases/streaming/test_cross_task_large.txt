@@ -4,12 +4,15 @@
 
 task=0
 hostname=localhost
+exec=local
 command=python3
 # Generate 5MB output
 arguments=-c "print('X' * 5242880)"
 
 task=1
 hostname=localhost
-command=echo
+exec=local
+command=python3
 # Should get truncated to 100KB, not full 5MB
-arguments=Got @0_stdout@ bytes from task 0
+arguments=-c "data='''@0_stdout@'''; print(f'Received {len(data)} bytes from task 0')"
+success=stdout~"Received 102400 bytes from task 0"

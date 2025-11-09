@@ -212,8 +212,11 @@ class StreamingOutputHandler:
             # Detect and handle binary data
             if self._is_binary(content):
                 import base64
-                # Encode as base64 for JSON safety (use backslashreplace to preserve undecodable bytes)
-                content_bytes = content.encode('latin-1', errors='backslashreplace')
+                # Encode as base64 for JSON safety
+                # Use 'replace' to prevent size expansion from backslashreplace (λ → \u03bb)
+                content_bytes = content.encode('latin-1', errors='replace')
+                # Clip to max_bytes to prevent memory bloat from encoding expansion
+                content_bytes = content_bytes[:max_bytes]
                 return base64.b64encode(content_bytes).decode('ascii')
             else:
                 # Return text content as-is

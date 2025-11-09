@@ -942,6 +942,7 @@ class TaskExecutor:
                                 cleanup_errors.append(f"Task {task_id} stdout temp file rejected: invalid prefix")
                                 continue
                             # 4. Delete without TOCTOU exists() check
+                            self.log_debug(f"Task {task_id}: Deleting stdout temp file: {real_path}")
                             os.unlink(real_path)
                         except FileNotFoundError:
                             # File already deleted - not an error
@@ -966,6 +967,7 @@ class TaskExecutor:
                                 cleanup_errors.append(f"Task {task_id} stderr temp file rejected: invalid prefix")
                                 continue
                             # 4. Delete without TOCTOU exists() check
+                            self.log_debug(f"Task {task_id}: Deleting stderr temp file: {real_path}")
                             os.unlink(real_path)
                         except FileNotFoundError:
                             # File already deleted - not an error

@@ -316,7 +316,7 @@ class ParallelExecutor(BaseExecutor):
                     if task_ref:
                         referenced_task_ids.append(int(task_ref))
             except ValueError as e:
-                executor_instance.log(f"Task {task_id}: Invalid task reference: {str(e)}")
+                executor_instance.log(f"Task {task_id}: Invalid task reference: {e!s}")
                 return None
         
         # Validate that all referenced tasks exist
@@ -524,8 +524,8 @@ class ParallelExecutor(BaseExecutor):
 
                     except Exception as e:
                         task_id_inner = int(task['task'])
-                        executor_instance.log(f"Task {task_id}: [ERROR] Task {task_id_inner} exception: {str(e)}")
-                        error_msg = f'Exception: {str(e)}'
+                        executor_instance.log(f"Task {task_id}: [ERROR] Task {task_id_inner} exception: {e!s}")
+                        error_msg = f'Exception: {e!s}'
                         results.append({
                             'task_id': task_id_inner,
                             'exit_code': 1,
@@ -573,7 +573,7 @@ class ParallelExecutor(BaseExecutor):
                         executor_instance.log(f"Task {task_display_id}: Completed - {success_text}")
 
         except Exception as e:
-            executor_instance.log(f"Task {task_id}: Parallel execution failed: {str(e)}")
+            executor_instance.log(f"Task {task_id}: Parallel execution failed: {e!s}")
             return None
 
         elapsed_time = time.time() - start_time

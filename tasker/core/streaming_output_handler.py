@@ -28,17 +28,15 @@ class StreamingOutputHandler:
     """
 
     # Configuration constants
-    DEFAULT_BUFFER_SIZE = 1024 * 1024  # 1MB memory buffer
     DEFAULT_TEMP_THRESHOLD = 1 * 1024 * 1024  # 1MB threshold for temp files (aligned to prevent dead zones)
     CHUNK_SIZE = 8192  # 8KB read chunks
     MAX_IN_MEMORY = 100 * 1024 * 1024  # 100MB absolute memory limit
 
-    def __init__(self, buffer_size=None, temp_threshold=None, temp_dir=None):
+    def __init__(self, temp_threshold=None, temp_dir=None):
         """
         Initialize streaming output handler.
 
         Args:
-            buffer_size: Memory buffer size before switching to temp files
             temp_threshold: Size threshold for using temp files
             temp_dir: Directory for temporary files (default: system temp)
         """
@@ -168,6 +166,19 @@ class StreamingOutputHandler:
         stdout_content = self._get_final_output('stdout')
         stderr_content = self._get_final_output('stderr')
 
+        # Close file handles to avoid FD exhaustion
+        # Files persist on disk (delete=False) for cross-task access
+        if self.stdout_file and not self.stdout_file.closed:
+            try:
+                self.stdout_file.close()
+            except Exception:
+                pass  # Ignore errors on close
+        if self.stderr_file and not self.stderr_file.closed:
+            try:
+                self.stderr_file.close()
+            except Exception:
+                pass  # Ignore errors on close
+
         return stdout_content, stderr_content, exit_code, timed_out
 
     def _get_final_output(self, stream_type):
@@ -276,9 +287,8 @@ def create_memory_efficient_handler(max_memory_mb=10):
     Returns:
         StreamingOutputHandler instance configured for memory efficiency
     """
-    buffer_size = min(max_memory_mb * 1024 * 1024, StreamingOutputHandler.MAX_IN_MEMORY)
+    threshold_bytes = min(max_memory_mb * 1024 * 1024, StreamingOutputHandler.MAX_IN_MEMORY)
     return StreamingOutputHandler(
-        buffer_size=buffer_size,
-        temp_threshold=buffer_size,
+        temp_threshold=threshold_bytes,
         temp_dir=None  # Use system default
     )

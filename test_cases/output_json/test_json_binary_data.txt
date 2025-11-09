@@ -1,0 +1,16 @@
+# TEST_METADATA: {"description": "Test JSON binary data base64 encoding", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "expected_json_status": "success"}
+# Test that binary output is base64 encoded in JSON
+# Expected: Binary data detected and base64 encoded for JSON safety
+
+--auto-recovery
+--skip-host-validation
+--skip-security-validation
+--output-json
+
+# Task 0: Generate binary data with null bytes
+# This should be detected as binary and base64 encoded in JSON
+task=0
+hostname=localhost
+command=python3
+arguments=-c "import sys; sys.stdout.buffer.write(b'Binary\\x00data\\x01with\\x02nulls\\x03and\\xFFnon-printable\\x00chars')"
+exec=local

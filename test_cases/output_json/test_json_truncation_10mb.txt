@@ -1,0 +1,16 @@
+# TEST_METADATA: {"description": "Test JSON truncation for 10MB output", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "expected_json_status": "success"}
+# Test that task output exceeding 1MB is truncated in JSON output
+# Expected: stdout truncated to 1MB in JSON, stdout_truncated flag set to true
+
+--auto-recovery
+--skip-host-validation
+--skip-security-validation
+--output-json
+
+# Task 0: Generate ~10MB of stdout
+# This should be truncated to 1MB in JSON output
+task=0
+hostname=localhost
+command=python3
+arguments=-c "import sys; data='X'*10000; [print(data) for _ in range(1000)]"
+exec=local

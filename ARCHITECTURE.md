@@ -2,7 +2,7 @@
 
 ## 1. High-Level System Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                         TASKER 2.1 SYSTEM                               │
 │                   Professional Task Automation Framework                 │
@@ -112,7 +112,7 @@
 
 ## 2. Data Flow Architecture
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────────┐
 │                         DATA FLOW                                    │
 └──────────────────────────────────────────────────────────────────────┘
@@ -216,7 +216,7 @@
 
 ## 3. Cross-Task Variable Substitution Flow
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────┐
 │         CROSS-TASK DATA FLOW (PR #92)                          │
 └────────────────────────────────────────────────────────────────┘
@@ -302,7 +302,7 @@ Cleanup (Workflow End):
 
 ## 4. Module Dependency Graph
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────┐
 │                    MODULE DEPENDENCIES                         │
 └────────────────────────────────────────────────────────────────┘
@@ -352,7 +352,7 @@ External Dependencies: NONE (Standard library only)
 
 ## 5. Execution Strategy Pattern
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────┐
 │              EXECUTOR PATTERN ARCHITECTURE                     │
 └────────────────────────────────────────────────────────────────┘
@@ -392,7 +392,7 @@ Normal Flow:     ThreadPool:   If/Else:     Multi-branch:
 
 ## 6. Security Validation Pipeline
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────┐
 │              SECURITY VALIDATION PIPELINE                      │
 └────────────────────────────────────────────────────────────────┘
@@ -448,7 +448,7 @@ User Input (task.txt)
 
 ## 7. Test Infrastructure Architecture
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────┐
 │           TEST INFRASTRUCTURE (465 tests)                      │
 └────────────────────────────────────────────────────────────────┘
@@ -506,7 +506,7 @@ User Input (task.txt)
 
 ## 8. Memory Management Strategy
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────┐
 │           MEMORY-EFFICIENT OUTPUT HANDLING                     │
 └────────────────────────────────────────────────────────────────┘
@@ -571,8 +571,8 @@ Command-line Substitution:
 
 **TASKER 2.1 Architecture Highlights**:
 
-1. **Layered Design**: Clear separation of concerns (Validation → Core → Execution → Target)
-2. **Executor Pattern**: Pluggable execution strategies (Sequential, Parallel, Conditional, Decision)
+1. **Layered Design**: Clear separation (Validation → Core → Execution → Target)
+2. **Executor Pattern**: Pluggable strategies (4 execution strategies)
 3. **Security-First**: Multi-layer validation with defense-in-depth
 4. **Memory Efficient**: O(1) memory for unlimited output sizes (1MB threshold)
 5. **Cross-Task Data**: Sophisticated variable substitution with ARG_MAX protection
@@ -580,9 +580,9 @@ Command-line Substitution:
 7. **No External Dependencies**: Pure Python 3.6.8 standard library
 
 **Key Design Patterns**:
+
 - ✅ Strategy Pattern (Executors)
 - ✅ Template Method (BaseExecutor)
 - ✅ Singleton (Constants)
 - ✅ Factory (create_memory_efficient_handler)
 - ✅ Context Manager (StreamingOutputHandler)
-

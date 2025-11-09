@@ -305,33 +305,40 @@ class BaseExecutor(ABC):
             stdout_modified = processed_stdout != raw_stdout
             stderr_modified = processed_stderr != raw_stderr
 
+            # Calculate metadata based on whether split operations were applied
+            # CRITICAL: When split operations are applied, use processed output size (not raw)
+            # Truncation flags and sizes must reflect the STORED content (preview or split result)
             if stdout_modified:
+                # Split operation applied - store full processed result
                 stdout_preview = processed_stdout
-            if stderr_modified:
-                stderr_preview = processed_stderr
-
-            # Calculate truncation flags
-            # CRITICAL: When split operations are applied, the stored output is the FULL split result (not truncated)
-            # Only mark as truncated if raw output exceeded limit AND no split was applied
-            if stdout_modified:
-                stdout_truncated = False  # Split result stored in full
+                stdout_truncated = False  # Split result stored in full (not truncated)
+                stdout_size = len(processed_stdout)  # Size of split result
             else:
+                # No split - use preview/temp file logic
+                # (stdout_preview already set by lines 287-298)
                 stdout_truncated = memory_info.get('stdout_size', len(processed_stdout)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False
+                stdout_size = memory_info.get('stdout_size', len(processed_stdout))
 
             if stderr_modified:
-                stderr_truncated = False  # Split result stored in full
+                # Split operation applied - store full processed result
+                stderr_preview = processed_stderr
+                stderr_truncated = False  # Split result stored in full (not truncated)
+                stderr_size = len(processed_stderr)  # Size of split result
             else:
+                # No split - use preview/temp file logic
+                # (stderr_preview already set by lines 299-302)
                 stderr_truncated = memory_info.get('stderr_size', len(processed_stderr)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False
+                stderr_size = memory_info.get('stderr_size', len(processed_stderr))
 
             return {
                 'task_id': task_id,
                 'exit_code': exit_code,
-                'stdout': stdout_preview,  # Truncated preview (max 1MB)
-                'stderr': stderr_preview,  # Truncated preview (max 1MB)
+                'stdout': stdout_preview,  # Truncated preview (max 1MB) or full split result
+                'stderr': stderr_preview,  # Truncated preview (max 1MB) or full split result
                 'stdout_file': stdout_file_path,  # Path to temp file for full content
                 'stderr_file': stderr_file_path,  # Path to temp file for full content
-                'stdout_size': memory_info.get('stdout_size', len(processed_stdout)),
-                'stderr_size': memory_info.get('stderr_size', len(processed_stderr)),
+                'stdout_size': stdout_size,
+                'stderr_size': stderr_size,
                 'stdout_truncated': stdout_truncated,
                 'stderr_truncated': stderr_truncated,
                 'success': success,

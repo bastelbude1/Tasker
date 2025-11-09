@@ -369,23 +369,30 @@ class SequentialExecutor(BaseExecutor):
         stdout_modified = 'stdout_split' in task
         stderr_modified = 'stderr_split' in task
 
+        # Calculate metadata based on whether split operations were applied
+        # CRITICAL: When split operations are applied, use processed output size (not raw)
+        # Truncation flags and sizes must reflect the STORED content (preview or split result)
         if stdout_modified:
+            # Split operation applied - store full processed result
             stdout_preview = stdout  # Use split result
-        if stderr_modified:
-            stderr_preview = stderr  # Use split result
-
-        # Calculate truncation flags
-        # CRITICAL: When split operations are applied, the stored output is the FULL split result (not truncated)
-        # Only mark as truncated if raw output exceeded limit AND no split was applied
-        if stdout_modified:
-            stdout_truncated = False  # Split result stored in full
+            stdout_truncated = False  # Split result stored in full (not truncated)
+            stdout_size = len(stdout)  # Size of split result
         else:
+            # No split - use preview/temp file logic
+            # (stdout_preview already set by lines 350-358)
             stdout_truncated = memory_info.get('stdout_size', len(stdout)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False
+            stdout_size = memory_info.get('stdout_size', len(stdout))
 
         if stderr_modified:
-            stderr_truncated = False  # Split result stored in full
+            # Split operation applied - store full processed result
+            stderr_preview = stderr  # Use split result
+            stderr_truncated = False  # Split result stored in full (not truncated)
+            stderr_size = len(stderr)  # Size of split result
         else:
+            # No split - use preview/temp file logic
+            # (stderr_preview already set by lines 359-365)
             stderr_truncated = memory_info.get('stderr_size', len(stderr)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False
+            stderr_size = memory_info.get('stderr_size', len(stderr))
 
         # CRITICAL: Store the results for future reference - THREAD SAFE
         executor_instance.store_task_result(task_id, {
@@ -394,8 +401,8 @@ class SequentialExecutor(BaseExecutor):
             'stderr': stderr_preview,  # Preview or full output depending on size
             'stdout_file': stdout_file_path,  # Temp file path for cross-task access
             'stderr_file': stderr_file_path,  # Temp file path for cross-task access
-            'stdout_size': memory_info.get('stdout_size', len(stdout)),
-            'stderr_size': memory_info.get('stderr_size', len(stderr)),
+            'stdout_size': stdout_size,
+            'stderr_size': stderr_size,
             'stdout_truncated': stdout_truncated,
             'stderr_truncated': stderr_truncated,
             'success': success_result

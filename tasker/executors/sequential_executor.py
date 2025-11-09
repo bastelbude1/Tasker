@@ -287,8 +287,11 @@ class SequentialExecutor(BaseExecutor):
             executor_instance.log(f"Task {task_id}{loop_display}: STDERR: {formatted_stderr}")
         
         # Process output splitting if specified
+        # Track original output for modification detection
+        original_stdout = stdout
+        original_stderr = stderr
+
         if 'stdout_split' in task:
-            original_stdout = stdout
             stdout = ConditionEvaluator.split_output(stdout, task['stdout_split'])
             # INFO mode: Show only result with proper formatting; DEBUG mode: Show detailed split operation
             formatted_split_stdout = format_output_for_log(stdout, max_length=200, label="STDOUT")
@@ -369,8 +372,10 @@ class SequentialExecutor(BaseExecutor):
 
         # Preserve split output if splitting was applied (lines 285-300 above)
         # Split operations always override preview logic to ensure workflow correctness
-        stdout_modified = 'stdout_split' in task
-        stderr_modified = 'stderr_split' in task
+        # CRITICAL: Check if split ACTUALLY modified the output, not just if configured
+        # This prevents bypassing memory protection when split has no effect
+        stdout_modified = stdout != original_stdout
+        stderr_modified = stderr != original_stderr
 
         # Calculate metadata based on whether split operations were applied
         # CRITICAL: When split operations are applied, use processed output size (not raw)

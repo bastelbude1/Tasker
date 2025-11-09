@@ -917,7 +917,44 @@ class TaskExecutor:
             finally:
                 self.summary_log = None
 
-        # PHASE 3: Error reporting
+        # PHASE 3: Temp file cleanup for large outputs
+        # Clean up any temp files created for large stdout/stderr outputs
+        try:
+            import os
+            import glob
+            import tempfile
+            temp_dir = tempfile.gettempdir()
+
+            # Pattern matches temp files created by StreamingOutputHandler
+            # Format: tasker_output_XXXXXX_stdout.tmp or tasker_output_XXXXXX_stderr.tmp
+            pattern = os.path.join(temp_dir, "tasker_output_*_*.tmp")
+            temp_files = glob.glob(pattern)
+
+            if temp_files:
+                self.log_debug(f"Cleaning up {len(temp_files)} temporary output file(s)")
+                for temp_file in temp_files:
+                    try:
+                        # Only delete files from this session (check if we have a reference)
+                        # This prevents deleting files from other concurrent TASKER instances
+                        should_delete = False
+
+                        # Check if any task result references this file
+                        for task_result in self.task_results.values():
+                            if isinstance(task_result, dict):
+                                if (task_result.get('stdout_file') == temp_file or
+                                    task_result.get('stderr_file') == temp_file):
+                                    should_delete = True
+                                    break
+
+                        if should_delete:
+                            os.remove(temp_file)
+                            self.log_debug(f"Deleted temp file: {temp_file}")
+                    except Exception as e:
+                        cleanup_errors.append(f"Failed to delete temp file {temp_file}: {e}")
+        except Exception as temp_cleanup_error:
+            cleanup_errors.append(f"Temp file cleanup phase failed: {temp_cleanup_error}")
+
+        # PHASE 4: Error reporting
         if cleanup_errors:
             error_count = len(cleanup_errors)
             error_summary = f"Cleanup completed with {error_count} error(s):"

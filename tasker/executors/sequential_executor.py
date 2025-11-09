@@ -280,6 +280,7 @@ class SequentialExecutor(BaseExecutor):
                 executor_instance.log(f"Task {task_id}{loop_display}: Split STDOUT: {formatted_split_stdout}")
             executor_instance.log_debug(f"Task {task_id}{loop_display}: Split STDOUT (stdout_split={task['stdout_split']}): '{stdout_stripped}' -> '{stdout}'")
             # Clear temp file reference when split is applied (temp file contains unsplit data)
+            # TODO: If split result is >1MB, should write to new temp file to avoid memory issues
             if 'stdout_file' in locals() and stdout_file:
                 executor_instance.log_debug(f"Task {task_id}{loop_display}: Clearing stdout temp file reference after split operation")
                 stdout_file = None
@@ -292,6 +293,7 @@ class SequentialExecutor(BaseExecutor):
                 executor_instance.log(f"Task {task_id}{loop_display}: Split STDERR: {formatted_split_stderr}")
             executor_instance.log_debug(f"Task {task_id}{loop_display}: Split STDERR (stderr_split={task['stderr_split']}): '{stderr_stripped}' -> '{stderr}'")
             # Clear temp file reference when split is applied (temp file contains unsplit data)
+            # TODO: If split result is >1MB, should write to new temp file to avoid memory issues
             if 'stderr_file' in locals() and stderr_file:
                 executor_instance.log_debug(f"Task {task_id}{loop_display}: Clearing stderr temp file reference after split operation")
                 stderr_file = None

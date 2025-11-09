@@ -2267,3 +2267,122 @@ fi
 - Parse failure info to trigger targeted alerts
 - Extract task output for error context
 - Feed metrics to incident management systems
+
+---
+
+## Temp File Lifecycle
+
+### Overview
+
+TASKER automatically manages temporary files for large outputs (>1MB) to prevent memory exhaustion while maintaining cross-task data sharing capabilities.
+
+### Lifecycle Stages
+
+**1. Creation (During Task Execution):**
+- When task stdout or stderr exceeds 1MB threshold
+- File created in system temp directory (`/tmp` on Linux)
+- Format: `tasker_output_XXXXXX_stdout.tmp` or `tasker_output_XXXXXX_stderr.tmp`
+- File path stored in task result for cross-task access
+
+**2. Usage (During Workflow):**
+- Temp files persist throughout workflow execution
+- Accessible via `@N_stdout_file@` and `@N_stderr_file@` variables
+- First 100KB available via `@N_stdout@` for command-line substitution
+- Full content accessible by reading the temp file directly
+
+**3. Cleanup (Workflow Completion):**
+- Automatic cleanup in `TaskExecutor.cleanup()` phase 3
+- Only deletes temp files created by current session
+- Preserves files from concurrent TASKER instances
+- Logs cleanup actions in debug mode
+
+### Example: Handling Large Outputs
+
+```bash
+# Task generates 5MB output
+task=0
+hostname=localhost
+command=python3
+arguments=-c "print('X' * 5242880)"
+
+# Task 1: Access truncated data via @0_stdout@ (100KB limit)
+task=1
+hostname=localhost
+command=python3
+arguments=-c "data = '@0_stdout@'; print(f'Got {len(data)} bytes')"
+# Output: "Got 102400 bytes" (truncated to 100KB)
+
+# Task 2: Access full data via temp file
+task=2
+hostname=localhost
+command=python3
+arguments=-c "import os; path = '@0_stdout_file@'; size = os.path.getsize(path) if path else 0; print(f'File size: {size}')"
+# Output: "File size: 5242880" (full 5MB accessible)
+
+# Task 3: Process the full file
+task=3
+hostname=localhost
+command=bash
+arguments=-c "wc -c < @0_stdout_file@"
+# Output: "5242880" (processes entire file)
+```
+
+### Cleanup Behavior
+
+**Automatic Cleanup:**
+- Occurs at workflow end (success or failure)
+- Handles graceful shutdown (Ctrl+C)
+- Cleans up on task failures
+- Logs errors but doesn't fail workflow
+
+**Manual Cleanup:**
+```bash
+# Find TASKER temp files (diagnostic)
+ls -la /tmp/tasker_output_*
+
+# Manual cleanup if needed (use with caution)
+rm /tmp/tasker_output_*_*.tmp
+```
+
+### Concurrent Execution Safety
+
+TASKER's temp file management is designed for safe concurrent execution:
+
+1. **Unique File Names:** Each output gets a unique temp file via `mkstemp()`
+2. **Session Tracking:** Only cleans up files from current session
+3. **No Cross-Session Interference:** Multiple TASKER instances can run safely
+4. **Process Isolation:** Each workflow manages its own temp files
+
+### Best Practices
+
+1. **Large Output Handling:**
+   - Use `@N_stdout_file@` for processing large outputs
+   - Use `@N_stdout@` for quick checks or small portions
+   - Consider output splitting for targeted data extraction
+
+2. **Debugging:**
+   - Enable debug mode to see temp file creation/deletion
+   - Check `/tmp` for orphaned files after crashes
+   - Monitor disk space when processing many large outputs
+
+3. **Performance:**
+   - Temp files prevent memory exhaustion
+   - File I/O is slower than memory access
+   - Consider `stdout_split`/`stderr_split` to reduce data size
+
+### Troubleshooting
+
+**Temp Files Not Cleaned:**
+- Check if TASKER process crashed (kill -9)
+- Look for permission issues in cleanup phase
+- Enable debug logging for cleanup details
+
+**Disk Space Issues:**
+- Monitor `/tmp` usage during large workflows
+- Consider adjusting system temp directory size
+- Use output splitting to reduce stored data
+
+**Access Errors:**
+- Verify temp file exists before access
+- Check file permissions (should be 600)
+- Ensure filesystem supports required operations

@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Cross-task variable substitution with different output sizes (50KB, 2MB)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2, 3, 4]}
 # Test cross-task variable substitution with different output sizes
 # This tests the three-tier memory-efficient streaming:
 # Tier 1: Small outputs (<100KB) - full data in memory

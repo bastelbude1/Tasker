@@ -1,3 +1,4 @@
+# TEST_METADATA: {"description": "Cross-task variable substitution with 5MB output (verifies truncation to 100KB)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1]}
 # Test cross-task variable substitution - check if we get full 5MB
 # Task 0: Generate 5MB output
 task=0

@@ -1,0 +1,15 @@
+# TEST_METADATA: {"description": "Cross-task variable substitution with 5MB output (tests temp file + truncation)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1]}
+# Test cross-task variable substitution with 5MB output
+# This should now work with our bug fixes
+
+task=0
+hostname=localhost
+command=python3
+# Generate 5MB output
+arguments=-c "print('X' * 5242880)"
+
+task=1
+hostname=localhost
+command=echo
+# Should get truncated to 100KB, not full 5MB
+arguments=Got @0_stdout@ bytes from task 0

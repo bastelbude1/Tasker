@@ -922,27 +922,57 @@ class TaskExecutor:
         try:
             if hasattr(self, '_state_manager') and self._state_manager:
                 task_results = self._state_manager.get_all_task_results()
+                temp_dir_real = os.path.realpath(tempfile.gettempdir())
+
                 for task_id, result in task_results.items():
                     # Clean up stdout temp file if exists
                     stdout_file = result.get('stdout_file')
                     if stdout_file:
                         try:
-                            import os
-                            if os.path.exists(stdout_file):
-                                os.unlink(stdout_file)
-                        except (OSError, IOError) as e:
+                            # SECURITY: Validate path before deletion
+                            # 1. Resolve to real path (prevents symlink attacks)
+                            real_path = os.path.realpath(stdout_file)
+                            # 2. Ensure it's inside system temp directory
+                            if not real_path.startswith(temp_dir_real + os.sep):
+                                cleanup_errors.append(f"Task {task_id} stdout temp file rejected: path outside temp directory")
+                                continue
+                            # 3. Ensure filename starts with expected prefix
+                            filename = os.path.basename(real_path)
+                            if not filename.startswith('tasker_stdout_'):
+                                cleanup_errors.append(f"Task {task_id} stdout temp file rejected: invalid prefix")
+                                continue
+                            # 4. Delete without TOCTOU exists() check
+                            os.unlink(real_path)
+                        except FileNotFoundError:
+                            # File already deleted - not an error
+                            pass
+                        except OSError as e:
                             cleanup_errors.append(f"Task {task_id} stdout temp file cleanup failed: {e}")
 
                     # Clean up stderr temp file if exists
                     stderr_file = result.get('stderr_file')
                     if stderr_file:
                         try:
-                            import os
-                            if os.path.exists(stderr_file):
-                                os.unlink(stderr_file)
-                        except (OSError, IOError) as e:
+                            # SECURITY: Validate path before deletion
+                            # 1. Resolve to real path (prevents symlink attacks)
+                            real_path = os.path.realpath(stderr_file)
+                            # 2. Ensure it's inside system temp directory
+                            if not real_path.startswith(temp_dir_real + os.sep):
+                                cleanup_errors.append(f"Task {task_id} stderr temp file rejected: path outside temp directory")
+                                continue
+                            # 3. Ensure filename starts with expected prefix
+                            filename = os.path.basename(real_path)
+                            if not filename.startswith('tasker_stderr_'):
+                                cleanup_errors.append(f"Task {task_id} stderr temp file rejected: invalid prefix")
+                                continue
+                            # 4. Delete without TOCTOU exists() check
+                            os.unlink(real_path)
+                        except FileNotFoundError:
+                            # File already deleted - not an error
+                            pass
+                        except OSError as e:
                             cleanup_errors.append(f"Task {task_id} stderr temp file cleanup failed: {e}")
-        except Exception as temp_cleanup_error:
+        except OSError as temp_cleanup_error:
             cleanup_errors.append(f"Temp file cleanup phase failed: {temp_cleanup_error}")
 
         # PHASE 4: Error reporting

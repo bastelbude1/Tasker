@@ -525,11 +525,18 @@ class ParallelExecutor(BaseExecutor):
                     except Exception as e:
                         task_id_inner = int(task['task'])
                         executor_instance.log(f"Task {task_id}: [ERROR] Task {task_id_inner} exception: {str(e)}")
+                        error_msg = f'Exception: {str(e)}'
                         results.append({
                             'task_id': task_id_inner,
                             'exit_code': 1,
                             'stdout': '',
-                            'stderr': f'Exception: {str(e)}',
+                            'stderr': error_msg,
+                            'stdout_file': None,
+                            'stderr_file': None,
+                            'stdout_size': 0,
+                            'stderr_size': len(error_msg),
+                            'stdout_truncated': False,
+                            'stderr_truncated': False,
                             'success': False,
                             'skipped': False
                         })
@@ -573,13 +580,9 @@ class ParallelExecutor(BaseExecutor):
         executor_instance.log(f"Task {task_id}: Parallel execution completed in {elapsed_time:.2f} seconds")
         
         # Store individual task results for future reference - THREAD SAFE
+        # Preserve all fields from result to maintain size information
         for result in results:
-            executor_instance.store_task_result(result['task_id'], {
-                'exit_code': result['exit_code'],
-                'stdout': result['stdout'],
-                'stderr': result['stderr'],
-                'success': result['success']
-            })
+            executor_instance.store_task_result(result['task_id'], result)
         
         # Calculate execution statistics with FIXED categorization
         successful_tasks = [r for r in results if r['success']]
@@ -646,12 +649,19 @@ class ParallelExecutor(BaseExecutor):
             aggregated_stderr += f"Timeout tasks: {timeout_task_ids}"
         
         aggregated_exit_code = 0 if overall_success else 1
-        
+        aggregated_stderr_stripped = aggregated_stderr.strip()
+
         # Store the parallel task result - THREAD SAFE
         executor_instance.store_task_result(task_id, {
             'exit_code': aggregated_exit_code,
             'stdout': aggregated_stdout,
-            'stderr': aggregated_stderr.strip(),
+            'stderr': aggregated_stderr_stripped,
+            'stdout_file': None,
+            'stderr_file': None,
+            'stdout_size': len(aggregated_stdout),
+            'stderr_size': len(aggregated_stderr_stripped),
+            'stdout_truncated': False,
+            'stderr_truncated': False,
             'success': overall_success
         })
         

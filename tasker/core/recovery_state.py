@@ -103,12 +103,29 @@ class RecoveryStateManager:
 
         Args:
             task_results: Raw task results from StateManager
+                         MANDATORY fields per task: stdout_size, stderr_size
+                         These fields are required for accurate size reporting
 
         Returns:
             JSON-safe task results dictionary
+
+        Raises:
+            ValueError: If mandatory size fields are missing from any task result
         """
         json_safe_results = {}
         for task_id, result in task_results.items():
+            # Validate mandatory size fields (fail-fast to prevent misreporting)
+            if 'stdout_size' not in result:
+                raise ValueError(
+                    f"Task {task_id}: Missing mandatory field 'stdout_size' in task result. "
+                    f"Cannot create recovery JSON without accurate size information."
+                )
+            if 'stderr_size' not in result:
+                raise ValueError(
+                    f"Task {task_id}: Missing mandatory field 'stderr_size' in task result. "
+                    f"Cannot create recovery JSON without accurate size information."
+                )
+
             # Create clean result dict with only JSON-relevant fields
             json_safe_results[task_id] = {
                 'exit_code': result.get('exit_code', 0),
@@ -119,8 +136,8 @@ class RecoveryStateManager:
                 # Add truncation metadata for transparency
                 'stdout_truncated': result.get('stdout_truncated', False),
                 'stderr_truncated': result.get('stderr_truncated', False),
-                'stdout_size': result.get('stdout_size', len(result.get('stdout', ''))),
-                'stderr_size': result.get('stderr_size', len(result.get('stderr', '')))
+                'stdout_size': result['stdout_size'],  # Mandatory - no fallback
+                'stderr_size': result['stderr_size']   # Mandatory - no fallback
             }
             # Note: stdout_file and stderr_file are NOT included - they're internal temp paths
         return json_safe_results

@@ -129,11 +129,18 @@ class BaseExecutor(ABC):
                 )
                 if not condition_result:
                     execution_context.log(f"Task {task_display_id}: Condition '{task['condition']}' evaluated to FALSE, skipping task")
+                    skip_msg = 'Task skipped due to condition'
                     return {
                         'task_id': task_id,
                         'exit_code': -1,
                         'stdout': '',
-                        'stderr': 'Task skipped due to condition',
+                        'stderr': skip_msg,
+                        'stdout_file': None,
+                        'stderr_file': None,
+                        'stdout_size': 0,
+                        'stderr_size': len(skip_msg),
+                        'stdout_truncated': False,
+                        'stderr_truncated': False,
                         'success': False,
                         'skipped': True
                     }
@@ -142,11 +149,18 @@ class BaseExecutor(ABC):
             if 'return' in task:
                 return_code = int(task['return'])
                 execution_context.log(f"Task {task_display_id}: Return task with exit code {return_code}")
+                return_msg = f'Return task: {return_code}'
                 return {
                     'task_id': task_id,
                     'exit_code': return_code,
                     'stdout': '',
-                    'stderr': f'Return task: {return_code}',
+                    'stderr': return_msg,
+                    'stdout_file': None,
+                    'stderr_file': None,
+                    'stdout_size': 0,
+                    'stderr_size': len(return_msg),
+                    'stdout_truncated': False,
+                    'stderr_truncated': False,
                     'success': (return_code == 0),
                     'skipped': False
                 }
@@ -175,11 +189,18 @@ class BaseExecutor(ABC):
             # 7. Execute or dry run
             if execution_context.dry_run:
                 execution_context.log(f"Task {task_display_id}: DRY RUN - Command would be executed")
+                dry_run_msg = 'DRY RUN - Command not executed'
                 return {
                     'task_id': task_id,
                     'exit_code': 0,
-                    'stdout': 'DRY RUN - Command not executed',
+                    'stdout': dry_run_msg,
                     'stderr': '',
+                    'stdout_file': None,
+                    'stderr_file': None,
+                    'stdout_size': len(dry_run_msg),
+                    'stderr_size': 0,
+                    'stdout_truncated': False,
+                    'stderr_truncated': False,
                     'success': True,
                     'skipped': False,
                     'sleep_seconds': float(task.get('sleep', 0))

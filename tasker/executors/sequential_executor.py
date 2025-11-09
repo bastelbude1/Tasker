@@ -78,10 +78,17 @@ class SequentialExecutor(BaseExecutor):
             if not condition_result:
                 executor_instance.log(f"Task {task_id}{loop_display}: Condition '{task['condition']}' evaluated to FALSE, skipping task")
                 # CRITICAL: Store results for skipped task - THREAD SAFE
+                skip_msg = 'Task skipped due to condition'
                 executor_instance.store_task_result(task_id, {
                     'exit_code': -1,     # Special: Task was skipped
                     'stdout': '',
-                    'stderr': 'Task skipped due to condition',
+                    'stderr': skip_msg,
+                    'stdout_file': None,
+                    'stderr_file': None,
+                    'stdout_size': 0,
+                    'stderr_size': len(skip_msg),
+                    'stdout_truncated': False,
+                    'stderr_truncated': False,
                     'success': False
                 })
                 return task_id + 1  # Continue to next task
@@ -117,6 +124,12 @@ class SequentialExecutor(BaseExecutor):
                     'exit_code': exit_code,
                     'stdout': stdout,
                     'stderr': stderr,
+                    'stdout_file': None,
+                    'stderr_file': None,
+                    'stdout_size': len(stdout),
+                    'stderr_size': len(stderr),
+                    'stdout_truncated': False,
+                    'stderr_truncated': False,
                     'success': success_result
                 })
 
@@ -147,6 +160,12 @@ class SequentialExecutor(BaseExecutor):
                     'exit_code': exit_code,
                     'stdout': stdout,
                     'stderr': stderr,
+                    'stdout_file': None,
+                    'stderr_file': None,
+                    'stdout_size': len(stdout),
+                    'stderr_size': len(stderr),
+                    'stdout_truncated': False,
+                    'stderr_truncated': False,
                     'success': success_result
                 })
 
@@ -327,6 +346,12 @@ class SequentialExecutor(BaseExecutor):
             'exit_code': exit_code,
             'stdout': stdout,
             'stderr': stderr,
+            'stdout_file': None,
+            'stderr_file': None,
+            'stdout_size': len(stdout),
+            'stderr_size': len(stderr),
+            'stdout_truncated': False,
+            'stderr_truncated': False,
             'success': success_result
         })
         

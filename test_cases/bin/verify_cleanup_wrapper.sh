@@ -15,12 +15,12 @@ echo ""
 
 # Count temp files before execution
 echo "Checking for existing tasker temp files..."
-BEFORE_COUNT=$(find "$TEMP_DIR" -name "tasker_stdout_*" -o -name "tasker_stderr_*" 2>/dev/null | wc -l)
+BEFORE_COUNT=$(find "$TEMP_DIR" \( -name "tasker_stdout_*" -o -name "tasker_stderr_*" \) 2>/dev/null | wc -l)
 echo "Temp files before: $BEFORE_COUNT"
 
 # Get list of existing temp files (to exclude from after check)
 EXISTING_FILES=$(mktemp)
-find "$TEMP_DIR" -name "tasker_stdout_*" -o -name "tasker_stderr_*" 2>/dev/null | sort > "$EXISTING_FILES"
+find "$TEMP_DIR" \( -name "tasker_stdout_*" -o -name "tasker_stderr_*" \) 2>/dev/null | sort > "$EXISTING_FILES"
 
 echo ""
 echo "Running tasker with test file..."
@@ -35,7 +35,7 @@ echo ""
 echo "Checking for temp files after execution..."
 # Count temp files after execution (excluding pre-existing ones)
 CURRENT_FILES=$(mktemp)
-find "$TEMP_DIR" -name "tasker_stdout_*" -o -name "tasker_stderr_*" 2>/dev/null | sort > "$CURRENT_FILES"
+find "$TEMP_DIR" \( -name "tasker_stdout_*" -o -name "tasker_stderr_*" \) 2>/dev/null | sort > "$CURRENT_FILES"
 
 # Find new files (files in CURRENT_FILES but not in EXISTING_FILES)
 NEW_FILES=$(comm -13 "$EXISTING_FILES" "$CURRENT_FILES")

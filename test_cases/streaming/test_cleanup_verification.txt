@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Temp files cleaned up after workflow completion", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1], "expected_final_task": 1}
+# TEST_METADATA: {"description": "Temp files cleaned up after workflow completion", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1], "expected_final_task": 1, "requires_wrapper": "streaming/verify_cleanup_wrapper.sh"}
 
 # TEST 5: Cleanup Verification After Workflow
 # ============================================
@@ -8,33 +8,37 @@
 # Expected Behavior:
 #   - Task 0 generates 5MB output → temp file created
 #   - Task 1 accesses @0_stdout@ → temp file still exists
-#   - Workflow completes → cleanup() called
-#   - Temp file deleted after workflow end
+#   - Workflow completes → cleanup() called → temp files deleted
 #
-# Verification Strategy:
-#   - This test verifies workflow success
-#   - Manual verification: Check /tmp for tasker_* files after test
-#   - Should find NO orphaned temp files from this test
+# Automated Verification Strategy:
+#   - Uses wrapper script (verify_cleanup_wrapper.sh) that:
+#     1. Runs workflow with --output-json
+#     2. Extracts temp file paths from JSON
+#     3. Verifies temp files no longer exist
+#   - CI-friendly: Automated, no manual checks
 #
 # Size Calculation:
-#   - 500 lines × 10KB = 5MB
+#   - 200 lines × 10KB = 2MB
 #   - Above 1MB threshold → temp file created
 #   - Marker at end proves temp file preserved during execution
 
 --skip-host-validation
 --skip-security-validation
+--output-json=/tmp/cleanup_test_output.json
 
-# Task 0: Generate 5MB output (creates temp file)
+# Task 0: Generate 2MB output (creates temp file)
+# Note: Uses write() in list comprehension to avoid building a list of None values
 task=0
 hostname=localhost
 command=python3
-arguments=-c "data='X'*10000; [print(data) for _ in range(499)]; print('CLEANUP_MARKER')"
+arguments=-c "data='X'*10000; import sys; _ = [sys.stdout.write(data + '\\n') for i in range(199)]; print('CLEANUP_MARKER')"
 exec=local
 
-# Task 1: Access output to prove temp file preserved during workflow
+# Task 1: Verify marker accessible via success condition (proves temp file preserved)
+# Uses success condition pattern matching instead of command-line substitution to avoid ARG_MAX
 task=1
 hostname=localhost
-command=python3
-arguments=-c "import sys; data = '''@0_stdout@'''; sys.exit(0 if 'CLEANUP_MARKER' in data else 1)"
+command=echo
+arguments=Checking cleanup marker
 exec=local
-success=exit_0
+success=@0_stdout@~CLEANUP_MARKER

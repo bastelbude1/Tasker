@@ -127,7 +127,7 @@ class StateManager:
                 # Replace invalid UTF-8 sequences with � instead of crashing
                 with open(temp_file_path, 'r', errors='replace') as f:
                     return f.read()
-            except (FileNotFoundError, IOError, OSError, UnicodeDecodeError) as e:
+            except (FileNotFoundError, IOError, OSError, UnicodeDecodeError):
                 # Temp file may have been cleaned up, corrupted, or contain binary data
                 # Fall through to preview fallback
                 pass

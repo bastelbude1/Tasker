@@ -13,6 +13,7 @@ command=echo
 arguments=Loop iteration @LOOP_VAR@
 exec=local
 loop=3
+next=loop
 
 # Task 1: After loop
 task=1

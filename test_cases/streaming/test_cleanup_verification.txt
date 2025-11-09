@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Temp files cleaned up after workflow completion", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1], "expected_final_task": 1, "requires_wrapper": "streaming/verify_cleanup_wrapper.sh"}
+# TEST_METADATA: {"description": "Temp files cleaned up after workflow completion", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1], "expected_final_task": 1, "requires_wrapper": "verify_cleanup_wrapper.sh"}
 
 # TEST 5: Cleanup Verification After Workflow
 # ============================================

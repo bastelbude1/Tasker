@@ -207,6 +207,10 @@ class StreamingOutputHandler:
         """
         Get truncated preview of output without loading full file into memory.
 
+        CRITICAL: For binary data, reads only safe_input_len (not max_bytes) to ensure
+        accurate truncation detection. This prevents silent data loss where we read
+        1MB, truncate to 786KB for base64, but still report "not truncated".
+
         Args:
             stream_type: 'stdout' or 'stderr'
             max_bytes: Maximum bytes to read (default: MAX_JSON_TASK_OUTPUT)
@@ -218,25 +222,30 @@ class StreamingOutputHandler:
             max_bytes = self.MAX_JSON_TASK_OUTPUT
 
         try:
-            content = self._read_preview(stream_type, max_bytes)
+            # CRITICAL: Read a small sample first to detect binary vs text
+            # This avoids reading full max_bytes when we'll truncate anyway
+            sample = self._read_preview(stream_type, 8192)  # 8KB sample
+            is_binary = self._is_binary(sample)
 
-            # Detect and handle binary data
-            if self._is_binary(content):
+            if is_binary:
                 import base64
-                # Encode as base64 for JSON safety
-                # Use 'replace' to prevent size expansion from backslashreplace (λ → \u03bb)
-                content_bytes = content.encode('latin-1', errors='replace')
-
                 # Calculate safe input length to guarantee base64 output ≤ max_bytes
                 # Base64 expands by 33% (4 bytes output per 3 bytes input)
                 # So: safe_input_len = (max_bytes // 4) * 3
-                # Example: max_bytes=1MB → safe_input_len=786,432 → base64=1,048,576 bytes (exactly 1MB)
+                # Example: max_bytes=1MB → safe_input_len=786,432 → base64=1,048,576 bytes
                 safe_input_len = (max_bytes // 4) * 3
-                content_bytes = content_bytes[:safe_input_len]
+
+                # CRITICAL: Read exactly safe_input_len (not max_bytes)
+                # This ensures truncation detection works correctly:
+                # - If file has 1MB and we read 786KB, truncation flag = True ✓
+                # - If file has 1MB and we read 1MB then slice to 786KB, flag = False ❌ (old bug)
+                content = self._read_preview(stream_type, safe_input_len)
+                content_bytes = content.encode('latin-1', errors='replace')
 
                 return base64.b64encode(content_bytes).decode('ascii')
             else:
-                # Return text content as-is
+                # Text data - read up to max_bytes
+                content = self._read_preview(stream_type, max_bytes)
                 return content
         except (IOError, OSError):
             return "[Error reading output file]"

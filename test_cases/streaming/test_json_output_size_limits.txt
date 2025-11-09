@@ -1,0 +1,47 @@
+# TEST_METADATA: {"description": "JSON output enforces 1MB per-task limits with truncation metadata", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1, 2], "expected_final_task": 2}
+
+# TEST 4: JSON Output Size Limits Verification
+# =============================================
+# Verifies that --output-json creates size-limited JSON with truncation metadata
+# while workflow execution still has access to full data via temp files.
+#
+# Expected Behavior:
+#   - Task 0: 500KB output → JSON contains full output
+#   - Task 1: 5MB output → JSON contains 1MB preview + truncation metadata
+#   - Task 2: 15MB output → JSON contains 1MB preview + truncation metadata
+#   - All tasks succeed (proving full data accessible during execution)
+#   - JSON file size manageable (<100MB total limit)
+#
+# JSON Validation:
+#   - task_results[0]['stdout'] = full 500KB
+#   - task_results[0]['stdout_truncated'] = false
+#   - task_results[1]['stdout'] = 1MB preview
+#   - task_results[1]['stdout_truncated'] = true
+#   - task_results[1]['stdout_size'] = 5MB (actual size)
+#   - task_results[2]['stdout'] = 1MB preview
+#   - task_results[2]['stdout_truncated'] = true
+#   - task_results[2]['stdout_size'] = 15MB (actual size)
+
+--skip-host-validation
+--skip-security-validation
+
+# Task 0: Small output (500KB) - should NOT be truncated in JSON
+task=0
+hostname=localhost
+command=python3
+arguments=-c "data='X'*10000; [print(data) for _ in range(49)]; print('END_500KB')"
+exec=local
+
+# Task 1: Medium output (5MB) - should be truncated to 1MB preview in JSON
+task=1
+hostname=localhost
+command=python3
+arguments=-c "data='X'*10000; [print(data) for _ in range(499)]; print('END_5MB')"
+exec=local
+
+# Task 2: Large output (15MB) - should be truncated to 1MB preview in JSON
+task=2
+hostname=localhost
+command=python3
+arguments=-c "data='X'*10000; [print(data) for _ in range(1499)]; print('END_15MB')"
+exec=local

@@ -29,7 +29,7 @@ class StreamingOutputHandler:
 
     # Configuration constants
     DEFAULT_BUFFER_SIZE = 1024 * 1024  # 1MB memory buffer
-    DEFAULT_TEMP_THRESHOLD = 10 * 1024 * 1024  # 10MB threshold for temp files
+    DEFAULT_TEMP_THRESHOLD = 1 * 1024 * 1024  # 1MB threshold for temp files (lowered from 10MB to fix cross-task variable substitution)
     CHUNK_SIZE = 8192  # 8KB read chunks
     MAX_IN_MEMORY = 100 * 1024 * 1024  # 100MB absolute memory limit
 
@@ -175,7 +175,18 @@ class StreamingOutputHandler:
         return stdout_content, stderr_content, exit_code, timed_out
 
     def _get_final_output(self, stream_type):
-        """Get the final output content, reading from temp file if necessary."""
+        """
+        Get the final output content for immediate use (success conditions, output splitting).
+
+        CRITICAL: When temp files exist (output ≥1MB), return FULL content from temp file.
+        This is needed for:
+        - Same-task success condition evaluation (stdout~pattern)
+        - Output splitting operations (stdout_split=)
+        - Logging and debugging
+
+        Note: Cross-task variable substitution will read temp files directly.
+        Task results will store previews (handled by base_executor.py).
+        """
         if stream_type == 'stdout':
             if self.stdout_file:
                 self.stdout_file.seek(0)
@@ -327,7 +338,15 @@ class StreamingOutputHandler:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
-        Context manager exit with automatic cleanup.
+        Context manager exit - temp file cleanup deferred to workflow level.
+
+        Temp files must remain accessible for:
+        1. Cross-task variable substitution (@N_stdout@)
+        2. Success condition evaluation in subsequent tasks
+        3. Output splitting operations
+        4. Recovery state generation
+
+        Cleanup happens at workflow completion in TaskExecutor.cleanup()
 
         Args:
             exc_type: Exception type (if any)
@@ -337,12 +356,8 @@ class StreamingOutputHandler:
         Returns:
             None (do not suppress exceptions)
         """
-        try:
-            self.cleanup()
-        except Exception:
-            # Ensure cleanup errors don't mask original exceptions
-            import logging
-            logging.debug("StreamingOutputHandler cleanup failed in __exit__", exc_info=True)
+        # CRITICAL: Do not cleanup temp files here - they're needed for cross-task operations
+        # Cleanup deferred to workflow-level cleanup() method
         # Return None to propagate any original exception
 
 

@@ -1,0 +1,37 @@
+# TEST_METADATA: {"description": "Small output (<1MB) preserves full data for cross-task substitution", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1], "expected_final_task": 1}
+
+# TEST 1: Small Output (<1MB) Full Data Preservation
+# =====================================================
+# Verifies that outputs <1MB are stored in full (not truncated to previews)
+# and remain accessible for cross-task variable substitution.
+#
+# Expected Behavior:
+#   - Task 0 generates 500KB output with marker at the end
+#   - No temp file created (below 1MB threshold)
+#   - Full output stored in task_result['stdout']
+#   - Task 1 uses @0_stdout@ and finds the marker
+#
+# Size Calculation:
+#   - 50 lines × 10KB per line = 500KB total
+#   - Well below 1MB temp file threshold
+#   - Should store full output, no truncation
+
+--skip-host-validation
+--skip-security-validation
+
+# Task 0: Generate 500KB output with marker at end
+task=0
+hostname=localhost
+command=python3
+arguments=-c "data='X'*10000; [print(data) for _ in range(49)]; print('MARKER_END_500KB')"
+exec=local
+
+# Task 1: Verify full output accessible via @0_stdout@
+# If truncation occurred, marker would be missing
+# Check if stdout contains the marker
+task=1
+hostname=localhost
+command=python3
+arguments=-c "import sys; data = '''@0_stdout@'''; sys.exit(0 if 'MARKER_END_500KB' in data else 1)"
+exec=local
+success=exit_0

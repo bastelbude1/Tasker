@@ -1,0 +1,54 @@
+# TEST_METADATA: {"description": "BUG: Temp files deleted before output splitting", "test_type": "negative", "expected_exit_code": 1, "expected_success": false}
+
+# BUG REPRODUCTION TEST
+# =====================
+# Demonstrates that temp files are deleted before output splitting occurs,
+# causing stdout_split to operate on truncated 1MB preview instead of full output.
+#
+# Expected Behavior:
+#   - Task 0 generates 2000 lines of CSV data (15MB total)
+#   - stdout_split=newline,1990 extracts line 1990
+#   - Task 1 verifies the extracted line contains "LINE_1990"
+#
+# Actual Behavior (BUG):
+#   - output_handler with-block ends at line 248 of base_executor.py
+#   - Temp files deleted by __exit__ cleanup
+#   - Output splitting (line 271) runs AFTER cleanup
+#   - stdout_split operates on 1MB truncated preview (~100 lines)
+#   - Line 1990 not in preview, split returns original truncated data
+#   - Task 1 fails to find "LINE_1990"
+#
+# Code Path:
+#   base_executor.py:248 - with-block ends (cleanup called, temp files DELETED)
+#   base_executor.py:271 - _handle_output_splitting(raw_stdout, ...)
+#   raw_stdout is 1MB preview (NOT full 15MB output)
+#   split_output attempts to get line 1990 from ~100 line preview
+#   Returns original truncated data (line 1990 doesn't exist)
+
+--skip-host-validation
+--skip-security-validation
+
+# Task 0: Generate 2000 lines of CSV-like data (15MB total)
+# Each line: "LINE_NNNN,data_NNNN,X...X" where X*10000 makes it ~7.5KB per line
+# Total: 2000 * 7.5KB = 15MB
+task=0
+hostname=localhost
+command=python3
+arguments=-c "data='X'*7000; [print('LINE_%04d,data_%04d,%s' % (i, i, data)) for i in range(2000)]"
+exec=local
+stdout_split=newline,1990
+# BUG: stdout_split will fail because line 1990 is not in the 1MB truncated preview
+# Preview contains only ~140 lines (1MB / 7.5KB per line)
+# Line 1990 is far beyond the truncation point
+
+# Task 1: Verify that line 1990 was extracted
+# Expected: @0_stdout@ should contain "LINE_1990,data_1990,X...X"
+# Actual: @0_stdout@ contains truncated preview of first ~140 lines (BUG!)
+task=1
+hostname=localhost
+command=echo
+arguments=@0_stdout@
+exec=local
+success=stdout~LINE_1990
+# This will FAIL because @0_stdout@ doesn't contain line 1990
+# It only contains the truncated preview

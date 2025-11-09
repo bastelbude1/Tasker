@@ -1,0 +1,37 @@
+# TEST_METADATA: {"description": "Large output (≥10MB) temp file preserved for cross-task access", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1], "expected_final_task": 1}
+
+# TEST 3: Large Output (≥10MB) Temp File Preservation
+# ====================================================
+# Verifies that large outputs (≥10MB) use temp files and remain accessible
+# during workflow execution for cross-task variable substitution.
+#
+# Expected Behavior:
+#   - Task 0 generates 15MB output with marker at the end
+#   - Temp file created (≥1MB threshold)
+#   - Temp file NOT deleted at task completion
+#   - Task 1 reads full 15MB via temp file, finds marker
+#   - Temp file deleted only at workflow end
+#
+# Size Calculation:
+#   - 1500 lines × 10KB per line = 15MB total
+#   - Well above 1MB threshold → temp file created
+#   - Marker at end proves full temp file access
+
+--skip-host-validation
+--skip-security-validation
+
+# Task 0: Generate 15MB output with marker at end
+task=0
+hostname=localhost
+command=python3
+arguments=-c "data='X'*10000; [print(data) for _ in range(1499)]; print('MARKER_END_15MB')"
+exec=local
+
+# Task 1: Verify full output accessible via @0_stdout@
+# This is the critical test - proves temp file not deleted at task 0 end
+task=1
+hostname=localhost
+command=python3
+arguments=-c "import sys; data = '''@0_stdout@'''; sys.exit(0 if 'MARKER_END_15MB' in data else 1)"
+exec=local
+success=exit_0

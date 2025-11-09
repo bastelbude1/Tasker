@@ -1,0 +1,39 @@
+# TEST_METADATA: {"description": "Temp files cleaned up even when workflow fails", "test_type": "negative", "expected_exit_code": 1, "expected_success": false, "expected_execution_path": [0, 1], "expected_final_task": 1}
+
+# TEST 6: Exception Handling Cleanup Verification
+# ================================================
+# Verifies that temp files are cleaned up even when workflow fails with errors.
+#
+# Expected Behavior:
+#   - Task 0 generates 5MB output → temp file created
+#   - Task 1 fails with exit code 1
+#   - Workflow stops with failure
+#   - cleanup() still called (via __exit__ or finally block)
+#   - Temp file deleted despite failure
+#
+# Verification Strategy:
+#   - Test should FAIL (expected_exit_code: 1)
+#   - Manual verification: Check /tmp for orphaned tasker_* files
+#   - Should find NO temp files from this test after completion
+#
+# Size Calculation:
+#   - 500 lines × 10KB = 5MB
+#   - Above 1MB threshold → temp file created
+#   - Task 1 deliberately fails to trigger cleanup on error path
+
+--skip-host-validation
+--skip-security-validation
+
+# Task 0: Generate 5MB output (creates temp file)
+task=0
+hostname=localhost
+command=python3
+arguments=-c "data='X'*10000; [print(data) for _ in range(499)]; print('EXCEPTION_TEST')"
+exec=local
+
+# Task 1: Deliberately fail to test cleanup on error path
+task=1
+hostname=localhost
+command=false
+exec=local
+success=exit_0

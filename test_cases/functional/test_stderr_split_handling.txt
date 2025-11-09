@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Verify stderr_split is captured correctly by test runner", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1], "expected_final_task": 1}
+
+# Test STDERR Split Handling
+# ===========================
+# Verifies that stderr_split output is correctly captured by intelligent_test_runner.py
+# and takes precedence over raw STDERR output.
+
+--skip-host-validation
+--skip-security-validation
+
+# Task 0: Generate multi-value STDERR output and split it
+task=0
+hostname=localhost
+command=bash
+arguments=-c "echo 'alpha,beta,gamma' >&2"
+exec=local
+stderr_split=comma,1
+
+# Task 1: Verify split STDERR value is available
+# This test verifies the test runner captures @0_stderr@ correctly
+task=1
+hostname=localhost
+command=echo
+arguments=Split value was: @0_stderr@
+exec=local
+success=stdout~beta

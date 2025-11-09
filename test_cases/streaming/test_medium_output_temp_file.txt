@@ -1,0 +1,37 @@
+# TEST_METADATA: {"description": "Medium output (1-10MB) uses temp file and preserves full data", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_execution_path": [0, 1], "expected_final_task": 1}
+
+# TEST 2: Medium Output (1-10MB) Temp File Usage
+# ===============================================
+# Verifies that outputs 1-10MB trigger temp file creation (new 1MB threshold)
+# and full data remains accessible via temp file during workflow execution.
+#
+# Expected Behavior:
+#   - Task 0 generates 5MB output with marker at the end
+#   - Temp file created (≥1MB threshold)
+#   - Temp file path stored in task_result['stdout_file']
+#   - Temp file preserved until workflow end
+#   - Task 1 reads full output via temp file, finds marker
+#
+# Size Calculation:
+#   - 500 lines × 10KB per line = 5MB total
+#   - Above 1MB threshold → temp file created
+#   - Marker at end ensures temp file access works
+
+--skip-host-validation
+--skip-security-validation
+
+# Task 0: Generate 5MB output with marker at end
+task=0
+hostname=localhost
+command=python3
+arguments=-c "data='X'*10000; [print(data) for _ in range(499)]; print('MARKER_END_5MB')"
+exec=local
+
+# Task 1: Verify full output accessible via @0_stdout@
+# This requires temp file to be preserved (not deleted at task end)
+task=1
+hostname=localhost
+command=python3
+arguments=-c "import sys; data = '''@0_stdout@'''; sys.exit(0 if 'MARKER_END_5MB' in data else 1)"
+exec=local
+success=exit_0

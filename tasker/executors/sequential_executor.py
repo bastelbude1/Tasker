@@ -215,8 +215,9 @@ class SequentialExecutor(BaseExecutor):
                 # Execute using context manager for automatic cleanup
                 import subprocess
 
-                # Create memory-efficient output handler with 10MB default limit
-                max_memory_mb = 10
+                # Create memory-efficient output handler with 1MB limit for cross-task compatibility
+                # Lowered from 10MB to ensure temp files are created for outputs ≥1MB
+                max_memory_mb = 1
 
                 with create_memory_efficient_handler(max_memory_mb) as output_handler:
                     with subprocess.Popen(
@@ -340,18 +341,49 @@ class SequentialExecutor(BaseExecutor):
         else:
             success_result = (exit_code == 0)
             executor_instance.log_debug(f"Task {task_id}{loop_display}: Success (default): {success_result}")
-        
+
+        # Get temp file paths and memory info from output handler
+        stdout_file_path = output_handler.get_temp_file_path('stdout') if output_handler else None
+        stderr_file_path = output_handler.get_temp_file_path('stderr') if output_handler else None
+        memory_info = output_handler.get_memory_usage_info() if output_handler else {}
+
+        # Strategy: Store full output when small (<1MB), use 1MB previews only for large outputs (with temp files)
+        # This preserves cross-task variable substitution for small outputs while maintaining JSON size limits
+        if stdout_file_path:
+            # Large output (≥1MB) - temp file exists, use 1MB preview for JSON
+            stdout_preview = output_handler.get_preview('stdout') if output_handler else stdout
+        else:
+            # Small output (<1MB) - no temp file, data already in memory, store full output
+            stdout_preview = stdout
+
+        if stderr_file_path:
+            # Large output (≥1MB) - temp file exists, use 1MB preview for JSON
+            stderr_preview = output_handler.get_preview('stderr') if output_handler else stderr
+        else:
+            # Small output (<1MB) - no temp file, data already in memory, store full output
+            stderr_preview = stderr
+
+        # Preserve split output if splitting was applied (lines 285-300 above)
+        # Split operations always override preview logic to ensure workflow correctness
+        stdout_modified = 'stdout_split' in task
+        stderr_modified = 'stderr_split' in task
+
+        if stdout_modified:
+            stdout_preview = stdout  # Use split result
+        if stderr_modified:
+            stderr_preview = stderr  # Use split result
+
         # CRITICAL: Store the results for future reference - THREAD SAFE
         executor_instance.store_task_result(task_id, {
             'exit_code': exit_code,
-            'stdout': stdout,
-            'stderr': stderr,
-            'stdout_file': None,
-            'stderr_file': None,
-            'stdout_size': len(stdout),
-            'stderr_size': len(stderr),
-            'stdout_truncated': False,
-            'stderr_truncated': False,
+            'stdout': stdout_preview,  # Preview or full output depending on size
+            'stderr': stderr_preview,  # Preview or full output depending on size
+            'stdout_file': stdout_file_path,  # Temp file path for cross-task access
+            'stderr_file': stderr_file_path,  # Temp file path for cross-task access
+            'stdout_size': memory_info.get('stdout_size', len(stdout)),
+            'stderr_size': memory_info.get('stderr_size', len(stderr)),
+            'stdout_truncated': memory_info.get('stdout_size', len(stdout)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False,
+            'stderr_truncated': memory_info.get('stderr_size', len(stderr)) > output_handler.MAX_JSON_TASK_OUTPUT if output_handler else False,
             'success': success_result
         })
         

@@ -1,0 +1,50 @@
+# TEST_METADATA: {"description": "BUG: Temp files deleted before variable substitution", "test_type": "negative", "expected_exit_code": 1, "expected_success": false}
+
+# BUG REPRODUCTION TEST
+# =====================
+# Demonstrates that temp files are deleted before variable substitution occurs,
+# causing @X_stdout@ to use truncated 1MB preview instead of full output.
+#
+# Expected Behavior:
+#   - Task 0 generates 15MB output with "MARKER_AT_END_12345" at the end
+#   - Task 1 uses @0_stdout@ which should contain the full 15MB output
+#   - Task 1 should find the marker in the output
+#
+# Actual Behavior (BUG):
+#   - output_handler with-block ends at line 248 of base_executor.py
+#   - Temp files deleted by __exit__ cleanup
+#   - Variable substitution (line 270+) runs AFTER cleanup
+#   - @0_stdout@ contains only 1MB truncated preview
+#   - Marker not found, test FAILS
+#
+# Code Path:
+#   base_executor.py:215 - with output_handler: (START)
+#   base_executor.py:248 - with-block ends (cleanup called, temp files DELETED)
+#   base_executor.py:270 - Output splitting (needs temp files - ALREADY GONE)
+#   condition_evaluator.py:128 - Variable substitution tries to read deleted temp file
+#   condition_evaluator.py:135 - FileNotFoundError, falls back to truncated preview
+
+--skip-host-validation
+--skip-security-validation
+
+# Task 0: Generate 15MB output with unique marker at the end
+# This will trigger temp file creation (threshold is 10MB)
+# Output format: 1500 lines of 'X'*10000 + final line with marker
+task=0
+hostname=localhost
+command=python3
+arguments=-c "data='X'*10000; [print(data) for _ in range(1500)]; print('MARKER_AT_END_12345')"
+exec=local
+
+# Task 1: Use @0_stdout@ variable substitution
+# BUG: Will only get 1MB truncated preview, missing the marker
+# Expected: Full 15MB output with marker
+# Actual: 1MB preview without marker
+task=1
+hostname=localhost
+command=grep
+arguments=MARKER_AT_END_12345
+exec=local
+success=exit_0
+# grep will fail because MARKER_AT_END_12345 is not in the truncated preview
+# This proves the bug exists

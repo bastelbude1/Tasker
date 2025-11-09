@@ -209,8 +209,9 @@ class BaseExecutor(ABC):
             # 8. Real execution with memory-efficient streaming
             start_time = time.time()
             try:
-                # Create memory-efficient output handler with 10MB default limit
-                max_memory_mb = 10
+                # Create memory-efficient output handler with 1MB limit for cross-task compatibility
+                # Lowered from 10MB to ensure temp files are created for outputs ≥1MB
+                max_memory_mb = 1
 
                 with create_memory_efficient_handler(max_memory_mb) as output_handler:
                     # Use Popen pattern for Python 3.6.8 compatibility
@@ -284,9 +285,21 @@ class BaseExecutor(ABC):
             stderr_file_path = output_handler.get_temp_file_path('stderr') if output_handler else None
             memory_info = output_handler.get_memory_usage_info() if output_handler else {}
 
-            # Get truncated previews instead of storing full content
-            stdout_preview = output_handler.get_preview('stdout') if output_handler else processed_stdout
-            stderr_preview = output_handler.get_preview('stderr') if output_handler else processed_stderr
+            # Strategy: Store full output when small (<1MB), use 1MB previews only for large outputs (with temp files)
+            # This preserves cross-task variable substitution for small/medium outputs while maintaining JSON size limits
+            if stdout_file_path:
+                # Large output (≥1MB) - temp file exists, use 1MB preview for JSON
+                stdout_preview = output_handler.get_preview('stdout') if output_handler else processed_stdout
+            else:
+                # Small output (<1MB) - no temp file, data already in memory, store full output
+                stdout_preview = processed_stdout
+
+            if stderr_file_path:
+                # Large output (≥1MB) - temp file exists, use 1MB preview for JSON
+                stderr_preview = output_handler.get_preview('stderr') if output_handler else processed_stderr
+            else:
+                # Small output (<1MB) - no temp file, data already in memory, store full output
+                stderr_preview = processed_stderr
 
             # Preserve processed output if split operations were applied (prevents workflow breakage)
             stdout_modified = processed_stdout != raw_stdout

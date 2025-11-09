@@ -565,6 +565,8 @@ class TaskerTestExecutor:
                     task_id = match.group(1)
                     stderr_value = match.group(2)
                     variables[f"{task_id}_stderr"] = stderr_value  # Override with split value
+                    # Add to output patterns for pattern matching
+                    output_patterns["stderr"].append(stderr_value)
 
             elif re.search(r'Task (\d+|\d+-\d+): STDERR:', line):
                 match = re.search(r'Task (\d+|\d+-\d+): STDERR: (.+)', line)
@@ -574,8 +576,8 @@ class TaskerTestExecutor:
                     # Only set if not already set by Split STDERR
                     if f"{task_id}_stderr" not in variables:
                         variables[f"{task_id}_stderr"] = stderr_value
-                    # Add to output patterns for pattern matching
-                    output_patterns["stderr"].append(stderr_value)
+                        # Add to output patterns for pattern matching
+                        output_patterns["stderr"].append(stderr_value)
 
             # Capture task exit codes (Phase 3 enhancement)
             # Matches both regular tasks (Task 0:) and subtasks (Task 0-1:)

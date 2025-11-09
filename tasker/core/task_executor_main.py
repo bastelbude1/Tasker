@@ -917,7 +917,35 @@ class TaskExecutor:
             finally:
                 self.summary_log = None
 
-        # PHASE 3: Error reporting
+        # PHASE 3: Temp file cleanup (streaming output handler)
+        # Clean up temp files created for large output storage (≥1MB outputs)
+        try:
+            if hasattr(self, '_state_manager') and self._state_manager:
+                task_results = self._state_manager.get_all_task_results()
+                for task_id, result in task_results.items():
+                    # Clean up stdout temp file if exists
+                    stdout_file = result.get('stdout_file')
+                    if stdout_file:
+                        try:
+                            import os
+                            if os.path.exists(stdout_file):
+                                os.unlink(stdout_file)
+                        except (OSError, IOError) as e:
+                            cleanup_errors.append(f"Task {task_id} stdout temp file cleanup failed: {e}")
+
+                    # Clean up stderr temp file if exists
+                    stderr_file = result.get('stderr_file')
+                    if stderr_file:
+                        try:
+                            import os
+                            if os.path.exists(stderr_file):
+                                os.unlink(stderr_file)
+                        except (OSError, IOError) as e:
+                            cleanup_errors.append(f"Task {task_id} stderr temp file cleanup failed: {e}")
+        except Exception as temp_cleanup_error:
+            cleanup_errors.append(f"Temp file cleanup phase failed: {temp_cleanup_error}")
+
+        # PHASE 4: Error reporting
         if cleanup_errors:
             error_count = len(cleanup_errors)
             error_summary = f"Cleanup completed with {error_count} error(s):"

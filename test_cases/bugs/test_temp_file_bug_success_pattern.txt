@@ -1,0 +1,42 @@
+# TEST_METADATA: {"description": "BUG: Temp files deleted before success pattern matching", "test_type": "negative", "expected_exit_code": 1, "expected_success": false}
+
+# BUG REPRODUCTION TEST
+# =====================
+# Demonstrates that temp files are deleted before success condition evaluation,
+# causing pattern matching to operate on truncated 1MB preview instead of full output.
+#
+# Expected Behavior:
+#   - Task 0 generates 15MB output with "SUCCESS_MARKER_XYZ" at byte position 14MB
+#   - Success condition stdout~SUCCESS_MARKER_XYZ should evaluate to TRUE
+#   - Task should succeed
+#
+# Actual Behavior (BUG):
+#   - output_handler with-block ends at line 248 of base_executor.py
+#   - Temp files deleted by __exit__ cleanup
+#   - Success evaluation (line 278) runs AFTER cleanup
+#   - success condition operates on 1MB truncated preview
+#   - Pattern not found in preview, evaluates to FALSE
+#   - Task FAILS (false negative)
+#
+# Code Path:
+#   base_executor.py:248 - with-block ends (cleanup called, temp files DELETED)
+#   base_executor.py:278 - Success condition evaluation
+#   condition_evaluator.py:466 - Pattern matching uses stdout (truncated preview)
+#   condition_evaluator.py:484 - pattern in stdout_stripped returns FALSE (WRONG!)
+
+--skip-host-validation
+--skip-security-validation
+
+# Task 0: Generate 15MB output with SUCCESS marker near the end
+# Place marker at line 1490 (out of 1500 lines)
+# This ensures marker is beyond the 1MB truncation point
+task=0
+hostname=localhost
+command=python3
+arguments=-c "data='X'*10000; [print(data) for _ in range(1489)]; print('SUCCESS_MARKER_XYZ'); [print(data) for _ in range(10)]"
+exec=local
+success=stdout~SUCCESS_MARKER_XYZ
+# BUG: This will evaluate to FALSE because stdout is truncated to 1MB
+# The marker at line 1490 is beyond the truncation point
+# Expected: SUCCESS (marker exists in full output)
+# Actual: FAILURE (marker not in truncated preview)

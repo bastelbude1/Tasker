@@ -2581,7 +2581,7 @@ class TaskExecutor:
             
             # Warning about unresolved dependencies
             if start_task_id > 0:
-                self.log_warn(f"# WARNING: Task dependencies @X_stdout@, @X_stderr@, @X_success@ for tasks 0-{start_task_id-1} will be unresolved")
+                self.log_warn(f"# WARNING: Task dependencies @X_stdout@, @X_stderr@, @X_stdout_file@, @X_stderr_file@, @X_success@ for tasks 0-{start_task_id-1} will be unresolved")
                 self.log_warn(f"# Tasks {start_task_id}+ may fail if they depend on results from earlier tasks")
                 
             self.log_info(f"# Starting execution from Task {start_task_id}")
@@ -2614,7 +2614,7 @@ class TaskExecutor:
                 auto_start = available_tasks[0]
                 self.log_info(f"Task 0 not found, auto-starting from lowest available task {auto_start}")
                 if auto_start > 0:
-                    self.log_warn(f"# WARNING: Task dependencies @X_stdout@, @X_stderr@, @X_success@ for tasks 0-{auto_start-1} will be unresolved")
+                    self.log_warn(f"# WARNING: Task dependencies @X_stdout@, @X_stderr@, @X_stdout_file@, @X_stderr_file@, @X_success@ for tasks 0-{auto_start-1} will be unresolved")
                     self.log_warn(f"# Tasks {auto_start}+ may fail if they depend on results from earlier tasks")
                 next_task_id = auto_start
             else:

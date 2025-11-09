@@ -101,6 +101,9 @@ class StateManager:
         This method provides full output access for variable substitution (@TASK_ID_stdout@)
         while maintaining memory efficiency by reading from temp files on-demand.
 
+        CRITICAL: Only hold lock for copying values (fast), then release before I/O (slow).
+        This prevents blocking other threads during potentially large file reads.
+
         Args:
             task_id: Task identifier
             output_type: 'stdout' or 'stderr'
@@ -108,21 +111,28 @@ class StateManager:
         Returns:
             Full output content, reading from temp file if available
         """
+        # CRITICAL: Hold lock ONLY for copying values (fast operation)
         with self._lock:
             result = self._task_results.get(task_id, {})
-
-            # Try temp file first (for large outputs that exceeded preview limit)
             file_key = f'{output_type}_file'
-            if file_key in result and result[file_key]:
-                try:
-                    with open(result[file_key], 'r') as f:
-                        return f.read()
-                except (IOError, OSError, FileNotFoundError):
-                    # Temp file may have been cleaned up, fall back to preview
-                    pass
+            temp_file_path = result.get(file_key) if file_key in result else None
+            preview_fallback = result.get(output_type, '')
 
-            # Fallback to in-memory preview (for small outputs or if temp file unavailable)
-            return result.get(output_type, '')
+        # CRITICAL: Release lock BEFORE heavy I/O operations
+        # Try temp file first (for large outputs that exceeded preview limit)
+        if temp_file_path:
+            try:
+                # Safe decoding: errors='replace' prevents UnicodeDecodeError crashes
+                # Replace invalid UTF-8 sequences with � instead of crashing
+                with open(temp_file_path, 'r', errors='replace') as f:
+                    return f.read()
+            except (FileNotFoundError, IOError, OSError, UnicodeDecodeError) as e:
+                # Temp file may have been cleaned up, corrupted, or contain binary data
+                # Fall through to preview fallback
+                pass
+
+        # Fallback to in-memory preview (for small outputs or if temp file unavailable)
+        return preview_fallback
 
     # ===== CURRENT TASK TRACKING =====
 

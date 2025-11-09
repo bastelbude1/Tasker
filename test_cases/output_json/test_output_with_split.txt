@@ -1,0 +1,39 @@
+# TEST_METADATA: {"description": "Test JSON output stores SPLIT data, not raw output", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "verify_json_output": true, "expected_json_status": "success", "expected_variables": {"0_stdout": "beta", "1_stdout": "two"}}
+
+# Test that --output-json stores the PROCESSED/SPLIT output, not the raw stream
+# This verifies the fix in commit a474b5a works correctly
+
+--auto-recovery
+--skip-host-validation
+--output-json
+
+# Task 0: Output with comma delimiter, split to get middle element
+# Raw output: "alpha,beta,gamma\n"
+# After stdout_split: "beta" (no trailing newline, just the middle element)
+# JSON should contain: "beta"
+task=0
+hostname=localhost
+command=echo
+arguments=alpha,beta,gamma
+exec=local
+stdout_split=comma,1
+
+# Task 1: Output with colon delimiter, split to get second element
+# Raw output: "one:two:three\n"
+# After stdout_split: "two"
+# JSON should contain: "two"
+task=1
+hostname=localhost
+command=echo
+arguments=one:two:three
+exec=local
+stdout_split=colon,1
+
+# Task 2: Verify split outputs are available for variable substitution
+# This proves the JSON contains split data (used by variable resolution)
+task=2
+hostname=localhost
+command=echo
+arguments=First=@0_stdout@ Second=@1_stdout@
+exec=local
+next=never

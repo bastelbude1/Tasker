@@ -537,21 +537,43 @@ class TaskerTestExecutor:
 
             # Capture task output for variable validation (Phase 3)
             # Support both regular tasks (Task 1:) and subtasks (Task 1-20:)
+            # IMPORTANT: Capture "Split STDOUT" which overrides regular STDOUT when present
+            elif re.search(r'Task (\d+|\d+-\d+): Split STDOUT:', line):
+                match = re.search(r'Task (\d+|\d+-\d+): Split STDOUT: (.+)', line)
+                if match:
+                    task_id = match.group(1)
+                    stdout_value = match.group(2)
+                    variables[f"{task_id}_stdout"] = stdout_value  # Override with split value
+                    # Add to output patterns for pattern matching
+                    output_patterns["stdout"].append(stdout_value)
+
             elif re.search(r'Task (\d+|\d+-\d+): STDOUT:', line):
                 match = re.search(r'Task (\d+|\d+-\d+): STDOUT: (.+)', line)
                 if match:
                     task_id = match.group(1)
                     stdout_value = match.group(2)
-                    variables[f"{task_id}_stdout"] = stdout_value
-                    # Add to output patterns for pattern matching
-                    output_patterns["stdout"].append(stdout_value)
+                    # Only set if not already set by Split STDOUT
+                    if f"{task_id}_stdout" not in variables:
+                        variables[f"{task_id}_stdout"] = stdout_value
+                        # Add to output patterns for pattern matching
+                        output_patterns["stdout"].append(stdout_value)
+
+            # IMPORTANT: Capture "Split STDERR" which overrides regular STDERR when present
+            elif re.search(r'Task (\d+|\d+-\d+): Split STDERR:', line):
+                match = re.search(r'Task (\d+|\d+-\d+): Split STDERR: (.+)', line)
+                if match:
+                    task_id = match.group(1)
+                    stderr_value = match.group(2)
+                    variables[f"{task_id}_stderr"] = stderr_value  # Override with split value
 
             elif re.search(r'Task (\d+|\d+-\d+): STDERR:', line):
                 match = re.search(r'Task (\d+|\d+-\d+): STDERR: (.+)', line)
                 if match:
                     task_id = match.group(1)
                     stderr_value = match.group(2)
-                    variables[f"{task_id}_stderr"] = stderr_value
+                    # Only set if not already set by Split STDERR
+                    if f"{task_id}_stderr" not in variables:
+                        variables[f"{task_id}_stderr"] = stderr_value
                     # Add to output patterns for pattern matching
                     output_patterns["stderr"].append(stderr_value)
 

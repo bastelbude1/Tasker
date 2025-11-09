@@ -212,10 +212,12 @@ class StreamingOutputHandler:
             # Detect and handle binary data
             if self._is_binary(content):
                 import base64
-                # Encode as base64 for JSON safety
-                return base64.b64encode(content.encode('latin-1', errors='ignore')).decode('ascii')
-
-            return content
+                # Encode as base64 for JSON safety (use backslashreplace to preserve undecodable bytes)
+                content_bytes = content.encode('latin-1', errors='backslashreplace')
+                return base64.b64encode(content_bytes).decode('ascii')
+            else:
+                # Return text content as-is
+                return content
         except (IOError, OSError):
             return "[Error reading output file]"
 

@@ -89,7 +89,8 @@ class SequentialExecutor(BaseExecutor):
                     'stderr_size': len(skip_msg),
                     'stdout_truncated': False,
                     'stderr_truncated': False,
-                    'success': False
+                    'success': False,
+                    'skipped': True
                 })
                 return task_id + 1  # Continue to next task
             else:

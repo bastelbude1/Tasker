@@ -78,7 +78,7 @@ class BaseExecutor(ABC):
                         
             except (ValueError, IndexError) as e:
                 if debug_callback:
-                    debug_callback(f"Task {task_display_id}: Error in {op_key}: {str(e)}")
+                    debug_callback(f"Task {task_display_id}: Error in {op_key}: {e!s}")
         
         # Process stderr operations
         modified_stderr = stderr
@@ -101,7 +101,7 @@ class BaseExecutor(ABC):
                         
             except (ValueError, IndexError) as e:
                 if debug_callback:
-                    debug_callback(f"Task {task_display_id}: Error in {op_key}: {str(e)}")
+                    debug_callback(f"Task {task_display_id}: Error in {op_key}: {e!s}")
         
         return modified_stdout, modified_stderr
     
@@ -251,16 +251,16 @@ class BaseExecutor(ABC):
             except Exception as e:
                 execution_time = time.time() - start_time
                 execution_context.log_debug(f"Task {task_display_id}: Execution time: {execution_time:.3f}s")
-                execution_context.log(f"Task {task_display_id}: Execution error: {str(e)}")
+                execution_context.log(f"Task {task_display_id}: Execution error: {e!s}")
                 return {
                     'task_id': task_id,
                     'exit_code': 1,
                     'stdout': '',
-                    'stderr': str(e),
+                    'stderr': f'{e!s}',
                     'stdout_file': None,
                     'stderr_file': None,
                     'stdout_size': 0,
-                    'stderr_size': len(str(e)),
+                    'stderr_size': len(f'{e!s}'),
                     'stdout_truncated': False,
                     'stderr_truncated': False,
                     'success': False,
@@ -365,8 +365,8 @@ class BaseExecutor(ABC):
             }
 
         except Exception as e:
-            execution_context.log_error(f"Task {task_display_id}: Unexpected error during execution: {str(e)}")
-            error_msg = f'Execution error: {str(e)}'
+            execution_context.log_error(f"Task {task_display_id}: Unexpected error during execution: {e!s}")
+            error_msg = f'Execution error: {e!s}'
             return {
                 'task_id': task_id,
                 'exit_code': 255,

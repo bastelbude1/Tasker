@@ -920,8 +920,6 @@ class TaskExecutor:
         # PHASE 3: Temp file cleanup for large outputs
         # Clean up any temp files created for large stdout/stderr outputs
         try:
-            import os
-            import tempfile
             temp_dir = tempfile.gettempdir()
 
             # Collect all temp file references from task results
@@ -960,9 +958,9 @@ class TaskExecutor:
                         else:
                             self.log_debug(f"Temp file already deleted: {temp_file}")
 
-                    except Exception as e:
+                    except (OSError, IOError) as e:
                         cleanup_errors.append(f"Failed to delete temp file {temp_file}: {e}")
-        except Exception as temp_cleanup_error:
+        except (OSError, IOError, RuntimeError, ValueError) as temp_cleanup_error:
             cleanup_errors.append(f"Temp file cleanup phase failed: {temp_cleanup_error}")
 
         # PHASE 4: Error reporting

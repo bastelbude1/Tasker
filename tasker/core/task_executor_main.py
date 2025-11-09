@@ -921,34 +921,45 @@ class TaskExecutor:
         # Clean up any temp files created for large stdout/stderr outputs
         try:
             import os
-            import glob
             import tempfile
             temp_dir = tempfile.gettempdir()
 
-            # Pattern matches temp files created by StreamingOutputHandler
-            # Format: tasker_output_XXXXXX_stdout.tmp or tasker_output_XXXXXX_stderr.tmp
-            pattern = os.path.join(temp_dir, "tasker_output_*_*.tmp")
-            temp_files = glob.glob(pattern)
+            # Collect all temp file references from task results
+            temp_files_to_delete = set()
+            for task_result in self.task_results.values():
+                if isinstance(task_result, dict):
+                    stdout_file = task_result.get('stdout_file')
+                    stderr_file = task_result.get('stderr_file')
 
-            if temp_files:
-                self.log_debug(f"Cleaning up {len(temp_files)} temporary output file(s)")
-                for temp_file in temp_files:
+                    if stdout_file:
+                        temp_files_to_delete.add(stdout_file)
+                    if stderr_file:
+                        temp_files_to_delete.add(stderr_file)
+
+            if temp_files_to_delete:
+                self.log_debug(f"Cleaning up {len(temp_files_to_delete)} temporary output file(s)")
+
+                for temp_file in temp_files_to_delete:
                     try:
-                        # Only delete files from this session (check if we have a reference)
-                        # This prevents deleting files from other concurrent TASKER instances
-                        should_delete = False
+                        # Safety checks before deletion
+                        # 1. Verify file is in system temp directory
+                        if not temp_file.startswith(temp_dir):
+                            self.log_debug(f"Skipping temp file outside temp dir: {temp_file}")
+                            continue
 
-                        # Check if any task result references this file
-                        for task_result in self.task_results.values():
-                            if isinstance(task_result, dict):
-                                if (task_result.get('stdout_file') == temp_file or
-                                    task_result.get('stderr_file') == temp_file):
-                                    should_delete = True
-                                    break
+                        # 2. Verify file matches allowed prefixes (tasker_stdout_ or tasker_stderr_)
+                        basename = os.path.basename(temp_file)
+                        if not (basename.startswith('tasker_stdout_') or basename.startswith('tasker_stderr_')):
+                            self.log_debug(f"Skipping temp file with unexpected prefix: {temp_file}")
+                            continue
 
-                        if should_delete:
+                        # 3. Verify file exists before attempting deletion
+                        if os.path.exists(temp_file):
                             os.remove(temp_file)
                             self.log_debug(f"Deleted temp file: {temp_file}")
+                        else:
+                            self.log_debug(f"Temp file already deleted: {temp_file}")
+
                     except Exception as e:
                         cleanup_errors.append(f"Failed to delete temp file {temp_file}: {e}")
         except Exception as temp_cleanup_error:

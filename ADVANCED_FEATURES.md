@@ -2281,7 +2281,7 @@ TASKER automatically manages temporary files for large outputs (>1MB) to prevent
 **1. Creation (During Task Execution):**
 - When task stdout or stderr exceeds 1MB threshold
 - File created in system temp directory (`/tmp` on Linux)
-- Format: `tasker_output_XXXXXX_stdout.tmp` or `tasker_output_XXXXXX_stderr.tmp`
+- Format: `tasker_stdout_XXXXXX` or `tasker_stderr_XXXXXX`
 - File path stored in task result for cross-task access
 
 **2. Usage (During Workflow):**
@@ -2338,10 +2338,10 @@ arguments=-c "wc -c < @0_stdout_file@"
 **Manual Cleanup:**
 ```bash
 # Find TASKER temp files (diagnostic)
-ls -la /tmp/tasker_output_*
+ls -la /tmp/tasker_stdout_* /tmp/tasker_stderr_*
 
 # Manual cleanup if needed (use with caution)
-rm /tmp/tasker_output_*_*.tmp
+rm /tmp/tasker_stdout_* /tmp/tasker_stderr_*
 ```
 
 ### Concurrent Execution Safety

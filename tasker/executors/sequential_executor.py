@@ -379,6 +379,9 @@ class SequentialExecutor(BaseExecutor):
             stdout_preview = stdout  # Use split result
             stdout_truncated = False  # Split result stored in full (not truncated)
             stdout_size = len(stdout)  # Size of split result
+            # CRITICAL: Clear temp file reference when split is applied
+            # Split result is authoritative - prevent StateManager from reading raw temp file
+            stdout_file_path = None
         else:
             # No split - use preview/temp file logic
             # (stdout_preview already set by lines 350-358)
@@ -396,6 +399,9 @@ class SequentialExecutor(BaseExecutor):
             stderr_preview = stderr  # Use split result
             stderr_truncated = False  # Split result stored in full (not truncated)
             stderr_size = len(stderr)  # Size of split result
+            # CRITICAL: Clear temp file reference when split is applied
+            # Split result is authoritative - prevent StateManager from reading raw temp file
+            stderr_file_path = None
         else:
             # No split - use preview/temp file logic
             # (stderr_preview already set by lines 359-365)

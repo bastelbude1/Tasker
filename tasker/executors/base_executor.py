@@ -313,6 +313,9 @@ class BaseExecutor(ABC):
                 stdout_preview = processed_stdout
                 stdout_truncated = False  # Split result stored in full (not truncated)
                 stdout_size = len(processed_stdout)  # Size of split result
+                # CRITICAL: Clear temp file reference when split is applied
+                # Split result is authoritative - prevent StateManager from reading raw temp file
+                stdout_file_path = None
             else:
                 # No split - use preview/temp file logic
                 # (stdout_preview already set by lines 287-298)
@@ -330,6 +333,9 @@ class BaseExecutor(ABC):
                 stderr_preview = processed_stderr
                 stderr_truncated = False  # Split result stored in full (not truncated)
                 stderr_size = len(processed_stderr)  # Size of split result
+                # CRITICAL: Clear temp file reference when split is applied
+                # Split result is authoritative - prevent StateManager from reading raw temp file
+                stderr_file_path = None
             else:
                 # No split - use preview/temp file logic
                 # (stderr_preview already set by lines 299-302)

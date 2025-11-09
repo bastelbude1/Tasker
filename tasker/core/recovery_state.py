@@ -20,6 +20,8 @@ import hashlib
 from datetime import datetime
 from typing import Dict, Any, Optional, Tuple
 
+from tasker.core.streaming_output_handler import StreamingOutputHandler
+
 
 class RecoveryStateManager:
     """Manages recovery state for automatic error recovery."""
@@ -219,12 +221,14 @@ class RecoveryStateManager:
 
         # Check total JSON size before writing (enforce 100MB limit)
         estimated_size = self._estimate_json_size(recovery_data)
-        max_size = 100 * 1024 * 1024  # 100MB limit
-        if estimated_size > max_size:
+        if estimated_size > StreamingOutputHandler.MAX_JSON_TOTAL_SIZE:
             raise ValueError(
                 "Recovery state JSON would exceed size limit: {} bytes > {} bytes (100MB). "
                 "This indicates extremely large task outputs. Consider reducing output size or "
-                "reviewing task configurations.".format(estimated_size, max_size)
+                "reviewing task configurations.".format(
+                    estimated_size,
+                    StreamingOutputHandler.MAX_JSON_TOTAL_SIZE
+                )
             )
 
         # Write recovery state to file atomically

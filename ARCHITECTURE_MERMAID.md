@@ -155,85 +155,78 @@ graph TB
 ## 4. Module Dependency Graph
 
 ```mermaid
-graph TB
-    CLI[tasker.py<br/>CLI Entry Point]
-    CfgYAML[cfg/execution_types.yaml<br/>Platform-specific config]
+graph LR
+    CLI[tasker.py]
 
-    subgraph Config["tasker/config/"]
-        ExecLoader[exec_config_loader.py<br/>Singleton]
+    subgraph CFG["Configuration"]
+        YAML[cfg/execution_types.yaml]
+        Loader[config/exec_config_loader.py]
     end
 
-    subgraph Validation["tasker/validation/"]
-        InputSan[input_sanitizer.py]
-        TaskVal[task_validator.py]
-        HostVal[host_validator.py<br/>Uses ExecConfigLoader]
+    subgraph VAL["Validation"]
+        Sanitizer[validation/input_sanitizer.py]
+        TaskValidator[validation/task_validator.py]
+        HostValidator[validation/host_validator.py]
     end
 
-    subgraph Core["tasker/core/"]
-        TaskExec[task_executor_main.py]
-        CondEval[condition_evaluator.py]
-        StreamOut[streaming_output_handler.py]
-        StateManager[state_manager.py]
-        WorkflowCtrl[workflow_controller.py]
-        ResultColl[result_collector.py]
-        TaskRunner[task_runner.py]
-        Constants[constants.py]
-        Utilities[utilities.py]
+    subgraph CORE["Core Engine"]
+        Main[core/task_executor_main.py]
+        Cond[core/condition_evaluator.py]
+        Stream[core/streaming_output_handler.py]
+        State[core/state_manager.py]
+        Workflow[core/workflow_controller.py]
+        Results[core/result_collector.py]
+        Runner[core/task_runner.py]
     end
 
-    subgraph Executors["tasker/executors/"]
-        BaseExec[base_executor.py]
-        SeqExec[sequential_executor.py]
-        ParExec[parallel_executor.py]
-        CondExec[conditional_executor.py]
-        DecExec[decision_executor.py]
+    subgraph EXEC["Executors"]
+        Base[executors/base_executor.py]
+        Sequential[executors/sequential_executor.py]
+        Parallel[executors/parallel_executor.py]
+        Conditional[executors/conditional_executor.py]
+        Decision[executors/decision_executor.py]
     end
 
-    subgraph Utils["tasker/utils/"]
-        NonBlockSleep[non_blocking_sleep.py]
+    subgraph UTIL["Utilities"]
+        Constants[core/constants.py]
+        Utils[core/utilities.py]
+        Sleep[utils/non_blocking_sleep.py]
     end
 
-    CLI --> CfgYAML
-    CLI --> ExecLoader
-    CLI --> InputSan
-    CLI --> TaskVal
-    CLI --> HostVal
-    CLI --> TaskExec
-    ExecLoader --> CfgYAML
-    HostVal --> ExecLoader
+    CLI --> Loader
+    CLI --> VAL
+    CLI --> Main
 
-    TaskExec --> CondEval
-    TaskExec --> StreamOut
-    TaskExec --> StateManager
-    TaskExec --> WorkflowCtrl
-    TaskExec --> ResultColl
-    TaskExec --> TaskRunner
-    TaskExec --> BaseExec
+    Loader --> YAML
+    HostValidator --> Loader
 
-    CondEval --> Constants
-    CondEval --> Utilities
+    Main --> Cond
+    Main --> Stream
+    Main --> State
+    Main --> Workflow
+    Main --> Results
+    Main --> Runner
+    Main --> Base
 
-    BaseExec --> SeqExec
-    BaseExec --> ParExec
-    BaseExec --> CondExec
-    BaseExec --> DecExec
+    Base --> Sequential
+    Base --> Parallel
+    Base --> Conditional
+    Base --> Decision
 
-    SeqExec --> CondEval
-    SeqExec --> StreamOut
-    ParExec --> CondEval
-    ParExec --> StreamOut
-    CondExec --> CondEval
-    CondExec --> StreamOut
-    DecExec --> CondEval
-    DecExec --> StreamOut
+    Sequential -.uses.-> Cond
+    Parallel -.uses.-> Cond
+    Conditional -.uses.-> Cond
+    Decision -.uses.-> Cond
+
+    Cond --> Constants
+    Cond --> Utils
 
     style CLI fill:#e1f5fe
-    style CfgYAML fill:#fff9c4
-    style Config fill:#ffe0b2
-    style Validation fill:#fff3e0
-    style Core fill:#e8f5e9
-    style Executors fill:#f3e5f5
-    style Utils fill:#fce4ec
+    style CFG fill:#fff9c4
+    style VAL fill:#fff3e0
+    style CORE fill:#e8f5e9
+    style EXEC fill:#f3e5f5
+    style UTIL fill:#fce4ec
 ```
 
 ### External Dependencies

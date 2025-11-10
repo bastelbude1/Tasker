@@ -260,6 +260,8 @@ Examples:
                        help='Skip task file and dependency validation (use for faster resume)')
     parser.add_argument('--skip-host-validation', action='store_true',
                        help='Skip host validation - use hostnames as-is without FQDN/connectivity checks (WARNING: may cause connection failures)')
+    parser.add_argument('--skip-unresolved-host-validation', action='store_true',
+                       help='Allow unresolved hostname variables - enables runtime hostname resolution pattern (only skips validation for hostnames with variables like @0_stdout@)')
     parser.add_argument('--skip-command-validation', action='store_true',
                        help='Skip command existence validation - allows missing local commands (WARNING: may cause execution failures)')
     parser.add_argument('--skip-security-validation', action='store_true',
@@ -359,6 +361,7 @@ Examples:
     # Handle convenience flag
     skip_task_validation = args.skip_task_validation or args.skip_validation
     skip_host_validation = args.skip_host_validation or args.skip_validation
+    skip_unresolved_host_validation = args.skip_unresolved_host_validation
     skip_command_validation = args.skip_command_validation or args.skip_validation
     skip_security_validation = args.skip_security_validation or args.skip_validation
 
@@ -367,6 +370,11 @@ Examples:
         print("WARNING: Skipping task validation can lead to invalid workflows!")
     if skip_host_validation:
         print("WARNING: Skipping host validation can lead to connection failures!")
+    if skip_unresolved_host_validation:
+        if not skip_host_validation:
+            print("INFO: Runtime hostname resolution enabled - hostnames with variables will be resolved during execution")
+        else:
+            print("INFO: --skip-unresolved-host-validation has no effect when --skip-host-validation is set")
     if skip_command_validation:
         print("WARNING: Skipping command validation can lead to execution failures!")
     if skip_security_validation:
@@ -409,6 +417,7 @@ Examples:
         start_from_task=args.start_from,
         skip_task_validation=skip_task_validation,
         skip_host_validation=skip_host_validation,
+        skip_unresolved_host_validation=skip_unresolved_host_validation,
         skip_command_validation=skip_command_validation,
         skip_security_validation=skip_security_validation,
         skip_subtask_range_validation=args.skip_subtask_range_validation,

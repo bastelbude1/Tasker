@@ -95,7 +95,8 @@ class TaskExecutor:
     def __init__(self, task_file, log_dir='logs', dry_run=True, log_level='INFO',
                  exec_type=None, timeout=30, connection_test=False, project=None,
                  start_from_task=None, skip_task_validation=False,
-                 skip_host_validation=False, skip_command_validation=False,
+                 skip_host_validation=False, skip_unresolved_host_validation=False,
+                 skip_command_validation=False,
                  skip_security_validation=False, skip_subtask_range_validation=False,
                  strict_env_validation=False, show_plan=False, validate_only=False,
                  fire_and_forget=False, no_task_backup=False, auto_recovery=False,
@@ -118,6 +119,7 @@ class TaskExecutor:
             start_from_task: Optional task id to resume execution from; enables resume mode and influences startup logging.
             skip_task_validation: If true, task file validation is skipped (useful in resume scenarios).
             skip_host_validation: If true, host validation is skipped (hostname checks will be bypassed).
+            skip_unresolved_host_validation: If true, allows hostnames with unresolved variables (enables runtime hostname resolution pattern).
             skip_command_validation: If true, command existence validation is skipped (WARNING: may cause execution failures).
             skip_security_validation: If true, security-specific validation steps are skipped during task validation.
             skip_subtask_range_validation: If true, subtask ID range convention warnings are suppressed.
@@ -235,6 +237,7 @@ class TaskExecutor:
         self.start_from_task = start_from_task
         self.skip_task_validation = skip_task_validation
         self.skip_host_validation = skip_host_validation
+        self.skip_unresolved_host_validation = skip_unresolved_host_validation
         self.skip_command_validation = skip_command_validation
         self.skip_security_validation = skip_security_validation
         self.skip_subtask_range_validation = skip_subtask_range_validation
@@ -256,6 +259,8 @@ class TaskExecutor:
                 self.log_warn(f"# Task Validation will be skipped")
             if self.skip_host_validation:
                 self.log_warn("# Host Validation will be skipped - ATTENTION")
+            if self.skip_unresolved_host_validation:
+                self.log_warn("# Unresolved Host Validation will be skipped - runtime hostname resolution enabled")
             if self.skip_command_validation:
                 self.log_warn("# Command Validation will be skipped - ATTENTION")
             if self.skip_security_validation:
@@ -2328,10 +2333,10 @@ class TaskExecutor:
                 self.task_results,
                 self.exec_type,
                 self.default_exec_type,
-                self.connection_test,  # Respect CLI/constructor flag
                 self.log_debug if self.log_level == 'DEBUG' else None,  # Only detailed output in debug mode
                 self.log_info,
-                skip_command_validation=self.skip_command_validation  # Keyword-only arg
+                skip_command_validation=self.skip_command_validation,  # Keyword-only arg
+                skip_unresolved_host_validation=self.skip_unresolved_host_validation  # Keyword-only arg
             )
             
             # Handle new return format
@@ -2349,15 +2354,15 @@ class TaskExecutor:
             # Check for shutdown after host validation
             self._check_shutdown()
         else:
-            # Create dummy validated_hosts dict for resume mode
+            # Host validation skipped (via --skip-host-validation, resume mode, or other workflow)
+            # Collect hostnames without DNS/connectivity validation
+            # Use self-referential mapping (hostname -> hostname) since no FQDN lookup/validation performed
             validated_hosts = {}
-    
-        # For resume mode, collect hostnames but don't validate them
-        for task in self.tasks.values():
-            if 'hostname' in task and task['hostname']:
-                hostname, resolved = ConditionEvaluator.replace_variables(task['hostname'], self.global_vars, self.task_results, self.log_debug)
-                if resolved and hostname:
-                    validated_hosts[hostname] = hostname  # Use as-is without validation
+            for task in self.tasks.values():
+                if task.get('hostname'):
+                    hostname, resolved = ConditionEvaluator.replace_variables(task['hostname'], self.global_vars, self.task_results, self.log_debug)
+                    if resolved and hostname:
+                        validated_hosts[hostname] = hostname  # Self-referential: no validation, use as-is
 
         # Replace hostnames with validated FQDNs in all tasks
         # Conditional hostname FQDN replacement

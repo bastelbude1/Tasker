@@ -26,7 +26,7 @@ class HostValidator:
     """
     
     @staticmethod
-    def validate_hosts(tasks, global_vars, task_results, exec_type=None, default_exec_type='pbrun', check_connectivity=False, debug_callback=None, log_callback=None, *, skip_command_validation=False):
+    def validate_hosts(tasks, global_vars, task_results, exec_type=None, default_exec_type='pbrun', debug_callback=None, log_callback=None, *, skip_command_validation=False, skip_unresolved_host_validation=False):
         """
         Enhanced host validation with automatic connectivity testing for remote hosts.
         Returns a dict mapping original hostnames to validated FQDNs if successful,
@@ -38,10 +38,10 @@ class HostValidator:
             task_results: Dictionary of task results
             exec_type: Override execution type
             default_exec_type: Default execution type to use
-            check_connectivity: Whether to test actual connectivity (ignored - always True for remote hosts)
             debug_callback: Optional function for debug logging
             log_callback: Optional function for main logging
             skip_command_validation: Whether to skip command existence validation (keyword-only)
+            skip_unresolved_host_validation: Whether to allow unresolved hostname variables (enables runtime hostname resolution) (keyword-only)
 
         Returns:
             Dict mapping hostnames to validated FQDNs, or dict with 'error' and 'exit_code' if validation failed
@@ -71,8 +71,8 @@ class HostValidator:
                     })
                     continue
 
-                if resolved and hostname:
-                    # Determine exec type for this task
+                if hostname:
+                    # Determine exec type for this task (resolved=True guaranteed by continue above)
                     task_exec = HostValidator._determine_task_exec_type(
                         task, exec_type, default_exec_type)
 
@@ -83,17 +83,33 @@ class HostValidator:
                     if hostname not in host_exec_combinations:
                         host_exec_combinations[hostname] = set()
                     host_exec_combinations[hostname].add(task_exec)
+                else:
+                    # Hostname resolved to empty string - likely a configuration error
+                    if debug_callback:
+                        task_id = task.get('task_id', 'unknown')
+                        debug_callback(f"WARNING: Task {task_id}: hostname '{task['hostname']}' resolved to empty string (skipped)")
 
         # Handle unresolved hostname variables
         if unresolved_hostnames:
-            if log_callback:
-                log_callback(f"# ERROR: {len(unresolved_hostnames)} task(s) have unresolved hostname variables:")
-                for entry in unresolved_hostnames:
-                    log_callback(f"#   Task {entry['task_id']}: hostname='{entry['hostname']}' contains unresolved variable(s)")
-                    if debug_callback:
-                        debug_callback(f"    After partial resolution: '{entry['resolved_to']}'")
-                log_callback(f"# Hint: Check that all variables referenced in hostnames are defined in the global variables section")
-            return {'error': 'unresolved_hostname_variables', 'exit_code': ExitCodes.TASK_FILE_VALIDATION_FAILED}
+            if skip_unresolved_host_validation:
+                # Permissive mode: Allow unresolved hostnames for runtime resolution
+                if log_callback:
+                    log_callback(f"# WARNING: {len(unresolved_hostnames)} task(s) have unresolved hostname variables (runtime resolution enabled)")
+                    for entry in unresolved_hostnames:
+                        log_callback(f"#   Task {entry['task_id']}: hostname='{entry['hostname']}' will be resolved at runtime")
+                        if debug_callback:
+                            debug_callback(f"    After partial resolution: '{entry['resolved_to']}'")
+                # Continue with validation for resolved hostnames only
+            else:
+                # Strict mode: Reject unresolved hostnames
+                if log_callback:
+                    log_callback(f"# ERROR: {len(unresolved_hostnames)} task(s) have unresolved hostname variables:")
+                    for entry in unresolved_hostnames:
+                        log_callback(f"#   Task {entry['task_id']}: hostname='{entry['hostname']}' contains unresolved variable(s)")
+                        if debug_callback:
+                            debug_callback(f"    After partial resolution: '{entry['resolved_to']}'")
+                    log_callback("# Hint: Check that all variables referenced in hostnames are defined in the global variables section")
+                return {'error': 'unresolved_hostname_variables', 'exit_code': ExitCodes.TASK_FILE_VALIDATION_FAILED}
         
         # Check if required execution commands exist (unless explicitly skipped)
         if not skip_command_validation:
@@ -288,9 +304,13 @@ class HostValidator:
 
                 try:
                     stdout, stderr = process.communicate(timeout=5)
+                    ok = (process.returncode == 0)
                     if debug_callback:
-                        debug_callback(f"ping '{hostname}' is alive")
-                    return process.returncode == 0
+                        if ok:
+                            debug_callback(f"ping '{hostname}' is alive")
+                        else:
+                            debug_callback(f"ERROR: ping to '{hostname}' failed (rc={process.returncode})")
+                    return ok
                 except subprocess.TimeoutExpired:
                     process.kill()
                     stdout, stderr = process.communicate()
@@ -303,55 +323,6 @@ class HostValidator:
                 debug_callback(f"ERROR: pinging host '{hostname}': {str(e)}")
             return False
 
-    @staticmethod
-    def check_exec_connection(exec_type, hostname, debug_callback=None):
-        """Test connectivity for specific execution type."""
-        if exec_type not in ['pbrun', 'p7s', 'wwrs']:
-            # For local or unknown exec types, just return True
-            return True
-
-        # Build command array based on exec_type
-        if exec_type == 'pbrun':
-            cmd_array = ["pbrun", "-n", "-h", hostname, "pbtest"]
-        elif exec_type == 'p7s':
-            cmd_array = ["p7s", hostname, "pbtest"]
-        elif exec_type == 'wwrs':
-            cmd_array = ["wwrs_clir", hostname, "wwrs_test"]
-
-        if debug_callback:
-            debug_callback(f"Testing {exec_type} connection to '{hostname}' with: {' '.join(cmd_array)}")
-
-        try:
-            with subprocess.Popen(
-                cmd_array,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True
-            ) as process:
-
-                try:
-                    stdout, stderr = process.communicate(timeout=10)
-                    success = process.returncode == 0 and "OK" in stdout
-                    if success:
-                        if debug_callback:
-                            debug_callback(f"{exec_type} connection to '{hostname}' successful")
-                    else:
-                        if debug_callback:
-                            debug_callback(f"ERROR: {exec_type} connection to '{hostname}' failed: {stderr.strip()}")
-                    return success
-
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    stdout, stderr = process.communicate()
-                    if debug_callback:
-                        debug_callback(f"ERROR: {exec_type} connection to '{hostname}' timed out")
-                    return False
-
-        except Exception as e:
-            if debug_callback:
-                debug_callback(f"ERROR: testing {exec_type} connection to '{hostname}': {str(e)}")
-            return False
-    
     @staticmethod
     def _determine_task_exec_type(task, exec_type, default_exec_type):
         """Determine execution type for a task."""

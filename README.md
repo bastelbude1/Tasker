@@ -574,7 +574,6 @@ tasker -r --skip-command-validation tasks.txt
 |--------|-------------|---------|
 | `--show-plan` | Display execution plan and ask confirmation | `tasker --show-plan -r tasks.txt` |
 | `--validate-only` | Validate task file and exit | `tasker --validate-only tasks.txt` |
-| `-c, --connection-test` | Enable host connectivity testing | `tasker -r -c tasks.txt` |
 | `--skip-task-validation` | Skip task file validation | `tasker -r --skip-task-validation tasks.txt` |
 | `--skip-host-validation` | Skip host validation | `tasker -r --skip-host-validation tasks.txt` |
 | `--skip-command-validation` | Skip command existence checks | `tasker -r --skip-command-validation tasks.txt` |

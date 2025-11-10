@@ -216,15 +216,36 @@ def get_available_exec_types():
     Returns:
         list: Sorted list of available execution types including 'local'
     """
+    # Capture config loading messages to detect errors
+    config_messages = []
+
+    def capture_callback(msg):
+        config_messages.append(msg)
+
     try:
-        # Load config without debug output during argument parsing
-        loader = get_exec_config_loader(debug_callback=lambda msg: None)
+        # Load config with message capture
+        loader = get_exec_config_loader(debug_callback=capture_callback)
         config_types = loader.get_execution_types()
+
+        # Warn if config loading had errors (but not for expected missing file)
+        error_messages = [msg for msg in config_messages if 'ERROR:' in msg or 'WARNING:' in msg]
+        if error_messages:
+            # Filter out expected "missing config" warnings
+            unexpected_errors = [msg for msg in error_messages
+                                if 'No execution_types.yaml config found' not in msg
+                                and 'PyYAML not available' not in msg]
+            if unexpected_errors:
+                print("Warning: Configuration loading issues detected:", file=sys.stderr)
+                for msg in unexpected_errors:
+                    print(f"         {msg}", file=sys.stderr)
+                print("         Only 'local' execution type will be available.", file=sys.stderr)
 
         # Always include 'local', then add config-based types
         return sorted(['local', *config_types])
-    except Exception:
-        # If config loading fails, fall back to local only
+    except Exception as e:
+        # Catch any unexpected exceptions during argument parsing
+        print(f"Warning: Unexpected error loading config: {e}", file=sys.stderr)
+        print("         Only 'local' execution type will be available.", file=sys.stderr)
         return ['local']
 
 

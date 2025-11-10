@@ -211,6 +211,14 @@
   │  • Statistics          │
   │  • Execution path      │
   │  • Performance metrics │
+  └────────┬───────────────┘
+           │
+           ▼
+  ┌────────────────────────┐
+  │  Cleanup Phase         │
+  │  • Close file handles  │
+  │  • Delete temp files   │
+  │  • Free resources      │
   └────────────────────────┘
 ```
 
@@ -342,12 +350,15 @@ tasker.py (CLI Entry Point)
 tasker/utils/
     └─→ non_blocking_sleep.py (standalone utility)
 
-External Dependencies: NONE (Standard library only)
+TASKER Main Application (tasker.py): NONE (Standard library only)
     ✅ subprocess
     ✅ threading
     ✅ tempfile
     ✅ json
     ✅ re (regex)
+
+Note: Test infrastructure & utilities may use third-party packages
+      (e.g., psutil for performance monitoring in test runners)
 ```
 
 ## 5. Execution Strategy Pattern
@@ -456,7 +467,7 @@ User Input (task.txt)
 ┌─────────────────────────────────────────────────────────────┐
 │  intelligent_test_runner.py (Orchestrator)                  │
 │  • Metadata parsing                                         │
-│  • Test discovery (13 categories)                           │
+│  • Test discovery (10 categories)                           │
 │  • Parallel execution                                       │
 │  • Result aggregation                                       │
 └────────────────┬────────────────────────────────────────────┘
@@ -475,7 +486,7 @@ User Input (task.txt)
                  │
                  ▼
 ┌──────────────────────────────────────────────────────────────┐
-│              TEST CATEGORIES (13)                            │
+│              TEST CATEGORIES (10)                            │
 │                                                              │
 │  functional/      (~180) Basic features                     │
 │  integration/     (~80)  End-to-end workflows               │
@@ -487,6 +498,9 @@ User Input (task.txt)
 │  recovery/        (~10)  Failure recovery                   │
 │  resume/          (~10)  Workflow resumption                │
 │  readme_examples/ (~35)  Documentation examples             │
+│                                                              │
+│  (Total: 465 tests ✓)                                       │
+│  Note: templates/ contains test templates, not test cases   │
 └────────────────┬─────────────────────────────────────────────┘
                  │
                  ▼

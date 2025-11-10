@@ -146,7 +146,13 @@ class HostValidator:
                 if log_callback:
                     log_callback(f"# ERROR: Execution types not found in configuration: {', '.join(unconfigured_types)}")
                     log_callback(f"#        Config file location: cfg/execution_types.yaml")
-                    log_callback(f"#        Only exec=local is supported without configuration")
+
+                    # Show available exec types if config is loaded, otherwise show fallback message
+                    available_types = exec_config_loader.get_execution_types()
+                    if available_types:
+                        log_callback(f"#        Available exec types: {', '.join(sorted(['local'] + available_types))}")
+                    else:
+                        log_callback(f"#        Only exec=local is supported (config file missing or invalid)")
                 return {'error': 'unconfigured_exec_types', 'exit_code': ExitCodes.TASK_FILE_VALIDATION_FAILED}
 
             # Report missing command binaries

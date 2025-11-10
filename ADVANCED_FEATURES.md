@@ -10,6 +10,7 @@ This guide covers advanced TASKER features for power users. For basic usage, see
 - [Global Variables](#global-variables)
 - [Memory-Efficient Output Streaming](#memory-efficient-output-streaming)
 - [Alert-on-Failure: Workflow Monitoring](#alert-on-failure-workflow-monitoring)
+- [Remote Execution Configuration](#remote-execution-configuration)
 - [Execution Models](#execution-models)
 - [Advanced Flow Control](#advanced-flow-control)
 - [Task Result Storage and Data Flow](#task-result-storage-and-data-flow)
@@ -245,7 +246,6 @@ These flags generate warnings but are allowed:
 |----------|------|---------|
 | `--run` / `-r` | Boolean | `--run` or `-r` |
 | `--debug` / `-d` | Boolean | `--debug` or `-d` |
-| `--connection-test` / `-c` | Boolean | `--connection-test` or `-c` |
 | `--log-level=LEVEL` | Value | `--log-level=DEBUG` |
 | `--timeout=N` | Value | `--timeout=60` |
 | `--start-from=N` | Value | `--start-from=5` |
@@ -1392,6 +1392,560 @@ hostname=server2
 command=large_data_command | tail -1
 # Extract only needed data
 ```
+
+## Remote Execution Configuration
+
+**Config-based execution type system** - Define remote execution commands in external configuration files for flexibility and maintainability.
+
+### Overview
+
+TASKER 2.1 introduces a config-based architecture for defining execution types (pbrun, p7s, wwrs, shell). Instead of hardcoding remote execution commands, you can now configure them in `cfg/execution_types.yaml`.
+
+**Key Features:**
+- ✅ **Only exec=local is hardcoded** - All other exec types come from configuration
+- ✅ **Platform-specific** - Different configs for Linux/Windows
+- ✅ **Extensible** - Add custom execution types without code changes
+- ✅ **Automatic validation** - Connectivity tests ensure remote access works
+- ✅ **Graceful fallback** - Missing config falls back to local-only mode
+
+### Configuration File Location
+
+TASKER searches for `execution_types.yaml` in this priority order:
+
+1. **Same directory as tasker.py** (symlink-aware): `<real_script_dir>/cfg/execution_types.yaml`
+2. **Current working directory**: `./cfg/execution_types.yaml`
+
+**Example setup:**
+
+```bash
+/home/user/tasker/
+├── tasker.py              # Main script
+├── cfg/
+│   └── execution_types.yaml  # Config file
+└── tasker/               # Module directory
+    └── ...
+```
+
+**Symlink resolution:** TASKER automatically resolves symlinks to find the real script location, ensuring config is found even when running via symlink:
+
+```bash
+# Symlink in PATH
+/usr/local/bin/tasker -> /home/user/tasker/tasker.py
+
+# Config still found at
+/home/user/tasker/cfg/execution_types.yaml
+```
+
+### Configuration File Structure
+
+**Basic structure:**
+
+```yaml
+platforms:
+  linux:
+    shell:
+      description: "Local shell execution with Bash"
+      binary: /bin/bash
+      command_template:
+        - "{binary}"
+        - "-c"
+        - "{command} {arguments}"
+      validation_test:
+        command: "echo"
+        arguments: "OK"
+        expected_exit: 0
+        expected_output: "OK"
+
+    pbrun:
+      description: "PowerBroker remote execution"
+      binary: pbrun
+      command_template:
+        - "{binary}"
+        - "-n"
+        - "-h"
+        - "{hostname}"
+        - "{command}"
+        - "{arguments_split}"
+      validation_test:
+        command: pbtest
+        expected_exit: 0
+        expected_output: "OK"
+
+aliases:
+  bash: shell
+  sh: shell
+```
+
+### Template Variables
+
+Command templates support these variables:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{binary}` | Executable binary name | `/bin/bash`, `pbrun` |
+| `{hostname}` | Target hostname from task | `server1.example.com` |
+| `{command}` | Command from task definition | `deploy_app` |
+| `{arguments}` | Arguments as single string | `--flag value` |
+| `{arguments_split}` | Arguments split into array | `["--flag", "value"]` |
+
+**Example transformations:**
+
+```yaml
+# shell template
+command_template:
+  - "{binary}"      # /bin/bash
+  - "-c"
+  - "{command} {arguments}"  # "deploy --version 2.0"
+
+# Produces: ['/bin/bash', '-c', 'deploy --version 2.0']
+
+# pbrun template
+command_template:
+  - "{binary}"      # pbrun
+  - "-n"
+  - "-h"
+  - "{hostname}"    # server1
+  - "{command}"     # deploy
+  - "{arguments_split}"  # ['--version', '2.0']
+
+# Produces: ['pbrun', '-n', '-h', 'server1', 'deploy', '--version', '2.0']
+```
+
+### Validation Tests
+
+Each execution type can define validation tests to verify connectivity before task execution.
+
+**Validation test format:**
+
+```yaml
+validation_test:
+  command: test_command       # Mandatory
+  arguments: "--flag value"   # Optional (NEW in 2.1)
+  expected_exit: 0            # At least one required
+  expected_output: "OK"       # At least one required
+```
+
+**Validation rules:**
+- ✅ **At least one criterion required** - Must have `expected_exit` OR `expected_output` (or both)
+- ✅ **Automatic execution** - Runs during host validation phase
+- ✅ **Per-host testing** - Each unique (hostname, exec_type) combination tested
+- ✅ **Optional arguments** - New in 2.1, allows parameterized validation commands
+
+**Examples:**
+
+```yaml
+# Validation with only exit code
+validation_test:
+  command: pbtest
+  expected_exit: 0
+
+# Validation with only output check
+validation_test:
+  command: connectivity_check
+  expected_output: "CONNECTED"
+
+# Validation with both criteria
+validation_test:
+  command: pbtest
+  expected_exit: 0
+  expected_output: "OK"
+
+# Validation with arguments (NEW in 2.1)
+validation_test:
+  command: test_validator
+  arguments: "--mode verify --timeout 5"
+  expected_exit: 0
+  expected_output: "PASS"
+
+# No validation (skip connectivity test)
+validation_test: null
+```
+
+### Execution Type Behavior
+
+**exec=local** (Hardcoded):
+
+```bash
+task=0
+hostname=localhost
+command=echo
+arguments=Hello World
+exec=local
+
+# Direct execution: ['echo', 'Hello', 'World']
+```
+
+**exec=shell** (Config-based):
+
+```bash
+task=0
+hostname=localhost
+command=echo
+arguments=Hello World
+exec=shell
+
+# Executes: ['/bin/bash', '-c', 'echo Hello World']
+# Validation: /bin/bash -c echo OK
+```
+
+**exec=pbrun** (Config-based):
+
+```bash
+task=0
+hostname=server1
+command=deploy
+arguments=--version 2.0
+exec=pbrun
+
+# Executes: ['pbrun', '-n', '-h', 'server1', 'deploy', '--version', '2.0']
+# Validation: pbrun -n -h server1 pbtest
+```
+
+### Validation Test Execution
+
+Validation tests run **automatically** during host validation (unless `--skip-host-validation`):
+
+**Multi-host validation:**
+
+```bash
+# Task file with multiple hosts
+task=0
+hostname=server1
+command=deploy
+exec=pbrun
+
+task=1
+hostname=server2
+command=deploy
+exec=pbrun
+
+task=2
+hostname=server3
+command=deploy
+exec=p7s
+
+# Validation output:
+# Testing pbrun connection to 'server1': pbrun -n -h server1 pbtest
+# Testing pbrun connection to 'server2': pbrun -n -h server2 pbtest
+# Testing p7s connection to 'server3': p7s server3 pbtest
+# All 3 host connectivity tests passed successfully.
+```
+
+**Multi-exec validation:**
+
+```bash
+# Same host with different exec types
+task=0
+hostname=localhost
+command=test
+exec=pbrun
+
+task=1
+hostname=localhost
+command=test
+exec=p7s
+
+task=2
+hostname=localhost
+command=test
+exec=shell
+
+# Validation output:
+# Testing pbrun connection to 'localhost': pbrun -n -h localhost pbtest
+# Testing p7s connection to 'localhost': p7s localhost pbtest
+# Testing shell connection to 'localhost': /bin/bash -c echo OK
+# Validating 1 unique hosts with 3 connection tests...
+# All 3 host connectivity tests passed successfully.
+```
+
+**Why validation matters:**
+- ✅ **Early detection** - Finds connectivity issues before task execution
+- ✅ **Per-host verification** - Each hostname tested separately
+- ✅ **Per-exec verification** - Each execution type tested separately
+- ✅ **Prevents failures** - Catches missing binaries, permission issues, network problems
+
+### Available Execution Types
+
+Get available exec types dynamically:
+
+```bash
+# List available types (shown in help)
+./tasker.py --help
+
+# Shows execution types from config:
+# -t {local,p7s,pbrun,shell,wwrs}, --type {local,p7s,pbrun,shell,wwrs}
+
+# If config missing/invalid:
+# -t {local}, --type {local}
+```
+
+### Error Handling
+
+**Undefined exec type:**
+
+```bash
+task=0
+hostname=server1
+command=test
+exec=undefined_type
+
+# Error output:
+# ERROR: Execution types not found in configuration: undefined_type
+#        Config file location: cfg/execution_types.yaml
+#        Available exec types: local, p7s, pbrun, shell, wwrs
+# ERROR: Host validation failed. Exiting.
+```
+
+**Missing config file:**
+
+```bash
+# If cfg/execution_types.yaml missing:
+Warning: Configuration loading issues detected:
+         WARNING: No execution_types.yaml config found. Only exec=local will be supported.
+         Only 'local' execution type will be available.
+
+# Help shows: -t {local}, --type {local}
+```
+
+**Corrupt config file:**
+
+```bash
+# If cfg/execution_types.yaml has YAML syntax errors:
+Warning: Configuration loading issues detected:
+         ERROR: Failed to load config file 'cfg/execution_types.yaml':
+         while parsing a flow node expected the node content...
+         WARNING: Only exec=local will be supported.
+         Only 'local' execution type will be available.
+```
+
+### Adding Custom Execution Types
+
+Add custom remote execution commands by editing `cfg/execution_types.yaml`:
+
+**Example: Adding custom SSH-based execution:**
+
+```yaml
+platforms:
+  linux:
+    # ... existing exec types ...
+
+    custom_ssh:
+      description: "Custom SSH execution"
+      binary: ssh
+      command_template:
+        - "{binary}"
+        - "-o"
+        - "StrictHostKeyChecking=no"
+        - "{hostname}"
+        - "{command}"
+        - "{arguments}"
+      validation_test:
+        command: "echo"
+        arguments: "SSH_OK"
+        expected_exit: 0
+        expected_output: "SSH_OK"
+```
+
+**Use in tasks:**
+
+```bash
+task=0
+hostname=remote-server
+command=deploy_application
+arguments=--env production
+exec=custom_ssh
+
+# Executes: ['ssh', '-o', 'StrictHostKeyChecking=no',
+#            'remote-server', 'deploy_application', '--env production']
+```
+
+### Execution Type Aliases
+
+Define aliases for exec types in config:
+
+```yaml
+aliases:
+  bash: shell
+  sh: shell
+  "/bin/bash": shell
+  "/bin/sh": shell
+```
+
+**Usage:**
+
+```bash
+# These all map to 'shell'
+exec=bash
+exec=sh
+exec=/bin/bash
+exec=shell
+```
+
+### Platform Support
+
+Different configurations for different platforms:
+
+```yaml
+platforms:
+  linux:
+    shell:
+      binary: /bin/bash
+      # ... Linux shell config ...
+
+  windows:
+    shell:
+      binary: cmd.exe
+      command_template:
+        - "{binary}"
+        - "/c"
+        - "{command} {arguments}"
+      validation_test: null
+```
+
+TASKER automatically detects platform and uses appropriate configuration.
+
+### Migration from Hardcoded to Config
+
+**Before TASKER 2.1** (Hardcoded):
+- All execution types hardcoded in source
+- Adding new exec types required code changes
+- No flexibility for custom remote execution
+
+**After TASKER 2.1** (Config-based):
+- Only `exec=local` hardcoded
+- Add exec types by editing YAML config
+- Extend TASKER without code changes
+
+**Backward compatibility:** Existing task files work unchanged - just add `cfg/execution_types.yaml` for remote execution support.
+
+### Best Practices
+
+**1. Always define validation tests:**
+
+```yaml
+# ✅ GOOD - Catches issues early
+validation_test:
+  command: connectivity_check
+  expected_exit: 0
+  expected_output: "OK"
+
+# ❌ RISKY - No pre-flight checks
+validation_test: null
+```
+
+**2. Use specific validation commands:**
+
+```yaml
+# ✅ GOOD - Tests actual execution path
+validation_test:
+  command: pbtest  # PowerBroker connectivity test
+
+# ❌ GENERIC - May not catch pbrun-specific issues
+validation_test:
+  command: echo
+  arguments: "OK"
+```
+
+**3. Test both exit code and output:**
+
+```yaml
+# ✅ GOOD - Comprehensive validation
+validation_test:
+  command: pbtest
+  expected_exit: 0
+  expected_output: "OK"
+
+# ⚠️ WEAK - Exit code alone may miss issues
+validation_test:
+  command: pbtest
+  expected_exit: 0
+```
+
+**4. Use {arguments_split} for remote execution:**
+
+```yaml
+# ✅ GOOD - Proper argument splitting for remote exec
+command_template:
+  - "{binary}"
+  - "{hostname}"
+  - "{command}"
+  - "{arguments_split}"  # ['--flag', 'value']
+
+# ❌ WRONG - Arguments not split properly
+command_template:
+  - "{binary}"
+  - "{hostname}"
+  - "{command} {arguments}"  # "deploy --flag value" (one string)
+```
+
+**5. Keep config in version control:**
+
+```bash
+# ✅ GOOD - Track execution type changes
+git add cfg/execution_types.yaml
+git commit -m "Add custom SSH execution type"
+
+# Document why changes were made
+git log cfg/execution_types.yaml
+```
+
+### Troubleshooting
+
+**Problem:** Validation fails with "Command not found"
+
+```bash
+# Check if binary exists
+which pbrun
+which pbtest
+
+# Add binary to PATH or use full path in config
+binary: /usr/local/bin/pbrun
+```
+
+**Problem:** Exec type not found
+
+```bash
+# Check config file location
+ls -la cfg/execution_types.yaml
+
+# Check platform section matches your OS
+# Linux: platforms.linux.<exec_type>
+# Windows: platforms.windows.<exec_type>
+
+# Enable debug to see config loading
+./tasker.py --debug task_file.txt
+```
+
+**Problem:** Validation hangs
+
+```bash
+# Add timeout to validation commands
+validation_test:
+  command: pbtest --timeout 5
+  expected_exit: 0
+  expected_output: "OK"
+```
+
+**Problem:** Dynamic exec types don't show in --help
+
+```bash
+# Verify config loads correctly
+python -c "
+from tasker.config.exec_config_loader import get_loader
+loader = get_loader()
+print('Available:', loader.get_execution_types())
+"
+
+# Should show: Available: ['p7s', 'pbrun', 'shell', 'wwrs']
+```
+
+### See Also
+
+- [TaskER FlowChart - exec parameter](TaskER_FlowChart.md) - Complete exec parameter reference
+- [README.md](README.md) - Basic execution type usage examples
+- `cfg/execution_types.yaml` - Full configuration file with examples
+
+---
 
 ## Execution Models
 

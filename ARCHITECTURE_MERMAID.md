@@ -13,7 +13,7 @@ graph TB
     subgraph VALIDATION["VALIDATION LAYER"]
         InputSan[InputSanitizer<br/>• Security<br/>• Injection<br/>• Buffer limits]
         TaskVal[TaskValidator<br/>• Syntax check<br/>• Dependencies<br/>• Logic errors]
-        HostVal[HostValidator<br/>• DNS resolution<br/>• Connectivity<br/>• SSH validation]
+        HostVal[HostValidator<br/>• DNS resolution<br/>• Connectivity<br/>• Validation tests]
     end
 
     subgraph CORE["CORE ENGINE LAYER"]
@@ -31,9 +31,9 @@ graph TB
     end
 
     subgraph TARGETS["TARGET EXECUTION"]
-        Local[Local Commands<br/>exec=local]
-        Shell[Shell Commands<br/>exec=shell]
-        Remote[Remote Execution<br/>pbrun/p7s/wwrs]
+        Local[Local Commands<br/>exec=local hardcoded]
+        Shell[Shell Commands<br/>exec=shell config-based]
+        Remote[Remote Execution<br/>pbrun/p7s/wwrs config-based]
     end
 
     Start --> CLI
@@ -155,74 +155,78 @@ graph TB
 ## 4. Module Dependency Graph
 
 ```mermaid
-graph TB
-    CLI[tasker.py<br/>CLI Entry Point]
+graph LR
+    CLI[tasker.py]
 
-    subgraph Validation["tasker/validation/"]
-        InputSan[input_sanitizer.py]
-        TaskVal[task_validator.py]
-        HostVal[host_validator.py]
+    subgraph VAL["Validation"]
+        Sanitizer[validation/input_sanitizer.py]
+        TaskValidator[validation/task_validator.py]
+        HostValidator[validation/host_validator.py]
     end
 
-    subgraph Core["tasker/core/"]
-        TaskExec[task_executor_main.py]
-        CondEval[condition_evaluator.py]
-        StreamOut[streaming_output_handler.py]
-        StateManager[state_manager.py]
-        WorkflowCtrl[workflow_controller.py]
-        ResultColl[result_collector.py]
-        TaskRunner[task_runner.py]
-        Constants[constants.py]
-        Utilities[utilities.py]
+    subgraph CORE["Core Engine"]
+        Main[core/task_executor_main.py]
+        Cond[core/condition_evaluator.py]
+        Stream[core/streaming_output_handler.py]
+        State[core/state_manager.py]
+        Workflow[core/workflow_controller.py]
+        Results[core/result_collector.py]
+        Runner[core/task_runner.py]
     end
 
-    subgraph Executors["tasker/executors/"]
-        BaseExec[base_executor.py]
-        SeqExec[sequential_executor.py]
-        ParExec[parallel_executor.py]
-        CondExec[conditional_executor.py]
-        DecExec[decision_executor.py]
+    subgraph EXEC["Executors"]
+        Base[executors/base_executor.py]
+        Sequential[executors/sequential_executor.py]
+        Parallel[executors/parallel_executor.py]
+        Conditional[executors/conditional_executor.py]
+        Decision[executors/decision_executor.py]
     end
 
-    subgraph Utils["tasker/utils/"]
-        NonBlockSleep[non_blocking_sleep.py]
+    subgraph UTIL["Utilities"]
+        Constants[core/constants.py]
+        Utils[core/utilities.py]
+        Sleep[utils/non_blocking_sleep.py]
     end
 
-    CLI --> InputSan
-    CLI --> TaskVal
-    CLI --> HostVal
-    CLI --> TaskExec
+    subgraph CFG["Configuration"]
+        YAML[cfg/execution_types.yaml]
+        Loader[config/exec_config_loader.py]
+    end
 
-    TaskExec --> CondEval
-    TaskExec --> StreamOut
-    TaskExec --> StateManager
-    TaskExec --> WorkflowCtrl
-    TaskExec --> ResultColl
-    TaskExec --> TaskRunner
-    TaskExec --> BaseExec
+    CLI --> Loader
+    CLI --> VAL
+    CLI --> Main
 
-    CondEval --> Constants
-    CondEval --> Utilities
+    Loader --> YAML
+    HostValidator --> Loader
 
-    BaseExec --> SeqExec
-    BaseExec --> ParExec
-    BaseExec --> CondExec
-    BaseExec --> DecExec
+    Main --> Cond
+    Main --> Stream
+    Main --> State
+    Main --> Workflow
+    Main --> Results
+    Main --> Runner
+    Main --> Base
 
-    SeqExec --> CondEval
-    SeqExec --> StreamOut
-    ParExec --> CondEval
-    ParExec --> StreamOut
-    CondExec --> CondEval
-    CondExec --> StreamOut
-    DecExec --> CondEval
-    DecExec --> StreamOut
+    Base --> Sequential
+    Base --> Parallel
+    Base --> Conditional
+    Base --> Decision
+
+    Sequential -.uses.-> Cond
+    Parallel -.uses.-> Cond
+    Conditional -.uses.-> Cond
+    Decision -.uses.-> Cond
+
+    Cond --> Constants
+    Cond --> Utils
 
     style CLI fill:#e1f5fe
-    style Validation fill:#fff3e0
-    style Core fill:#e8f5e9
-    style Executors fill:#f3e5f5
-    style Utils fill:#fce4ec
+    style CFG fill:#fff9c4
+    style VAL fill:#fff3e0
+    style CORE fill:#e8f5e9
+    style EXEC fill:#f3e5f5
+    style UTIL fill:#fce4ec
 ```
 
 ### External Dependencies
@@ -241,40 +245,42 @@ Note: Test infrastructure & utilities may use third-party packages
 ## 5. Execution Strategy Pattern
 
 ```mermaid
-graph TB
-    subgraph Pattern["Executor Pattern Implementation"]
-        Base[BaseExecutor<br/>Abstract Base Class]
-
-        subgraph Strategies["Concrete Strategies"]
-            Seq[SequentialExecutor<br/>One-by-one execution]
-            Par[ParallelExecutor<br/>ThreadPoolExecutor<br/>Concurrent tasks]
-            Cond[ConditionalExecutor<br/>if/else branching]
-            Dec[DecisionExecutor<br/>Complex routing logic]
-        end
-
-        Base -.implements.-> Seq
-        Base -.implements.-> Par
-        Base -.implements.-> Cond
-        Base -.implements.-> Dec
-    end
-
-    subgraph Common["Common Methods Template Method"]
+graph LR
+    subgraph Template["Template Method Pattern"]
         Validate[validate_task]
         Execute[execute]
-        HandleTimeout[handle_timeout]
-        CollectResults[collect_results]
+        Timeout[handle_timeout]
+        Collect[collect_results]
+
+        Validate ~~~ Execute
+        Execute ~~~ Timeout
+        Timeout ~~~ Collect
     end
 
-    Base --> Validate
-    Base --> Execute
-    Base --> HandleTimeout
-    Base --> CollectResults
+    Base[BaseExecutor<br/>Abstract Base]
 
-    style Base fill:#e1f5fe
-    style Seq fill:#e8f5e9
-    style Par fill:#fff3e0
-    style Cond fill:#f3e5f5
-    style Dec fill:#fce4ec
+    subgraph Strategies["Concrete Strategies"]
+        Seq[Sequential<br/>One-by-one]
+        Par[Parallel<br/>ThreadPool]
+        Cond[Conditional<br/>if/else]
+        Dec[Decision<br/>Routing]
+
+        Seq ~~~ Par
+        Par ~~~ Cond
+        Cond ~~~ Dec
+    end
+
+    Template --> Base
+    Base --> Strategies
+
+    Base -.extends.-> Seq
+    Base -.extends.-> Par
+    Base -.extends.-> Cond
+    Base -.extends.-> Dec
+
+    style Template fill:#e1f5fe
+    style Base fill:#fff3e0
+    style Strategies fill:#e8f5e9
 ```
 
 **Key Benefits**:
@@ -296,20 +302,20 @@ graph TB
     L4[Layer 4: ARG_MAX Protection<br/>✓ 100KB command-line limit<br/>✓ Variable substitution truncation]
     L5[Layer 5: Task Structure Validation<br/>✓ Field count limits<br/>✓ Privilege escalation detection<br/>✓ Suspicious combinations]
 
-    Safe[✅ Safe for Execution]
     Reject[❌ Rejected]
+    Safe[✅ Safe for Execution]
 
     Input --> L1
-    L1 -->|Pass| L2
     L1 -->|Fail| Reject
-    L2 -->|Pass| L3
+    L1 -->|Pass| L2
     L2 -->|Fail| Reject
-    L3 -->|Pass| L4
+    L2 -->|Pass| L3
     L3 -->|Fail| Reject
-    L4 -->|Pass| L5
+    L3 -->|Pass| L4
     L4 -->|Fail| Reject
-    L5 -->|Pass| Safe
+    L4 -->|Pass| L5
     L5 -->|Fail| Reject
+    L5 -->|Pass| Safe
 
     style Input fill:#e1f5fe
     style L1 fill:#fff3e0
@@ -317,8 +323,8 @@ graph TB
     style L3 fill:#ffe0b2
     style L4 fill:#ffccbc
     style L5 fill:#ffab91
-    style Safe fill:#c8e6c9
     style Reject fill:#ffcdd2
+    style Safe fill:#c8e6c9
 ```
 
 **Defense-in-Depth**: 5 independent validation layers ensure comprehensive security.
@@ -360,8 +366,9 @@ graph TB
         ExitMatch{Exit code<br/>matches?}
         PathMatch{Execution path<br/>matches?}
         VarMatch{Variables<br/>correct?}
-        ExceptCheck{Python<br/>exceptions?}
-        PassFail[PASS / FAIL]
+        ExceptCheck{No exceptions?}
+        Fail[❌ FAIL]
+        Pass[✅ PASS]
     end
 
     Runner --> Metadata
@@ -369,20 +376,22 @@ graph TB
     Categories --> Mocks
     Mocks --> Results
     Results --> ExitMatch
+    ExitMatch -->|NO| Fail
     ExitMatch -->|YES| PathMatch
-    ExitMatch -->|NO| PassFail
+    PathMatch -->|NO| Fail
     PathMatch -->|YES| VarMatch
-    PathMatch -->|NO| PassFail
+    VarMatch -->|NO| Fail
     VarMatch -->|YES| ExceptCheck
-    VarMatch -->|NO| PassFail
-    ExceptCheck -->|NO| PassFail
-    ExceptCheck -->|YES| PassFail
+    ExceptCheck -->|NO| Fail
+    ExceptCheck -->|YES| Pass
 
     style Runner fill:#e1f5fe
     style Metadata fill:#fff3e0
     style Categories fill:#e8f5e9
     style Mocks fill:#f3e5f5
     style Results fill:#fce4ec
+    style Fail fill:#ffcdd2
+    style Pass fill:#c8e6c9
 ```
 
 ### Test Coverage
@@ -462,13 +471,14 @@ graph TB
 **TASKER 2.1 Architecture Highlights**:
 
 1. **Layered Design**: Clear separation (Validation → Core → Execution → Target)
-2. **Executor Pattern**: Pluggable strategies (4 execution strategies)
-3. **Security-First**: Multi-layer validation with defense-in-depth
-4. **Memory Efficient**: O(1) memory for unlimited output sizes (1MB threshold)
-5. **Cross-Task Data**: Sophisticated variable substitution with ARG_MAX
+2. **Config-Based Execution**: External YAML configuration for execution types (PR#96, PR#97)
+3. **Executor Pattern**: Pluggable strategies (4 execution strategies)
+4. **Security-First**: Multi-layer validation with defense-in-depth
+5. **Memory Efficient**: O(1) memory for unlimited output sizes (1MB threshold)
+6. **Cross-Task Data**: Sophisticated variable substitution with ARG_MAX
    protection
-6. **Test Infrastructure**: Metadata-driven validation (465/465 tests passing)
-7. **No External Dependencies**: Pure Python 3.6.8 standard library
+7. **Test Infrastructure**: Metadata-driven validation (465/465 tests passing)
+8. **No External Dependencies**: Pure Python 3.6.8 standard library
 
 **Key Design Patterns** (with rationale):
 
@@ -484,10 +494,11 @@ graph TB
   - *Benefit*: Ensures consistent behavior (validation, timeout handling,
     result collection)
 
-- ✅ **Singleton** (Constants)
+- ✅ **Singleton** (Constants, ExecConfigLoader)
   - *Why*: Centralize magic numbers and thresholds (MAX_CMDLINE_SUBST,
-    MAX_VARIABLE_EXPANSION_DEPTH)
-  - *Benefit*: Single source of truth, prevents duplication and inconsistency
+    MAX_VARIABLE_EXPANSION_DEPTH); Load execution type config once at startup
+  - *Benefit*: Single source of truth, prevents duplication and inconsistency;
+    Efficient config loading with callback updates for dynamic changes
 
 - ✅ **Factory** (create_memory_efficient_handler)
   - *Why*: Encapsulate complex object creation logic for streaming handlers

@@ -279,10 +279,8 @@ Examples:
                        default='INFO', help='Set logging level (default: INFO)')
     parser.add_argument('-t', '--type', choices=get_available_exec_types(),
                        help='Execution type (overridden by task-specific settings)')
-    parser.add_argument('-o', '--timeout', type=int, default=30, 
+    parser.add_argument('-o', '--timeout', type=int, default=30,
                        help='Default command timeout in seconds (5-1000, default: 30)')
-    parser.add_argument('-c', '--connection-test', action='store_true', 
-                       help='Check connectivity for pbrun,p7s,wwrs hosts')
     parser.add_argument('-p', '--project', 
                        help='Project name for summary logging')
     
@@ -453,7 +451,6 @@ Examples:
         log_level=args.log_level,
         exec_type=args.type,
         timeout=args.timeout,
-        connection_test=args.connection_test,
         project=args.project,
         start_from_task=args.start_from,
         skip_task_validation=skip_task_validation,

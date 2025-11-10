@@ -68,13 +68,13 @@ graph TB
     Sanitizer[InputSanitizer]
     Validator[TaskValidator]
     TaskExec[TaskExecutorMain]
-    Queue[Task Queue<br/>[0, 1, 2, 3, ...]]
+    Queue[Task Queue<br/>Tasks: 0, 1, 2, 3, ...]
     ExecSelect[Executor Selection<br/>• Sequential?<br/>• Parallel?<br/>• Conditional?]
     VarReplace[Variable Replacement<br/>@HOSTNAME@ → server1<br/>@0_stdout@ → data]
     CmdExec[Command Execution<br/>subprocess.Popen]
     OutputStream[Output Streaming<br/>Size < 1MB?<br/>YES → Memory Buffer<br/>NO → Temp File]
     SuccessEval[Success Evaluation<br/>• exit_0<br/>• stdout~pattern<br/>• @VAR@=value]
-    ResultStore[Result Storage<br/>task_results[N]]
+    ResultStore[Result Storage<br/>task_results#91;N#93;]
     FlowControl[Flow Control<br/>• next=always<br/>• on_success=5<br/>• on_failure=10<br/>• loop=3]
     FinalReport[Final Report<br/>• JSON output<br/>• Statistics<br/>• Execution path<br/>• Performance metrics]
     Cleanup[Cleanup Phase<br/>• Close file handles<br/>• Delete temp files<br/>• Free resources]
@@ -113,7 +113,7 @@ graph TB
         T0Cmd[command: curl ...<br/>Output: 5MB data]
         T0Handler[StreamingOutputHandler<br/>Size check: 5MB > 1MB?<br/>YES]
         T0Actions[• Create temp file /tmp/tasker_stdout_XX<br/>• Stream data to file<br/>• Release memory buffer<br/>• Store path in result]
-        T0Result[task_results[0]<br/>stdout: empty memory freed<br/>stdout_file: /tmp/...<br/>exit_code: 0<br/>success: True]
+        T0Result[task_results#91;0#93;<br/>stdout: empty memory freed<br/>stdout_file: /tmp/...<br/>exit_code: 0<br/>success: True]
     end
 
     subgraph Task1["Task 1 Execution"]
@@ -400,14 +400,14 @@ graph TB
 
     subgraph Small["Output < 1MB"]
         MemBuf[Store in Memory Buffer<br/>stdout_data string]
-        MemResult[task_results[N]<br/>stdout: 'data'<br/>stdout_file: None]
+        MemResult[task_results#91;N#93;<br/>stdout: 'data'<br/>stdout_file: None]
     end
 
     subgraph Large["Output > 1MB"]
         CreateTemp[Create Temp File<br/>/tmp/tasker_stdout_XX]
         StreamWrite[Stream to File<br/>Write chunks]
         FreeMemory[Release Memory Buffer<br/>stdout_data = empty]
-        FileResult[task_results[N]<br/>stdout: empty<br/>stdout_file: '/tmp/...']
+        FileResult[task_results#91;N#93;<br/>stdout: empty<br/>stdout_file: '/tmp/...']
     end
 
     VarSub[Variable Substitution<br/>@N_stdout@ requested]

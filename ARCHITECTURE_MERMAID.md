@@ -367,10 +367,9 @@ graph TB
         PathMatch{Execution path<br/>matches?}
         VarMatch{Variables<br/>correct?}
         ExceptCheck{Python<br/>exceptions?}
+        Fail[❌ FAIL]
+        Pass[✅ PASS]
     end
-
-    Fail[❌ FAIL]
-    Pass[✅ PASS]
 
     Runner --> Metadata
     Metadata --> Categories

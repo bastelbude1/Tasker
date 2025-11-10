@@ -1416,6 +1416,7 @@ TASKER searches for `execution_types.yaml` in this priority order:
 2. **Current working directory**: `./cfg/execution_types.yaml`
 
 **Example setup:**
+
 ```bash
 /home/user/tasker/
 ├── tasker.py              # Main script
@@ -1563,6 +1564,7 @@ validation_test: null
 ### Execution Type Behavior
 
 **exec=local** (Hardcoded):
+
 ```bash
 task=0
 hostname=localhost
@@ -1574,6 +1576,7 @@ exec=local
 ```
 
 **exec=shell** (Config-based):
+
 ```bash
 task=0
 hostname=localhost
@@ -1586,6 +1589,7 @@ exec=shell
 ```
 
 **exec=pbrun** (Config-based):
+
 ```bash
 task=0
 hostname=server1
@@ -1602,6 +1606,7 @@ exec=pbrun
 Validation tests run **automatically** during host validation (unless `--skip-host-validation`):
 
 **Multi-host validation:**
+
 ```bash
 # Task file with multiple hosts
 task=0
@@ -1627,6 +1632,7 @@ exec=p7s
 ```
 
 **Multi-exec validation:**
+
 ```bash
 # Same host with different exec types
 task=0
@@ -1676,6 +1682,7 @@ Get available exec types dynamically:
 ### Error Handling
 
 **Undefined exec type:**
+
 ```bash
 task=0
 hostname=server1
@@ -1690,6 +1697,7 @@ exec=undefined_type
 ```
 
 **Missing config file:**
+
 ```bash
 # If cfg/execution_types.yaml missing:
 Warning: Configuration loading issues detected:
@@ -1700,6 +1708,7 @@ Warning: Configuration loading issues detected:
 ```
 
 **Corrupt config file:**
+
 ```bash
 # If cfg/execution_types.yaml has YAML syntax errors:
 Warning: Configuration loading issues detected:
@@ -1812,6 +1821,7 @@ TASKER automatically detects platform and uses appropriate configuration.
 ### Best Practices
 
 **1. Always define validation tests:**
+
 ```yaml
 # ✅ GOOD - Catches issues early
 validation_test:
@@ -1824,6 +1834,7 @@ validation_test: null
 ```
 
 **2. Use specific validation commands:**
+
 ```yaml
 # ✅ GOOD - Tests actual execution path
 validation_test:
@@ -1836,6 +1847,7 @@ validation_test:
 ```
 
 **3. Test both exit code and output:**
+
 ```yaml
 # ✅ GOOD - Comprehensive validation
 validation_test:
@@ -1850,6 +1862,7 @@ validation_test:
 ```
 
 **4. Use {arguments_split} for remote execution:**
+
 ```yaml
 # ✅ GOOD - Proper argument splitting for remote exec
 command_template:
@@ -1866,6 +1879,7 @@ command_template:
 ```
 
 **5. Keep config in version control:**
+
 ```bash
 # ✅ GOOD - Track execution type changes
 git add cfg/execution_types.yaml

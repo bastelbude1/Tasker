@@ -57,6 +57,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # Import the core TaskExecutor and utilities
 from tasker.core.task_executor_main import TaskExecutor
 from tasker.core.utilities import get_log_directory, sanitize_filename
+from tasker.config.exec_config_loader import get_loader as get_exec_config_loader
 
 # Version information
 VERSION = "2.1.0"
@@ -208,6 +209,25 @@ def merge_args(parser, file_args, cli_args):
     return merged
 
 
+def get_available_exec_types():
+    """
+    Get available execution types from config file.
+
+    Returns:
+        list: Sorted list of available execution types including 'local'
+    """
+    try:
+        # Load config without debug output during argument parsing
+        loader = get_exec_config_loader(debug_callback=lambda msg: None)
+        config_types = loader.get_execution_types()
+
+        # Always include 'local', then add config-based types
+        return sorted(['local', *config_types])
+    except Exception:
+        # If config loading fails, fall back to local only
+        return ['local']
+
+
 def main():
     """Main entry point for TASKER 2.1 command-line interface."""
     parser = argparse.ArgumentParser(
@@ -234,9 +254,9 @@ Examples:
                        help='Actually run the commands (not dry run)')
     parser.add_argument('-l', '--log-dir', default=None, 
                        help='Directory to store log files')
-    parser.add_argument('--log-level', choices=['ERROR', 'WARN', 'INFO', 'DEBUG'], 
+    parser.add_argument('--log-level', choices=['ERROR', 'WARN', 'INFO', 'DEBUG'],
                        default='INFO', help='Set logging level (default: INFO)')
-    parser.add_argument('-t', '--type', choices=['pbrun', 'p7s', 'local', 'wwrs', 'shell'],
+    parser.add_argument('-t', '--type', choices=get_available_exec_types(),
                        help='Execution type (overridden by task-specific settings)')
     parser.add_argument('-o', '--timeout', type=int, default=30, 
                        help='Default command timeout in seconds (5-1000, default: 30)')

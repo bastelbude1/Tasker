@@ -245,40 +245,34 @@ Note: Test infrastructure & utilities may use third-party packages
 ## 5. Execution Strategy Pattern
 
 ```mermaid
-graph TB
-    subgraph Pattern["Executor Pattern Implementation"]
-        Base[BaseExecutor<br/>Abstract Base Class]
-
-        subgraph Strategies["Concrete Strategies"]
-            Seq[SequentialExecutor<br/>One-by-one execution]
-            Par[ParallelExecutor<br/>ThreadPoolExecutor<br/>Concurrent tasks]
-            Cond[ConditionalExecutor<br/>if/else branching]
-            Dec[DecisionExecutor<br/>Complex routing logic]
-        end
-
-        Base -.implements.-> Seq
-        Base -.implements.-> Par
-        Base -.implements.-> Cond
-        Base -.implements.-> Dec
-    end
-
-    subgraph Common["Common Methods Template Method"]
+graph LR
+    subgraph Template["Template Method Pattern"]
         Validate[validate_task]
         Execute[execute]
-        HandleTimeout[handle_timeout]
-        CollectResults[collect_results]
+        Timeout[handle_timeout]
+        Collect[collect_results]
     end
 
-    Base --> Validate
-    Base --> Execute
-    Base --> HandleTimeout
-    Base --> CollectResults
+    Base[BaseExecutor<br/>Abstract Base]
 
-    style Base fill:#e1f5fe
-    style Seq fill:#e8f5e9
-    style Par fill:#fff3e0
-    style Cond fill:#f3e5f5
-    style Dec fill:#fce4ec
+    subgraph Strategies["Concrete Strategies"]
+        Seq[Sequential<br/>One-by-one]
+        Par[Parallel<br/>ThreadPool]
+        Cond[Conditional<br/>if/else]
+        Dec[Decision<br/>Routing]
+    end
+
+    Template --> Base
+    Base --> Strategies
+
+    Base -.extends.-> Seq
+    Base -.extends.-> Par
+    Base -.extends.-> Cond
+    Base -.extends.-> Dec
+
+    style Template fill:#e1f5fe
+    style Base fill:#fff3e0
+    style Strategies fill:#e8f5e9
 ```
 
 **Key Benefits**:

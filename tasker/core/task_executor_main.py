@@ -2359,7 +2359,7 @@ class TaskExecutor:
             # Use self-referential mapping (hostname -> hostname) since no FQDN lookup/validation performed
             validated_hosts = {}
             for task in self.tasks.values():
-                if 'hostname' in task and task['hostname']:
+                if task.get('hostname'):
                     hostname, resolved = ConditionEvaluator.replace_variables(task['hostname'], self.global_vars, self.task_results, self.log_debug)
                     if resolved and hostname:
                         validated_hosts[hostname] = hostname  # Self-referential: no validation, use as-is

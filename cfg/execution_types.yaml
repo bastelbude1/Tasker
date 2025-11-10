@@ -26,7 +26,11 @@ platforms:
         - "{binary}"
         - "-c"
         - "{command} {arguments}"
-      validation_test: null  # No remote validation needed
+      validation_test:
+        command: "echo"
+        arguments: "OK"
+        expected_exit: 0
+        expected_output: "OK"
 
     pbrun:
       description: "PowerBroker remote execution"

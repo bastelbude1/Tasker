@@ -858,6 +858,8 @@ Includes:
 
 ```text
 tasker/
+├── config/                         # NEW in v2.1
+│   └── exec_config_loader.py      # Config-based execution types (Singleton)
 ├── core/
 │   ├── task_executor_main.py      # Main orchestration engine
 │   ├── condition_evaluator.py     # Variable substitution & conditions
@@ -869,7 +871,7 @@ tasker/
 ├── validation/
 │   ├── input_sanitizer.py         # Security validation (5 layers)
 │   ├── task_validator.py          # Pre-execution validation
-│   ├── host_validator.py          # DNS & connectivity
+│   ├── host_validator.py          # DNS & connectivity + validation tests
 │   └── dependency_analyzer.py     # Circular dependency detection
 ├── executors/
 │   ├── base_executor.py           # Template method pattern
@@ -879,6 +881,8 @@ tasker/
 │   └── decision_executor.py       # Complex decision logic
 ├── utils/
 │   └── non_blocking_sleep.py      # Non-blocking sleep
+├── cfg/                            # NEW in v2.1
+│   └── execution_types.yaml       # Platform-specific execution configs
 └── tasker.py                       # Main CLI entry point
 ```
 
@@ -925,6 +929,77 @@ tasker/
 - Optional host validation (connectivity checks)
 - Timeout enforcement (prevent hanging connections)
 - No credential storage (use vault integration)
+
+---
+
+# NEW in v2.1: Config-Based Execution Types
+
+### Flexible, Extensible Execution Architecture
+
+**Problem**: Hardcoded execution types (pbrun, p7s, wwrs) made it difficult to:
+- Add custom execution wrappers
+- Support platform-specific commands
+- Customize validation tests per environment
+
+**Solution**: External YAML configuration (`cfg/execution_types.yaml`)
+
+### How It Works
+
+**Only `exec=local` is hardcoded** - all other execution types loaded from config:
+
+```yaml
+platforms:
+  linux:
+    pbrun:
+      description: "PowerBroker Run privilege escalation"
+      binary: /usr/local/bin/pbrun
+      command_template:
+        - "{binary}"
+        - "-h"
+        - "{hostname}"
+        - "{command}"
+        - "{arguments_split}"
+      validation_test:
+        command: echo
+        arguments: "test"           # Optional (NEW in v2.1)
+        expected_exit: 0
+        expected_output: "test"
+```
+
+### Template Variables
+
+Available for command construction:
+- `{binary}` - Execution binary path
+- `{hostname}` - Target hostname
+- `{command}` - Command to execute
+- `{arguments}` - Full arguments string
+- `{arguments_split}` - Arguments as separate list elements
+
+### Benefits
+
+✅ **Extensibility** - Add custom execution types without code changes
+✅ **Platform Support** - Different configs for Linux/Windows
+✅ **Automatic Validation** - Connectivity tests per (host, exec_type)
+✅ **Graceful Fallback** - Missing config falls back to local-only mode
+✅ **Maintainability** - YAML configuration instead of hardcoded logic
+
+### Validation Tests (PR#97)
+
+Each execution type can define validation tests:
+- **Optional arguments** field for parameterized tests
+- **At least ONE required**: `expected_exit` OR `expected_output`
+- **Automatic execution** during host validation phase
+- **Per-combination testing**: Each (hostname, exec_type) validated
+
+**Example: Multi-host validation**
+```bash
+# Task file uses 3 hosts with 2 exec types
+hostname=server1, exec=pbrun → Validated
+hostname=server2, exec=pbrun → Validated
+hostname=localhost, exec=shell → Validated
+
+# Result: 3 unique combinations tested automatically
+```
 
 ---
 
@@ -1031,26 +1106,36 @@ TASKER now includes comprehensive architecture documentation with **8 detailed d
 - All 24 Python modules mapped
 - Clear dependencies between components
 - No circular dependencies
+- Config-based execution type system (cfg/ + tasker/config/)
 
-**5. Execution Strategy Pattern**
+**5. Config-Based Execution Type System** (NEW in v2.1)
+- External YAML configuration for execution types
+- Only exec=local hardcoded; all others from cfg/execution_types.yaml
+- Template-based command construction
+- Platform-specific configurations (Linux/Windows)
+- Automatic validation tests per (hostname, exec_type)
+- Optional arguments field for validation tests
+- Graceful fallback for missing configs
+
+**6. Execution Strategy Pattern**
 - Template Method + Strategy Pattern implementation
 - 4 executor types (Sequential, Parallel, Conditional, Decision)
 - Pluggable architecture for future extensions
 
-**6. Security Validation Pipeline**
+**7. Security Validation Pipeline**
 - Defense-in-depth: **5 independent layers**
 - Command injection detection (11 patterns)
 - Path traversal prevention (12 patterns)
 - Context-aware validation (shell vs local)
 - ARG_MAX protection
 
-**7. Test Infrastructure Architecture**
+**8. Test Infrastructure Architecture**
 - **465 tests** with metadata-driven validation
 - Intelligent test runner with behavioral validation
 - 10 test categories covering all features
 - Zero-tolerance validation (execution paths, variables, exit codes)
 
-**8. Memory Management Strategy**
+**9. Memory Management Strategy**
 - **O(1) memory** for unlimited output sizes
 - Automatic streaming for outputs > 1MB
 - Immediate memory release after streaming

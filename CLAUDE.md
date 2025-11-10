@@ -128,7 +128,7 @@ Each execution type can define optional validation tests:
 **Benefits**:
 - Config file ensures all execution types work exactly as before
 - Adding new execution types requires only YAML changes
-- Platform-specific execution types supported (Linux/Windows/Darwin)
+- Platform-specific execution types supported (Linux/Windows)
 - Test cases validate that config-based execution matches historical behavior
 
 ### **Error Handling**

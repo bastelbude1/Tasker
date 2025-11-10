@@ -90,19 +90,6 @@ platforms:
     #     - "{command}"
     #     - "{arguments_split}"
 
-  # macOS execution type definitions (future support)
-  darwin:
-    shell:
-      description: "Local shell execution with Bash"
-      binary: /bin/bash
-      command_template:
-        - "{binary}"
-        - "-c"
-        - "{command} {arguments}"
-      validation_test: null
-
-    # macOS-specific remote execution tools can be added here
-
 # Execution type aliases (optional)
 # Maps alternative names to canonical execution types
 aliases:

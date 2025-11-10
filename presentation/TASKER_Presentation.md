@@ -932,7 +932,7 @@ tasker/
 
 ---
 
-# NEW in v2.1: Config-Based Execution Types
+## NEW in v2.1: Config-Based Execution Types
 
 ### Flexible, Extensible Execution Architecture
 
@@ -991,7 +991,8 @@ Each execution type can define validation tests:
 - **Automatic execution** during host validation phase
 - **Per-combination testing**: Each (hostname, exec_type) validated
 
-**Example: Multi-host validation**
+### Example: Multi-host validation
+
 ```bash
 # Task file uses 3 hosts with 2 exec types
 hostname=server1, exec=pbrun → Validated
@@ -1117,25 +1118,29 @@ TASKER now includes comprehensive architecture documentation with **8 detailed d
 - Optional arguments field for validation tests
 - Graceful fallback for missing configs
 
-**6. Execution Strategy Pattern**
+### 6. Execution Strategy Pattern
+
 - Template Method + Strategy Pattern implementation
 - 4 executor types (Sequential, Parallel, Conditional, Decision)
 - Pluggable architecture for future extensions
 
-**7. Security Validation Pipeline**
+### 7. Security Validation Pipeline
+
 - Defense-in-depth: **5 independent layers**
 - Command injection detection (11 patterns)
 - Path traversal prevention (12 patterns)
 - Context-aware validation (shell vs local)
 - ARG_MAX protection
 
-**8. Test Infrastructure Architecture**
+### 8. Test Infrastructure Architecture
+
 - **465 tests** with metadata-driven validation
 - Intelligent test runner with behavioral validation
 - 10 test categories covering all features
 - Zero-tolerance validation (execution paths, variables, exit codes)
 
-**9. Memory Management Strategy**
+### 9. Memory Management Strategy
+
 - **O(1) memory** for unlimited output sizes
 - Automatic streaming for outputs > 1MB
 - Immediate memory release after streaming

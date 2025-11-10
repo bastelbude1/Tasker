@@ -195,6 +195,7 @@ tar -czf tasker-v2.1.tar.gz \
   --exclude=".coderabbit.yaml" \
   --exclude="tasker.py.backup_*" \
   --exclude=".claude.json" \
+  --exclude=".claude" \
   --exclude=".markdownlint.json" \
   tasker/
 ```

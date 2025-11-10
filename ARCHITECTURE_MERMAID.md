@@ -367,28 +367,32 @@ graph TB
         PathMatch{Execution path<br/>matches?}
         VarMatch{Variables<br/>correct?}
         ExceptCheck{Python<br/>exceptions?}
-        PassFail[PASS / FAIL]
     end
+
+    Fail[❌ FAIL]
+    Pass[✅ PASS]
 
     Runner --> Metadata
     Metadata --> Categories
     Categories --> Mocks
     Mocks --> Results
     Results --> ExitMatch
+    ExitMatch -->|NO| Fail
     ExitMatch -->|YES| PathMatch
-    ExitMatch -->|NO| PassFail
+    PathMatch -->|NO| Fail
     PathMatch -->|YES| VarMatch
-    PathMatch -->|NO| PassFail
+    VarMatch -->|NO| Fail
     VarMatch -->|YES| ExceptCheck
-    VarMatch -->|NO| PassFail
-    ExceptCheck -->|NO| PassFail
-    ExceptCheck -->|YES| PassFail
+    ExceptCheck -->|YES| Fail
+    ExceptCheck -->|NO| Pass
 
     style Runner fill:#e1f5fe
     style Metadata fill:#fff3e0
     style Categories fill:#e8f5e9
     style Mocks fill:#f3e5f5
     style Results fill:#fce4ec
+    style Fail fill:#ffcdd2
+    style Pass fill:#c8e6c9
 ```
 
 ### Test Coverage

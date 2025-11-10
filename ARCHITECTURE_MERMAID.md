@@ -14,7 +14,6 @@ graph TB
         InputSan[InputSanitizer<br/>• Security<br/>• Injection<br/>• Buffer limits]
         TaskVal[TaskValidator<br/>• Syntax check<br/>• Dependencies<br/>• Logic errors]
         HostVal[HostValidator<br/>• DNS resolution<br/>• Connectivity<br/>• Validation tests]
-        ExecConfig[ExecConfigLoader Singleton<br/>• Load cfg/execution_types.yaml<br/>• Platform detection<br/>• Validation test config]
     end
 
     subgraph CORE["CORE ENGINE LAYER"]
@@ -32,27 +31,15 @@ graph TB
     end
 
     subgraph TARGETS["TARGET EXECUTION"]
-        Local[exec=local<br/>Hardcoded only]
-        ConfigBased[Config-Based Types<br/>from cfg/execution_types.yaml]
-        Shell[exec=shell]
-        Pbrun[exec=pbrun]
-        P7s[exec=p7s]
-        Wwrs[exec=wwrs]
-        Custom[+ Custom types]
-
-        ConfigBased -.defines.-> Shell
-        ConfigBased -.defines.-> Pbrun
-        ConfigBased -.defines.-> P7s
-        ConfigBased -.defines.-> Wwrs
-        ConfigBased -.defines.-> Custom
+        Local[Local Commands<br/>exec=local hardcoded]
+        Shell[Shell Commands<br/>exec=shell config-based]
+        Remote[Remote Execution<br/>pbrun/p7s/wwrs config-based]
     end
 
     Start --> CLI
     CLI --> VALIDATION
-    CLI --> ExecConfig
     InputSan -.-> TaskVal
     TaskVal -.-> HostVal
-    HostVal -.-> ExecConfig
     VALIDATION -->|✅ Validated Tasks| CORE
     TaskExec --> CondEval
     TaskExec --> StreamOut

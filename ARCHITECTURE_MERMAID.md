@@ -251,6 +251,10 @@ graph LR
         Execute[execute]
         Timeout[handle_timeout]
         Collect[collect_results]
+
+        Validate ~~~ Execute
+        Execute ~~~ Timeout
+        Timeout ~~~ Collect
     end
 
     Base[BaseExecutor<br/>Abstract Base]
@@ -260,6 +264,10 @@ graph LR
         Par[Parallel<br/>ThreadPool]
         Cond[Conditional<br/>if/else]
         Dec[Decision<br/>Routing]
+
+        Seq ~~~ Par
+        Par ~~~ Cond
+        Cond ~~~ Dec
     end
 
     Template --> Base

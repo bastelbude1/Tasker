@@ -406,8 +406,8 @@ class HostValidator:
         Returns:
             bool: True if test passed or validation skipped, False if test failed
         """
-        # Skip validation for local/shell execution (no remote connectivity needed)
-        if exec_type in ['local', 'shell']:
+        # Skip validation for local execution only (no remote connectivity needed)
+        if exec_type == 'local':
             return True
 
         # Get validation test from config (no hardcoded fallbacks)

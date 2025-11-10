@@ -53,6 +53,18 @@ class ExecConfigLoader:
         # Load configuration
         self._load_config()
 
+    def set_debug_callback(self, debug_callback):
+        """
+        Update the debug callback for this loader instance.
+
+        This is useful when using the singleton pattern and a new callback
+        needs to be set (e.g., when a new TaskExecutor instance is created).
+
+        Args:
+            debug_callback: New debug callback function or None
+        """
+        self.debug_callback = debug_callback or (lambda msg: None)
+
     def _detect_platform(self):
         """
         Detect current platform (linux, windows, darwin).
@@ -298,6 +310,11 @@ def get_loader(config_path=None, debug_callback=None, force_reload=False):
 
     Returns:
         ExecConfigLoader: Global loader instance
+
+    Note:
+        If the singleton already exists and a new debug_callback is provided,
+        the callback will be updated to avoid holding stale references to
+        old TaskExecutor instances (prevents memory leaks).
     """
     global _loader_instance
 
@@ -306,5 +323,8 @@ def get_loader(config_path=None, debug_callback=None, force_reload=False):
             config_path=config_path,
             debug_callback=debug_callback
         )
+    elif debug_callback is not None:
+        # Update callback on existing singleton to avoid holding stale references
+        _loader_instance.set_debug_callback(debug_callback)
 
     return _loader_instance

@@ -158,11 +158,6 @@ graph TB
 graph LR
     CLI[tasker.py]
 
-    subgraph CFG["Configuration"]
-        YAML[cfg/execution_types.yaml]
-        Loader[config/exec_config_loader.py]
-    end
-
     subgraph VAL["Validation"]
         Sanitizer[validation/input_sanitizer.py]
         TaskValidator[validation/task_validator.py]
@@ -191,6 +186,11 @@ graph LR
         Constants[core/constants.py]
         Utils[core/utilities.py]
         Sleep[utils/non_blocking_sleep.py]
+    end
+
+    subgraph CFG["Configuration"]
+        YAML[cfg/execution_types.yaml]
+        Loader[config/exec_config_loader.py]
     end
 
     CLI --> Loader

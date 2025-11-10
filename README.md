@@ -120,6 +120,12 @@ exec=local
 
 TASKER 2.1 is a next-generation task automation framework that reads task definitions from configuration files and executes them with advanced orchestration capabilities. Built on a modular architecture for maximum maintainability and scalability.
 
+📐 **Architecture Documentation** - Comprehensive system design with 8 detailed diagrams:
+- **[Mermaid Version](ARCHITECTURE_MERMAID.md)** (GitHub-optimized, beautifully rendered diagrams)
+- **[ASCII Version](ARCHITECTURE.md)** (Terminal-friendly, works everywhere)
+
+Covers system layers, data flow, security pipeline, memory management, and execution patterns.
+
 **Key Features:**
 
 - **Multiple Execution Models**: Sequential, parallel, and conditional task execution

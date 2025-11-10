@@ -1,0 +1,66 @@
+# TEST_METADATA: {"description": "Test runtime hostname resolution with pbrun, p7s, and wwrs executors","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2,3,4,5,6,7]}
+
+# Test runtime hostname resolution across multiple remote executors
+# This test verifies that all three remote executor types (pbrun, p7s, wwrs)
+# correctly handle runtime-resolved hostnames using @N_stdout@ placeholders
+#
+# CRITICAL: skip_host_validation MUST be true because hostnames contain unresolved
+# variables during validation phase. Each executor receives hostname at runtime
+# after task execution resolves the variables.
+
+# Task 0: Generate hostname for pbrun test
+task=0
+hostname=localhost
+command=echo
+arguments=pbrun-connection-ok
+exec=local
+
+# Task 1: Test pbrun with runtime-resolved hostname
+# Uses pbtest command which pbrun mock recognizes for connection testing
+task=1
+hostname=@0_stdout@
+command=pbtest
+exec=pbrun
+
+# Task 2: Verify pbrun connection result
+task=2
+hostname=localhost
+command=echo
+arguments=pbrun connected to: @0_stdout@
+exec=local
+
+# Task 3: Generate hostname for p7s test
+task=3
+hostname=localhost
+command=echo
+arguments=p7s-connection-ok
+exec=local
+
+# Task 4: Test p7s with runtime-resolved hostname
+# Uses pbtest command which p7s mock recognizes for connection testing
+task=4
+hostname=@3_stdout@
+command=pbtest
+exec=p7s
+
+# Task 5: Verify p7s connection result
+task=5
+hostname=localhost
+command=echo
+arguments=p7s connected to: @3_stdout@
+exec=local
+
+# Task 6: Generate hostname for wwrs test
+task=6
+hostname=localhost
+command=echo
+arguments=wwrs-connection-ok
+exec=local
+
+# Task 7: Test wwrs with runtime-resolved hostname
+# Uses wwrs_test command which wwrs_clir mock recognizes (different from pbtest!)
+# Note: exec type is "wwrs" (not "wwrs_clir"), which maps to wwrs_clir binary
+task=7
+hostname=@6_stdout@
+command=wwrs_test
+exec=wwrs

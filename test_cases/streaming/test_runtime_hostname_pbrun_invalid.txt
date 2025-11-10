@@ -1,0 +1,33 @@
+# TEST_METADATA: {"description": "Test runtime hostname resolution error handling with invalid hostname","test_type": "negative","expected_exit_code": 1,"expected_success": false,"skip_host_validation": true,"expected_execution_path": [0,1]}
+
+# Test error handling when runtime-resolved hostname is invalid
+# This test verifies that TASKER properly handles connection failures when the
+# runtime-resolved hostname doesn't exist or cannot be reached
+#
+# CRITICAL: skip_host_validation MUST be true because hostname contains unresolved
+# variable @0_stdout@ during validation phase. The invalid hostname will only be
+# detected during execution when pbrun attempts the connection.
+
+# Task 0: Generate invalid target hostname
+task=0
+hostname=localhost
+command=echo
+arguments=nonexistent-invalid-host
+exec=local
+
+# Task 1: Attempt connection to invalid runtime-resolved hostname
+# The hostname @0_stdout@ resolves to "nonexistent-invalid-host" from Task 0
+# pbrun mock will reject this hostname with exit code 1 and error message
+# Expected: Connection failure with "Unknown host" error message to stderr
+task=1
+hostname=@0_stdout@
+command=pbtest
+exec=pbrun
+
+# Task 2: This should NOT execute due to Task 1 failure
+# Without on_failure routing, workflow should stop after Task 1 fails
+task=2
+hostname=localhost
+command=echo
+arguments=This should not appear in output
+exec=local

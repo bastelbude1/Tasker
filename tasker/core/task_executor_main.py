@@ -2354,15 +2354,14 @@ class TaskExecutor:
             # Check for shutdown after host validation
             self._check_shutdown()
         else:
-            # Create dummy validated_hosts dict for resume mode
+            # Resume mode: collect hostnames without validation
+            # Use self-referential mapping (hostname -> hostname) since no FQDN lookup performed
             validated_hosts = {}
-    
-        # For resume mode, collect hostnames but don't validate them
-        for task in self.tasks.values():
-            if 'hostname' in task and task['hostname']:
-                hostname, resolved = ConditionEvaluator.replace_variables(task['hostname'], self.global_vars, self.task_results, self.log_debug)
-                if resolved and hostname:
-                    validated_hosts[hostname] = hostname  # Use as-is without validation
+            for task in self.tasks.values():
+                if 'hostname' in task and task['hostname']:
+                    hostname, resolved = ConditionEvaluator.replace_variables(task['hostname'], self.global_vars, self.task_results, self.log_debug)
+                    if resolved and hostname:
+                        validated_hosts[hostname] = hostname  # Use as-is without validation
 
         # Replace hostnames with validated FQDNs in all tasks
         # Conditional hostname FQDN replacement

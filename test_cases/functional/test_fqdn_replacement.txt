@@ -1,0 +1,20 @@
+# TEST_METADATA: {"description": "Test hostname FQDN replacement during validation","test_type": "positive","expected_exit_code": 0,"expected_success": true,"expected_execution_path": [0]}
+
+# Test that short hostnames are replaced with validated FQDNs
+# This test verifies the fix for the resume mode bug where validated FQDNs
+# were being overwritten with raw hostnames.
+#
+# Expected behavior:
+# 1. Validation phase resolves "localhost" (short) to "localhost" (FQDN - same in this case)
+# 2. FQDN replacement step preserves the validated hostname
+# 3. Task executes with the validated hostname (not overwritten by resume logic)
+#
+# Note: localhost resolves to itself, but the test verifies the replacement
+# mechanism works. In production, short hostnames like "webserver" would resolve
+# to "webserver.example.com" via DNS or /etc/hosts.
+
+task=0
+hostname=localhost
+command=echo
+arguments=Testing FQDN replacement
+exec=local

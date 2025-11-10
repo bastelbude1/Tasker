@@ -421,12 +421,13 @@ class HostValidator:
 
         # Build test command from config
         test_command = test_config.get('command')
+        test_arguments = test_config.get('arguments', '')  # Optional, defaults to empty string
         expected_exit = test_config.get('expected_exit', 0)
         expected_output = test_config.get('expected_output')
 
         # Build the full test command using config loader
         cmd_array = exec_config_loader.build_command_array(
-            exec_type, hostname, test_command, ""
+            exec_type, hostname, test_command, test_arguments
         )
 
         if cmd_array is None:

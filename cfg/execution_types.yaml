@@ -11,7 +11,8 @@
 #   {arguments_split}  - Arguments split into array using shlex.split()
 #
 # Validation Test Format:
-#   command: Command to execute for connectivity testing
+#   command: Command to execute for connectivity testing (mandatory)
+#   arguments: Arguments for the validation command (optional, defaults to "")
 #   expected_exit: Expected exit code (typically 0)
 #   expected_output: String that must appear in stdout (e.g., "OK")
 

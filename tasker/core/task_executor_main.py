@@ -94,7 +94,7 @@ class TaskExecutor:
     # ===== 1. CLASS LIFECYCLE =====
     
     def __init__(self, task_file, log_dir='logs', dry_run=True, log_level='INFO',
-                 exec_type=None, timeout=30, connection_test=False, project=None,
+                 exec_type=None, timeout=30, project=None,
                  start_from_task=None, skip_task_validation=False,
                  skip_host_validation=False, skip_unresolved_host_validation=False,
                  skip_command_validation=False,
@@ -115,7 +115,6 @@ class TaskExecutor:
             log_level: Minimum log level name to emit (e.g., "INFO", "DEBUG").
             exec_type: Optional execution type override (e.g., 'pbrun', 'shell'); used as the default executor when tasks do not specify one.
             timeout: Default per-task timeout fallback used when a task does not specify its own timeout.
-            connection_test: If true, enables connection checks during host validation.
             project: Optional project name used to enable shared summary logging; sanitized before use.
             start_from_task: Optional task id to resume execution from; enables resume mode and influences startup logging.
             skip_task_validation: If true, task file validation is skipped (useful in resume scenarios).
@@ -152,7 +151,6 @@ class TaskExecutor:
         self.exec_type = exec_type  # From command line argument
         self.default_exec_type = 'pbrun'  # Default execution type
         self.timeout = timeout # Default timeout from command line
-        self.connection_test = connection_test # Whether to make an connection test
         self.project = sanitize_filename(project) if project else None  # Sanitized project name
         self.show_plan = show_plan
         self.validate_only = validate_only

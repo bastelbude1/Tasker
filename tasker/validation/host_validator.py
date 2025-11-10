@@ -421,12 +421,20 @@ class HostValidator:
 
         # Build test command from config
         test_command = test_config.get('command')
+        test_arguments = test_config.get('arguments', '')  # Optional, defaults to empty string
+
+        # Validate that at least one success criterion is specified
+        if 'expected_exit' not in test_config and 'expected_output' not in test_config:
+            if debug_callback:
+                debug_callback(f"ERROR: Validation test for '{exec_type}' must specify at least one of: expected_exit, expected_output")
+            return False
+
         expected_exit = test_config.get('expected_exit', 0)
         expected_output = test_config.get('expected_output')
 
         # Build the full test command using config loader
         cmd_array = exec_config_loader.build_command_array(
-            exec_type, hostname, test_command, ""
+            exec_type, hostname, test_command, test_arguments
         )
 
         if cmd_array is None:

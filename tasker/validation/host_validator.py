@@ -300,9 +300,13 @@ class HostValidator:
 
                 try:
                     stdout, stderr = process.communicate(timeout=5)
+                    ok = (process.returncode == 0)
                     if debug_callback:
-                        debug_callback(f"ping '{hostname}' is alive")
-                    return process.returncode == 0
+                        if ok:
+                            debug_callback(f"ping '{hostname}' is alive")
+                        else:
+                            debug_callback(f"ERROR: ping to '{hostname}' failed (rc={process.returncode})")
+                    return ok
                 except subprocess.TimeoutExpired:
                     process.kill()
                     stdout, stderr = process.communicate()
@@ -315,55 +319,6 @@ class HostValidator:
                 debug_callback(f"ERROR: pinging host '{hostname}': {str(e)}")
             return False
 
-    @staticmethod
-    def check_exec_connection(exec_type, hostname, debug_callback=None):
-        """Test connectivity for specific execution type."""
-        if exec_type not in ['pbrun', 'p7s', 'wwrs']:
-            # For local or unknown exec types, just return True
-            return True
-
-        # Build command array based on exec_type
-        if exec_type == 'pbrun':
-            cmd_array = ["pbrun", "-n", "-h", hostname, "pbtest"]
-        elif exec_type == 'p7s':
-            cmd_array = ["p7s", hostname, "pbtest"]
-        elif exec_type == 'wwrs':
-            cmd_array = ["wwrs_clir", hostname, "wwrs_test"]
-
-        if debug_callback:
-            debug_callback(f"Testing {exec_type} connection to '{hostname}' with: {' '.join(cmd_array)}")
-
-        try:
-            with subprocess.Popen(
-                cmd_array,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True
-            ) as process:
-
-                try:
-                    stdout, stderr = process.communicate(timeout=10)
-                    success = process.returncode == 0 and "OK" in stdout
-                    if success:
-                        if debug_callback:
-                            debug_callback(f"{exec_type} connection to '{hostname}' successful")
-                    else:
-                        if debug_callback:
-                            debug_callback(f"ERROR: {exec_type} connection to '{hostname}' failed: {stderr.strip()}")
-                    return success
-
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    stdout, stderr = process.communicate()
-                    if debug_callback:
-                        debug_callback(f"ERROR: {exec_type} connection to '{hostname}' timed out")
-                    return False
-
-        except Exception as e:
-            if debug_callback:
-                debug_callback(f"ERROR: testing {exec_type} connection to '{hostname}': {str(e)}")
-            return False
-    
     @staticmethod
     def _determine_task_exec_type(task, exec_type, default_exec_type):
         """Determine execution type for a task."""

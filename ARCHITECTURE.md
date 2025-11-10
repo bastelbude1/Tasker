@@ -242,17 +242,23 @@ Task 0 Execution:
   │  └─ YES                      │
   │     ├─ Create temp file      │
   │     │  /tmp/tasker_stdout_XX │
+  │     ├─ Stream data to file   │
+  │     ├─ Release memory buffer │ ← Frees memory immediately
   │     └─ Store path in result  │
   └──────────┬───────────────────┘
              │
              ▼
   ┌──────────────────────────────┐
   │  task_results[0] = {         │
-  │    stdout: "5MB data"        │ ← Kept in memory temporarily
-  │    stdout_file: "/tmp/..."  │ ← Path to temp file
+  │    stdout: ""                │ ← Empty (memory freed)
+  │    stdout_file: "/tmp/..."  │ ← Path for file-based access
   │    exit_code: 0              │
   │    success: True             │
   │  }                           │
+  │                              │
+  │  Note: For outputs < 1MB:    │
+  │    stdout: "small data"      │ ← Kept in memory
+  │    stdout_file: None         │ ← No temp file needed
   └──────────────────────────────┘
 
 Task 1 Execution:
@@ -593,10 +599,30 @@ Command-line Substitution:
 6. **Test Infrastructure**: Metadata-driven validation (465/465 tests passing)
 7. **No External Dependencies**: Pure Python 3.6.8 standard library
 
-**Key Design Patterns**:
+**Key Design Patterns** (with rationale):
 
-- ✅ Strategy Pattern (Executors)
-- ✅ Template Method (BaseExecutor)
-- ✅ Singleton (Constants)
-- ✅ Factory (create_memory_efficient_handler)
-- ✅ Context Manager (StreamingOutputHandler)
+- ✅ **Strategy Pattern** (Executors)
+  - *Why*: Support multiple execution modes (Sequential, Parallel, Conditional,
+    Decision) without conditional branching in core logic
+  - *Benefit*: Easy addition of new execution strategies without modifying
+    existing code
+
+- ✅ **Template Method** (BaseExecutor)
+  - *Why*: Define common execution workflow while allowing subclasses to
+    customize specific steps
+  - *Benefit*: Ensures consistent behavior (validation, timeout handling,
+    result collection)
+
+- ✅ **Singleton** (Constants)
+  - *Why*: Centralize magic numbers and thresholds (MAX_CMDLINE_SUBST,
+    MAX_VARIABLE_EXPANSION_DEPTH)
+  - *Benefit*: Single source of truth, prevents duplication and inconsistency
+
+- ✅ **Factory** (create_memory_efficient_handler)
+  - *Why*: Encapsulate complex object creation logic for streaming handlers
+  - *Benefit*: Hides implementation details, simplifies client code
+
+- ✅ **Context Manager** (StreamingOutputHandler)
+  - *Why*: Guarantee proper resource cleanup (temp files, file descriptors)
+    even on exceptions
+  - *Benefit*: Prevents resource leaks in production, automatic cleanup

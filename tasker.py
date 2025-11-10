@@ -371,7 +371,10 @@ Examples:
     if skip_host_validation:
         print("WARNING: Skipping host validation can lead to connection failures!")
     if skip_unresolved_host_validation:
-        print("INFO: Runtime hostname resolution enabled - hostnames with variables will be resolved during execution")
+        if not skip_host_validation:
+            print("INFO: Runtime hostname resolution enabled - hostnames with variables will be resolved during execution")
+        else:
+            print("INFO: --skip-unresolved-host-validation has no effect when --skip-host-validation is set")
     if skip_command_validation:
         print("WARNING: Skipping command validation can lead to execution failures!")
     if skip_security_validation:

@@ -83,6 +83,11 @@ class HostValidator:
                     if hostname not in host_exec_combinations:
                         host_exec_combinations[hostname] = set()
                     host_exec_combinations[hostname].add(task_exec)
+                else:
+                    # Hostname resolved to empty string - likely a configuration error
+                    if debug_callback:
+                        task_id = task.get('task_id', 'unknown')
+                        debug_callback(f"WARNING: Task {task_id}: hostname '{task['hostname']}' resolved to empty string (skipped)")
 
         # Handle unresolved hostname variables
         if unresolved_hostnames:

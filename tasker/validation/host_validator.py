@@ -26,7 +26,7 @@ class HostValidator:
     """
     
     @staticmethod
-    def validate_hosts(tasks, global_vars, task_results, exec_type=None, default_exec_type='pbrun', check_connectivity=False, debug_callback=None, log_callback=None, *, skip_command_validation=False, skip_unresolved_host_validation=False):
+    def validate_hosts(tasks, global_vars, task_results, exec_type=None, default_exec_type='pbrun', _check_connectivity=False, debug_callback=None, log_callback=None, *, skip_command_validation=False, skip_unresolved_host_validation=False):
         """
         Enhanced host validation with automatic connectivity testing for remote hosts.
         Returns a dict mapping original hostnames to validated FQDNs if successful,
@@ -38,7 +38,7 @@ class HostValidator:
             task_results: Dictionary of task results
             exec_type: Override execution type
             default_exec_type: Default execution type to use
-            check_connectivity: Whether to test actual connectivity (ignored - always True for remote hosts)
+            _check_connectivity: Reserved parameter (currently unused - connectivity always tested for remote hosts)
             debug_callback: Optional function for debug logging
             log_callback: Optional function for main logging
             skip_command_validation: Whether to skip command existence validation (keyword-only)
@@ -104,7 +104,7 @@ class HostValidator:
                         log_callback(f"#   Task {entry['task_id']}: hostname='{entry['hostname']}' contains unresolved variable(s)")
                         if debug_callback:
                             debug_callback(f"    After partial resolution: '{entry['resolved_to']}'")
-                    log_callback(f"# Hint: Check that all variables referenced in hostnames are defined in the global variables section")
+                    log_callback("# Hint: Check that all variables referenced in hostnames are defined in the global variables section")
                 return {'error': 'unresolved_hostname_variables', 'exit_code': ExitCodes.TASK_FILE_VALIDATION_FAILED}
         
         # Check if required execution commands exist (unless explicitly skipped)

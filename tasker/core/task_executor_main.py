@@ -51,6 +51,7 @@ from ..executors.sequential_executor import SequentialExecutor
 from ..executors.parallel_executor import ParallelExecutor
 from ..executors.conditional_executor import ConditionalExecutor
 from ..executors.decision_executor import DecisionExecutor
+from ..config.exec_config_loader import get_loader as get_exec_config_loader
 
 # Import new modular components
 from .state_manager import StateManager
@@ -372,6 +373,11 @@ class TaskExecutor:
 
         # ===== NEW MODULAR ARCHITECTURE INITIALIZATION =====
         # Initialize the new modular components while maintaining backward compatibility
+
+        # Initialize Execution Type Config Loader
+        # Note: Only exec=local is hardcoded. All other execution types (shell, pbrun, p7s, wwrs)
+        # are loaded from cfg/execution_types.yaml
+        self._exec_config_loader = get_exec_config_loader(debug_callback=self.log_debug)
 
         # Initialize StateManager with existing state
         self._state_manager = StateManager()
@@ -1833,6 +1839,8 @@ class TaskExecutor:
         """
         Normalize execution type by mapping aliases to standard values.
 
+        Uses config-based aliases from execution_types.yaml (NO hardcoded fallbacks).
+
         Args:
             exec_type: Raw execution type (may be an alias)
 
@@ -1842,42 +1850,56 @@ class TaskExecutor:
         if not exec_type:
             return 'pbrun'
 
-        # Map common aliases to standard values
-        alias_map = {
-            'sh': 'shell',
-            'bash': 'shell',
-            '/bin/sh': 'shell',
-            '/bin/bash': 'shell'
-        }
-
         normalized = exec_type.lower().strip()
-        return alias_map.get(normalized, normalized)
+
+        # Get aliases from config (NO hardcoded fallbacks)
+        if hasattr(self, '_exec_config_loader') and self._exec_config_loader.config_data:
+            config_aliases = self._exec_config_loader.config_data.get('aliases', {})
+            if normalized in config_aliases:
+                return config_aliases[normalized]
+
+        # Return as-is if no alias found (will be validated later)
+        return normalized
 
     def build_command_array(self, exec_type, hostname, command, arguments):
-        """Build the command array based on execution type."""
+        """
+        Build the command array based on execution type.
+
+        Uses config-based command templates from execution_types.yaml for all exec types
+        except exec=local, which is hardcoded.
+
+        Args:
+            exec_type: Execution type (local, shell, pbrun, p7s, wwrs, etc.)
+            hostname: Target hostname
+            command: Command to execute
+            arguments: Command arguments
+
+        Returns:
+            list: Command array for subprocess execution
+        """
         # Normalize exec type (map aliases like bash → shell)
         exec_type = self.normalize_exec_type(exec_type)
 
         # Expand environment variables in arguments
         expanded_arguments = os.path.expandvars(arguments) if arguments else ""
 
-        if exec_type == 'pbrun':
-            return ["pbrun", "-n", "-h", hostname, command] + shlex.split(expanded_arguments)
-        elif exec_type == 'p7s':
-            return ["p7s", hostname, command] + shlex.split(expanded_arguments)
-        elif exec_type == 'shell':
-            # Execute via bash -c with command+arguments as a single shell script
-            # This allows complex shell syntax: pipes, redirects, command substitution, etc.
-            full_script = f"{command} {expanded_arguments}".strip()
-            return ["/bin/bash", "-c", full_script]
-        elif exec_type == 'local':
+        # HARDCODED: exec=local (ONLY hardcoded execution type)
+        if exec_type == 'local':
             return [command] + shlex.split(expanded_arguments)
-        elif exec_type == 'wwrs':
-            return ["wwrs_clir", hostname, command] + shlex.split(expanded_arguments)
-        else:
-            # Default to pbrun if unknown exec_type
-            self.log_warn(f"Unknown execution type '{exec_type}', using default 'pbrun'")
-            return ["pbrun", "-n", "-h", hostname, command] + shlex.split(expanded_arguments)
+
+        # CONFIG-BASED: All other execution types MUST come from config
+        if hasattr(self, '_exec_config_loader'):
+            cmd_array = self._exec_config_loader.build_command_array(
+                exec_type, hostname, command, arguments
+            )
+            if cmd_array is not None:
+                return cmd_array
+
+        # NO FALLBACKS: If exec type not in config, it's an error
+        self.log_error(f"ERROR: Execution type '{exec_type}' not found in configuration")
+        self.log_error(f"       Config file location: cfg/execution_types.yaml")
+        self.log_error(f"       Only exec=local is supported without configuration file")
+        return None
 
     def get_task_timeout(self, task):
         """Determine the timeout for a task, respecting priority order."""

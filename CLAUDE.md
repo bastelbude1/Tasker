@@ -47,7 +47,96 @@ with subprocess.Popen(['command'],
 
 ### **Dependencies**
 - **Python 3.6.8 or higher** (but use ONLY 3.6.8 compatible features)
-- **Standard library modules only** - no external dependencies
+- **PyYAML** - Required for execution type configuration (install: `pip install pyyaml`)
+- **Standard library modules** - All other functionality uses stdlib only
+
+---
+
+## 🔧 EXECUTION TYPE CONFIGURATION (Config-Based Architecture)
+
+### **CRITICAL: Only exec=local is Hardcoded**
+
+**New Architecture (November 2025):**
+- **exec=local**: ONLY hardcoded execution type (direct subprocess execution)
+- **All other execution types**: Defined in `cfg/execution_types.yaml`
+  - exec=shell (platform-specific: /bin/bash on Linux, cmd.exe on Windows)
+  - exec=pbrun (PowerBroker remote execution)
+  - exec=p7s (P7S remote execution)
+  - exec=wwrs (WWRS remote execution via wwrs_clir)
+  - Custom execution types can be added via config
+
+### **Config File Location Priority**
+
+1. **Same directory as tasker.py**: `<tasker_dir>/cfg/execution_types.yaml`
+   - Resolves symlinks to find real script location
+   - Example: `/home/baste/tasker/cfg/execution_types.yaml`
+2. **Current working directory**: `./cfg/execution_types.yaml`
+
+### **Config File Structure**
+
+```yaml
+platforms:
+  linux:
+    shell:
+      binary: /bin/bash
+      command_template:
+        - "{binary}"
+        - "-c"
+        - "{command} {arguments}"
+      validation_test: null  # No remote validation needed
+
+    pbrun:
+      binary: pbrun
+      command_template:
+        - "{binary}"
+        - "-n"
+        - "-h"
+        - "{hostname}"
+        - "{command}"
+        - "{arguments_split}"
+      validation_test:
+        command: pbtest
+        expected_exit: 0
+        expected_output: "OK"
+
+aliases:
+  bash: shell
+  sh: shell
+  "/bin/bash": shell
+  "/bin/sh": shell
+```
+
+### **Template Variables**
+
+- `{binary}` - Executable binary name
+- `{hostname}` - Target hostname from task definition
+- `{command}` - Command from task definition
+- `{arguments}` - Arguments as a single string
+- `{arguments_split}` - Arguments split into array using shlex.split()
+
+### **Validation Tests**
+
+Each execution type can define optional validation tests:
+- `command`: Test command to execute (e.g., "pbtest", "wwrs_test")
+- `expected_exit`: Expected exit code (typically 0)
+- `expected_output`: String that must appear in stdout (e.g., "OK")
+
+### **NO Hardcoded Fallbacks**
+
+**CRITICAL RULE**: No hardcoded fallbacks exist in the code. If an execution type is not defined in the config file, TASKER will fail with a clear error message.
+
+**Benefits**:
+- Config file ensures all execution types work exactly as before
+- Adding new execution types requires only YAML changes
+- Platform-specific execution types supported (Linux/Windows)
+- Test cases validate that config-based execution matches historical behavior
+
+### **Error Handling**
+
+- **Missing config file**: Only exec=local will work
+- **Unconfigured exec type**: Clear error with config file location
+- **Missing binary**: Validation failure during host validation phase
+- **Failed connectivity test**: Clear error with test details
 
 ---
 

@@ -1,0 +1,100 @@
+# TASKER Execution Types Configuration
+# Defines platform-specific execution type implementations
+#
+# Note: exec=local is always hardcoded and does not require configuration
+#
+# Template Variables:
+#   {binary}           - The executable binary name
+#   {hostname}         - Target hostname from task definition
+#   {command}          - Command from task definition
+#   {arguments}        - Arguments as a single string
+#   {arguments_split}  - Arguments split into array using shlex.split()
+#
+# Validation Test Format:
+#   command: Command to execute for connectivity testing
+#   expected_exit: Expected exit code (typically 0)
+#   expected_output: String that must appear in stdout (e.g., "OK")
+
+platforms:
+  # Linux execution type definitions
+  linux:
+    shell:
+      description: "Local shell execution with Bash"
+      binary: /bin/bash
+      command_template:
+        - "{binary}"
+        - "-c"
+        - "{command} {arguments}"
+      validation_test: null  # No remote validation needed
+
+    pbrun:
+      description: "PowerBroker remote execution"
+      binary: pbrun
+      command_template:
+        - "{binary}"
+        - "-n"
+        - "-h"
+        - "{hostname}"
+        - "{command}"
+        - "{arguments_split}"
+      validation_test:
+        command: pbtest
+        expected_exit: 0
+        expected_output: "OK"
+
+    p7s:
+      description: "P7S remote execution"
+      binary: p7s
+      command_template:
+        - "{binary}"
+        - "{hostname}"
+        - "{command}"
+        - "{arguments_split}"
+      validation_test:
+        command: pbtest
+        expected_exit: 0
+        expected_output: "OK"
+
+    wwrs:
+      description: "WWRS remote execution (wwrs_clir binary)"
+      binary: wwrs_clir
+      command_template:
+        - "{binary}"
+        - "{hostname}"
+        - "{command}"
+        - "{arguments_split}"
+      validation_test:
+        command: wwrs_test
+        expected_exit: 0
+        expected_output: "OK"
+
+  # Windows execution type definitions (future support)
+  windows:
+    shell:
+      description: "Local shell execution with cmd.exe"
+      binary: cmd.exe
+      command_template:
+        - "{binary}"
+        - "/c"
+        - "{command} {arguments}"
+      validation_test: null
+
+    # Windows remote execution tools can be added here
+    # Example:
+    # psexec:
+    #   description: "PsExec remote execution"
+    #   binary: psexec.exe
+    #   command_template:
+    #     - "{binary}"
+    #     - "\\\\{hostname}"
+    #     - "{command}"
+    #     - "{arguments_split}"
+
+# Execution type aliases (optional)
+# Maps alternative names to canonical execution types
+aliases:
+  bash: shell
+  sh: shell
+  "/bin/bash": shell
+  "/bin/sh": shell
+  cmd: shell  # Windows only

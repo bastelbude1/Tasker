@@ -366,7 +366,7 @@ graph TB
         ExitMatch{Exit code<br/>matches?}
         PathMatch{Execution path<br/>matches?}
         VarMatch{Variables<br/>correct?}
-        ExceptCheck{Python<br/>exceptions?}
+        ExceptCheck{No exceptions?}
         Fail[❌ FAIL]
         Pass[✅ PASS]
     end
@@ -382,8 +382,8 @@ graph TB
     PathMatch -->|YES| VarMatch
     VarMatch -->|NO| Fail
     VarMatch -->|YES| ExceptCheck
-    ExceptCheck -->|YES| Fail
-    ExceptCheck -->|NO| Pass
+    ExceptCheck -->|NO| Fail
+    ExceptCheck -->|YES| Pass
 
     style Runner fill:#e1f5fe
     style Metadata fill:#fff3e0

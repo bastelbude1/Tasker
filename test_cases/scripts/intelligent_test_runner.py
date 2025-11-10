@@ -813,6 +813,8 @@ class TaskerTestExecutor:
         # Add skip flags from metadata
         if metadata.get("skip_host_validation", False):
             cmd_args.append("--skip-host-validation")
+        if metadata.get("skip_unresolved_host_validation", False):
+            cmd_args.append("--skip-unresolved-host-validation")
         if metadata.get("skip_task_validation", False):
             cmd_args.append("--skip-task-validation")
         if metadata.get("skip_command_validation", False):

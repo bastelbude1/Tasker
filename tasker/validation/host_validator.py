@@ -26,7 +26,7 @@ class HostValidator:
     """
     
     @staticmethod
-    def validate_hosts(tasks, global_vars, task_results, exec_type=None, default_exec_type='pbrun', check_connectivity=False, debug_callback=None, log_callback=None, *, skip_command_validation=False):
+    def validate_hosts(tasks, global_vars, task_results, exec_type=None, default_exec_type='pbrun', check_connectivity=False, debug_callback=None, log_callback=None, *, skip_command_validation=False, skip_unresolved_host_validation=False):
         """
         Enhanced host validation with automatic connectivity testing for remote hosts.
         Returns a dict mapping original hostnames to validated FQDNs if successful,
@@ -42,6 +42,7 @@ class HostValidator:
             debug_callback: Optional function for debug logging
             log_callback: Optional function for main logging
             skip_command_validation: Whether to skip command existence validation (keyword-only)
+            skip_unresolved_host_validation: Whether to allow unresolved hostname variables (enables runtime hostname resolution) (keyword-only)
 
         Returns:
             Dict mapping hostnames to validated FQDNs, or dict with 'error' and 'exit_code' if validation failed
@@ -86,14 +87,25 @@ class HostValidator:
 
         # Handle unresolved hostname variables
         if unresolved_hostnames:
-            if log_callback:
-                log_callback(f"# ERROR: {len(unresolved_hostnames)} task(s) have unresolved hostname variables:")
-                for entry in unresolved_hostnames:
-                    log_callback(f"#   Task {entry['task_id']}: hostname='{entry['hostname']}' contains unresolved variable(s)")
-                    if debug_callback:
-                        debug_callback(f"    After partial resolution: '{entry['resolved_to']}'")
-                log_callback(f"# Hint: Check that all variables referenced in hostnames are defined in the global variables section")
-            return {'error': 'unresolved_hostname_variables', 'exit_code': ExitCodes.TASK_FILE_VALIDATION_FAILED}
+            if skip_unresolved_host_validation:
+                # Permissive mode: Allow unresolved hostnames for runtime resolution
+                if log_callback:
+                    log_callback(f"# WARNING: {len(unresolved_hostnames)} task(s) have unresolved hostname variables (runtime resolution enabled)")
+                    for entry in unresolved_hostnames:
+                        log_callback(f"#   Task {entry['task_id']}: hostname='{entry['hostname']}' will be resolved at runtime")
+                        if debug_callback:
+                            debug_callback(f"    After partial resolution: '{entry['resolved_to']}'")
+                # Continue with validation for resolved hostnames only
+            else:
+                # Strict mode: Reject unresolved hostnames
+                if log_callback:
+                    log_callback(f"# ERROR: {len(unresolved_hostnames)} task(s) have unresolved hostname variables:")
+                    for entry in unresolved_hostnames:
+                        log_callback(f"#   Task {entry['task_id']}: hostname='{entry['hostname']}' contains unresolved variable(s)")
+                        if debug_callback:
+                            debug_callback(f"    After partial resolution: '{entry['resolved_to']}'")
+                    log_callback(f"# Hint: Check that all variables referenced in hostnames are defined in the global variables section")
+                return {'error': 'unresolved_hostname_variables', 'exit_code': ExitCodes.TASK_FILE_VALIDATION_FAILED}
         
         # Check if required execution commands exist (unless explicitly skipped)
         if not skip_command_validation:

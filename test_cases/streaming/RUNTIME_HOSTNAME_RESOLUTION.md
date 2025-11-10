@@ -14,29 +14,38 @@ This document describes how TASKER handles runtime hostname resolution when the 
 - **Validation failure**: If hostname contains unresolved variables, validation fails with exit code 20
 - **Error message**: "Unresolved variables in hostname for task N"
 
-### Required Workaround
+### Required Configuration
 
 To use runtime-resolved hostnames, you **MUST** include this in your test metadata:
 
 ```json
 {
-  "skip_host_validation": true
+  "skip_unresolved_host_validation": true
 }
 ```
 
+**IMPORTANT**: Use `skip_unresolved_host_validation` (NOT `skip_host_validation`)!
+
+**Security benefit**: `skip_unresolved_host_validation` only skips validation for hostnames with unresolved variables like `@0_stdout@`. Static hostnames in other tasks are **still validated**, catching typos and DNS errors before execution!
+
 **Example from test case:**
 ```text
-# TEST_METADATA: {"description": "...","skip_host_validation": true,...}
+# TEST_METADATA: {"description": "...","skip_unresolved_host_validation": true,...}
 
 task=0
-hostname=localhost
+hostname=localhost          # ✅ VALIDATED (catches typos!)
 command=echo
 arguments=pbrun-success-host
 exec=local
 
 task=1
-hostname=@0_stdout@
+hostname=@0_stdout@         # ⏭️ SKIPPED (runtime variable)
 command=pbtest
+exec=pbrun
+
+task=2
+hostname=prod-server.com    # ✅ VALIDATED (catches DNS errors!)
+command=verify
 exec=pbrun
 ```
 
@@ -161,17 +170,39 @@ Located in `test_cases/bin/`:
 
 ### Security Considerations
 
-**WARNING**: Skipping host validation reduces pre-execution safety checks:
+**IMPROVED SECURITY**: `skip_unresolved_host_validation` provides better security than the old `skip_host_validation` flag:
 
-1. **No pre-validation**: Invalid hostnames only detected during execution
-2. **Typo detection delayed**: Hostname errors cause runtime failures, not validation failures
-3. **DNS resolution timing**: DNS lookups happen at runtime, not validation time
+**Old flag (`skip_host_validation`):**
+- ❌ Skips validation for ALL hostnames in workflow
+- ❌ Typos in static hostnames go undetected
+- ❌ DNS errors only found at runtime
+- ❌ No early detection of configuration errors
 
-**Mitigation strategies:**
+**New flag (`skip_unresolved_host_validation`):**
+- ✅ Validates ALL static hostnames (catches typos!)
+- ✅ Only skips hostnames with unresolved variables
+- ✅ DNS errors detected during validation phase
+- ✅ Early detection of configuration errors
+
+**Example comparison:**
+```text
+task=0: hostname=prodserver1.exmaple.com  # Typo: "exmaple"
+task=1: hostname=@0_stdout@               # Runtime variable
+task=2: hostname=prod-backup.example.com  # Static hostname
+
+With skip_host_validation:       ALL 3 hostnames unchecked ❌
+With skip_unresolved_host_validation:  Tasks 0 & 2 validated, catches typo ✅
+```
+
+**Remaining considerations** (for runtime-resolved hostnames only):
+1. **Runtime detection**: Invalid runtime hostnames detected during execution (not validation)
+2. **Dynamic errors**: Hostname generation logic errors cause runtime failures
+
+**Best practices:**
 - Use explicit hostname generation (echo "known-hostname") rather than complex logic
 - Add verification tasks after runtime-resolved connections
 - Log resolved hostnames for audit trail
-- Consider using global variables for hostnames when possible (validated at start)
+- Prefer global variables when hostname is known at design time (validated at start)
 
 ## Technical Implementation
 

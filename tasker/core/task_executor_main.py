@@ -95,7 +95,8 @@ class TaskExecutor:
     def __init__(self, task_file, log_dir='logs', dry_run=True, log_level='INFO',
                  exec_type=None, timeout=30, connection_test=False, project=None,
                  start_from_task=None, skip_task_validation=False,
-                 skip_host_validation=False, skip_command_validation=False,
+                 skip_host_validation=False, skip_unresolved_host_validation=False,
+                 skip_command_validation=False,
                  skip_security_validation=False, skip_subtask_range_validation=False,
                  strict_env_validation=False, show_plan=False, validate_only=False,
                  fire_and_forget=False, no_task_backup=False, auto_recovery=False,
@@ -235,6 +236,7 @@ class TaskExecutor:
         self.start_from_task = start_from_task
         self.skip_task_validation = skip_task_validation
         self.skip_host_validation = skip_host_validation
+        self.skip_unresolved_host_validation = skip_unresolved_host_validation
         self.skip_command_validation = skip_command_validation
         self.skip_security_validation = skip_security_validation
         self.skip_subtask_range_validation = skip_subtask_range_validation
@@ -256,6 +258,8 @@ class TaskExecutor:
                 self.log_warn(f"# Task Validation will be skipped")
             if self.skip_host_validation:
                 self.log_warn("# Host Validation will be skipped - ATTENTION")
+            if self.skip_unresolved_host_validation:
+                self.log_warn("# Unresolved Host Validation will be skipped - runtime hostname resolution enabled")
             if self.skip_command_validation:
                 self.log_warn("# Command Validation will be skipped - ATTENTION")
             if self.skip_security_validation:
@@ -2331,7 +2335,8 @@ class TaskExecutor:
                 self.connection_test,  # Respect CLI/constructor flag
                 self.log_debug if self.log_level == 'DEBUG' else None,  # Only detailed output in debug mode
                 self.log_info,
-                skip_command_validation=self.skip_command_validation  # Keyword-only arg
+                skip_command_validation=self.skip_command_validation,  # Keyword-only arg
+                skip_unresolved_host_validation=self.skip_unresolved_host_validation  # Keyword-only arg
             )
             
             # Handle new return format

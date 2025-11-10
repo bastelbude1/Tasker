@@ -1,12 +1,12 @@
-# TEST_METADATA: {"description": "Test runtime hostname resolution with pbrun executor using @0_stdout@","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2]}
+# TEST_METADATA: {"description": "Test runtime hostname resolution with pbrun executor using @0_stdout@","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_unresolved_host_validation": true,"expected_execution_path": [0,1,2]}
 
 # Test runtime hostname resolution with pbrun executor
 # This test verifies that TASKER can use task output as hostname for remote execution
 # Demonstrates the pattern: hostname=@0_stdout@ with exec=pbrun
 #
-# CRITICAL: skip_host_validation MUST be true because hostname contains unresolved
-# variable @0_stdout@ during validation phase. Host validation occurs before task
-# execution, so runtime-resolved hostnames cannot be pre-validated.
+# CRITICAL: skip_unresolved_host_validation MUST be true because hostname contains
+# unresolved variable @0_stdout@ during validation phase. This flag allows runtime
+# hostname resolution while still validating static hostnames (security benefit!).
 
 # Task 0: Generate target hostname using echo
 task=0

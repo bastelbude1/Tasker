@@ -1,12 +1,12 @@
-# TEST_METADATA: {"description": "Test runtime hostname resolution with pbrun, p7s, and wwrs executors","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_host_validation": true,"expected_execution_path": [0,1,2,3,4,5,6,7]}
+# TEST_METADATA: {"description": "Test runtime hostname resolution with pbrun, p7s, and wwrs executors","test_type": "positive","expected_exit_code": 0,"expected_success": true,"skip_unresolved_host_validation": true,"expected_execution_path": [0,1,2,3,4,5,6,7]}
 
 # Test runtime hostname resolution across multiple remote executors
 # This test verifies that all three remote executor types (pbrun, p7s, wwrs)
 # correctly handle runtime-resolved hostnames using @N_stdout@ placeholders
 #
-# CRITICAL: skip_host_validation MUST be true because hostnames contain unresolved
-# variables during validation phase. Each executor receives hostname at runtime
-# after task execution resolves the variables.
+# CRITICAL: skip_unresolved_host_validation MUST be true because hostnames contain
+# unresolved variables during validation phase. This allows runtime hostname resolution
+# while still validating static hostnames in other tasks (security benefit!).
 
 # Task 0: Generate hostname for pbrun test
 task=0

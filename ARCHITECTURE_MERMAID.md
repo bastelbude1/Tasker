@@ -293,7 +293,7 @@ graph LR
 ## 6. Security Validation Pipeline
 
 ```mermaid
-graph TB
+graph LR
     Input[Task Input]
 
     L1[Layer 1: Input Length Validation<br/>✓ MAX_ARGUMENTS_LENGTH 8192<br/>✓ MAX_ARGUMENTS_SECURE_LENGTH 2000]
@@ -302,20 +302,20 @@ graph TB
     L4[Layer 4: ARG_MAX Protection<br/>✓ 100KB command-line limit<br/>✓ Variable substitution truncation]
     L5[Layer 5: Task Structure Validation<br/>✓ Field count limits<br/>✓ Privilege escalation detection<br/>✓ Suspicious combinations]
 
-    Safe[✅ Safe for Execution]
     Reject[❌ Rejected]
+    Safe[✅ Safe for Execution]
 
     Input --> L1
-    L1 -->|Pass| L2
     L1 -->|Fail| Reject
-    L2 -->|Pass| L3
+    L1 -->|Pass| L2
     L2 -->|Fail| Reject
-    L3 -->|Pass| L4
+    L2 -->|Pass| L3
     L3 -->|Fail| Reject
-    L4 -->|Pass| L5
+    L3 -->|Pass| L4
     L4 -->|Fail| Reject
-    L5 -->|Pass| Safe
+    L4 -->|Pass| L5
     L5 -->|Fail| Reject
+    L5 -->|Pass| Safe
 
     style Input fill:#e1f5fe
     style L1 fill:#fff3e0
@@ -323,8 +323,8 @@ graph TB
     style L3 fill:#ffe0b2
     style L4 fill:#ffccbc
     style L5 fill:#ffab91
-    style Safe fill:#c8e6c9
     style Reject fill:#ffcdd2
+    style Safe fill:#c8e6c9
 ```
 
 **Defense-in-Depth**: 5 independent validation layers ensure comprehensive security.

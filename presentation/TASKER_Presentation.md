@@ -859,20 +859,27 @@ Includes:
 ```text
 tasker/
 ├── core/
-│   ├── task_parser.py          # Parse task files
-│   ├── variable_resolver.py    # Variable substitution
-│   └── command_builder.py      # Build execution commands
+│   ├── task_executor_main.py      # Main orchestration engine
+│   ├── condition_evaluator.py     # Variable substitution & conditions
+│   ├── streaming_output_handler.py # Memory-efficient output (O(1) memory)
+│   ├── workflow_controller.py     # Workflow state management
+│   ├── state_manager.py           # Task state tracking
+│   ├── result_collector.py        # Result aggregation
+│   └── constants.py               # System constants
 ├── validation/
-│   ├── task_validator.py       # Pre-execution validation
-│   ├── security_validator.py   # Security policy enforcement
-│   └── parameter_validator.py  # Parameter rules
-├── execution/
-│   ├── sequential_executor.py  # Sequential task flow
-│   ├── parallel_executor.py    # Parallel execution
-│   └── master_timeout.py       # Global timeout management
-├── logging/
-│   └── tasker_logger.py        # Professional logging
-└── tasker.py                    # Main orchestrator
+│   ├── input_sanitizer.py         # Security validation (5 layers)
+│   ├── task_validator.py          # Pre-execution validation
+│   ├── host_validator.py          # DNS & connectivity
+│   └── dependency_analyzer.py     # Circular dependency detection
+├── executors/
+│   ├── base_executor.py           # Template method pattern
+│   ├── sequential_executor.py     # Sequential task flow
+│   ├── parallel_executor.py       # Parallel execution
+│   ├── conditional_executor.py    # Conditional branching
+│   └── decision_executor.py       # Complex decision logic
+├── utils/
+│   └── non_blocking_sleep.py      # Non-blocking sleep
+└── tasker.py                       # Main CLI entry point
 ```
 
 ### Performance Characteristics
@@ -984,13 +991,121 @@ This document provides visual learning for all TASKER concepts including:
 
 ---
 
+# Professional Architecture Documentation
+
+### NEW in v2.1: Enterprise-Grade System Design
+
+TASKER now includes comprehensive architecture documentation with **8 detailed diagrams** covering every aspect of the system.
+
+### 📐 Two Formats Available:
+
+**[ARCHITECTURE_MERMAID.md](ARCHITECTURE_MERMAID.md)**
+- GitHub-optimized with beautiful Mermaid diagrams
+- Perfect rendering on GitHub, GitLab, and documentation portals
+- Interactive and visually stunning
+
+**[ARCHITECTURE.md](ARCHITECTURE.md)**
+- Terminal-friendly ASCII diagrams using box-drawing characters
+- Works everywhere - terminal, text editors, SSH sessions
+- No special tools required
+
+### What's Documented:
+
+**1. High-Level System Architecture**
+- Layered design (Validation → Core → Executors → Targets)
+- Clear separation of concerns
+- Module responsibilities
+
+**2. Data Flow Architecture**
+- Complete workflow from file parsing to cleanup
+- Variable substitution pipeline
+- Result storage and flow control
+
+**3. Cross-Task Variable Substitution Flow**
+- Memory-efficient data passing
+- Automatic temp file management for outputs > 1MB
+- ARG_MAX protection (100KB limit)
+- **Production-critical O(1) memory** usage
+
+**4. Module Dependency Graph**
+- All 24 Python modules mapped
+- Clear dependencies between components
+- No circular dependencies
+
+**5. Execution Strategy Pattern**
+- Template Method + Strategy Pattern implementation
+- 4 executor types (Sequential, Parallel, Conditional, Decision)
+- Pluggable architecture for future extensions
+
+**6. Security Validation Pipeline**
+- Defense-in-depth: **5 independent layers**
+- Command injection detection (11 patterns)
+- Path traversal prevention (12 patterns)
+- Context-aware validation (shell vs local)
+- ARG_MAX protection
+
+**7. Test Infrastructure Architecture**
+- **465 tests** with metadata-driven validation
+- Intelligent test runner with behavioral validation
+- 10 test categories covering all features
+- Zero-tolerance validation (execution paths, variables, exit codes)
+
+**8. Memory Management Strategy**
+- **O(1) memory** for unlimited output sizes
+- Automatic streaming for outputs > 1MB
+- Immediate memory release after streaming
+- Cross-task data flow with temp file management
+
+### Why This Matters:
+
+**For Decision Makers:**
+- ✅ **Enterprise-ready architecture** - Professional system design
+- ✅ **Production-proven patterns** - Template Method, Strategy, Singleton
+- ✅ **Scalable design** - Handles 1 to 1000+ servers
+- ✅ **Security-first** - 5-layer defense-in-depth
+
+**For Developers:**
+- ✅ **Clear module structure** - Easy to understand and extend
+- ✅ **Well-documented** - Every component explained
+- ✅ **Testable design** - 465 tests prove reliability
+- ✅ **Memory efficient** - O(1) memory regardless of output size
+
+**For Operations:**
+- ✅ **Predictable behavior** - Documented execution flow
+- ✅ **Troubleshooting guide** - Understand what happens when
+- ✅ **Performance characteristics** - Know the limits
+- ✅ **Security model** - Understand protections
+
+### Key Technical Achievements:
+
+🎯 **Memory Efficiency**
+- Outputs < 1MB: Kept in memory for fast access
+- Outputs > 1MB: Streamed to temp file, memory freed immediately
+- Unlimited output size support with constant memory usage
+
+🎯 **Security Hardening**
+- 11 command injection patterns detected
+- 12 path traversal patterns blocked
+- Context-aware validation (shell vs exec=local)
+- No execution until all 5 validation layers pass
+
+🎯 **Test Coverage**
+- 465 comprehensive tests with metadata
+- Execution path validation (not just exit codes)
+- Variable resolution verification
+- Performance benchmarks
+
+---
+
 # Documentation & Support
 
 ### Comprehensive Documentation
 
-- **README.md** - 2,000+ lines covering all features
+- **README.md** - 768 lines of focused, concise documentation
+- **ARCHITECTURE.md** - ASCII diagrams for terminal viewing (NEW in 2.1)
+- **ARCHITECTURE_MERMAID.md** - Beautiful GitHub-rendered diagrams (NEW in 2.1)
 - **CLAUDE.md** - Development guidelines and best practices
-- **Test Cases** - 487+ examples demonstrating every feature
+- **Test Cases** - 465 comprehensive tests with metadata-driven validation
 - **Inline Comments** - Detailed code documentation
 
 ### Learning Resources
@@ -1051,7 +1166,7 @@ set_DEPLOYMENT_TARGET=@0_stdout@
 3. **Reliable** - Comprehensive validation and error handling
 4. **Fast** - Zero dependencies, < 1 second startup
 5. **Secure** - Multi-layer security validation
-6. **Proven** - 487+ test cases, production-ready
+6. **Proven** - 465 tests with metadata-driven validation, production-ready
 
 ### What You Get:
 
@@ -1143,7 +1258,7 @@ A: Use exit codes and log parsing, or call monitoring APIs from tasks.
 
 **Q: Can I use TASKER in production?**
 
-A: Yes! 487+ test cases ensure reliability. TASKER is production-ready and designed for enterprise environments.
+A: Yes! 465 comprehensive tests with metadata-driven validation ensure reliability. TASKER is production-ready and designed for enterprise environments.
 
 ---
 

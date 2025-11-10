@@ -891,8 +891,8 @@ This is your authoritative reference - over 1,200 lines of visual documentation 
 - Resources available
 
 **Key Points:**
-- Comprehensive docs (2000+ lines)
-- 487+ examples to learn from
+- Comprehensive docs (768 lines README + architecture docs)
+- 465 comprehensive tests with metadata validation
 - Internal team support
 - Documentation in distribution package
 
@@ -931,7 +931,7 @@ This is your authoritative reference - over 1,200 lines of visual documentation 
 **The Six Pillars:**
 1. **Simple**: Read the config, understand the workflow
 2. **Powerful**: Enterprise features without complexity
-3. **Reliable**: Validation before execution, 487 tests
+3. **Reliable**: Validation before execution, 465 comprehensive tests with metadata-driven validation
 4. **Fast**: No overhead, instant startup
 5. **Secure**: Multi-layer protection
 6. **Proven**: Production-ready, real-world tested
@@ -1161,7 +1161,7 @@ Thank you for attending the TASKER presentation today. As promised, here are the
 
 📁 Presentation Slides: [Link to slides]
 📦 TASKER Distribution: tasker-v2.1.tar.gz (available via internal channels)
-📖 Documentation: See README.md in the distribution (2000+ lines)
+📖 Documentation: See README.md (768 lines), ARCHITECTURE.md, and ARCHITECTURE_MERMAID.md (NEW in v2.1)
 📊 Visual Reference: TaskER_FlowChart.md (workflow blocks with diagrams)
 📝 Examples: test_cases/functional/ directory (100+ examples)
 

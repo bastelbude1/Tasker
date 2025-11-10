@@ -15,6 +15,7 @@ import subprocess
 import threading
 from ..core.condition_evaluator import ConditionEvaluator
 from ..core.utilities import ExitCodes
+from ..config.exec_config_loader import get_loader as get_exec_config_loader
 
 
 class HostValidator:
@@ -46,13 +47,9 @@ class HostValidator:
         Returns:
             Dict mapping hostnames to validated FQDNs, or dict with 'error' and 'exit_code' if validation failed
         """
-        # First check if remote execution commands exist
-        exec_commands = {
-            'pbrun': 'pbrun',
-            'p7s': 'p7s', 
-            'wwrs': 'wwrs_clir'
-        }
-        
+        # Load execution type configuration
+        exec_config_loader = get_exec_config_loader(debug_callback=debug_callback)
+
         # Collect unique host+exec_type combinations
         host_exec_combinations = {}  # {hostname: set(exec_types)}
         unresolved_hostnames = []  # Track tasks with unresolved hostname variables
@@ -72,9 +69,20 @@ class HostValidator:
                     continue
 
                 if hostname:
-                    # Determine exec type for this task (resolved=True guaranteed by continue above)
-                    task_exec = HostValidator._determine_task_exec_type(
+                    # Determine exec type for this task and resolve variables
+                    task_exec_raw = HostValidator._determine_task_exec_type(
                         task, exec_type, default_exec_type)
+
+                    # Resolve variables in exec type (same as hostname resolution)
+                    task_exec, exec_resolved = ConditionEvaluator.replace_variables(
+                        task_exec_raw, global_vars, task_results, debug_callback)
+
+                    # Skip tasks with unresolved exec type variables (runtime resolution)
+                    if not exec_resolved:
+                        if debug_callback:
+                            task_id = task.get('task_id', 'unknown')
+                            debug_callback(f"Task {task_id}: exec type '{task_exec_raw}' contains unresolved variables, skipping validation")
+                        continue
 
                     # Skip local execution from validation
                     if task_exec == 'local':
@@ -114,13 +122,34 @@ class HostValidator:
         # Check if required execution commands exist (unless explicitly skipped)
         if not skip_command_validation:
             missing_commands = set()
+            unconfigured_types = set()
+
             for exec_types in host_exec_combinations.values():
                 for exec_type in exec_types:
-                    if exec_type in exec_commands:
-                        cmd = exec_commands[exec_type]
-                        if not HostValidator._check_command_exists(cmd):
-                            missing_commands.add(f"{exec_type} ({cmd})")
+                    # Skip exec=local (only hardcoded execution type)
+                    if exec_type == 'local':
+                        continue
 
+                    # Get binary name from config (NO hardcoded fallbacks)
+                    binary_name = exec_config_loader.get_binary_name(exec_type)
+
+                    if binary_name:
+                        # Config-based: Check if the binary exists
+                        if not HostValidator._check_command_exists(binary_name):
+                            missing_commands.add(f"{exec_type} ({binary_name})")
+                    else:
+                        # No config found for this exec type - this is an error
+                        unconfigured_types.add(exec_type)
+
+            # Report unconfigured execution types
+            if unconfigured_types:
+                if log_callback:
+                    log_callback(f"# ERROR: Execution types not found in configuration: {', '.join(unconfigured_types)}")
+                    log_callback(f"#        Config file location: cfg/execution_types.yaml")
+                    log_callback(f"#        Only exec=local is supported without configuration")
+                return {'error': 'unconfigured_exec_types', 'exit_code': ExitCodes.TASK_FILE_VALIDATION_FAILED}
+
+            # Report missing command binaries
             if missing_commands:
                 if log_callback:
                     log_callback(f"# ERROR: Required remote execution commands not found: {', '.join(missing_commands)}")
@@ -160,7 +189,7 @@ class HostValidator:
             
             # Test each exec_type for this host
             for exec_type in exec_types:
-                if not HostValidator._test_remote_access(exec_type, resolved_name, debug_callback):
+                if not HostValidator._test_remote_access(exec_type, resolved_name, exec_config_loader, debug_callback):
                     failed_validations.append({
                         'host': hostname,
                         'resolved': resolved_name,
@@ -354,22 +383,53 @@ class HostValidator:
             return False
     
     @staticmethod
-    def _test_remote_access(exec_type, hostname, debug_callback=None):
-        """Enhanced remote access test expecting exit 0 and stdout containing OK."""
-        if exec_type not in ['pbrun', 'p7s', 'wwrs']:
+    def _test_remote_access(exec_type, hostname, exec_config_loader, debug_callback=None):
+        """
+        Enhanced remote access test expecting exit 0 and stdout containing expected output.
+
+        Uses config-based test specifications from execution_types.yaml if available.
+        Falls back to hardcoded tests for backward compatibility.
+
+        Args:
+            exec_type: Execution type to test (pbrun, p7s, wwrs, etc.)
+            hostname: Target hostname to test
+            exec_config_loader: Execution config loader instance
+            debug_callback: Optional debug logging callback
+
+        Returns:
+            bool: True if test passed, False otherwise
+        """
+        # Skip validation for local/shell execution (no remote connectivity needed)
+        if exec_type in ['local', 'shell']:
             return True
-            
-        # Build test command
-        if exec_type == 'pbrun':
-            cmd_array = ["pbrun", "-n", "-h", hostname, "pbtest"]
-        elif exec_type == 'p7s':
-            cmd_array = ["p7s", hostname, "pbtest"]
-        elif exec_type == 'wwrs':
-            cmd_array = ["wwrs_clir", hostname, "wwrs_test"]
-        
+
+        # Get validation test from config (no hardcoded fallbacks)
+        test_config = exec_config_loader.get_validation_test(exec_type)
+
+        if not test_config:
+            # No validation test defined for this exec type - skip validation
+            if debug_callback:
+                debug_callback(f"WARNING: No validation test configuration for exec_type '{exec_type}', skipping validation")
+            return True
+
+        # Build test command from config
+        test_command = test_config.get('command')
+        expected_exit = test_config.get('expected_exit', 0)
+        expected_output = test_config.get('expected_output')
+
+        # Build the full test command using config loader
+        cmd_array = exec_config_loader.build_command_array(
+            exec_type, hostname, test_command, ""
+        )
+
+        if cmd_array is None:
+            if debug_callback:
+                debug_callback(f"ERROR: Could not build test command for exec_type '{exec_type}'")
+            return False
+
         if debug_callback:
             debug_callback(f"Testing {exec_type} connection to '{hostname}': {' '.join(cmd_array)}")
-        
+
         try:
             # Use process group to ensure child processes are killed on timeout
             # This is important for shell scripts that spawn subprocesses (like sleep)
@@ -384,15 +444,19 @@ class HostValidator:
                     stdout, stderr = process.communicate(timeout=10)
                     exit_code = process.returncode
 
-                    # Check for exit code 0 AND stdout containing "OK"
-                    success = (exit_code == 0 and "OK" in stdout)
+                    # Check exit code and expected output from config
+                    exit_code_match = (exit_code == expected_exit)
+                    output_match = (expected_output in stdout) if expected_output else True
+                    success = exit_code_match and output_match
 
                     if debug_callback:
                         if success:
                             debug_callback(f"{exec_type} connection to '{hostname}' successful")
                         else:
                             debug_callback(f"{exec_type} connection to '{hostname}' failed:")
-                            debug_callback(f"  Exit code: {exit_code}")
+                            debug_callback(f"  Exit code: {exit_code} (expected: {expected_exit})")
+                            if expected_output:
+                                debug_callback(f"  Expected output: '{expected_output}'")
                             debug_callback(f"  Stdout: {stdout.strip()}")
                             debug_callback(f"  Stderr: {stderr.strip()}")
 

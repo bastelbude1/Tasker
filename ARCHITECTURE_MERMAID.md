@@ -1,6 +1,7 @@
 # TASKER 2.1 Architecture Diagram (Mermaid Version)
 
-> **Note**: This is the Mermaid-rendered version. For ASCII text version, see bottom of document.
+> **Note**: This is the Mermaid-rendered version. For ASCII text version,
+> see bottom of document.
 
 ## 1. High-Level System Architecture
 
@@ -224,14 +225,17 @@ graph TB
     style Utils fill:#fce4ec
 ```
 
-**TASKER Main Application (tasker.py): NONE (Standard library only)**
+### External Dependencies
+
+TASKER Main Application (tasker.py): NONE (Standard library only)
+
 - ✅ subprocess
 - ✅ threading
 - ✅ tempfile
 - ✅ json
 - ✅ re (regex)
 
-**Note**: Test infrastructure & utilities may use third-party packages
+Note: Test infrastructure & utilities may use third-party packages
 (e.g., psutil for performance monitoring in test runners)
 
 ## 5. Execution Strategy Pattern
@@ -274,6 +278,7 @@ graph TB
 ```
 
 **Key Benefits**:
+
 - Pluggable execution strategies
 - Easy to add new executors
 - Consistent interface across all execution types
@@ -380,9 +385,11 @@ graph TB
     style Results fill:#fce4ec
 ```
 
-**Total: 465 tests ✓**
+### Test Coverage
 
-**Note**: templates/ contains test templates, not test cases
+Total: 465 tests ✓
+
+Note: templates/ contains test templates, not test cases
 
 ## 8. Memory Management Strategy
 
@@ -443,6 +450,7 @@ graph TB
 ```
 
 **Memory Efficiency**: O(1) memory for unlimited output sizes
+
 - Outputs < 1MB: Kept in memory
 - Outputs > 1MB: Streamed to temp file, memory freed immediately
 - Variable substitution: 100KB safe limit (ARG_MAX protection)
@@ -494,7 +502,7 @@ graph TB
 
 ## ASCII Text Version (Original)
 
-> The ASCII version is included below for comparison and terminal viewing.
-> GitHub renders the Mermaid version above beautifully in the web interface.
-
-[Rest of the original ASCII diagrams would go here...]
+> **Note**: For ASCII-based architecture diagrams optimized for terminal viewing,
+> see [ARCHITECTURE.md](ARCHITECTURE.md). The ASCII version uses box-drawing
+> characters and is ideal for command-line environments where Mermaid rendering
+> is not available.

@@ -293,7 +293,7 @@ graph LR
 ## 6. Security Validation Pipeline
 
 ```mermaid
-graph LR
+graph TB
     Input[Task Input]
 
     L1[Layer 1: Input Length Validation<br/>✓ MAX_ARGUMENTS_LENGTH 8192<br/>✓ MAX_ARGUMENTS_SECURE_LENGTH 2000]

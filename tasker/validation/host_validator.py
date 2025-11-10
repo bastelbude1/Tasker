@@ -393,8 +393,9 @@ class HostValidator:
         """
         Enhanced remote access test expecting exit 0 and stdout containing expected output.
 
-        Uses config-based test specifications from execution_types.yaml if available.
-        Falls back to hardcoded tests for backward compatibility.
+        Uses config-based test specifications from execution_types.yaml. If no test
+        configuration is found for the execution type, validation is skipped (returns True).
+        No hardcoded fallback tests are used.
 
         Args:
             exec_type: Execution type to test (pbrun, p7s, wwrs, etc.)
@@ -403,7 +404,7 @@ class HostValidator:
             debug_callback: Optional debug logging callback
 
         Returns:
-            bool: True if test passed, False otherwise
+            bool: True if test passed or validation skipped, False if test failed
         """
         # Skip validation for local/shell execution (no remote connectivity needed)
         if exec_type in ['local', 'shell']:

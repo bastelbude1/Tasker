@@ -150,7 +150,7 @@ class HostValidator:
                     # Show available exec types if config is loaded, otherwise show fallback message
                     available_types = exec_config_loader.get_execution_types()
                     if available_types:
-                        log_callback(f"#        Available exec types: {', '.join(sorted(['local'] + available_types))}")
+                        log_callback(f"#        Available exec types: {', '.join(sorted(['local', *available_types]))}")
                     else:
                         log_callback("#        Only exec=local is supported (config file missing or invalid)")
                 return {'error': 'unconfigured_exec_types', 'exit_code': ExitCodes.TASK_FILE_VALIDATION_FAILED}

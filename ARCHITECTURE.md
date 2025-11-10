@@ -23,8 +23,18 @@
 │ │ InputSanitizer  │  │  TaskValidator   │  │   HostValidator      │ │
 │ │ • Security      │  │  • Syntax check  │  │   • DNS resolution   │ │
 │ │ • Injection     │  │  • Dependencies  │  │   • Connectivity     │ │
-│ │ • Buffer limits │  │  • Logic errors  │  │   • SSH validation   │ │
-│ └─────────────────┘  └──────────────────┘  └──────────────────────┘ │
+│ │ • Buffer limits │  │  • Logic errors  │  │   • Validation tests │ │
+│ └─────────────────┘  └──────────────────┘  └──────────┬───────────┘ │
+│                                                        │             │
+│ ┌──────────────────────────────────────────────────────┘             │
+│ │                                                                    │
+│ │  ┌────────────────────────────────────────────────────────────┐   │
+│ │  │           ExecConfigLoader (Singleton)                     │   │
+│ │  │  • Load cfg/execution_types.yaml                           │   │
+│ │  │  • Platform detection (Linux/Windows)                      │   │
+│ │  │  • Execution type definitions                              │   │
+│ │  │  • Validation test configuration                           │   │
+│ │  └────────────────────────────────────────────────────────────┘   │
 └───────────────┬───────────────────────────────────────────────────────┘
                 │ ✅ Validated Tasks
                 ▼
@@ -103,10 +113,25 @@
 ┌───────────────────────────────────────────────────────────────────────┐
 │                    EXECUTION TARGETS                                  │
 │                                                                        │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌────────────┐ │
-│  │  exec=local │  │ exec=shell  │  │ exec=pbrun  │  │ exec=p7s   │ │
-│  │  (direct)   │  │ (sh -c)     │  │ (wrapper)   │  │ (wrapper)  │ │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └────────────┘ │
+│  ┌─────────────┐  ┌──────────────────────────────────────────────┐  │
+│  │  exec=local │  │    Config-based Execution Types              │  │
+│  │  (direct)   │  │    (loaded from cfg/execution_types.yaml)    │  │
+│  │  hardcoded  │  │                                              │  │
+│  └─────────────┘  │  ┌─────────────┐  ┌─────────────┐           │  │
+│                   │  │ exec=shell  │  │ exec=pbrun  │           │  │
+│                   │  │ (sh -c)     │  │ (wrapper)   │           │  │
+│                   │  └─────────────┘  └─────────────┘           │  │
+│                   │                                              │  │
+│                   │  ┌─────────────┐  ┌─────────────┐           │  │
+│                   │  │ exec=p7s    │  │ exec=wwrs   │           │  │
+│                   │  │ (wrapper)   │  │ (wrapper)   │           │  │
+│                   │  └─────────────┘  └─────────────┘           │  │
+│                   │                                              │  │
+│                   │  + Custom types via YAML config              │  │
+│                   └──────────────────────────────────────────────┘  │
+│                                                                       │
+│  Note: Only exec=local is hardcoded. All other execution types are   │
+│        loaded dynamically from cfg/execution_types.yaml (PR#96)      │
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -323,10 +348,17 @@ Cleanup (Workflow End):
 
 tasker.py (CLI Entry Point)
     │
+    ├─→ cfg/
+    │       └─→ execution_types.yaml (Platform-specific execution configs)
+    │
+    ├─→ tasker/config/
+    │       └─→ exec_config_loader.py (Singleton, loads YAML config)
+    │
     ├─→ tasker/validation/
     │       ├─→ input_sanitizer.py
     │       ├─→ task_validator.py
     │       └─→ host_validator.py
+    │               └─→ Uses ExecConfigLoader for validation tests
     │
     └─→ tasker/core/
             ├─→ task_executor_main.py
@@ -367,7 +399,129 @@ Note: Test infrastructure & utilities may use third-party packages
       (e.g., psutil for performance monitoring in test runners)
 ```
 
-## 5. Execution Strategy Pattern
+## 5. Config-Based Execution Type System (PR#96)
+
+```text
+┌────────────────────────────────────────────────────────────────┐
+│         CONFIG-BASED EXECUTION TYPE ARCHITECTURE               │
+└────────────────────────────────────────────────────────────────┘
+
+Initialization (tasker.py startup):
+    │
+    ▼
+┌─────────────────────────────────────┐
+│  ExecConfigLoader (Singleton)       │
+│  ├─ Detect platform (Linux/Windows) │
+│  ├─ Resolve script directory        │
+│  ├─ Load cfg/execution_types.yaml   │
+│  └─ Parse platform-specific configs │
+└────────────┬────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Configuration Structure (YAML)                             │
+│                                                             │
+│  platforms:                                                 │
+│    linux:                                                   │
+│      shell:                                                 │
+│        description: "Local shell execution with Bash"       │
+│        binary: /bin/bash                                    │
+│        command_template:                                    │
+│          - "{binary}"                                       │
+│          - "-c"                                             │
+│          - "{command} {arguments}"                          │
+│        validation_test:                                     │
+│          command: echo                                      │
+│          arguments: OK          ← Optional (PR#97)          │
+│          expected_exit: 0                                   │
+│          expected_output: "OK"                              │
+│                                                             │
+│      pbrun:                                                 │
+│        description: "PowerBroker Run privilege escalation"  │
+│        binary: /usr/local/bin/pbrun                         │
+│        command_template:                                    │
+│          - "{binary}"                                       │
+│          - "-h"                                             │
+│          - "{hostname}"                                     │
+│          - "{command}"                                      │
+│          - "{arguments_split}"                              │
+│        validation_test:                                     │
+│          command: echo                                      │
+│          arguments: "test"      ← Optional (PR#97)          │
+│          expected_exit: 0                                   │
+│          expected_output: "test"                            │
+└─────────────────────────────────────────────────────────────┘
+
+Template Variable Substitution:
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Available Template Variables:                              │
+│  • {binary}          → Execution binary path                │
+│  • {hostname}        → Target hostname                      │
+│  • {command}         → Command to execute                   │
+│  • {arguments}       → Full arguments string                │
+│  • {arguments_split} → Arguments split into list elements   │
+└─────────────┬───────────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Example Transformation:                                    │
+│                                                             │
+│  Task Definition:                                           │
+│    hostname=server1                                         │
+│    command=cat                                              │
+│    arguments=/etc/hosts                                     │
+│    exec=pbrun                                               │
+│                                                             │
+│  Template: ["{binary}", "-h", "{hostname}",                 │
+│             "{command}", "{arguments_split}"]               │
+│                                                             │
+│  Final Command:                                             │
+│    ["/usr/local/bin/pbrun", "-h", "server1",                │
+│     "cat", "/etc/hosts"]                                    │
+└─────────────────────────────────────────────────────────────┘
+
+Validation Test Execution (PR#97):
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│  HostValidator Integration                                  │
+│  ├─ For each unique (hostname, exec_type) combination       │
+│  ├─ Load validation_test from config                        │
+│  ├─ Build command using template + test command/arguments   │
+│  ├─ Execute test command on target host                     │
+│  ├─ Validate: expected_exit AND/OR expected_output          │
+│  └─ Report: SUCCESS or FAILURE                              │
+│                                                             │
+│  Requirements (PR#97):                                      │
+│  • At least ONE of expected_exit or expected_output         │
+│  • Optional arguments field for parameterized tests         │
+│  • Automatic execution during --validate or --validate-only │
+└─────────────────────────────────────────────────────────────┘
+
+Error Handling:
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Graceful Degradation                                       │
+│  ├─ Config file missing    → Fall back to exec=local only   │
+│  ├─ Config file corrupt    → Error + fall back to local     │
+│  ├─ Undefined exec type    → Error: "Unknown exec type"     │
+│  ├─ Invalid template vars  → Error: "Invalid template"      │
+│  └─ Validation test fails  → Warning: "Connectivity issue"  │
+└─────────────────────────────────────────────────────────────┘
+
+Benefits:
+  ✅ Extensibility: Add custom exec types without code changes
+  ✅ Platform support: Different configs for Linux/Windows
+  ✅ Centralized: Single source of truth for execution commands
+  ✅ Validated: Automatic connectivity testing per host/exec_type
+  ✅ Flexible: Template-based command construction
+  ✅ Maintainable: YAML configuration instead of hardcoded logic
+```
+
+## 6. Execution Strategy Pattern
 
 ```text
 ┌────────────────────────────────────────────────────────────────┐
@@ -407,7 +561,7 @@ Normal Flow:     ThreadPool:   If/Else:     Multi-branch:
                    Task 5
 ```
 
-## 6. Security Validation Pipeline
+## 7. Security Validation Pipeline
 
 ```text
 ┌────────────────────────────────────────────────────────────────┐
@@ -463,7 +617,7 @@ User Input (task.txt)
          Safe for Execution
 ```
 
-## 7. Test Infrastructure Architecture
+## 8. Test Infrastructure Architecture
 
 ```text
 ┌────────────────────────────────────────────────────────────────┐
@@ -524,7 +678,7 @@ User Input (task.txt)
 └──────────────────────────────────────────────────────────────┘
 ```
 
-## 8. Memory Management Strategy
+## 9. Memory Management Strategy
 
 ```text
 ┌────────────────────────────────────────────────────────────────┐
@@ -592,12 +746,13 @@ Command-line Substitution:
 **TASKER 2.1 Architecture Highlights**:
 
 1. **Layered Design**: Clear separation (Validation → Core → Execution → Target)
-2. **Executor Pattern**: Pluggable strategies (4 execution strategies)
-3. **Security-First**: Multi-layer validation with defense-in-depth
-4. **Memory Efficient**: O(1) memory for unlimited output sizes (1MB threshold)
-5. **Cross-Task Data**: Sophisticated variable substitution with ARG_MAX protection
-6. **Test Infrastructure**: Metadata-driven validation (465/465 tests passing)
-7. **No External Dependencies**: Pure Python 3.6.8 standard library
+2. **Config-Based Execution**: External YAML configuration for execution types (PR#96, PR#97)
+3. **Executor Pattern**: Pluggable strategies (4 execution strategies)
+4. **Security-First**: Multi-layer validation with defense-in-depth
+5. **Memory Efficient**: O(1) memory for unlimited output sizes (1MB threshold)
+6. **Cross-Task Data**: Sophisticated variable substitution with ARG_MAX protection
+7. **Test Infrastructure**: Metadata-driven validation (465/465 tests passing)
+8. **No External Dependencies**: Pure Python 3.6.8 standard library
 
 **Key Design Patterns** (with rationale):
 
@@ -613,10 +768,11 @@ Command-line Substitution:
   - *Benefit*: Ensures consistent behavior (validation, timeout handling,
     result collection)
 
-- ✅ **Singleton** (Constants)
+- ✅ **Singleton** (Constants, ExecConfigLoader)
   - *Why*: Centralize magic numbers and thresholds (MAX_CMDLINE_SUBST,
-    MAX_VARIABLE_EXPANSION_DEPTH)
-  - *Benefit*: Single source of truth, prevents duplication and inconsistency
+    MAX_VARIABLE_EXPANSION_DEPTH); Load execution type config once at startup
+  - *Benefit*: Single source of truth, prevents duplication and inconsistency;
+    Efficient config loading with callback updates for dynamic changes
 
 - ✅ **Factory** (create_memory_efficient_handler)
   - *Why*: Encapsulate complex object creation logic for streaming handlers

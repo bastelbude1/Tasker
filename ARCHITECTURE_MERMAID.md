@@ -13,7 +13,8 @@ graph TB
     subgraph VALIDATION["VALIDATION LAYER"]
         InputSan[InputSanitizer<br/>• Security<br/>• Injection<br/>• Buffer limits]
         TaskVal[TaskValidator<br/>• Syntax check<br/>• Dependencies<br/>• Logic errors]
-        HostVal[HostValidator<br/>• DNS resolution<br/>• Connectivity<br/>• SSH validation]
+        HostVal[HostValidator<br/>• DNS resolution<br/>• Connectivity<br/>• Validation tests]
+        ExecConfig[ExecConfigLoader Singleton<br/>• Load cfg/execution_types.yaml<br/>• Platform detection<br/>• Validation test config]
     end
 
     subgraph CORE["CORE ENGINE LAYER"]
@@ -31,15 +32,27 @@ graph TB
     end
 
     subgraph TARGETS["TARGET EXECUTION"]
-        Local[Local Commands<br/>exec=local]
-        Shell[Shell Commands<br/>exec=shell]
-        Remote[Remote Execution<br/>pbrun/p7s/wwrs]
+        Local[exec=local<br/>Hardcoded only]
+        ConfigBased[Config-Based Types<br/>from cfg/execution_types.yaml]
+        Shell[exec=shell]
+        Pbrun[exec=pbrun]
+        P7s[exec=p7s]
+        Wwrs[exec=wwrs]
+        Custom[+ Custom types]
+
+        ConfigBased -.defines.-> Shell
+        ConfigBased -.defines.-> Pbrun
+        ConfigBased -.defines.-> P7s
+        ConfigBased -.defines.-> Wwrs
+        ConfigBased -.defines.-> Custom
     end
 
     Start --> CLI
     CLI --> VALIDATION
+    CLI --> ExecConfig
     InputSan -.-> TaskVal
     TaskVal -.-> HostVal
+    HostVal -.-> ExecConfig
     VALIDATION -->|✅ Validated Tasks| CORE
     TaskExec --> CondEval
     TaskExec --> StreamOut
@@ -157,11 +170,16 @@ graph TB
 ```mermaid
 graph TB
     CLI[tasker.py<br/>CLI Entry Point]
+    CfgYAML[cfg/execution_types.yaml<br/>Platform-specific config]
+
+    subgraph Config["tasker/config/"]
+        ExecLoader[exec_config_loader.py<br/>Singleton]
+    end
 
     subgraph Validation["tasker/validation/"]
         InputSan[input_sanitizer.py]
         TaskVal[task_validator.py]
-        HostVal[host_validator.py]
+        HostVal[host_validator.py<br/>Uses ExecConfigLoader]
     end
 
     subgraph Core["tasker/core/"]
@@ -188,10 +206,14 @@ graph TB
         NonBlockSleep[non_blocking_sleep.py]
     end
 
+    CLI --> CfgYAML
+    CLI --> ExecLoader
     CLI --> InputSan
     CLI --> TaskVal
     CLI --> HostVal
     CLI --> TaskExec
+    ExecLoader --> CfgYAML
+    HostVal --> ExecLoader
 
     TaskExec --> CondEval
     TaskExec --> StreamOut
@@ -219,6 +241,8 @@ graph TB
     DecExec --> StreamOut
 
     style CLI fill:#e1f5fe
+    style CfgYAML fill:#fff9c4
+    style Config fill:#ffe0b2
     style Validation fill:#fff3e0
     style Core fill:#e8f5e9
     style Executors fill:#f3e5f5
@@ -462,13 +486,14 @@ graph TB
 **TASKER 2.1 Architecture Highlights**:
 
 1. **Layered Design**: Clear separation (Validation → Core → Execution → Target)
-2. **Executor Pattern**: Pluggable strategies (4 execution strategies)
-3. **Security-First**: Multi-layer validation with defense-in-depth
-4. **Memory Efficient**: O(1) memory for unlimited output sizes (1MB threshold)
-5. **Cross-Task Data**: Sophisticated variable substitution with ARG_MAX
+2. **Config-Based Execution**: External YAML configuration for execution types (PR#96, PR#97)
+3. **Executor Pattern**: Pluggable strategies (4 execution strategies)
+4. **Security-First**: Multi-layer validation with defense-in-depth
+5. **Memory Efficient**: O(1) memory for unlimited output sizes (1MB threshold)
+6. **Cross-Task Data**: Sophisticated variable substitution with ARG_MAX
    protection
-6. **Test Infrastructure**: Metadata-driven validation (465/465 tests passing)
-7. **No External Dependencies**: Pure Python 3.6.8 standard library
+7. **Test Infrastructure**: Metadata-driven validation (465/465 tests passing)
+8. **No External Dependencies**: Pure Python 3.6.8 standard library
 
 **Key Design Patterns** (with rationale):
 
@@ -484,10 +509,11 @@ graph TB
   - *Benefit*: Ensures consistent behavior (validation, timeout handling,
     result collection)
 
-- ✅ **Singleton** (Constants)
+- ✅ **Singleton** (Constants, ExecConfigLoader)
   - *Why*: Centralize magic numbers and thresholds (MAX_CMDLINE_SUBST,
-    MAX_VARIABLE_EXPANSION_DEPTH)
-  - *Benefit*: Single source of truth, prevents duplication and inconsistency
+    MAX_VARIABLE_EXPANSION_DEPTH); Load execution type config once at startup
+  - *Benefit*: Single source of truth, prevents duplication and inconsistency;
+    Efficient config loading with callback updates for dynamic changes
 
 - ✅ **Factory** (create_memory_efficient_handler)
   - *Why*: Encapsulate complex object creation logic for streaming handlers

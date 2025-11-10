@@ -119,6 +119,7 @@ class TaskExecutor:
             start_from_task: Optional task id to resume execution from; enables resume mode and influences startup logging.
             skip_task_validation: If true, task file validation is skipped (useful in resume scenarios).
             skip_host_validation: If true, host validation is skipped (hostname checks will be bypassed).
+            skip_unresolved_host_validation: If true, allows hostnames with unresolved variables (enables runtime hostname resolution pattern).
             skip_command_validation: If true, command existence validation is skipped (WARNING: may cause execution failures).
             skip_security_validation: If true, security-specific validation steps are skipped during task validation.
             skip_subtask_range_validation: If true, subtask ID range convention warnings are suppressed.

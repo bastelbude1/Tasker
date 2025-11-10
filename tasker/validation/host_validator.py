@@ -71,8 +71,8 @@ class HostValidator:
                     })
                     continue
 
-                if resolved and hostname:
-                    # Determine exec type for this task
+                if hostname:
+                    # Determine exec type for this task (resolved=True guaranteed by continue above)
                     task_exec = HostValidator._determine_task_exec_type(
                         task, exec_type, default_exec_type)
 

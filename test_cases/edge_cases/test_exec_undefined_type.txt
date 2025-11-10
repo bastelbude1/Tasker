@@ -1,0 +1,10 @@
+# TEST_METADATA: {"description": "Test undefined exec type - should fail validation", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+
+# Test: Using an exec type that doesn't exist in config file
+# Should fail with clear error message about missing exec type
+
+task=0
+hostname=localhost
+command=echo
+arguments=This should fail
+exec=undefined_exec_type

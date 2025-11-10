@@ -178,6 +178,14 @@ class SequentialExecutor(BaseExecutor):
 
         # Construct the command array based on execution type
         cmd_array = executor_instance.build_command_array(exec_type, hostname, command, arguments)
+
+        # Check if command array build failed (undefined exec type)
+        if cmd_array is None:
+            executor_instance.log_error(f"Task {task_id}{loop_display}: Failed to build command - execution type '{exec_type}' not configured")
+            executor_instance.log_error(f"       Check cfg/execution_types.yaml for available execution types")
+            from ..core.utilities import ExitCodes
+            ExitCodes.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED)
+
         executor_instance.log_debug(f"Command array: {cmd_array}")
 
         # Log the full command for the user

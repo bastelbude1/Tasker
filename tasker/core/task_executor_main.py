@@ -2412,10 +2412,11 @@ class TaskExecutor:
                 fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except (OSError, IOError) as e:
                 if e.errno in (errno.EAGAIN, errno.EACCES):
-                    # Lock held by another process - check if it's stale
-                    # We can safely read while another process holds the lock
+                    # Lock held by another process
+                    # Read lock metadata to provide better error message
+                    # Note: We can safely read while another process holds the lock
                     try:
-                        # Read existing lock data
+                        # Read existing lock data using duplicate fd
                         with os.fdopen(os.dup(lock_fd), 'r') as f:
                             f.seek(0)
                             content = f.read()
@@ -2424,11 +2425,14 @@ class TaskExecutor:
                                 pid = lock_data.get('pid')
                                 # Check if the process is still running
                                 if pid and not self._is_process_running(pid):
-                                    self.log_warn(f"# Lock held but process {pid} not running (stale)")
-                                    # Can't remove it - another process has the lock
-                                    # This shouldn't happen in practice
+                                    # Edge case: Lock file contains dead PID
+                                    # This means the process crashed while holding the lock
+                                    # OR another process is in the process of rewriting it
+                                    # Either way, we respect the fcntl lock and treat as active
+                                    self.log_debug(f"# Lock file references dead process {pid}, but fcntl lock is held")
+                                    self.log_debug(f"# Respecting active fcntl lock (fail-safe behavior)")
                     except (json.JSONDecodeError, IOError):
-                        # Can't read lock data, but it's locked so assume active
+                        # Can't read lock data, but fcntl lock is held so treat as active
                         pass
 
                     # Close our fd and handle as active instance
@@ -2463,7 +2467,8 @@ class TaskExecutor:
                 pass
 
             # Wrap file descriptor in file object for convenience
-            self.instance_lock_file = os.fdopen(lock_fd, 'w')
+            # Use newline='' to avoid newline translation (cross-platform robustness)
+            self.instance_lock_file = os.fdopen(lock_fd, 'w', newline='')
             lock_fd = None  # Ownership transferred to file object
 
             # Truncate and write our metadata
@@ -2487,7 +2492,9 @@ class TaskExecutor:
                 'project': self.project,
                 'global_vars_snapshot': masked_globals
             }
-            json.dump(lock_data, self.instance_lock_file)
+            # Use ensure_ascii=True for consistent encoding across platforms
+            # This escapes non-ASCII characters for maximum portability
+            json.dump(lock_data, self.instance_lock_file, ensure_ascii=True)
             self.instance_lock_file.flush()
             os.fsync(self.instance_lock_file.fileno())
 

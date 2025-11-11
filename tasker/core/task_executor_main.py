@@ -2390,7 +2390,7 @@ class TaskExecutor:
             os.makedirs(locks_dir, exist_ok=True)
         except OSError as e:
             self.log_error(f"ERROR: Failed to create locks directory {locks_dir}: {e}")
-            raise SystemExit(ExitCodes.VALIDATION_FAILED)
+            raise SystemExit(ExitCodes.TASK_FILE_VALIDATION_FAILED)
 
         # Lock file path
         self.instance_lock_path = os.path.join(locks_dir, f"workflow_{self.instance_hash}.lock")
@@ -2452,7 +2452,7 @@ class TaskExecutor:
                 except:
                     pass
             self.log_error(f"ERROR: Failed to acquire instance lock: {e}")
-            raise SystemExit(ExitCodes.VALIDATION_FAILED)
+            raise SystemExit(ExitCodes.TASK_FILE_VALIDATION_FAILED)
 
     def _handle_active_instance(self):
         """
@@ -2461,7 +2461,7 @@ class TaskExecutor:
         Reads lock file metadata and displays detailed error message.
 
         Raises:
-            SystemExit: Always exits with VALIDATION_FAILED code
+            SystemExit: Always exits with TASK_FILE_VALIDATION_FAILED (code 20)
         """
         try:
             with open(self.instance_lock_path, 'r') as f:
@@ -2484,7 +2484,7 @@ class TaskExecutor:
             self.log_error("")
             self.log_error("To override instance check, use: --force-instance")
 
-        raise SystemExit(ExitCodes.VALIDATION_FAILED)
+        raise SystemExit(ExitCodes.TASK_FILE_VALIDATION_FAILED)
 
     def _release_instance_lock(self):
         """

@@ -2449,8 +2449,8 @@ class TaskExecutor:
             if self.instance_lock_file:
                 try:
                     self.instance_lock_file.close()
-                except Exception as cleanup_exc:
-                    # Ignore cleanup errors, focus on original exception
+                except (OSError, IOError):
+                    # Best effort cleanup - ignore errors
                     pass
             self.log_error(f"ERROR: Failed to acquire instance lock: {e}")
             raise SystemExit(ExitCodes.TASK_FILE_VALIDATION_FAILED) from e
@@ -2498,14 +2498,14 @@ class TaskExecutor:
                 fcntl.flock(self.instance_lock_file.fileno(), fcntl.LOCK_UN)
                 self.instance_lock_file.close()
                 self.log_debug(f"# Instance lock released: {self.instance_hash}")
-            except Exception as e:
+            except (OSError, IOError) as e:
                 self.log_debug(f"# Warning: Failed to unlock instance file: {e}")
 
         if self.instance_lock_path and os.path.exists(self.instance_lock_path):
             try:
                 os.remove(self.instance_lock_path)
                 self.log_debug("# Instance lock file removed")
-            except Exception as e:
+            except (OSError, IOError) as e:
                 self.log_debug(f"# Warning: Failed to remove instance lock file: {e}")
 
     # ===== 8. MAIN ORCHESTRATION =====

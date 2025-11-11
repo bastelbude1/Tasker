@@ -2437,6 +2437,14 @@ class TaskExecutor:
             self.instance_lock_file.seek(0)
             self.instance_lock_file.truncate()
 
+            # Mask sensitive global variables before writing to lock file
+            masked_globals = {}
+            for k, v in dict(self.global_vars).items():
+                if ConditionEvaluator.should_mask_variable(k):
+                    masked_globals[k] = ConditionEvaluator.mask_value(v)
+                else:
+                    masked_globals[k] = v
+
             lock_data = {
                 'pid': os.getpid(),
                 'task_file': os.path.abspath(self.task_file),
@@ -2444,7 +2452,7 @@ class TaskExecutor:
                 'started_at': datetime.now().isoformat(),
                 'hostname': socket.gethostname(),
                 'project': self.project,
-                'global_vars_snapshot': dict(self.global_vars)
+                'global_vars_snapshot': masked_globals
             }
             json.dump(lock_data, self.instance_lock_file)
             self.instance_lock_file.flush()

@@ -441,6 +441,171 @@ cp tasker.py tasker.py.backup_YYYYMMDD
 
 ---
 
+## 🔒 Workflow Instance Control (Production Safety)
+
+### Overview
+
+Workflow Instance Control prevents accidental concurrent execution of identical workflows, addressing critical production disasters like duplicate deployments and database migrations.
+
+**Feature Status:** ✅ Implemented (TASKER 2.1+)
+
+**Key Capability:** Hash-based locking prevents multiple instances of the same workflow from running simultaneously.
+
+### When to Recommend --instance-check
+
+**CRITICAL USE CASES (Always Recommend):**
+- ✅ Production deployments
+- ✅ Database migrations / schema changes
+- ✅ Configuration updates across server fleets
+- ✅ Critical one-at-a-time operations
+- ✅ Workflows that modify shared resources (databases, files, ports)
+- ✅ Long-running workflows where accidental restart would cause conflicts
+
+**Example Scenarios:**
+```bash
+# Deployment workflow - MUST use instance control
+$ tasker -r --instance-check deployment.txt
+
+# Database migration - MUST use instance control
+$ tasker -r --instance-check migrate_db.txt
+
+# Server configuration update - RECOMMENDED
+$ tasker -r --instance-check update_configs.txt
+```
+
+### How It Works
+
+**Hash Calculation:**
+- Components: SHA-256(task_file_content + sorted(expanded_global_vars))
+- Different env vars = different hashes = different instances (parallel allowed)
+- Same file + same env vars = same hash = blocked
+
+**Lock Files:**
+- Location: `~/TASKER/locks/workflow_{hash}.lock`
+- Format: JSON with PID, timestamp, hostname, global vars snapshot
+- Cleanup: Automatic detection and removal of stale locks (crashed processes)
+
+**Bypass Conditions:**
+- `--validate-only`: Never creates locks (validation anytime)
+- `--auto-recovery resume`: Bypasses instance check (continuation, not new start)
+- `--force-instance`: Emergency override for stuck locks
+
+### Usage Guidelines for Claude Code
+
+**1. Proactive Recommendation:**
+When users create deployment/migration workflows, ALWAYS recommend:
+```bash
+# Add to task file header
+--instance-check
+
+# Or recommend CLI usage
+tasker -r --instance-check workflow.txt
+```
+
+**2. File-Defined Arguments (Recommended Approach):**
+```bash
+# At top of critical workflow files
+--instance-check
+
+# Global variables
+DEPLOY_ENV=$ENVIRONMENT
+
+# Tasks...
+```
+
+**3. Emergency Override (Only When Needed):**
+```bash
+# If lock is stuck (process crashed but lock remains)
+tasker -r --instance-check --force-instance deployment.txt
+```
+
+### Testing Requirements
+
+**New workflows with instance control MUST include test case:**
+```bash
+# TEST_METADATA: {"description": "Workflow with instance control", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+--instance-check
+
+# Test that workflow runs successfully with instance control
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing instance control
+```
+
+### Edge Cases and Behaviors
+
+**1. Different Environment Variables = Different Instances (Allowed)**
+```bash
+# These create DIFFERENT hashes (parallel execution allowed)
+$ ENV=prod tasker -r --instance-check deploy.txt &
+$ ENV=dev tasker -r --instance-check deploy.txt &
+```
+
+**2. Same Workflow = Blocked**
+```bash
+# Second execution is blocked
+$ tasker -r --instance-check deploy.txt &
+$ tasker -r --instance-check deploy.txt
+ERROR: Workflow instance already running!
+```
+
+**3. Validation Never Blocks**
+```bash
+# Validation can run anytime (no lock created)
+$ tasker --validate-only --instance-check deploy.txt
+```
+
+**4. Recovery Continuation Bypasses Check**
+```bash
+# Auto-recovery resume doesn't check (continuation, not new start)
+$ tasker -r --auto-recovery --instance-check deploy.txt
+# [workflow fails mid-execution]
+$ tasker -r --auto-recovery --instance-check deploy.txt
+# Resumes without instance check (continuation)
+```
+
+### Error Messages and User Guidance
+
+**When workflow is blocked:**
+```
+ERROR: Workflow instance already running!
+  Task file: /path/to/deployment.txt
+  Started: 2025-11-11T19:10:45.123456
+  PID: 12345
+  Hostname: server01
+  Lock file: ~/TASKER/locks/workflow_abc123def456.lock
+
+To override instance check, use: --force-instance
+```
+
+**Claude Code Response:**
+- Explain the safety mechanism is working correctly
+- Advise user to wait for first instance to complete
+- If stuck lock suspected: Recommend `--force-instance` after verifying process is dead
+- If intentional parallel execution needed: Explain env var differentiation
+
+### Implementation Details (For Reference)
+
+**Files Modified:**
+- `tasker.py`: CLI flags (`--instance-check`, `--force-instance`)
+- `tasker/core/task_executor_main.py`: Core logic (section 7.5)
+
+**Key Methods:**
+- `_calculate_workflow_instance_hash()`: Hash file + global vars
+- `_acquire_instance_lock()`: Atomic lock with fcntl.flock
+- `_is_lock_stale()`: Detect crashed process via PID check
+- `_release_instance_lock()`: Cleanup on exit
+
+**Design Decisions:**
+- Opt-in via `--instance-check` flag (non-breaking default)
+- Project name excluded from hash (safer - blocks all duplicates)
+- Abort immediately on duplicate (exit code 20 - VALIDATION_FAILED)
+- Bypass on auto-recovery resume (continuation, not new start)
+
+---
+
 ## 🧪 MANDATORY: Test Case Metadata Standard
 
 ### **CRITICAL: All Test Cases Must Include TEST_METADATA**

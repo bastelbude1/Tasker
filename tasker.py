@@ -63,7 +63,7 @@ from tasker.config.exec_config_loader import get_loader as get_exec_config_loade
 VERSION = "2.1.0"
 
 # Security: Flags that should NEVER be accepted from task files
-CLI_ONLY_FLAGS = {'--help', '-h', '--version', '-V'}
+CLI_ONLY_FLAGS = {'--help', '-h', '--version', '-V', '--force-instance'}
 
 # Security: Flags that should generate warnings when found in files
 SECURITY_SENSITIVE_FLAGS = {

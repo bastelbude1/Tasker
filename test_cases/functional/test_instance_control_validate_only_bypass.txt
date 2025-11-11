@@ -1,7 +1,8 @@
-# TEST_METADATA: {"description": "Instance control - validate-only mode bypasses instance check", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+# TEST_METADATA: {"description": "Instance control - validate-only mode bypasses instance check", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "forbidden_output": ["Instance lock acquired"]}
 
 # Test that --validate-only mode does NOT create instance locks
 # This ensures validation can run anytime without blocking
+# ASSERTION: Output must NOT contain "Instance lock acquired"
 
 # File-defined arguments
 --instance-check

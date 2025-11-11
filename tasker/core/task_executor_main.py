@@ -2400,40 +2400,43 @@ class TaskExecutor:
         self.instance_lock_path = os.path.join(locks_dir, f"workflow_{self.instance_hash}.lock")
         self.log_debug(f"# Lock file: {self.instance_lock_path}")
 
-        # Try to acquire lock
-        try:
-            # Open lock file for writing
-            self.instance_lock_file = open(self.instance_lock_path, 'w')
+        # Check for stale lock before acquisition attempt
+        if os.path.exists(self.instance_lock_path):
+            if self._is_lock_stale(self.instance_lock_path):
+                try:
+                    os.remove(self.instance_lock_path)
+                    self.log_debug("# Stale lock removed before acquisition")
+                except (OSError, IOError) as e:
+                    self.log_debug(f"# Could not remove stale lock: {e}")
 
-            # Try exclusive non-blocking lock
+        # Try to acquire lock
+        lock_fd = None
+        try:
+            # Open lock file with O_RDWR|O_CREAT (doesn't truncate)
+            lock_fd = os.open(self.instance_lock_path, os.O_RDWR | os.O_CREAT, 0o644)
+
+            # Try exclusive non-blocking lock immediately
             try:
-                fcntl.flock(self.instance_lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except (OSError, IOError) as e:
                 if e.errno in (errno.EAGAIN, errno.EACCES):
-                    # Lock held by another process
-                    self.instance_lock_file.close()
-
-                    # Check if lock is stale
-                    if self._is_lock_stale(self.instance_lock_path):
-                        # Remove stale lock and retry
-                        try:
-                            os.remove(self.instance_lock_path)
-                            self.log_debug("# Stale lock removed, retrying...")
-                            # Retry lock acquisition
-                            self.instance_lock_file = open(self.instance_lock_path, 'w')
-                            fcntl.flock(self.instance_lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                        except (OSError, IOError):
-                            # Still can't acquire - another process got it first
-                            self.instance_lock_file.close()
-                            self._handle_active_instance()
-                    else:
-                        # Active instance running
-                        self._handle_active_instance()
+                    # Lock held by another process - respect it
+                    os.close(lock_fd)
+                    lock_fd = None
+                    self._handle_active_instance()
                 else:
                     # Fatal error
                     raise
 
-            # Lock acquired successfully - write metadata
+            # Lock acquired successfully - now truncate and write metadata
+            # Wrap file descriptor in file object for convenience
+            self.instance_lock_file = os.fdopen(lock_fd, 'w')
+            lock_fd = None  # Ownership transferred to file object
+
+            # Truncate and write
+            self.instance_lock_file.seek(0)
+            self.instance_lock_file.truncate()
+
             lock_data = {
                 'pid': os.getpid(),
                 'task_file': os.path.abspath(self.task_file),
@@ -2445,16 +2448,21 @@ class TaskExecutor:
             }
             json.dump(lock_data, self.instance_lock_file)
             self.instance_lock_file.flush()
+            os.fsync(self.instance_lock_file.fileno())
 
             self.log_info(f"# Instance lock acquired: {self.instance_hash}")
 
         except Exception as e:
             # Clean up on error
+            if lock_fd is not None:
+                try:
+                    os.close(lock_fd)
+                except (OSError, IOError):
+                    pass
             if self.instance_lock_file:
                 try:
                     self.instance_lock_file.close()
                 except (OSError, IOError):
-                    # Best effort cleanup - ignore errors
                     pass
             self.log_error(f"ERROR: Failed to acquire instance lock: {e}")
             raise SystemExit(ExitCodes.TASK_FILE_VALIDATION_FAILED) from e

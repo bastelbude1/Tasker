@@ -34,7 +34,8 @@ class ExitCodes:
     DEPENDENCY_VALIDATION_FAILED = 22
     SYNTAX_ERROR = 23
     NO_TASKS_FOUND = 24
-    
+    INSTANCE_ALREADY_RUNNING = 25
+
     # File/Resource errors (30-39)
     TASK_FILE_NOT_FOUND = 30
     TASK_FILE_READ_ERROR = 31

@@ -630,7 +630,7 @@ Claude Code Response:
 
 - Opt-in via `--instance-check` flag (non-breaking default)
 - Project name excluded from hash (safer - blocks all duplicates)
-- Abort immediately on duplicate (exit code 20 - TASK_FILE_VALIDATION_FAILED)
+- Abort immediately on duplicate (exit code 25 - INSTANCE_ALREADY_RUNNING)
 - Lock acquired during auto-recovery resume (prevents duplicate recovery attempts, cleans up stale locks)
 
 ---

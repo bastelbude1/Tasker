@@ -679,6 +679,7 @@ TASKER uses specific exit codes to indicate different types of failures:
 | 22 | HOST_CONNECTION_FAILED | Cannot connect to remote host | Check network/credentials |
 | 23 | HOST_RESOLUTION_FAILED | Cannot resolve hostname | Verify DNS/hostname |
 | 24 | EXEC_TYPE_VALIDATION_FAILED | Execution type validation failed | Check pbrun/p7s/wwrs setup |
+| 25 | INSTANCE_ALREADY_RUNNING | Workflow instance already running | Wait for completion or use --force-instance |
 
 ### Using Exit Codes in Workflows
 

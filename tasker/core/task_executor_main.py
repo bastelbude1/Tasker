@@ -2462,7 +2462,7 @@ class TaskExecutor:
         Reads lock file metadata and displays detailed error message.
 
         Raises:
-            SystemExit: Always exits with TASK_FILE_VALIDATION_FAILED (code 20)
+            SystemExit: Always exits with INSTANCE_ALREADY_RUNNING (code 25)
         """
         try:
             with open(self.instance_lock_path, 'r') as f:
@@ -2485,7 +2485,7 @@ class TaskExecutor:
             self.log_error("")
             self.log_error("To override instance check, use: --force-instance")
 
-        raise SystemExit(ExitCodes.TASK_FILE_VALIDATION_FAILED)
+        raise SystemExit(ExitCodes.INSTANCE_ALREADY_RUNNING)
 
     def _release_instance_lock(self):
         """

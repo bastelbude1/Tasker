@@ -2390,7 +2390,7 @@ class TaskExecutor:
             os.makedirs(locks_dir, exist_ok=True)
         except OSError as e:
             self.log_error(f"ERROR: Failed to create locks directory {locks_dir}: {e}")
-            raise SystemExit(ExitCodes.TASK_FILE_VALIDATION_FAILED)
+            raise SystemExit(ExitCodes.TASK_FILE_VALIDATION_FAILED) from e
 
         # Lock file path
         self.instance_lock_path = os.path.join(locks_dir, f"workflow_{self.instance_hash}.lock")
@@ -2449,10 +2449,11 @@ class TaskExecutor:
             if self.instance_lock_file:
                 try:
                     self.instance_lock_file.close()
-                except:
+                except Exception as cleanup_exc:
+                    # Ignore cleanup errors, focus on original exception
                     pass
             self.log_error(f"ERROR: Failed to acquire instance lock: {e}")
-            raise SystemExit(ExitCodes.TASK_FILE_VALIDATION_FAILED)
+            raise SystemExit(ExitCodes.TASK_FILE_VALIDATION_FAILED) from e
 
     def _handle_active_instance(self):
         """
@@ -2639,13 +2640,15 @@ class TaskExecutor:
         is_recovery_resume = (self.auto_recovery and self.recovery_manager and
                              self.recovery_manager.recovery_file_exists())
 
-        if self.instance_check and not self.force_instance:
-            self.log_debug("# Checking workflow instance control...")
-            if is_recovery_resume:
-                self.log_debug("# Auto-recovery resume detected - acquiring lock to prevent duplicates and cleanup stale locks")
-            self._acquire_instance_lock()
-        elif self.instance_check and self.force_instance:
-            self.log_warn("# WARNING: Instance check bypassed (--force-instance flag set)")
+        if self.instance_check:
+            if self.force_instance:
+                self.log_warn("# WARNING: Instance check bypassed (--force-instance flag set)")
+            else:
+                if is_recovery_resume:
+                    self.log_debug("# Auto-recovery resume detected - enforcing instance lock")
+                else:
+                    self.log_debug("# Checking workflow instance control...")
+                self._acquire_instance_lock()
 
         # Handle auto-recovery: check for existing recovery file and restore state
         recovery_resume_task = None

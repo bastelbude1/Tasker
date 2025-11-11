@@ -2430,7 +2430,7 @@ class TaskExecutor:
                                     # OR another process is in the process of rewriting it
                                     # Either way, we respect the fcntl lock and treat as active
                                     self.log_debug(f"# Lock file references dead process {pid}, but fcntl lock is held")
-                                    self.log_debug(f"# Respecting active fcntl lock (fail-safe behavior)")
+                                    self.log_debug("# Respecting active fcntl lock (fail-safe behavior)")
                     except (json.JSONDecodeError, IOError):
                         # Can't read lock data, but fcntl lock is held so treat as active
                         pass

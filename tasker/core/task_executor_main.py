@@ -100,7 +100,8 @@ class TaskExecutor:
                  skip_command_validation=False,
                  skip_security_validation=False, skip_subtask_range_validation=False,
                  strict_env_validation=False, show_plan=False, validate_only=False,
-                 fire_and_forget=False, no_task_backup=False, auto_recovery=False,
+                 fire_and_forget=False, no_task_backup=False, instance_check=False,
+                 force_instance=False, auto_recovery=False,
                  show_recovery_info=False, auto_confirm=False, alert_on_failure=None,
                  output_json=None):
         """
@@ -128,6 +129,8 @@ class TaskExecutor:
             validate_only: If true, the executor performs parsing/validation and exits without running tasks.
             fire_and_forget: If true, enables fire-and-forget mode (tasks execute without waiting for completion).
             no_task_backup: If true, disables automatic task file backup before execution.
+            instance_check: If true, enables workflow instance control (prevents concurrent execution of identical workflows via hash-based lock files).
+            force_instance: If true, bypasses instance control check (requires instance_check=True to have any effect).
             auto_recovery: If true, enables automatic recovery mode using state files.
             show_recovery_info: If true, displays recovery information and exits without executing tasks.
             auto_confirm: If true, automatically confirms prompts during recovery (non-interactive mode).
@@ -156,6 +159,13 @@ class TaskExecutor:
         self.validate_only = validate_only
         self.fire_and_forget = fire_and_forget  # Continue on failure even without routing
         self.no_task_backup = no_task_backup  # Skip task file backup creation
+        self.instance_check = instance_check  # Enable workflow instance control
+        self.force_instance = force_instance  # Bypass instance check
+
+        # Instance control state
+        self.instance_lock_file = None  # File object for instance lock
+        self.instance_lock_path = None  # Path to instance lock file
+        self.instance_hash = None  # Workflow instance hash
 
         # Configurable timeouts for cleanup and summary operations
         self.summary_lock_timeout = 20  # Seconds for summary file locking (longer for shared files)
@@ -972,7 +982,14 @@ class TaskExecutor:
         except (OSError, IOError, RuntimeError, ValueError) as temp_cleanup_error:
             cleanup_errors.append(f"Temp file cleanup phase failed: {temp_cleanup_error}")
 
-        # PHASE 4: Error reporting
+        # PHASE 4: Instance lock release
+        if hasattr(self, 'instance_lock_file') and self.instance_lock_file:
+            try:
+                self._release_instance_lock()
+            except Exception as lock_cleanup_error:
+                cleanup_errors.append(f"Instance lock cleanup failed: {lock_cleanup_error}")
+
+        # PHASE 5: Error reporting
         if cleanup_errors:
             error_count = len(cleanup_errors)
             error_summary = f"Cleanup completed with {error_count} error(s):"
@@ -2276,6 +2293,220 @@ class TaskExecutor:
         """Execute a single task and return whether to continue to the next task."""
         return SequentialExecutor.execute_task(task, self)
 
+    # ===== 7.5. WORKFLOW INSTANCE CONTROL =====
+
+    def _calculate_workflow_instance_hash(self):
+        """
+        Calculate unique hash for workflow instance.
+
+        Combines task file content and expanded global variables to create
+        a stable hash that uniquely identifies this workflow instance.
+
+        Different environment variables produce different hashes, allowing
+        parallel execution of the same workflow with different configurations.
+
+        Returns:
+            str: 16-character hex hash uniquely identifying this workflow instance
+        """
+        # Component 1: Task file content hash
+        sha256_hash = hashlib.sha256()
+        try:
+            with open(self.task_file, 'rb') as f:
+                for byte_block in iter(lambda: f.read(4096), b""):
+                    sha256_hash.update(byte_block)
+            task_file_hash = sha256_hash.hexdigest()
+        except (IOError, OSError) as e:
+            self.log_error(f"ERROR: Failed to calculate task file hash: {e}")
+            raise
+
+        # Component 2: Expanded global variables (stable JSON representation)
+        # Sort by keys for deterministic hash
+        global_vars_str = json.dumps(sorted(self.global_vars.items()), sort_keys=True)
+
+        # Combine components and hash
+        combined = f"{task_file_hash}:{global_vars_str}"
+        instance_hash = hashlib.sha256(combined.encode()).hexdigest()[:16]
+
+        return instance_hash
+
+    def _is_process_running(self, pid):
+        """
+        Check if a process with given PID is currently running.
+
+        Uses os.kill with signal 0 (doesn't actually kill, just checks existence).
+
+        Args:
+            pid: Process ID to check
+
+        Returns:
+            bool: True if process is running, False otherwise
+        """
+        try:
+            os.kill(pid, 0)
+            return True
+        except OSError:
+            return False
+
+    def _is_lock_stale(self, lock_path):
+        """
+        Check if a lock file is stale (process no longer running).
+
+        Args:
+            lock_path: Path to lock file to check
+
+        Returns:
+            bool: True if lock is stale (should be removed), False if active
+        """
+        try:
+            with open(lock_path, 'r') as f:
+                lock_data = json.load(f)
+                pid = lock_data.get('pid')
+                if pid and not self._is_process_running(pid):
+                    self.log_warn(f"# Stale lock detected (PID {pid} not running), removing...")
+                    return True
+                return False
+        except (IOError, json.JSONDecodeError) as e:
+            # Corrupted lock file, consider stale
+            self.log_warn(f"# Corrupted lock file detected: {e}, removing...")
+            return True
+
+    def _acquire_instance_lock(self):
+        """
+        Acquire exclusive instance lock for workflow execution.
+
+        Creates a hash-based lock file in ~/TASKER/locks/ to prevent
+        concurrent execution of identical workflows.
+
+        Raises:
+            SystemExit: If lock cannot be acquired (another instance running)
+        """
+        # Calculate workflow instance hash
+        self.instance_hash = self._calculate_workflow_instance_hash()
+        self.log_debug(f"# Instance hash: {self.instance_hash}")
+
+        # Create locks directory
+        locks_dir = os.path.expanduser('~/TASKER/locks')
+        try:
+            os.makedirs(locks_dir, exist_ok=True)
+        except OSError as e:
+            self.log_error(f"ERROR: Failed to create locks directory {locks_dir}: {e}")
+            raise SystemExit(ExitCodes.VALIDATION_FAILED)
+
+        # Lock file path
+        self.instance_lock_path = os.path.join(locks_dir, f"workflow_{self.instance_hash}.lock")
+        self.log_debug(f"# Lock file: {self.instance_lock_path}")
+
+        # Try to acquire lock
+        try:
+            # Open lock file for writing
+            self.instance_lock_file = open(self.instance_lock_path, 'w')
+
+            # Try exclusive non-blocking lock
+            try:
+                fcntl.flock(self.instance_lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except (OSError, IOError) as e:
+                if e.errno in (errno.EAGAIN, errno.EACCES):
+                    # Lock held by another process
+                    self.instance_lock_file.close()
+
+                    # Check if lock is stale
+                    if self._is_lock_stale(self.instance_lock_path):
+                        # Remove stale lock and retry
+                        try:
+                            os.remove(self.instance_lock_path)
+                            self.log_debug("# Stale lock removed, retrying...")
+                            # Retry lock acquisition
+                            self.instance_lock_file = open(self.instance_lock_path, 'w')
+                            fcntl.flock(self.instance_lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        except (OSError, IOError):
+                            # Still can't acquire - another process got it first
+                            self.instance_lock_file.close()
+                            self._handle_active_instance()
+                    else:
+                        # Active instance running
+                        self._handle_active_instance()
+                else:
+                    # Fatal error
+                    raise
+
+            # Lock acquired successfully - write metadata
+            lock_data = {
+                'pid': os.getpid(),
+                'task_file': os.path.abspath(self.task_file),
+                'workflow_hash': self.instance_hash,
+                'started_at': datetime.now().isoformat(),
+                'hostname': socket.gethostname(),
+                'project': self.project,
+                'global_vars_snapshot': dict(self.global_vars)
+            }
+            json.dump(lock_data, self.instance_lock_file)
+            self.instance_lock_file.flush()
+
+            self.log_info(f"# Instance lock acquired: {self.instance_hash}")
+
+        except Exception as e:
+            # Clean up on error
+            if self.instance_lock_file:
+                try:
+                    self.instance_lock_file.close()
+                except:
+                    pass
+            self.log_error(f"ERROR: Failed to acquire instance lock: {e}")
+            raise SystemExit(ExitCodes.VALIDATION_FAILED)
+
+    def _handle_active_instance(self):
+        """
+        Handle case where workflow instance is already running.
+
+        Reads lock file metadata and displays detailed error message.
+
+        Raises:
+            SystemExit: Always exits with VALIDATION_FAILED code
+        """
+        try:
+            with open(self.instance_lock_path, 'r') as f:
+                lock_data = json.load(f)
+
+            self.log_error("ERROR: Workflow instance already running!")
+            self.log_error(f"  Task file: {lock_data.get('task_file', 'unknown')}")
+            self.log_error(f"  Started: {lock_data.get('started_at', 'unknown')}")
+            self.log_error(f"  PID: {lock_data.get('pid', 'unknown')}")
+            self.log_error(f"  Hostname: {lock_data.get('hostname', 'unknown')}")
+            if lock_data.get('project'):
+                self.log_error(f"  Project: {lock_data['project']}")
+            self.log_error(f"  Lock file: {self.instance_lock_path}")
+            self.log_error("")
+            self.log_error("To override instance check, use: --force-instance")
+        except (IOError, json.JSONDecodeError):
+            self.log_error("ERROR: Workflow instance already running!")
+            self.log_error(f"  Lock file: {self.instance_lock_path}")
+            self.log_error("  (Lock file metadata unavailable)")
+            self.log_error("")
+            self.log_error("To override instance check, use: --force-instance")
+
+        raise SystemExit(ExitCodes.VALIDATION_FAILED)
+
+    def _release_instance_lock(self):
+        """
+        Release instance lock and remove lock file.
+
+        Called during cleanup to ensure lock is released even on errors.
+        """
+        if self.instance_lock_file:
+            try:
+                fcntl.flock(self.instance_lock_file.fileno(), fcntl.LOCK_UN)
+                self.instance_lock_file.close()
+                self.log_debug(f"# Instance lock released: {self.instance_hash}")
+            except Exception as e:
+                self.log_debug(f"# Warning: Failed to unlock instance file: {e}")
+
+        if self.instance_lock_path and os.path.exists(self.instance_lock_path):
+            try:
+                os.remove(self.instance_lock_path)
+                self.log_debug("# Instance lock file removed")
+            except Exception as e:
+                self.log_debug(f"# Warning: Failed to remove instance lock file: {e}")
+
     # ===== 8. MAIN ORCHESTRATION =====
     
     def run(self):
@@ -2401,6 +2632,22 @@ class TaskExecutor:
             self.log_info("# All validations completed successfully")
             self.log_info("# Validate-only mode: exiting without task execution")
             ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Validation completed", False)
+
+        # Instance control: prevent concurrent execution of identical workflows
+        # Skip instance check if:
+        #   1. Instance check not enabled (--instance-check flag not set)
+        #   2. Force instance flag set (--force-instance overrides check)
+        #   3. Auto-recovery is resuming (continuation, not new start)
+        is_recovery_resume = (self.auto_recovery and self.recovery_manager and
+                             self.recovery_manager.recovery_file_exists())
+
+        if self.instance_check and not self.force_instance and not is_recovery_resume:
+            self.log_debug("# Checking workflow instance control...")
+            self._acquire_instance_lock()
+        elif self.instance_check and self.force_instance:
+            self.log_warn("# WARNING: Instance check bypassed (--force-instance flag set)")
+        elif self.instance_check and is_recovery_resume:
+            self.log_debug("# Instance check bypassed (auto-recovery resume)")
 
         # Handle auto-recovery: check for existing recovery file and restore state
         recovery_resume_task = None

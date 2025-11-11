@@ -1,0 +1,20 @@
+# TEST_METADATA: {"description": "Instance control - different env vars create different hashes", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Test that different environment variable values result in different workflow hashes
+# This allows parallel execution of same workflow with different configurations
+# When TASKER_TEST_ENV is set to different values, workflows should NOT block each other
+
+# File-defined arguments
+--instance-check
+
+# Global variables
+# Using environment variable expansion
+DEPLOYMENT_ENV=$USER
+CONFIG_VALUE=test_${USER}
+
+# Tasks
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing env @DEPLOYMENT_ENV@ with config @CONFIG_VALUE@

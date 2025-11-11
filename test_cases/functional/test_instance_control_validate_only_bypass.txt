@@ -1,0 +1,18 @@
+# TEST_METADATA: {"description": "Instance control - validate-only mode bypasses instance check", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Test that --validate-only mode does NOT create instance locks
+# This ensures validation can run anytime without blocking
+
+# File-defined arguments
+--instance-check
+--validate-only
+
+# Global variables
+TEST_VAR=validate_only_test
+
+# Tasks
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing validate-only bypass

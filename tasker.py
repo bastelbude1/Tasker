@@ -319,6 +319,10 @@ Examples:
                        help='Continue workflow execution even when tasks fail (no routing parameters). WARNING: Failed tasks will not stop execution - use for non-critical workflows only')
     parser.add_argument('--no-task-backup', action='store_true',
                        help='Disable task file backup creation (reduces file clutter, useful for testing)')
+    parser.add_argument('--instance-check', action='store_true',
+                       help='Enable workflow instance control - prevents multiple instances of the same workflow from running concurrently (hash-based lock file in ~/TASKER/locks/)')
+    parser.add_argument('--force-instance', action='store_true',
+                       help='Force workflow execution even if instance already running - bypasses instance control check (requires --instance-check)')
 
     # Execution planning
     parser.add_argument('--show-plan', action='store_true',
@@ -464,6 +468,8 @@ Examples:
         validate_only=args.validate_only,
         fire_and_forget=args.fire_and_forget,
         no_task_backup=args.no_task_backup,
+        instance_check=args.instance_check,
+        force_instance=args.force_instance,
         auto_recovery=args.auto_recovery,
         show_recovery_info=args.show_recovery_info,
         auto_confirm=args.yes,

@@ -30,6 +30,11 @@ class ResultCollector:
     thread-safe file operations.
     """
 
+    # File lock retry configuration (exponential backoff)
+    _LOCK_RETRY_INITIAL_DELAY = 0.01  # 10ms - start with minimal delay
+    _LOCK_RETRY_MAX_DELAY = 1.0       # 1 second - cap to prevent excessive waits
+    _LOCK_RETRY_JITTER_PERCENT = 0.1  # 10% - random variation to prevent thundering herd
+
     def __init__(self, task_file: str, project: Optional[str] = None):
         """
         Initialize result collector.
@@ -195,8 +200,8 @@ class ResultCollector:
             raise IOError(f"Cannot get file descriptor from summary log: {e}")
 
         # Exponential backoff configuration
-        retry_delay = 0.01  # Start at 10ms
-        max_delay = 1.0     # Cap at 1 second
+        retry_delay = self._LOCK_RETRY_INITIAL_DELAY
+        max_delay = self._LOCK_RETRY_MAX_DELAY
         start_time = time.time()
 
         while time.time() - start_time < timeout_seconds:
@@ -208,8 +213,8 @@ class ResultCollector:
                 if e.errno in (errno.EAGAIN, errno.EACCES):
                     # Transient error - another process has the lock, retry with backoff
 
-                    # Add jitter (0-10% random variation) to prevent thundering herd
-                    jitter = random.uniform(0, retry_delay * 0.1)
+                    # Add jitter (random variation) to prevent thundering herd
+                    jitter = random.uniform(0, retry_delay * self._LOCK_RETRY_JITTER_PERCENT)
                     actual_delay = retry_delay + jitter
 
                     # Don't sleep beyond timeout

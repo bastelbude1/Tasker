@@ -11,6 +11,14 @@ from typing import ClassVar
 from .utilities import convert_value, convert_to_number
 from .constants import MAX_VARIABLE_EXPANSION_DEPTH, MAX_CMDLINE_SUBST
 
+# Pre-compiled regex patterns for performance optimization
+# These patterns are used for variable replacement in every task execution
+_TASK_RESULT_PATTERN = re.compile(
+    r'@(\d+)_(stdout|stderr|stdout_file|stderr_file|success|exit)@',
+    re.IGNORECASE
+)
+_GLOBAL_VAR_PATTERN = re.compile(r'@([a-zA-Z_][a-zA-Z0-9_]*)@')
+
 
 class ConditionEvaluator:
     """
@@ -109,16 +117,15 @@ class ConditionEvaluator:
         # Enhanced pattern to match both task result variables and global variables
         # CASE INSENSITIVE: Accept @0_stdout@, @0_STDOUT@, @0_StdOut@, etc.
         # Also support @N_stdout_file@ and @N_stderr_file@ for temp file paths
-        task_result_pattern = r'@(\d+)_(stdout|stderr|stdout_file|stderr_file|success|exit)@'
-        global_var_pattern = r'@([a-zA-Z_][a-zA-Z0-9_]*)@'
+        # Patterns are pre-compiled at module level for performance
 
         replaced_text = text
         unresolved_variables = []
         original_text = text
 
         # First, handle task result variables (@X_stdout@, etc.) - THREAD SAFE
-        # Use case-insensitive matching
-        task_matches = re.findall(task_result_pattern, text, re.IGNORECASE)
+        # Use pre-compiled case-insensitive pattern
+        task_matches = _TASK_RESULT_PATTERN.findall(text)
         for task_num, output_type in task_matches:
             task_num = int(task_num)
             output_type_lower = output_type.lower()
@@ -213,7 +220,7 @@ class ConditionEvaluator:
                 unresolved_variables.append(f"@{task_num}_{output_type}@")
         
         # Second, handle global variables (@VARIABLE_NAME@) - supports chaining
-        global_matches = re.findall(global_var_pattern, replaced_text)
+        global_matches = _GLOBAL_VAR_PATTERN.findall(replaced_text)
         for var_name in global_matches:
             # Skip if this is a task result variable (already handled above)
             # CASE INSENSITIVE: Check with case-insensitive regex
@@ -244,7 +251,7 @@ class ConditionEvaluator:
         
         while iteration < max_iterations:
             iteration += 1
-            nested_matches = re.findall(global_var_pattern, replaced_text)
+            nested_matches = _GLOBAL_VAR_PATTERN.findall(replaced_text)
             nested_replaced = False
             
             for var_name in nested_matches:
@@ -269,7 +276,7 @@ class ConditionEvaluator:
                 break
         
         # Final check for any remaining unresolved variables
-        final_matches = re.findall(global_var_pattern, replaced_text)
+        final_matches = _GLOBAL_VAR_PATTERN.findall(replaced_text)
         for var_name in final_matches:
             # CASE INSENSITIVE: Check with case-insensitive regex
             if not re.match(r'\d+_(stdout|stderr|success|exit)$', var_name, re.IGNORECASE):

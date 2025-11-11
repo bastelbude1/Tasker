@@ -562,6 +562,7 @@ Prevent accidental concurrent execution of identical workflows - critical for av
 # Enable instance control for critical workflows
 tasker -r --instance-check deployment.txt
 
+
 # Try to run again while first instance is running (BLOCKED)
 $ tasker -r --instance-check deployment.txt
 ERROR: Workflow instance already running!
@@ -570,10 +571,13 @@ ERROR: Workflow instance already running!
   PID: 12345
   Lock file: ~/TASKER/locks/workflow_abc123def456.lock
 
+
 To override instance check, use: --force-instance
+
 
 # Emergency override for stuck locks
 tasker -r --instance-check --force-instance deployment.txt
+
 
 # Different environment variables = different instances (allowed in parallel)
 $ ENV=prod tasker -r --instance-check deploy.txt &

@@ -719,8 +719,6 @@ Point to the tab-separated format on screen:
 
 ### Power Feature #4: Config-Based Execution (10 minutes)
 
-Slide: Power Feature #4: Config-Based Execution
-
 **Speaker Notes:**
 - This feature shows TASKER's extensibility and enterprise integration capabilities
 - Focus on "configure once, execute anywhere" philosophy
@@ -1086,8 +1084,6 @@ Read the quote on the slide - this is the target audience.
 ---
 
 ### Professional Architecture Documentation (3 minutes)
-
-Slide: Professional Architecture Documentation
 
 **Speaker Notes:**
 - This demonstrates enterprise readiness and professional engineering

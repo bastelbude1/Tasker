@@ -2400,19 +2400,11 @@ class TaskExecutor:
         self.instance_lock_path = os.path.join(locks_dir, f"workflow_{self.instance_hash}.lock")
         self.log_debug(f"# Lock file: {self.instance_lock_path}")
 
-        # Check for stale lock before acquisition attempt
-        if os.path.exists(self.instance_lock_path):
-            if self._is_lock_stale(self.instance_lock_path):
-                try:
-                    os.remove(self.instance_lock_path)
-                    self.log_debug("# Stale lock removed before acquisition")
-                except (OSError, IOError) as e:
-                    self.log_debug(f"# Could not remove stale lock: {e}")
-
         # Try to acquire lock
         lock_fd = None
         try:
-            # Open lock file with O_RDWR|O_CREAT (doesn't truncate)
+            # ALWAYS open lock file first (O_RDWR|O_CREAT doesn't truncate)
+            # This ensures we're all working with the same inode
             lock_fd = os.open(self.instance_lock_path, os.O_RDWR | os.O_CREAT, 0o600)
 
             # Try exclusive non-blocking lock immediately
@@ -2420,20 +2412,66 @@ class TaskExecutor:
                 fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except (OSError, IOError) as e:
                 if e.errno in (errno.EAGAIN, errno.EACCES):
-                    # Lock held by another process - respect it
+                    # Lock held by another process
+                    # Read lock metadata to provide better error message
+                    # Note: We can safely read while another process holds the lock
+                    try:
+                        # Read existing lock data using duplicate fd
+                        with os.fdopen(os.dup(lock_fd), 'r') as f:
+                            f.seek(0)
+                            content = f.read()
+                            if content:  # File has content
+                                lock_data = json.loads(content)
+                                pid = lock_data.get('pid')
+                                # Check if the process is still running
+                                if pid and not self._is_process_running(pid):
+                                    # Edge case: Lock file contains dead PID
+                                    # This means the process crashed while holding the lock
+                                    # OR another process is in the process of rewriting it
+                                    # Either way, we respect the fcntl lock and treat as active
+                                    self.log_debug(f"# Lock file references dead process {pid}, but fcntl lock is held")
+                                    self.log_debug("# Respecting active fcntl lock (fail-safe behavior)")
+                    except (json.JSONDecodeError, IOError):
+                        # Can't read lock data, but fcntl lock is held so treat as active
+                        pass
+
+                    # Close our fd and handle as active instance
                     os.close(lock_fd)
                     lock_fd = None
                     self._handle_active_instance()
                 else:
-                    # Fatal error
+                    # Fatal lock error
                     raise
 
-            # Lock acquired successfully - now truncate and write metadata
+            # Lock acquired successfully!
+            # NOW we can safely check if the lock file had stale data and rewrite it
+
+            # First, check if there's existing content (might be stale from crashed process)
+            try:
+                # Read current content using file descriptor
+                current_pos = os.lseek(lock_fd, 0, os.SEEK_CUR)  # Save position
+                os.lseek(lock_fd, 0, os.SEEK_SET)  # Go to beginning
+                content = os.read(lock_fd, 4096)  # Read up to 4KB
+                os.lseek(lock_fd, current_pos, os.SEEK_SET)  # Restore position
+
+                if content:
+                    try:
+                        lock_data = json.loads(content.decode('utf-8'))
+                        old_pid = lock_data.get('pid')
+                        if old_pid and old_pid != os.getpid():
+                            self.log_debug(f"# Overwriting stale lock from PID {old_pid}")
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        self.log_debug("# Overwriting corrupted lock file")
+            except (OSError, IOError):
+                # Can't read, will overwrite anyway
+                pass
+
             # Wrap file descriptor in file object for convenience
-            self.instance_lock_file = os.fdopen(lock_fd, 'w')
+            # Use newline='' to avoid newline translation (cross-platform robustness)
+            self.instance_lock_file = os.fdopen(lock_fd, 'w', newline='')
             lock_fd = None  # Ownership transferred to file object
 
-            # Truncate and write
+            # Truncate and write our metadata
             self.instance_lock_file.seek(0)
             self.instance_lock_file.truncate()
 
@@ -2454,7 +2492,9 @@ class TaskExecutor:
                 'project': self.project,
                 'global_vars_snapshot': masked_globals
             }
-            json.dump(lock_data, self.instance_lock_file)
+            # Use ensure_ascii=True for consistent encoding across platforms
+            # This escapes non-ASCII characters for maximum portability
+            json.dump(lock_data, self.instance_lock_file, ensure_ascii=True)
             self.instance_lock_file.flush()
             os.fsync(self.instance_lock_file.fileno())
 

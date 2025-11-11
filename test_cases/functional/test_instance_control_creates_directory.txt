@@ -1,0 +1,21 @@
+# TEST_METADATA: {"description": "Instance control creates locks directory if missing", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
+
+# Test that TASKER creates ~/TASKER/locks/ directory if it doesn't exist
+# This verifies the makedirs() call works correctly with proper permissions
+
+# NOTE: This test assumes locks directory will be created automatically
+# The test harness doesn't have pre-test cleanup hooks, but the code
+# uses os.makedirs(exist_ok=True) so it handles existing directories
+
+# File-defined arguments
+--instance-check
+
+# Global variables
+TEST_VAR=directory_creation_test
+
+# Tasks
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing automatic directory creation

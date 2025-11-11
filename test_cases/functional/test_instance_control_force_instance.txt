@@ -1,10 +1,8 @@
-# TEST_METADATA: {"description": "Instance control - force-instance flag bypasses check", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_warnings": 1}
+# TEST_METADATA: {"description": "Instance control - force-instance flag blocked in files", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
 
-# Test that --force-instance flag works and allows execution
-# This is a basic acceptance test that verifies the flag is recognized
-# VERIFIED: Manual testing confirms "WARNING: Instance check bypassed" is emitted
-# NOTE: Full contention testing (with pre-existing lock) would require
-# multi-process test infrastructure not available in this harness
+# Test that --force-instance is BLOCKED when used as file-defined argument
+# SECURITY: --force-instance must only be usable via command line to prevent
+# malicious or accidental task files from bypassing instance control
 
 # File-defined arguments
 --instance-check

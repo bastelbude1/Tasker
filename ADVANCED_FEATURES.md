@@ -8,6 +8,7 @@ This guide covers advanced TASKER features for power users. For basic usage, see
 
 - [File-Defined Arguments](#file-defined-arguments)
 - [Global Variables](#global-variables)
+- [Workflow Instance Control](#workflow-instance-control)
 - [Memory-Efficient Output Streaming](#memory-efficient-output-streaming)
 - [Alert-on-Failure: Workflow Monitoring](#alert-on-failure-workflow-monitoring)
 - [Remote Execution Configuration](#remote-execution-configuration)
@@ -793,6 +794,228 @@ command=mycommand
 X=value
 Y=value
 ```
+
+---
+
+## Workflow Instance Control
+
+**Prevent duplicate workflow execution** - Ensure only one instance of a workflow runs at a time to prevent resource conflicts, data corruption, and deployment disasters.
+
+### What Is Instance Control?
+
+Workflow instance control uses hash-based file locking to prevent multiple instances of the same workflow from running concurrently. Each workflow gets a unique hash based on:
+- Task file content (the workflow definition)
+- Expanded global variables (environment configuration)
+
+This means the same workflow with different environment variables can run in parallel, while identical configurations are blocked.
+
+### Why Use Instance Control?
+
+**Common production disasters without instance control:**
+- 🔥 **Double deployments**: Two operators accidentally deploy the same version
+- 🔥 **Database migration conflicts**: Multiple migration scripts running simultaneously
+- 🔥 **Resource contention**: Port conflicts, file locks, shared resource corruption
+- 🔥 **Cascading failures**: Duplicate health checks triggering false alerts
+
+### Basic Usage
+
+#### Command-Line Flag
+
+```bash
+# Enable instance control
+$ tasker -r deployment.txt --instance-check
+
+# First run succeeds
+# Instance lock acquired: abc123def456
+# [Tasks execute normally...]
+# Instance lock released: abc123def456
+
+# Second concurrent run is blocked
+$ tasker -r deployment.txt --instance-check
+ERROR: Workflow instance already running!
+  Task file: /path/to/deployment.txt
+  Started: 2025-11-11T19:10:45.123456
+  PID: 12345
+  Lock file: ~/TASKER/locks/workflow_abc123def456.lock
+
+To override instance check, use: --force-instance
+Exit code: 25
+```
+
+#### File-Based Definition (Recommended)
+
+Include `--instance-check` at the top of your task file for automatic protection:
+
+```bash
+# deployment.txt
+--instance-check
+
+# Global variables
+DEPLOY_ENV=$ENVIRONMENT
+VERSION=2.1.0
+
+# Tasks
+task=0
+hostname=prod-server
+command=deploy.sh
+arguments=--version @VERSION@
+```
+
+Now the workflow automatically prevents duplicate execution:
+
+```bash
+# No need to specify --instance-check on command line
+$ tasker -r deployment.txt
+# Instance control automatically enabled from file
+```
+
+### How It Works
+
+1. **Hash Calculation**: Combines task file content + expanded global variables using SHA-256
+2. **Lock Acquisition**: Attempts exclusive file lock in `~/TASKER/locks/`
+3. **Stale Detection**: Checks if PID in lock file is still running
+4. **Automatic Cleanup**: Removes lock on completion, Ctrl+C, or errors
+
+### Lock File Location
+
+Lock files are stored in:
+```
+~/TASKER/locks/workflow_{hash}.lock
+```
+
+Example lock file content:
+```json
+{
+  "pid": 12345,
+  "task_file": "/path/to/deployment.txt",
+  "workflow_hash": "abc123def456",
+  "started_at": "2025-11-11T19:10:45.123456",
+  "hostname": "prod-server-01",
+  "project": "backend",
+  "global_vars_snapshot": {
+    "DEPLOY_ENV": "production",
+    "VERSION": "2.1.0"
+  }
+}
+```
+
+### Different Environments = Different Instances
+
+Workflows with different global variable values get different hashes and can run in parallel:
+
+```bash
+# Production deployment (hash: abc123...)
+$ ENV=prod tasker -r deploy.txt --instance-check &
+
+# Development deployment (hash: def456...)
+$ ENV=dev tasker -r deploy.txt --instance-check &
+
+# Both run simultaneously - different configurations
+```
+
+### Emergency Override
+
+If a lock file becomes stuck (rare), use `--force-instance` to bypass the check:
+
+```bash
+# WARNING: Use only when certain no other instance is running!
+$ tasker -r deployment.txt --instance-check --force-instance
+# WARNING: Instance check bypassed (--force-instance flag set)
+```
+
+**⚠️ SECURITY NOTE**: `--force-instance` CANNOT be used as a file-based argument for security reasons. It must be explicitly provided on the command line.
+
+### Automatic Stale Lock Cleanup
+
+TASKER automatically detects and removes stale locks from:
+- Killed processes (SIGKILL/kill -9)
+- System crashes
+- Power failures
+
+The next run detects the dead process and cleanly acquires the lock:
+
+```bash
+# Previous run was kill -9'd, leaving lock file
+$ tasker -r deployment.txt --instance-check
+# Stale lock detected (PID 12345 not running), removing...
+# Instance lock acquired: abc123def456
+# [Continues normally...]
+```
+
+### Exit Codes
+
+Instance control uses distinct exit codes:
+- **0**: Success (workflow completed)
+- **25**: Instance already running (INSTANCE_ALREADY_RUNNING)
+
+### Best Practices
+
+1. **Use file-based definition** for critical workflows:
+   ```bash
+   # At top of production task files
+   --instance-check
+   ```
+
+2. **Monitor lock directory** for stuck locks:
+   ```bash
+   $ ls -la ~/TASKER/locks/
+   ```
+
+3. **Include in deployment workflows** to prevent accidents:
+   ```bash
+   # deploy_production.txt
+   --instance-check
+   --alert-on-failure=myteam@company.com
+   ```
+
+4. **Test instance control** before production:
+   ```bash
+   # Terminal 1
+   $ tasker -r long_task.txt --instance-check &
+
+   # Terminal 2 (should be blocked)
+   $ tasker -r long_task.txt --instance-check
+   ```
+
+### Limitations
+
+- **Workflow-level only**: Doesn't prevent different workflows from conflicting
+- **Same filesystem required**: Locks don't work across network boundaries
+- **Hash-based**: Minor task file changes create new hash (allows parallel run)
+
+### Troubleshooting
+
+#### Lock File Permissions
+
+Lock files use restrictive permissions (0600) for security:
+```bash
+$ ls -la ~/TASKER/locks/
+-rw------- 1 user user 245 Nov 11 19:10 workflow_abc123def456.lock
+```
+
+#### Manual Lock Removal
+
+If needed, manually remove stuck locks:
+```bash
+# Check if process is actually running
+$ cat ~/TASKER/locks/workflow_abc123def456.lock
+$ ps -p 12345
+
+# If process is dead, safe to remove
+$ rm ~/TASKER/locks/workflow_abc123def456.lock
+```
+
+#### Debug Output
+
+Use `--debug` to see instance control details:
+```bash
+$ tasker -r task.txt --instance-check --debug
+# Instance hash: abc123def456
+# Lock file: ~/TASKER/locks/workflow_abc123def456.lock
+# Instance lock acquired: abc123def456
+```
+
+---
 
 ## Memory-Efficient Output Streaming
 

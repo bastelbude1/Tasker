@@ -857,7 +857,7 @@ Point to the validation_test section:
 
 "Validation tests are highly flexible - you configure what to check:
 
-**Option 1: Exit code only**
+#### Option 1: Exit code only
 
 ```yaml
 validation_test:
@@ -867,7 +867,7 @@ validation_test:
 
 Just verify the command succeeds (exit 0)
 
-**Option 2: Output only**
+#### Option 2: Output only
 
 ```yaml
 validation_test:
@@ -877,7 +877,7 @@ validation_test:
 
 Verify specific output appears (useful for authentication checks)
 
-**Option 3: Both exit code and output**
+#### Option 3: Both exit code and output
 
 ```yaml
 validation_test:
@@ -888,7 +888,7 @@ validation_test:
 
 Strict validation - both must match
 
-**Option 4: Optional arguments**
+#### Option 4: Optional arguments
 
 ```yaml
 validation_test:
@@ -899,7 +899,7 @@ validation_test:
 
 Pass arguments for parameterized validation logic
 
-**You choose at setup time what criteria matter for your environment.**"
+You choose at setup time what criteria matter for your environment."
 
 ---
 

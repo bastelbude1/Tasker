@@ -2,7 +2,6 @@
 
 # File-defined arguments (must be at the very top)
 --auto-recovery
---skip-host-validation
 --log-level=DEBUG
 
 # Global variables come after file-defined arguments

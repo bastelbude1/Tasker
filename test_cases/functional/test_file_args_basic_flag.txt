@@ -4,7 +4,6 @@
 # This test validates that a single boolean flag (--skip-host-validation) is correctly parsed from the file header
 
 # File-defined arguments
---skip-host-validation
 
 # Global variables
 HOST_PREFIX=localhost

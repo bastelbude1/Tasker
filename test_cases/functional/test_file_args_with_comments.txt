@@ -4,7 +4,6 @@
 # This test validates that comments between file-defined arguments are properly handled
 
 # File-defined arguments
---skip-host-validation
 # This is a comment between arguments
 --log-level=DEBUG
 # Another comment

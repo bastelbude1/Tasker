@@ -4,7 +4,6 @@
 # This test validates that multiple arguments are correctly parsed and applied
 
 # File-defined arguments
---skip-host-validation
 --log-level=DEBUG
 --no-task-backup
 

@@ -580,14 +580,16 @@ $ ENV=prod tasker -r --instance-check deploy.txt &
 $ ENV=dev tasker -r --instance-check deploy.txt &  # Also runs (different hash)
 ```
 
-**How it works:**
+#### How it works
+
 - Creates SHA-256 hash from task file content + expanded global variables
 - Lock file stored in `~/TASKER/locks/workflow_{hash}.lock`
 - Automatically detects and cleans up stale locks from crashed processes
 - `--validate-only` never creates locks (validation anytime)
 - `--auto-recovery` still acquires lock on resume (prevents duplicate recovery attempts)
 
-**Use cases:**
+#### Use cases
+
 - Prevent duplicate deployments
 - Avoid concurrent database migrations
 - Protect against port/file conflicts

@@ -941,13 +941,15 @@ TASKER supports multiple execution methods through external YAML configuration. 
 ## Built-in Execution Types
 
 Out of the box, TASKER supports:
-- **local** - Direct command execution (always available)
+- **local** - Direct command execution (hardcoded, always available)
+
+**Platform-Specific Execution Types** (loaded from `cfg/execution_types.yaml`):
 - **shell** - Shell execution with Bash
 - **pbrun** - PowerBroker Run privilege escalation
 - **p7s** - P7S security wrapper
 - **wwrs** - WWRS remote execution
 
-All configured in `cfg/execution_types.yaml` - easily customizable for your environment.
+Customize execution types per environment in `cfg/execution_types.yaml`. Currently supports Linux and Windows; Darwin/macOS support planned for future releases.
 
 ## Configuration Example
 
@@ -1002,8 +1004,8 @@ hostname=localhost, exec=shell → ✓ Validated
 ```
 
 **Validation Options:**
-- Test with optional arguments for parameterized checks
-- Require exit code match OR output match (or both)
+- Test with optional arguments for parameterized validation logic
+- Configure to require exit code match, output match, or both (flexibility to choose)
 - Per-combination testing catches config errors early
 - Fails fast if remote systems aren't reachable
 

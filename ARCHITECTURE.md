@@ -5,7 +5,7 @@
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                         TASKER 2.1 SYSTEM                               │
-│                   Professional Task Automation Framework                 │
+│                   Professional Task Automation Framework                │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -17,68 +17,68 @@
         └───────────────┬───────────────────────────────────┘
                         │
                         ▼
-┌───────────────────────────────────────────────────────────────────────┐
-│                        VALIDATION LAYER                               │
-│ ┌─────────────────┐  ┌──────────────────┐  ┌──────────────────────┐ │
-│ │ InputSanitizer  │  │  TaskValidator   │  │   HostValidator      │ │
-│ │ • Security      │  │  • Syntax check  │  │   • DNS resolution   │ │
-│ │ • Injection     │  │  • Dependencies  │  │   • Connectivity     │ │
-│ │ • Buffer limits │  │  • Logic errors  │  │   • Validation tests │ │
-│ └─────────────────┘  └──────────────────┘  └──────────┬───────────┘ │
-│                                                        │             │
-│ ┌──────────────────────────────────────────────────────┘             │
+┌──────────────────────────────────────────────────────────────────────┐
+│                        VALIDATION LAYER                              │
+│ ┌─────────────────┐  ┌──────────────────┐  ┌──────────────────────┐  │
+│ │ InputSanitizer  │  │  TaskValidator   │  │   HostValidator      │  │
+│ │ • Security      │  │  • Syntax check  │  │   • DNS resolution   │  │
+│ │ • Injection     │  │  • Dependencies  │  │   • Connectivity     │  │
+│ │ • Buffer limits │  │  • Logic errors  │  │   • Validation tests │  │
+│ └─────────────────┘  └──────────────────┘  └──────────┬───────────┘  │
+│                                                       │              │
+│ ┌─────────────────────────────────────────────────────┘              │
 │ │                                                                    │
-│ │  ┌────────────────────────────────────────────────────────────┐   │
-│ │  │           ExecConfigLoader (Singleton)                     │   │
-│ │  │  • Load cfg/execution_types.yaml                           │   │
-│ │  │  • Platform detection (Linux/Windows)                      │   │
-│ │  │  • Execution type definitions                              │   │
-│ │  │  • Validation test configuration                           │   │
-│ │  └────────────────────────────────────────────────────────────┘   │
-└───────────────┬───────────────────────────────────────────────────────┘
+│ │  ┌────────────────────────────────────────────────────────────┐    │
+│ │  │           ExecConfigLoader (Singleton)                     │    │
+│ │  │  • Load cfg/execution_types.yaml                           │    │
+│ │  │  • Platform detection (Linux/Windows)                      │    │
+│ │  │  • Execution type definitions                              │    │
+│ │  │  • Validation test configuration                           │    │
+│ │  └────────────────────────────────────────────────────────────┘    │
+└───────────────┬──────────────────────────────────────────────────────┘
                 │ ✅ Validated Tasks
                 ▼
-┌───────────────────────────────────────────────────────────────────────┐
-│                         CORE ENGINE LAYER                             │
-│ ┌─────────────────────────────────────────────────────────────────┐  │
-│ │             TaskExecutorMain (Orchestrator)                     │  │
-│ │  • Workflow state management                                    │  │
-│ │  • Task scheduling and routing                                  │  │
-│ │  • Result collection                                            │  │
-│ │  • Timeout management                                           │  │
-│ │  • Shutdown handling                                            │  │
-│ └──────────────┬──────────────────────────────────────────────────┘  │
-│                │                                                       │
-│  ┌─────────────┴─────────────┐                                        │
-│  │                           │                                        │
-│  ▼                           ▼                                        │
-│ ┌──────────────────┐  ┌──────────────────────┐                       │
-│ │ ConditionEvaluator│  │ StreamingOutputHandler│                      │
-│ │ • @VAR@ replace  │  │ • Memory efficiency   │                      │
-│ │ • Success eval   │  │ • 1MB threshold       │                      │
-│ │ • Variable mask  │  │ • Temp file mgmt      │                      │
-│ └──────────────────┘  └──────────────────────┘                       │
-│                                                                        │
+┌─────────────────────────────────────────────────────────────────────┐
+│                         CORE ENGINE LAYER                           │
+│ ┌─────────────────────────────────────────────────────────────────┐ │
+│ │             TaskExecutorMain (Orchestrator)                     │ │
+│ │  • Workflow state management                                    │ │
+│ │  • Task scheduling and routing                                  │ │
+│ │  • Result collection                                            │ │
+│ │  • Timeout management                                           │ │
+│ │  • Shutdown handling                                            │ │
+│ └──────────────┬──────────────────────────────────────────────────┘ │
+│                │                                                    │
+│  ┌─────────────┴─────────────┐                                      │
+│  │                           │                                      │
+│  ▼                           ▼                                      │
+│ ┌──────────────────┐  ┌───────────────────────┐                     │
+│ │ConditionEvaluator│  │ StreamingOutputHandler│                     │
+│ │ • @VAR@ replace  │  │ • Memory efficiency   │                     │
+│ │ • Success eval   │  │ • 1MB threshold       │                     │
+│ │ • Variable mask  │  │ • Temp file mgmt      │                     │
+│ └──────────────────┘  └───────────────────────┘                     │
+│                                                                     │
 │ ┌──────────────────┐  ┌──────────────────────┐  ┌─────────────────┐ │
 │ │  StateManager    │  │  WorkflowController  │  │  ResultCollector│ │
 │ │ • Loop counters  │  │  • Execution flow    │  │  • Task results │ │
 │ │ • Task state     │  │  • Resume support    │  │  • JSON output  │ │
 │ │ • Recovery info  │  │  • Branch control    │  │  • Statistics   │ │
 │ └──────────────────┘  └──────────────────────┘  └─────────────────┘ │
-└───────────────┬───────────────────────────────────────────────────────┘
+└───────────────┬─────────────────────────────────────────────────────┘
                 │
                 ▼
-┌───────────────────────────────────────────────────────────────────────┐
-│                      EXECUTOR PATTERN LAYER                           │
-│                                                                        │
-│                    ┌──────────────────────┐                           │
-│                    │   BaseExecutor       │                           │
-│                    │  (Abstract Base)     │                           │
-│                    └──────────┬───────────┘                           │
-│                               │                                       │
-│         ┌─────────────────────┼─────────────────────┐                │
-│         │                     │                     │                │
-│         ▼                     ▼                     ▼                │
+┌────────────────────────────────────────────────────────────────────┐
+│                      EXECUTOR PATTERN LAYER                        │
+│                                                                    │
+│                    ┌──────────────────────┐                        │
+│                    │   BaseExecutor       │                        │
+│                    │  (Abstract Base)     │                        │
+│                    └──────────┬───────────┘                        │
+│                               │                                    │
+│         ┌─────────────────────┼─────────────────────┐              │
+│         │                     │                     │              │
+│         ▼                     ▼                     ▼              │
 │  ┌──────────────┐   ┌──────────────────┐   ┌──────────────────┐    │
 │  │ Sequential   │   │   Parallel       │   │  Conditional     │    │
 │  │  Executor    │   │   Executor       │   │   Executor       │    │
@@ -88,18 +88,18 @@
 │  │ • Loops      │   │ • Timeout mgmt   │   │ • Condition eval │    │
 │  │ • Retry      │   │ • Cancellation   │   │                  │    │
 │  └──────────────┘   └──────────────────┘   └──────────────────┘    │
-│                                                                        │
-│         ┌──────────────────┐                                          │
-│         │  DecisionExecutor│                                          │
-│         │                  │                                          │
-│         │ • Multi-branch   │                                          │
-│         │ • Complex logic  │                                          │
-│         └──────────────────┘                                          │
-└───────────────┬───────────────────────────────────────────────────────┘
+│                                                                    │
+│         ┌──────────────────┐                                       │
+│         │  DecisionExecutor│                                       │
+│         │                  │                                       │
+│         │ • Multi-branch   │                                       │
+│         │ • Complex logic  │                                       │
+│         └──────────────────┘                                       │
+└───────────────┬────────────────────────────────────────────────────┘
                 │
                 ▼
-┌───────────────────────────────────────────────────────────────────────┐
-│                      TASK RUNNER LAYER                                │
+┌──────────────────────────────────────────────────────────────────────┐
+│                      TASK RUNNER LAYER                               │
 │ ┌──────────────────────────────────────────────────────────────────┐ │
 │ │                     TaskRunner                                   │ │
 │ │  • Command construction                                          │ │
@@ -107,32 +107,32 @@
 │ │  • Output streaming                                              │ │
 │ │  • Exit code collection                                          │ │
 │ └──────────────────────────────────────────────────────────────────┘ │
-└───────────────┬───────────────────────────────────────────────────────┘
+└───────────────┬──────────────────────────────────────────────────────┘
                 │
                 ▼
-┌───────────────────────────────────────────────────────────────────────┐
-│                    EXECUTION TARGETS                                  │
-│                                                                        │
+┌─────────────────────────────────────────────────────────────────────┐
+│                    EXECUTION TARGETS                                │
+│                                                                     │
 │  ┌─────────────┐  ┌──────────────────────────────────────────────┐  │
 │  │  exec=local │  │    Config-based Execution Types              │  │
 │  │  (direct)   │  │    (loaded from cfg/execution_types.yaml)    │  │
 │  │  hardcoded  │  │                                              │  │
-│  └─────────────┘  │  ┌─────────────┐  ┌─────────────┐           │  │
-│                   │  │ exec=shell  │  │ exec=pbrun  │           │  │
-│                   │  │ (sh -c)     │  │ (wrapper)   │           │  │
-│                   │  └─────────────┘  └─────────────┘           │  │
+│  └─────────────┘  │  ┌─────────────┐  ┌─────────────┐            │  │
+│                   │  │ exec=shell  │  │ exec=pbrun  │            │  │
+│                   │  │ (sh -c)     │  │ (wrapper)   │            │  │
+│                   │  └─────────────┘  └─────────────┘            │  │
 │                   │                                              │  │
-│                   │  ┌─────────────┐  ┌─────────────┐           │  │
-│                   │  │ exec=p7s    │  │ exec=wwrs   │           │  │
-│                   │  │ (wrapper)   │  │ (wrapper)   │           │  │
-│                   │  └─────────────┘  └─────────────┘           │  │
+│                   │  ┌─────────────┐  ┌─────────────┐            │  │
+│                   │  │ exec=p7s    │  │ exec=wwrs   │            │  │
+│                   │  │ (wrapper)   │  │ (wrapper)   │            │  │
+│                   │  └─────────────┘  └─────────────┘            │  │
 │                   │                                              │  │
 │                   │  + Custom types via YAML config              │  │
 │                   └──────────────────────────────────────────────┘  │
-│                                                                       │
-│  Note: Only exec=local is hardcoded. All other execution types are   │
-│        loaded dynamically from cfg/execution_types.yaml (PR#96)      │
-└───────────────────────────────────────────────────────────────────────┘
+│                                                                     │
+│  Note: Only exec=local is hardcoded. All other execution types are  │
+│        loaded dynamically from cfg/execution_types.yaml (PR#96)     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## 2. Data Flow Architecture
@@ -163,10 +163,10 @@
   ┌──────────────────────────────────────┐
   │      TaskExecutorMain                │
   │                                      │
-  │  ┌────────────────────────────────┐ │
-  │  │  Task Queue                    │ │
-  │  │  [0, 1, 2, 3, ...]            │ │
-  │  └────────────────────────────────┘ │
+  │  ┌────────────────────────────────┐  │
+  │  │  Task Queue                    │  │
+  │  │  [0, 1, 2, 3, ...]             │  │
+  │  └────────────────────────────────┘  │
   └──────────┬───────────────────────────┘
              │
              ▼
@@ -276,7 +276,7 @@ Task 0 Execution:
   ┌──────────────────────────────┐
   │  task_results[0] = {         │
   │    stdout: ""                │ ← Empty (memory freed)
-  │    stdout_file: "/tmp/..."  │ ← Path for file-based access
+  │    stdout_file: "/tmp/..."   │ ← Path for file-based access
   │    exit_code: 0              │
   │    success: True             │
   │  }                           │
@@ -288,8 +288,8 @@ Task 0 Execution:
 
 Task 1 Execution:
   ┌──────────────────────────────────┐
-  │  command: process               │
-  │  arguments: @0_stdout@          │ ← Variable to replace
+  │  command: process                │
+  │  arguments: @0_stdout@           │ ← Variable to replace
   └──────────┬───────────────────────┘
              │
              ▼
@@ -301,7 +301,7 @@ Task 1 Execution:
   │  ├─ Check stdout_file exists?        │
   │  │  └─ YES: /tmp/tasker_stdout_XX    │
   │  ├─ File size: 5MB                   │
-  │  ├─ Read first 100KB (ARG_MAX safe) │ ← CRITICAL: Prevents errors
+  │  ├─ Read first 100KB (ARG_MAX safe)  │ ← CRITICAL: Prevents errors
   │  └─ Substitute truncated data        │
   │                                      │
   │  WARNING: Large output truncated     │
@@ -316,8 +316,8 @@ Task 1 Execution:
 
 Alternative: Full File Access
   ┌──────────────────────────────────┐
-  │  command: process               │
-  │  arguments: @0_stdout_file@     │ ← Request file path
+  │  command: process                │
+  │  arguments: @0_stdout_file@      │ ← Request file path
   └──────────┬───────────────────────┘
              │
              ▼
@@ -532,7 +532,7 @@ Benefits:
 │                    BaseExecutor                             │
 │                   (Abstract Base)                           │
 │                                                             │
-│  + execute_task(task, executor_instance)                   │
+│  + execute_task(task, executor_instance)                    │
 │  + _check_shutdown()                                        │
 │  + store_task_result()                                      │
 └─────────────────────┬───────────────────────────────────────┘
@@ -540,10 +540,10 @@ Benefits:
           ┌───────────┼───────────┬─────────────┐
           │           │           │             │
           ▼           ▼           ▼             ▼
-┌──────────────┐ ┌─────────┐ ┌──────────┐ ┌──────────┐
+┌──────────────┐ ┌─────────┐ ┌───────────┐ ┌──────────┐
 │ Sequential   │ │Parallel │ │Conditional│ │Decision  │
 │  Executor    │ │Executor │ │ Executor  │ │Executor  │
-└──────────────┘ └─────────┘ └──────────┘ └──────────┘
+└──────────────┘ └─────────┘ └───────────┘ └──────────┘
       │               │            │             │
       │               │            │             │
       ▼               ▼            ▼             ▼
@@ -572,7 +572,7 @@ User Input (task.txt)
     │
     ▼
 ┌─────────────────────────────────────┐
-│  Layer 1: Input Sanitizer          │
+│  Layer 1: Input Sanitizer           │
 │  ✓ Null byte detection              │
 │  ✓ Length validation (field limits) │
 │  ✓ Type coercion safety             │
@@ -590,8 +590,8 @@ User Input (task.txt)
               ▼
 ┌─────────────────────────────────────┐
 │  Layer 3: Security Pattern Detection│
-│  ✓ Command injection (11 patterns) │
-│  ✓ Path traversal (12 patterns)    │
+│  ✓ Command injection (11 patterns)  │
+│  ✓ Path traversal (12 patterns)     │
 │  ✓ Format string attacks            │
 │  ✓ Buffer overflow attempts         │
 │  ✓ Encoding obfuscation             │
@@ -636,18 +636,18 @@ User Input (task.txt)
 ┌──────────────────────────────────────────────────────────────┐
 │              TEST METADATA VALIDATION                        │
 │                                                              │
-│  TEST_METADATA: {                                           │
-│    "expected_exit_code": 0,           ← Exit code match     │
-│    "expected_execution_path": [0,1,2] ← Flow validation     │
-│    "expected_variables": {...}        ← Variable resolution │
-│    "expected_success": true           ← Success criteria    │
+│  TEST_METADATA: {                                            │
+│    "expected_exit_code": 0,           ← Exit code match      │
+│    "expected_execution_path": [0,1,2] ← Flow validation      │
+│    "expected_variables": {...}        ← Variable resolution  │
+│    "expected_success": true           ← Success criteria     │
 │  }                                                           │
 └────────────────┬─────────────────────────────────────────────┘
                  │
                  ▼
-┌──────────────────────────────────────────────────────────────┐
-│              TEST CATEGORIES (10)                            │
-│                                                              │
+┌─────────────────────────────────────────────────────────────┐
+│              TEST CATEGORIES (10)                           │
+│                                                             │
 │  functional/      (~180) Basic features                     │
 │  integration/     (~80)  End-to-end workflows               │
 │  edge_cases/      (~60)  Boundary conditions                │
@@ -658,23 +658,23 @@ User Input (task.txt)
 │  recovery/        (~10)  Failure recovery                   │
 │  resume/          (~10)  Workflow resumption                │
 │  readme_examples/ (~35)  Documentation examples             │
-│                                                              │
+│                                                             │
 │  (Total: 465 tests ✓)                                       │
 │  Note: templates/ contains test templates, not test cases   │
-└────────────────┬─────────────────────────────────────────────┘
+└────────────────┬────────────────────────────────────────────┘
                  │
                  ▼
 ┌──────────────────────────────────────────────────────────────┐
 │              MOCK INFRASTRUCTURE                             │
 │                                                              │
-│  test_cases/bin/                                            │
-│  ├─ pbrun                (execution wrapper)                │
-│  ├─ p7s                  (execution wrapper)                │
-│  ├─ wwrs_clir            (execution wrapper)                │
-│  ├─ verify_cleanup_wrapper.sh  (temp file verification)    │
-│  ├─ verify_temp_cleanup.py     (Python cleanup verification)│
-│  ├─ retry_controller.sh   (retry testing)                  │
-│  └─ recovery_helper.sh    (recovery testing)               │
+│  test_cases/bin/                                             │
+│  ├─ pbrun                (execution wrapper)                 │
+│  ├─ p7s                  (execution wrapper)                 │
+│  ├─ wwrs_clir            (execution wrapper)                 │
+│  ├─ verify_cleanup_wrapper.sh  (temp file verification)      │
+│  ├─ verify_temp_cleanup.py     (Python cleanup verification) │
+│  ├─ retry_controller.sh   (retry testing)                    │
+│  └─ recovery_helper.sh    (recovery testing)                 │
 └──────────────────────────────────────────────────────────────┘
 ```
 

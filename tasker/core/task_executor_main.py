@@ -2443,7 +2443,6 @@ class TaskExecutor:
             # NOW we can safely check if the lock file had stale data and rewrite it
 
             # First, check if there's existing content (might be stale from crashed process)
-            existing_stale = False
             try:
                 # Read current content using file descriptor
                 current_pos = os.lseek(lock_fd, 0, os.SEEK_CUR)  # Save position
@@ -2456,10 +2455,8 @@ class TaskExecutor:
                         lock_data = json.loads(content.decode('utf-8'))
                         old_pid = lock_data.get('pid')
                         if old_pid and old_pid != os.getpid():
-                            existing_stale = True
                             self.log_debug(f"# Overwriting stale lock from PID {old_pid}")
                     except (json.JSONDecodeError, UnicodeDecodeError):
-                        existing_stale = True
                         self.log_debug("# Overwriting corrupted lock file")
             except (OSError, IOError):
                 # Can't read, will overwrite anyway

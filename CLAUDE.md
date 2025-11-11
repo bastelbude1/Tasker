@@ -461,7 +461,8 @@ Workflow Instance Control prevents accidental concurrent execution of identical 
 - ✅ Workflows that modify shared resources (databases, files, ports)
 - ✅ Long-running workflows where accidental restart would cause conflicts
 
-**Example Scenarios:**
+#### Example Scenarios
+
 ```bash
 # Deployment workflow - MUST use instance control
 $ tasker -r --instance-check deployment.txt
@@ -494,8 +495,11 @@ $ tasker -r --instance-check update_configs.txt
 
 ### Usage Guidelines for Claude Code
 
-**1. Proactive Recommendation:**
+#### 1. Proactive Recommendation
+
 When users create deployment/migration workflows, ALWAYS recommend:
+
+
 ```bash
 # Add to task file header
 --instance-check
@@ -504,7 +508,9 @@ When users create deployment/migration workflows, ALWAYS recommend:
 tasker -r --instance-check workflow.txt
 ```
 
-**2. File-Defined Arguments (Recommended Approach):**
+#### 2. File-Defined Arguments (Recommended Approach)
+
+
 ```bash
 # At top of critical workflow files
 --instance-check
@@ -515,7 +521,9 @@ DEPLOY_ENV=$ENVIRONMENT
 # Tasks...
 ```
 
-**3. Emergency Override (Only When Needed):**
+#### 3. Emergency Override (Only When Needed)
+
+
 ```bash
 # If lock is stuck (process crashed but lock remains)
 tasker -r --instance-check --force-instance deployment.txt
@@ -523,7 +531,9 @@ tasker -r --instance-check --force-instance deployment.txt
 
 ### Testing Requirements
 
-**New workflows with instance control MUST include test case:**
+New workflows with instance control MUST include test case:
+
+
 ```bash
 # TEST_METADATA: {"description": "Workflow with instance control", "test_type": "positive", "expected_exit_code": 0, "expected_success": true}
 --instance-check
@@ -538,14 +548,18 @@ arguments=Testing instance control
 
 ### Edge Cases and Behaviors
 
-**1. Different Environment Variables = Different Instances (Allowed)**
+#### 1. Different Environment Variables = Different Instances (Allowed)
+
+
 ```bash
 # These create DIFFERENT hashes (parallel execution allowed)
 $ ENV=prod tasker -r --instance-check deploy.txt &
 $ ENV=dev tasker -r --instance-check deploy.txt &
 ```
 
-**2. Same Workflow = Blocked**
+#### 2. Same Workflow = Blocked
+
+
 ```bash
 # Second execution is blocked
 $ tasker -r --instance-check deploy.txt &
@@ -553,13 +567,17 @@ $ tasker -r --instance-check deploy.txt
 ERROR: Workflow instance already running!
 ```
 
-**3. Validation Never Blocks**
+#### 3. Validation Never Blocks
+
+
 ```bash
 # Validation can run anytime (no lock created)
 $ tasker --validate-only --instance-check deploy.txt
 ```
 
-**4. Recovery Continuation Still Acquires Lock**
+#### 4. Recovery Continuation Still Acquires Lock
+
+
 ```bash
 # Auto-recovery resume still acquires lock (prevents duplicate recovery)
 $ tasker -r --auto-recovery --instance-check deploy.txt
@@ -570,8 +588,9 @@ $ tasker -r --auto-recovery --instance-check deploy.txt
 
 ### Error Messages and User Guidance
 
-**When workflow is blocked:**
-```
+When workflow is blocked:
+
+```bash
 ERROR: Workflow instance already running!
   Task file: /path/to/deployment.txt
   Started: 2025-11-11T19:10:45.123456
@@ -582,7 +601,9 @@ ERROR: Workflow instance already running!
 To override instance check, use: --force-instance
 ```
 
-**Claude Code Response:**
+Claude Code Response:
+
+
 - Explain the safety mechanism is working correctly
 - Advise user to wait for first instance to complete
 - If stuck lock suspected: Recommend `--force-instance` after verifying process is dead
@@ -590,17 +611,23 @@ To override instance check, use: --force-instance
 
 ### Implementation Details (For Reference)
 
-**Files Modified:**
+#### Files Modified
+
+
 - `tasker.py`: CLI flags (`--instance-check`, `--force-instance`)
 - `tasker/core/task_executor_main.py`: Core logic (section 7.5)
 
-**Key Methods:**
+#### Key Methods
+
+
 - `_calculate_workflow_instance_hash()`: Hash file + global vars
 - `_acquire_instance_lock()`: Atomic lock with fcntl.flock
 - `_is_lock_stale()`: Detect crashed process via PID check
 - `_release_instance_lock()`: Cleanup on exit
 
-**Design Decisions:**
+#### Design Decisions
+
+
 - Opt-in via `--instance-check` flag (non-breaking default)
 - Project name excluded from hash (safer - blocks all duplicates)
 - Abort immediately on duplicate (exit code 20 - TASK_FILE_VALIDATION_FAILED)

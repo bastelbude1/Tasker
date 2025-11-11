@@ -59,6 +59,7 @@
   - No validation before execution
 
 **Live Demo:**
+
 ```bash
 # Show the task file
 cat test_cases/functional/hello.txt
@@ -125,6 +126,7 @@ Ask: "Could your junior admin modify this without fear?"
 **TASKER's Solution: Validate EVERYTHING First**
 
 Walk through validation slide showing:
+
 ```bash
 tasker deployment.txt  # Just validation, no -r flag
 ```
@@ -132,6 +134,7 @@ tasker deployment.txt  # Just validation, no -r flag
 **Key Message:** "If validation passes, execution will work. If validation fails, nothing executes."
 
 **Live Demo - The Typo Example:**
+
 ```bash
 # Show the deployment.txt with typo "deploay_app.sh"
 cat demo_with_typo.txt
@@ -172,6 +175,7 @@ Walk through the 5 layers briefly:
 "TASKER isn't trying to replace powerful parallel execution tools. We have `max_parallel` for convenience, but for industrial-scale parallelism, use **parallelr/ptasker**.
 
 TASKER is designed to integrate:
+
 ```bash
 export DEPLOYMENT_VERSION=2.1.0
 ptasker -n 50 -r deployment.txt
@@ -624,6 +628,7 @@ This is the power of declarative automation. You declare WHAT you want (run curl
 - Walk through the layers
 
 **Live Demo - Show Security in Action:**
+
 ```bash
 # Try to run a command injection test
 ./tasker test_cases/security/test_command_injection_basic.txt
@@ -855,37 +860,45 @@ Point to the validation_test section:
 "Validation tests are highly flexible - you configure what to check:
 
 **Option 1: Exit code only**
+
 ```yaml
 validation_test:
   command: pbtest
   expected_exit: 0
 ```
+
 Just verify the command succeeds (exit 0)
 
 **Option 2: Output only**
+
 ```yaml
 validation_test:
   command: pbtest
   expected_output: 'OK'
 ```
+
 Verify specific output appears (useful for authentication checks)
 
 **Option 3: Both exit code and output**
+
 ```yaml
 validation_test:
   command: pbtest
   expected_exit: 0
   expected_output: 'Connection successful'
 ```
+
 Strict validation - both must match
 
 **Option 4: Optional arguments**
+
 ```yaml
 validation_test:
   command: connectivity_check
   arguments: '--verify-auth'
   expected_exit: 0
 ```
+
 Pass arguments for parameterized validation logic
 
 **You choose at setup time what criteria matter for your environment.**"
@@ -1188,6 +1201,7 @@ If audience is technical, highlight:
 - Remove barriers to adoption
 
 **Live Demo:**
+
 ```bash
 # TASKER is already installed - verify
 tasker --version
@@ -1311,30 +1325,38 @@ This is your authoritative reference - over 1,200 lines of visual documentation 
 **Demo Sequence:**
 
 **Demo 1: Simple Sequential**
+
 ```bash
 ./tasker -r test_cases/functional/hello.txt
 ```
+
 - Point out: Simple, clean output
 - Highlight: Task 0 → Task 1 sequential flow
 
 **Demo 2: Parallel with Conditions**
+
 ```bash
 ./tasker -r test_cases/functional/test_conditional_majority_success_met_60.txt
 ```
+
 - Point out: Multiple servers, condition evaluation
 - Highlight: Statistics at the end
 
 **Demo 3: Complex Flow**
+
 ```bash
 ./tasker -r test_cases/functional/test_complex_routing.txt
 ```
+
 - Point out: Branching, jumping between tasks
 - Highlight: Flow control in action
 
 **Demo 4: Security Validation**
+
 ```bash
 ./tasker test_cases/security/test_command_injection_basic.txt
 ```
+
 - Point out: Validation catches security issues
 - Highlight: Error before execution
 

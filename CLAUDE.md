@@ -487,8 +487,10 @@ $ tasker -r --instance-check update_configs.txt
 
 **Bypass Conditions:**
 - `--validate-only`: Never creates locks (validation anytime)
-- `--auto-recovery resume`: Bypasses instance check (continuation, not new start)
 - `--force-instance`: Emergency override for stuck locks
+
+**Lock Acquisition During Recovery:**
+- `--auto-recovery resume`: Still acquires lock (prevents duplicate recovery attempts and cleans up stale locks)
 
 ### Usage Guidelines for Claude Code
 
@@ -557,13 +559,13 @@ ERROR: Workflow instance already running!
 $ tasker --validate-only --instance-check deploy.txt
 ```
 
-**4. Recovery Continuation Bypasses Check**
+**4. Recovery Continuation Still Acquires Lock**
 ```bash
-# Auto-recovery resume doesn't check (continuation, not new start)
+# Auto-recovery resume still acquires lock (prevents duplicate recovery)
 $ tasker -r --auto-recovery --instance-check deploy.txt
 # [workflow fails mid-execution]
 $ tasker -r --auto-recovery --instance-check deploy.txt
-# Resumes without instance check (continuation)
+# Acquires lock before resuming (prevents accidental duplicate recovery attempts)
 ```
 
 ### Error Messages and User Guidance
@@ -601,8 +603,8 @@ To override instance check, use: --force-instance
 **Design Decisions:**
 - Opt-in via `--instance-check` flag (non-breaking default)
 - Project name excluded from hash (safer - blocks all duplicates)
-- Abort immediately on duplicate (exit code 20 - VALIDATION_FAILED)
-- Bypass on auto-recovery resume (continuation, not new start)
+- Abort immediately on duplicate (exit code 20 - TASK_FILE_VALIDATION_FAILED)
+- Lock acquired during auto-recovery resume (prevents duplicate recovery attempts, cleans up stale locks)
 
 ---
 

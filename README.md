@@ -585,7 +585,7 @@ $ ENV=dev tasker -r --instance-check deploy.txt &  # Also runs (different hash)
 - Lock file stored in `~/TASKER/locks/workflow_{hash}.lock`
 - Automatically detects and cleans up stale locks from crashed processes
 - `--validate-only` never creates locks (validation anytime)
-- `--auto-recovery` bypass instance check on resume (continuation, not new start)
+- `--auto-recovery` still acquires lock on resume (prevents duplicate recovery attempts)
 
 **Use cases:**
 - Prevent duplicate deployments

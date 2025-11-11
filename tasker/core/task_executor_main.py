@@ -2634,20 +2634,18 @@ class TaskExecutor:
             ExitHandler.exit_with_code(ExitCodes.SUCCESS, "Validation completed", False)
 
         # Instance control: prevent concurrent execution of identical workflows
-        # Skip instance check if:
-        #   1. Instance check not enabled (--instance-check flag not set)
-        #   2. Force instance flag set (--force-instance overrides check)
-        #   3. Auto-recovery is resuming (continuation, not new start)
+        # Always acquire lock when instance_check is enabled (unless --force-instance set)
+        # This ensures stale lock cleanup runs even during auto-recovery resume
         is_recovery_resume = (self.auto_recovery and self.recovery_manager and
                              self.recovery_manager.recovery_file_exists())
 
-        if self.instance_check and not self.force_instance and not is_recovery_resume:
+        if self.instance_check and not self.force_instance:
             self.log_debug("# Checking workflow instance control...")
+            if is_recovery_resume:
+                self.log_debug("# Auto-recovery resume detected - acquiring lock to prevent duplicates and cleanup stale locks")
             self._acquire_instance_lock()
         elif self.instance_check and self.force_instance:
             self.log_warn("# WARNING: Instance check bypassed (--force-instance flag set)")
-        elif self.instance_check and is_recovery_resume:
-            self.log_debug("# Instance check bypassed (auto-recovery resume)")
 
         # Handle auto-recovery: check for existing recovery file and restore state
         recovery_resume_task = None

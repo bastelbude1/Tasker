@@ -954,10 +954,10 @@ This is extensibility done right."
 
 **Addressing Questions:**
 
-**Q: "What if config file is missing?"**
+**Q: "What if the config file is missing?"**
 A: "Only exec=local will work. TASKER provides a clear error message directing you to configure execution types. This is intentional - no hidden fallbacks that might work differently than expected."
 
-**Q: "Can I override config per environment?"**
+**Q: "Can I override a config per environment?"**
 A: "Yes! TASKER looks for config in two locations:
 1. Same directory as tasker.py (for system-wide config)
 2. Current working directory (for project-specific overrides)

@@ -59,6 +59,7 @@
   - No validation before execution
 
 **Live Demo:**
+
 ```bash
 # Show the task file
 cat test_cases/functional/hello.txt
@@ -125,6 +126,7 @@ Ask: "Could your junior admin modify this without fear?"
 **TASKER's Solution: Validate EVERYTHING First**
 
 Walk through validation slide showing:
+
 ```bash
 tasker deployment.txt  # Just validation, no -r flag
 ```
@@ -132,6 +134,7 @@ tasker deployment.txt  # Just validation, no -r flag
 **Key Message:** "If validation passes, execution will work. If validation fails, nothing executes."
 
 **Live Demo - The Typo Example:**
+
 ```bash
 # Show the deployment.txt with typo "deploay_app.sh"
 cat demo_with_typo.txt
@@ -172,6 +175,7 @@ Walk through the 5 layers briefly:
 "TASKER isn't trying to replace powerful parallel execution tools. We have `max_parallel` for convenience, but for industrial-scale parallelism, use **parallelr/ptasker**.
 
 TASKER is designed to integrate:
+
 ```bash
 export DEPLOYMENT_VERSION=2.1.0
 ptasker -n 50 -r deployment.txt
@@ -373,7 +377,7 @@ This is why TASKER exists."
 Slide: Power Feature #3: Advanced Conditions
 
 **Speaker Notes:**
-- This is v2.1's headline feature - the 93% code reduction story
+- This is TASKER's parallel workflow simplification - the 93% code reduction story
 - Take your time here - this is a powerful "aha moment"
 - This combines parallel execution + sophisticated conditions + massive simplification
 
@@ -387,7 +391,7 @@ Slide: Power Feature #3: Advanced Conditions
 "Keep your hands up if you've made a typo in one of those 20 copies and had to hunt it down."
 *(More hands, maybe some groans)*
 
-"What if I told you TASKER v2.1 reduces 160 lines of copy-paste hell to 11 lines?"
+"What if I told you TASKER reduces 160 lines of copy-paste hell to 11 lines?"
 
 ---
 
@@ -395,7 +399,7 @@ Slide: Power Feature #3: Advanced Conditions
 
 Walk through the "Traditional Approach" section on the slide:
 
-"In TASKER v2.0 and most automation tools, to check health on 20 servers, you'd write something like this:
+"In traditional automation tools (Ansible, shell scripts, etc.), to check health on 20 servers, you'd write something like this:
 
 ```bash
 task=0
@@ -424,11 +428,11 @@ timeout=30
 
 ---
 
-**The v2.1 Solution (The Reveal):**
+**The TASKER Solution (The Reveal):**
 
-Show the "TASKER v2.1 Solution" section on slide:
+Show the "TASKER Solution" section on slide:
 
-"Now watch this. TASKER v2.1 introduces the `hostnames=` parameter:
+"Now watch this. TASKER provides the `hostnames=` parameter for simplified parallel execution:
 
 ```bash
 task=0
@@ -504,20 +508,21 @@ command=/opt/deploy.sh
 
 ---
 
-**What Changed in v2.1? (The Before/After Story):**
+**How TASKER Simplifies This Pattern:**
 
 Walk through the comparison section on slide:
 
-"Let's be clear about what v2.1 brought:
+"Let's be clear about TASKER's approach to parallel execution:
 
-**Before (v2.0):**
-- You defined a parallel block
-- You manually listed all 20 task IDs in `tasks=` parameter
-- You manually wrote all 20 subtasks (8 lines each = 160 lines)
-- You copy-pasted parameters 20 times
-- Every typo was a potential bug
+**Traditional Approach (Ansible, shell scripts, other tools):**
+- You define each task separately
+- You manually list all 20 task IDs or create 20 separate playbook entries
+- You manually write all 20 subtasks (8+ lines each = 160+ lines)
+- You copy-paste parameters 20 times
+- Every typo is a potential bug
+- Adding a server means copying another 8-line block
 
-**After (v2.1):**
+**TASKER's Approach:**
 - You define ONE task with `hostnames=` parameter
 - TASKER auto-generates all subtasks
 - 11 lines total
@@ -525,7 +530,7 @@ Walk through the comparison section on slide:
 - Zero copy-paste errors
 - Add a server? Add it to the comma-separated list. Done.
 
-**This is what v2.1 is about: Making the common case trivial.**"
+**This is TASKER's philosophy: Making the common case trivial.**"
 
 ---
 
@@ -598,7 +603,7 @@ A: "1-1000 hosts per parallel block. For massive scale beyond that, use TASKER w
 
 **Key Takeaway (Emphasize Heavily):**
 
-"TASKER v2.1 transforms parallel execution from tedious to trivial.
+"TASKER transforms parallel execution from tedious to trivial.
 
 **The old way:** Copy, paste, modify hostname, repeat 20 times, hunt for typos
 **The new way:** List hostnames once, TASKER handles the rest
@@ -623,6 +628,7 @@ This is the power of declarative automation. You declare WHAT you want (run curl
 - Walk through the layers
 
 **Live Demo - Show Security in Action:**
+
 ```bash
 # Try to run a command injection test
 ./tasker test_cases/security/test_command_injection_basic.txt
@@ -708,6 +714,283 @@ Point to the tab-separated format on screen:
 
 **Key Point:**
 "TASKER logs everything with structure. Not just stdout/stderr dumps - organized tracking for compliance, debugging, and historical analysis."
+
+---
+
+### Power Feature #4: Config-Based Execution (10 minutes)
+
+**Speaker Notes:**
+- This feature shows TASKER's extensibility and enterprise integration capabilities
+- Focus on "configure once, execute anywhere" philosophy
+- Emphasize flexibility without code changes
+
+---
+
+**Opening Hook:**
+
+"Raise your hand if your environment uses different execution methods for different systems."
+*(Wait for hands - enterprises have diverse infrastructure)*
+
+"Keep your hands up if you've had to modify automation code every time execution requirements changed."
+*(More hands)*
+
+"TASKER handles this through external configuration - no code changes needed."
+
+---
+
+**The Core Concept (Explain Carefully):**
+
+"TASKER separates execution methods into two categories:
+
+**1. Built-in Execution (exec=local):**
+- Direct command execution on the orchestrator
+- Hardcoded in TASKER - always available
+- No configuration needed
+- Perfect for running commands where TASKER lives
+
+**2. Platform-Specific Execution (loaded from config):**
+- shell - Platform-specific shell execution (bash on Linux, cmd on Windows)
+- pbrun - PowerBroker Run for privilege escalation
+- p7s - P7S security wrapper
+- wwrs - WWRS remote execution
+- Or YOUR custom execution types
+
+These are defined in `cfg/execution_types.yaml` - you configure them once, use everywhere."
+
+---
+
+**Why This Matters (Connect to Pain Points):**
+
+"Traditional automation tools:
+- Hardcode execution methods in code
+- Need code changes when infrastructure evolves
+- Can't easily add custom wrappers
+- One-size-fits-all approach
+
+TASKER's approach:
+- Execution methods in external YAML config
+- Infrastructure changes? Update config, not code
+- Custom wrappers? Add them to config
+- Platform-specific (Linux/Windows automatically selected)
+- Team standards enforced through configuration"
+
+---
+
+**Configuration Example (Walk Through on Screen):**
+
+Point to the YAML example on the slide:
+
+"Let's look at a pbrun configuration:
+
+```yaml
+platforms:
+  linux:
+    pbrun:
+      description: 'PowerBroker Run privilege escalation'
+      binary: /usr/local/bin/pbrun
+      command_template:
+        - '{binary}'
+        - '-h'
+        - '{hostname}'
+        - '{command}'
+        - '{arguments_split}'
+      validation_test:
+        command: echo
+        arguments: 'test'
+        expected_exit: 0
+        expected_output: 'test'
+```
+
+**What's happening here:**
+
+1. **Platform-specific**: This config applies only to Linux systems
+2. **Template variables**: {binary}, {hostname}, {command} get substituted at runtime
+3. **Flexible arguments**: {arguments_split} breaks arguments into array
+4. **Validation test**: Before running tasks, TASKER tests connectivity
+5. **Expected criteria**: Can require exit code match, output match, or both"
+
+---
+
+**Template Variables (Important Details):**
+
+"TASKER provides these template variables for building commands:
+
+- `{binary}` - The execution tool (e.g., /usr/local/bin/pbrun)
+- `{hostname}` - Target hostname from task definition
+- `{command}` - Command to execute from task definition
+- `{arguments}` - Arguments as a single string
+- `{arguments_split}` - Arguments as separate array elements
+
+**Example:** Task says 'command=deploy.sh, arguments=--version 2.1'
+
+Template `['{binary}', '-h', '{hostname}', '{command}', '{arguments_split}']` becomes:
+
+Actual command: `['/usr/local/bin/pbrun', '-h', 'web-server', 'deploy.sh', '--version', '2.1']`
+
+TASKER handles the substitution automatically."
+
+---
+
+**Automatic Validation (Critical Feature):**
+
+"Before executing ANY tasks, TASKER validates each unique (hostname, exec_type) combination:
+
+**Example workflow:**
+- Task 1: hostname=server1, exec=pbrun
+- Task 2: hostname=server2, exec=pbrun
+- Task 3: hostname=localhost, exec=shell
+
+**TASKER runs 3 validation tests:**
+1. Test pbrun connectivity to server1 → ✓ Validated
+2. Test pbrun connectivity to server2 → ✓ Validated
+3. Test shell execution on localhost → ✓ Validated
+
+**If any validation fails, tasks won't start.**
+
+This is the 'fail fast' principle - catch configuration or connectivity issues BEFORE executing workflows."
+
+---
+
+**Validation Options Flexibility:**
+
+Point to the validation_test section:
+
+"Validation tests are highly flexible - you configure what to check:
+
+#### Option 1: Exit code only
+
+```yaml
+validation_test:
+  command: pbtest
+  expected_exit: 0
+```
+
+Just verify the command succeeds (exit 0)
+
+#### Option 2: Output only
+
+```yaml
+validation_test:
+  command: pbtest
+  expected_output: 'OK'
+```
+
+Verify specific output appears (useful for authentication checks)
+
+#### Option 3: Both exit code and output
+
+```yaml
+validation_test:
+  command: pbtest
+  expected_exit: 0
+  expected_output: 'Connection successful'
+```
+
+Strict validation - both must match
+
+#### Option 4: Optional arguments
+
+```yaml
+validation_test:
+  command: connectivity_check
+  arguments: '--verify-auth'
+  expected_exit: 0
+```
+
+Pass arguments for parameterized validation logic
+
+You choose at setup time what criteria matter for your environment."
+
+---
+
+**Platform Support (Set Expectations):**
+
+"TASKER currently supports:
+- **Linux**: Fully supported with bash, pbrun, p7s, wwrs execution types
+- **Windows**: Supported with cmd.exe shell and Windows-specific configurations
+- **Darwin/macOS**: Planned for future releases
+
+The config system is designed for cross-platform:
+- Same task file works on Linux or Windows
+- TASKER automatically selects platform-specific execution config
+- Your workflows are portable across environments"
+
+---
+
+**What This Means for You (Benefits Summary):**
+
+Walk through the checkboxes on the slide:
+
+"✅ **Add Custom Wrappers** - Define your own execution types without touching TASKER code. Have an internal tool? Add it to the config.
+
+✅ **Cross-Platform** - Different configs for Linux/Windows automatically selected based on the system running TASKER.
+
+✅ **Pre-Flight Checks** - Automatic connectivity validation before execution prevents 'run halfway, then fail' scenarios.
+
+✅ **Environment-Specific** - Use different configs for dev/staging/prod. Same task files, different execution methods.
+
+✅ **Team Standards** - Enforce execution standards via config. All workflows use approved tools and methods."
+
+---
+
+**Real-World Example:**
+
+"Let's say your organization:
+- Uses pbrun for production servers
+- Uses local execution for development
+- Needs to add a new custom wrapper for container orchestration
+
+**Traditional approach:** Modify TASKER code, test, deploy to all systems
+
+**Config-based approach:**
+1. Add new execution type to cfg/execution_types.yaml
+2. Define template and validation
+3. Use in task files immediately
+4. No code changes, no redeployment
+
+This is extensibility done right."
+
+---
+
+**Addressing Questions:**
+
+**Q: "What if the config file is missing?"**
+A: "Only exec=local will work. TASKER provides a clear error message directing you to configure execution types. This is intentional - no hidden fallbacks that might work differently than expected."
+
+**Q: "Can I override a config per environment?"**
+A: "Yes! TASKER looks for config in two locations:
+1. Same directory as tasker.py (for system-wide config)
+2. Current working directory (for project-specific overrides)
+
+This allows environment-specific configurations while maintaining a base config."
+
+**Q: "How do I test new execution types?"**
+A: "Use the validation_test feature. Define the test in config, run a simple task file. TASKER will run validation first and show you exactly what happens."
+
+---
+
+**Key Takeaway:**
+
+"Config-based execution transforms TASKER from a fixed tool into an extensible platform.
+
+**You define:** How commands execute in your infrastructure
+**TASKER provides:** Template system, validation, cross-platform support
+**Result:** Workflows adapt to your environment, not the other way around
+
+This is enterprise-ready design - configure once, execute everywhere, evolve without code changes."
+
+---
+
+**Transition:**
+
+"Now that you've seen how TASKER adapts to different execution environments, let's look at real-world scenarios where teams use these features..."
+
+---
+
+**Time Management:**
+- If running long: Focus on the core concept and skip detailed validation options
+- If running short: Add live demo showing a custom execution type configuration
+- Critical part: The "What This Means for You" section - don't skip this
 
 ---
 
@@ -800,6 +1083,91 @@ Read the quote on the slide - this is the target audience.
 
 ---
 
+### Professional Architecture Documentation (3 minutes)
+
+**Speaker Notes:**
+- This demonstrates enterprise readiness and professional engineering
+- Two-format approach (Mermaid + ASCII) shows thoughtful design
+- Skip details if audience is non-technical, focus on "Why This Matters" section
+
+**Opening:**
+
+"TASKER includes comprehensive architecture documentation with 8 detailed diagrams covering every aspect of the system."
+
+**Two Format Options (Brief Mention):**
+
+"We provide documentation in two formats:
+- **ARCHITECTURE_MERMAID.md**: Beautiful diagrams for GitHub/GitLab - great for documentation portals
+- **ARCHITECTURE.md**: ASCII diagrams that work in terminals and text editors - great for SSH sessions
+
+Both contain the same information, choose based on where you're viewing it."
+
+**What's Documented (High-Level Overview):**
+
+"The documentation covers 9 comprehensive areas:
+
+1. **System Architecture**: Layered design with clear separation of concerns
+2. **Data Flow**: How data moves from task files through execution to results
+3. **Variable Substitution**: Memory-efficient data passing between tasks
+4. **Module Dependencies**: All 24 Python modules mapped with no circular dependencies
+5. **Config-Based Execution**: How the YAML config system works (the feature we just discussed)
+6. **Execution Strategies**: Template Method and Strategy patterns for different execution types
+7. **Security Pipeline**: 5-layer defense-in-depth with 11+12 attack pattern detection
+8. **Test Infrastructure**: 465 tests with metadata-driven validation
+9. **Memory Management**: O(1) memory usage regardless of output size"
+
+**Why This Matters (Key Message for Different Audiences):**
+
+Point to the three audience sections on the slide:
+
+"**For Decision Makers:**
+- Enterprise-ready architecture with production-proven patterns
+- Scalable design handling 1 to 1000+ servers
+- Security-first with 5-layer defense
+
+**For Developers:**
+- Clear module structure makes it easy to understand and extend
+- Well-documented with every component explained
+- 465 tests prove reliability
+
+**For Operations:**
+- Predictable behavior with documented execution flow
+- Troubleshooting guide helps you understand what happens when
+- Performance characteristics so you know the limits"
+
+**Key Technical Achievements (For Technical Audiences):**
+
+If audience is technical, highlight:
+
+"Three standout achievements:
+
+🎯 **Memory Efficiency**: O(1) memory for unlimited output sizes
+- Outputs under 1MB stay in memory (fast)
+- Outputs over 1MB stream to temp file (memory freed immediately)
+- Can handle gigabyte outputs without memory issues
+
+🎯 **Security Hardening**: 23 attack patterns detected
+- 11 command injection patterns
+- 12 path traversal patterns
+- Context-aware validation (shell vs local execution)
+- No execution until all 5 layers validate
+
+🎯 **Test Coverage**: 465 comprehensive tests
+- Validates execution paths, not just exit codes
+- Verifies variable resolution
+- Includes performance benchmarks"
+
+**Message:**
+
+"This level of documentation is rare in automation tools. It shows TASKER is production-ready and maintainable for the long term."
+
+**Time Management:**
+- If running long: Skip the detailed technical achievements
+- If audience is non-technical: Focus only on "Why This Matters" section
+- If audience is developers: Spend time on technical achievements
+
+---
+
 ### Security Model (2 minutes)
 **Slide: Security Model**
 
@@ -829,6 +1197,7 @@ Read the quote on the slide - this is the target audience.
 - Remove barriers to adoption
 
 **Live Demo:**
+
 ```bash
 # TASKER is already installed - verify
 tasker --version
@@ -952,30 +1321,38 @@ This is your authoritative reference - over 1,200 lines of visual documentation 
 **Demo Sequence:**
 
 **Demo 1: Simple Sequential**
+
 ```bash
 ./tasker -r test_cases/functional/hello.txt
 ```
+
 - Point out: Simple, clean output
 - Highlight: Task 0 → Task 1 sequential flow
 
 **Demo 2: Parallel with Conditions**
+
 ```bash
 ./tasker -r test_cases/functional/test_conditional_majority_success_met_60.txt
 ```
+
 - Point out: Multiple servers, condition evaluation
 - Highlight: Statistics at the end
 
 **Demo 3: Complex Flow**
+
 ```bash
 ./tasker -r test_cases/functional/test_complex_routing.txt
 ```
+
 - Point out: Branching, jumping between tasks
 - Highlight: Flow control in action
 
 **Demo 4: Security Validation**
+
 ```bash
 ./tasker test_cases/security/test_command_injection_basic.txt
 ```
+
 - Point out: Validation catches security issues
 - Highlight: Error before execution
 
@@ -1161,7 +1538,7 @@ Thank you for attending the TASKER presentation today. As promised, here are the
 
 📁 Presentation Slides: [Link to slides]
 📦 TASKER Distribution: tasker-v2.1.tar.gz (available via internal channels)
-📖 Documentation: See README.md (768 lines), ARCHITECTURE.md, and ARCHITECTURE_MERMAID.md (NEW in v2.1)
+📖 Documentation: See README.md (768 lines), ARCHITECTURE.md, and ARCHITECTURE_MERMAID.md
 📊 Visual Reference: TaskER_FlowChart.md (workflow blocks with diagrams)
 📝 Examples: test_cases/functional/ directory (100+ examples)
 

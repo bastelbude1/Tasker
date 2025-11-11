@@ -934,11 +934,11 @@ tasker/
 
 # Power Feature #4: Config-Based Execution
 
-### Execute Anywhere, Configure Once
+## Execute Anywhere, Configure Once
 
 TASKER supports multiple execution methods through external YAML configuration. Define once, reuse everywhere.
 
-### Built-in Execution Types
+## Built-in Execution Types
 
 Out of the box, TASKER supports:
 - **local** - Direct command execution (always available)
@@ -949,7 +949,7 @@ Out of the box, TASKER supports:
 
 All configured in `cfg/execution_types.yaml` - easily customizable for your environment.
 
-### Configuration Example
+## Configuration Example
 
 ```yaml
 platforms:
@@ -970,7 +970,7 @@ platforms:
         expected_output: "test"
 ```
 
-### Template Variables
+## Template Variables
 
 Build execution commands dynamically using:
 - `{binary}` - Execution binary path
@@ -979,7 +979,7 @@ Build execution commands dynamically using:
 - `{arguments}` - Full arguments string
 - `{arguments_split}` - Arguments as separate list elements
 
-### What This Means for You
+## What This Means for You
 
 ✅ **Add Custom Wrappers** - Define your own execution types without touching code
 ✅ **Cross-Platform** - Different configs for Linux/Windows automatically selected
@@ -987,7 +987,7 @@ Build execution commands dynamically using:
 ✅ **Environment-Specific** - Customize validation per environment (dev/staging/prod)
 ✅ **Team Standards** - Enforce execution standards via config
 
-### Automatic Validation
+## Automatic Validation
 
 TASKER validates each unique (hostname, exec_type) combination before running tasks:
 

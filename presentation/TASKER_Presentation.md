@@ -932,20 +932,24 @@ tasker/
 
 ---
 
-## NEW in v2.1: Config-Based Execution Types
+# Power Feature #4: Config-Based Execution
 
-### Flexible, Extensible Execution Architecture
+### Execute Anywhere, Configure Once
 
-**Problem**: Hardcoded execution types (pbrun, p7s, wwrs) made it difficult to:
-- Add custom execution wrappers
-- Support platform-specific commands
-- Customize validation tests per environment
+TASKER supports multiple execution methods through external YAML configuration. Define once, reuse everywhere.
 
-**Solution**: External YAML configuration (`cfg/execution_types.yaml`)
+### Built-in Execution Types
 
-### How It Works
+Out of the box, TASKER supports:
+- **local** - Direct command execution (always available)
+- **shell** - Shell execution with Bash
+- **pbrun** - PowerBroker Run privilege escalation
+- **p7s** - P7S security wrapper
+- **wwrs** - WWRS remote execution
 
-**Only `exec=local` is hardcoded** - all other execution types loaded from config:
+All configured in `cfg/execution_types.yaml` - easily customizable for your environment.
+
+### Configuration Example
 
 ```yaml
 platforms:
@@ -961,46 +965,47 @@ platforms:
         - "{arguments_split}"
       validation_test:
         command: echo
-        arguments: "test"           # Optional (NEW in v2.1)
+        arguments: "test"
         expected_exit: 0
         expected_output: "test"
 ```
 
 ### Template Variables
 
-Available for command construction:
+Build execution commands dynamically using:
 - `{binary}` - Execution binary path
 - `{hostname}` - Target hostname
 - `{command}` - Command to execute
 - `{arguments}` - Full arguments string
 - `{arguments_split}` - Arguments as separate list elements
 
-### Benefits
+### What This Means for You
 
-✅ **Extensibility** - Add custom execution types without code changes
-✅ **Platform Support** - Different configs for Linux/Windows
-✅ **Automatic Validation** - Connectivity tests per (host, exec_type)
-✅ **Graceful Fallback** - Missing config falls back to local-only mode
-✅ **Maintainability** - YAML configuration instead of hardcoded logic
+✅ **Add Custom Wrappers** - Define your own execution types without touching code
+✅ **Cross-Platform** - Different configs for Linux/Windows automatically selected
+✅ **Pre-Flight Checks** - Automatic connectivity validation before execution
+✅ **Environment-Specific** - Customize validation per environment (dev/staging/prod)
+✅ **Team Standards** - Enforce execution standards via config
 
-### Validation Tests (PR#97)
+### Automatic Validation
 
-Each execution type can define validation tests:
-- **Optional arguments** field for parameterized tests
-- **At least ONE required**: `expected_exit` OR `expected_output`
-- **Automatic execution** during host validation phase
-- **Per-combination testing**: Each (hostname, exec_type) validated
-
-### Example: Multi-host validation
+TASKER validates each unique (hostname, exec_type) combination before running tasks:
 
 ```bash
-# Task file uses 3 hosts with 2 exec types
-hostname=server1, exec=pbrun → Validated
-hostname=server2, exec=pbrun → Validated
-hostname=localhost, exec=shell → Validated
+# Your task file uses 3 hosts with 2 execution types
+hostname=server1, exec=pbrun → ✓ Validated
+hostname=server2, exec=pbrun → ✓ Validated
+hostname=localhost, exec=shell → ✓ Validated
 
-# Result: 3 unique combinations tested automatically
+# 3 connectivity tests run automatically
+# Tasks won't start if validation fails
 ```
+
+**Validation Options:**
+- Test with optional arguments for parameterized checks
+- Require exit code match OR output match (or both)
+- Per-combination testing catches config errors early
+- Fails fast if remote systems aren't reachable
 
 ---
 

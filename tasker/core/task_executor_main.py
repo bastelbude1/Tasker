@@ -2319,9 +2319,9 @@ class TaskExecutor:
             self.log_error(f"ERROR: Failed to calculate task file hash: {e}")
             raise
 
-        # Component 2: Expanded global variables (stable JSON representation)
-        # Sort by keys for deterministic hash
-        global_vars_str = json.dumps(sorted(self.global_vars.items()), sort_keys=True)
+        # Component 2: Expanded global variables (canonical JSON)
+        # Deterministic: sort keys, no spaces
+        global_vars_str = json.dumps(self.global_vars, sort_keys=True, separators=(',', ':'))
 
         # Combine components and hash
         combined = f"{task_file_hash}:{global_vars_str}"
@@ -2391,7 +2391,7 @@ class TaskExecutor:
         # Create locks directory
         locks_dir = os.path.expanduser('~/TASKER/locks')
         try:
-            os.makedirs(locks_dir, exist_ok=True)
+            os.makedirs(locks_dir, mode=0o700, exist_ok=True)
         except OSError as e:
             self.log_error(f"ERROR: Failed to create locks directory {locks_dir}: {e}")
             raise SystemExit(ExitCodes.TASK_FILE_VALIDATION_FAILED) from e
@@ -2413,7 +2413,7 @@ class TaskExecutor:
         lock_fd = None
         try:
             # Open lock file with O_RDWR|O_CREAT (doesn't truncate)
-            lock_fd = os.open(self.instance_lock_path, os.O_RDWR | os.O_CREAT, 0o644)
+            lock_fd = os.open(self.instance_lock_path, os.O_RDWR | os.O_CREAT, 0o600)
 
             # Try exclusive non-blocking lock immediately
             try:

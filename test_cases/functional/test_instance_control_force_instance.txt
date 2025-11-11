@@ -1,0 +1,21 @@
+# TEST_METADATA: {"description": "Instance control - force-instance flag bypasses check", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "expected_warnings": 1}
+
+# Test that --force-instance flag works and allows execution
+# This is a basic acceptance test that verifies the flag is recognized
+# VERIFIED: Manual testing confirms "WARNING: Instance check bypassed" is emitted
+# NOTE: Full contention testing (with pre-existing lock) would require
+# multi-process test infrastructure not available in this harness
+
+# File-defined arguments
+--instance-check
+--force-instance
+
+# Global variables
+TEST_VAR=force_instance_test
+
+# Tasks
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing force-instance override

@@ -554,6 +554,51 @@ tasker -r --skip-host-validation tasks.txt
 tasker -r --skip-command-validation tasks.txt
 ```
 
+### Workflow Instance Control
+
+Prevent accidental concurrent execution of identical workflows - critical for avoiding disasters like duplicate deployments or database migrations running simultaneously.
+
+```bash
+# Enable instance control for critical workflows
+tasker -r --instance-check deployment.txt
+
+
+# Try to run again while first instance is running (BLOCKED)
+$ tasker -r --instance-check deployment.txt
+ERROR: Workflow instance already running!
+  Task file: /path/to/deployment.txt
+  Started: 2025-11-11T19:10:45.123456
+  PID: 12345
+  Lock file: ~/TASKER/locks/workflow_abc123def456.lock
+
+
+To override instance check, use: --force-instance
+
+
+# Emergency override for stuck locks
+tasker -r --instance-check --force-instance deployment.txt
+
+
+# Different environment variables = different instances (allowed in parallel)
+$ ENV=prod tasker -r --instance-check deploy.txt &
+$ ENV=dev tasker -r --instance-check deploy.txt &  # Also runs (different hash)
+```
+
+#### How it works
+
+- Creates SHA-256 hash from task file content + expanded global variables
+- Lock file stored in `~/TASKER/locks/workflow_{hash}.lock`
+- Automatically detects and cleans up stale locks from crashed processes
+- `--validate-only` never creates locks (validation can run anytime)
+- `--auto-recovery` on resume: detects stale locks from crashed processes, cleans them up, then acquires fresh lock to prevent duplicate recovery attempts
+
+#### Use cases
+
+- Prevent duplicate deployments
+- Avoid concurrent database migrations
+- Protect against port/file conflicts
+- Critical one-at-a-time operations
+
 ### Command Line Options
 
 #### Execution Control
@@ -593,6 +638,8 @@ tasker -r --skip-command-validation tasks.txt
 | Option | Description | Example |
 |--------|-------------|---------|
 | `--fire-and-forget` | Don't wait for task completion | `tasker -r --fire-and-forget tasks.txt` |
+| `--instance-check` | Prevent concurrent identical workflows | `tasker -r --instance-check tasks.txt` |
+| `--force-instance` | Override instance check (emergency) | `tasker -r --instance-check --force-instance tasks.txt` |
 | `--strict-env-validation` | Require TASKER_ prefix for env vars | `tasker -r --strict-env-validation tasks.txt` |
 | `--show-effective-args` | Show merged file + CLI arguments | `tasker --show-effective-args tasks.txt` |
 
@@ -632,6 +679,7 @@ TASKER uses specific exit codes to indicate different types of failures:
 | 22 | HOST_CONNECTION_FAILED | Cannot connect to remote host | Check network/credentials |
 | 23 | HOST_RESOLUTION_FAILED | Cannot resolve hostname | Verify DNS/hostname |
 | 24 | EXEC_TYPE_VALIDATION_FAILED | Execution type validation failed | Check pbrun/p7s/wwrs setup |
+| 25 | INSTANCE_ALREADY_RUNNING | Workflow instance already running | Wait for completion or use --force-instance |
 
 ### Using Exit Codes in Workflows
 

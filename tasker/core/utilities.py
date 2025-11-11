@@ -34,7 +34,8 @@ class ExitCodes:
     DEPENDENCY_VALIDATION_FAILED = 22
     SYNTAX_ERROR = 23
     NO_TASKS_FOUND = 24
-    
+    INSTANCE_ALREADY_RUNNING = 25
+
     # File/Resource errors (30-39)
     TASK_FILE_NOT_FOUND = 30
     TASK_FILE_READ_ERROR = 31
@@ -120,6 +121,7 @@ class ExitHandler:
             22: "Dependency validation failed",
             23: "Syntax error in task file",
             24: "No tasks found",
+            25: "Workflow instance already running",
             30: "Task file not found",
             31: "Task file read error",
             32: "Log directory error",

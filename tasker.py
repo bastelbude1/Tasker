@@ -426,6 +426,10 @@ Examples:
     if args.fire_and_forget:
         print("WARNING: Fire-and-forget mode enabled - failed tasks will NOT stop execution!")
 
+    # Warn if --force-instance is set without --instance-check
+    if args.force_instance and not args.instance_check:
+        print("WARNING: --force-instance has no effect without --instance-check; ignoring.")
+
     # Auto-enable --auto-recovery when --output-json is specified (required dependency)
     if args.output_json and not args.auto_recovery:
         args.auto_recovery = True

@@ -2344,8 +2344,12 @@ class TaskExecutor:
         try:
             os.kill(pid, 0)
             return True
-        except OSError:
-            return False
+        except OSError as e:
+            # EPERM (errno 1) means process exists but we lack permission
+            # ESRCH (errno 3) means process doesn't exist
+            if e.errno == errno.EPERM:
+                return True  # Process exists, just can't signal it
+            return False  # Process doesn't exist
 
     def _is_lock_stale(self, lock_path):
         """

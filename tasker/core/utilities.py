@@ -121,6 +121,7 @@ class ExitHandler:
             22: "Dependency validation failed",
             23: "Syntax error in task file",
             24: "No tasks found",
+            25: "Workflow instance already running",
             30: "Task file not found",
             31: "Task file read error",
             32: "Log directory error",

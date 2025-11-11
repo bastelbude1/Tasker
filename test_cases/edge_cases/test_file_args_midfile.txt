@@ -15,7 +15,6 @@ arguments=Testing mid-file args ignored
 
 # File-defined arguments appearing mid-file (these will be IGNORED)
 --auto-recovery
---skip-host-validation
 
 # More tasks
 task=1

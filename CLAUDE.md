@@ -170,6 +170,60 @@ Each execution type can define optional validation tests:
 - Preserve all existing functionality during refactoring
 - Test thoroughly after each change
 
+### **CRITICAL: Localhost Execution - No Validation Required**
+
+**🚨 IMPORTANT: Document this correctly in all documentation!**
+
+**Localhost Always Works Without Flags:**
+- `exec=local` has `hostname=localhost` as the **default** value
+- Localhost execution **NEVER** requires `--skip-host-validation`
+- Host validation is automatically skipped for localhost
+- This is a **built-in behavior**, not a configuration requirement
+
+**Incorrect Documentation Examples to AVOID:**
+```bash
+# ❌ WRONG - This comment is misleading
+--skip-host-validation # Required for localhost execution
+
+# ❌ WRONG - Localhost doesn't need this flag
+python3 tasker.py workflow.txt --skip-host-validation  # For localhost
+```
+
+**Correct Documentation Examples:**
+```bash
+# ✅ CORRECT - Localhost works by default
+task=1
+exec=local
+# hostname=localhost is implicit (default value)
+command=echo
+arguments=test
+
+# ✅ CORRECT - Explicit localhost (optional, same as default)
+task=1
+exec=local
+hostname=localhost
+command=echo
+arguments=test
+
+# ✅ CORRECT - Use --skip-host-validation only for remote hosts without validation
+task=1
+exec=pbrun
+hostname=remote-server  # This might need --skip-host-validation if not in validation config
+command=echo
+arguments=test
+```
+
+**When --skip-host-validation IS Actually Needed:**
+- For **remote** hosts that are not defined in validation tests
+- For **remote** execution types (pbrun, p7s, wwrs) without validation config
+- **NEVER** for localhost or exec=local
+
+**Claude Code Enforcement:**
+- ✅ **ALWAYS** document that localhost works without flags
+- ✅ **NEVER** suggest --skip-host-validation is required for localhost
+- ✅ **CORRECT** any documentation that implies localhost needs this flag
+- ❌ **NEVER** add misleading comments about localhost requiring validation skip
+
 ### **CRITICAL: Tarball Creation Security Policy**
 **🚨 MANDATORY: Never include sensitive or development-only files in distribution tarballs!**
 

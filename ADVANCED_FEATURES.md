@@ -376,7 +376,7 @@ task=0
 # Auto-recovery: Long-running deployment workflow
 --auto-recovery
 
-# Skip host validation: Using localhost for local testing
+# Skip host validation: For remote hosts without validation config
 --skip-host-validation
 
 # Debug logging: Detailed output for troubleshooting
@@ -399,8 +399,7 @@ python3 tasker.py workflow.txt -r  # Simpler
 
 ```bash
 # ✅ GOOD - Workflow needs these to function correctly
---auto-recovery        # Required for recovery
---skip-host-validation # Required for localhost execution
+--auto-recovery        # Required for recovery workflows
 ```
 
 **5. Use CLI args for runtime decisions:**

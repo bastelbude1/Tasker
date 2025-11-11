@@ -3,7 +3,6 @@
 
 # File-defined arguments
 --auto-recovery
---skip-host-validation
 
 # Global variables
 APP_NAME=MyApplication

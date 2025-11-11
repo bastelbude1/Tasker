@@ -8,7 +8,6 @@ HOST_PREFIX=localhost
 
 # File-defined arguments (these will be IGNORED - parsing stopped)
 --auto-recovery
---skip-host-validation
 
 # Tasks
 task=0

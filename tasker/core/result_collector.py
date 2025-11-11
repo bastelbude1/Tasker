@@ -14,6 +14,7 @@ Responsibilities:
 import os
 import errno
 import time
+import random
 import threading
 import fcntl
 from datetime import datetime
@@ -168,7 +169,10 @@ class ResultCollector:
 
     def _acquire_file_lock_atomically(self, timeout_seconds: int = 5) -> Tuple[Optional[int], bool]:
         """
-        Acquire exclusive file lock with timeout and proper error handling.
+        Acquire exclusive file lock with exponential backoff and timeout.
+
+        Uses exponential backoff (10ms -> 1000ms) with jitter to reduce CPU
+        waste during lock contention in concurrent workflow scenarios (ptasker).
 
         Args:
             timeout_seconds: Maximum time to wait for lock
@@ -190,7 +194,9 @@ class ResultCollector:
             # Re-raise file descriptor access errors - these are fatal
             raise IOError(f"Cannot get file descriptor from summary log: {e}")
 
-        # Retry loop with timeout for transient lock conflicts
+        # Exponential backoff configuration
+        retry_delay = 0.01  # Start at 10ms
+        max_delay = 1.0     # Cap at 1 second
         start_time = time.time()
 
         while time.time() - start_time < timeout_seconds:
@@ -200,8 +206,21 @@ class ResultCollector:
             except (OSError, IOError) as e:
                 # Check if this is a transient error that should be retried
                 if e.errno in (errno.EAGAIN, errno.EACCES):
-                    # Transient error - another process has the lock, retry
-                    time.sleep(0.1)  # Wait 100ms before retry
+                    # Transient error - another process has the lock, retry with backoff
+
+                    # Add jitter (0-10% random variation) to prevent thundering herd
+                    jitter = random.uniform(0, retry_delay * 0.1)
+                    actual_delay = retry_delay + jitter
+
+                    # Don't sleep beyond timeout
+                    remaining_time = timeout_seconds - (time.time() - start_time)
+                    if remaining_time <= 0:
+                        break  # Timeout reached
+
+                    time.sleep(min(actual_delay, remaining_time))
+
+                    # Exponential backoff: double delay, cap at max_delay
+                    retry_delay = min(retry_delay * 2, max_delay)
                     continue
                 else:
                     # Fatal error - re-raise for proper handling

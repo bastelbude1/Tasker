@@ -15,6 +15,42 @@
 
 ---
 
+## 📋 VERSION NUMBERING POLICY 📋
+
+**TASKER follows semantic versioning: MAJOR.MINOR.PATCH (e.g., 2.1.3)**
+
+### **Version Increment Rules**
+
+- **PATCH (3rd digit)**: Increment for bug fixes and small changes
+  - Example: 2.1.0 → 2.1.1
+  - Use cases: Bug fixes, typo corrections, minor refactoring, documentation updates
+
+- **MINOR (2nd digit)**: Increment for new features
+  - Example: 2.1.0 → 2.2.0
+  - Use cases: New functionality, new parameters, workflow enhancements
+  - Reset PATCH to 0 when incrementing MINOR
+
+- **MAJOR (1st digit)**: Increment for breaking changes
+  - Example: 2.1.0 → 3.0.0
+  - Use cases: Breaking API changes, major architecture overhauls
+  - Reset MINOR and PATCH to 0 when incrementing MAJOR
+
+### **When to Update Version**
+
+- ✅ **ALWAYS update version** when merging PRs with code changes
+- ✅ **Update version in commit message** for tarball updates
+- ❌ **DO NOT update version** for documentation-only changes (unless significant)
+- ❌ **DO NOT update version** for test-only changes
+
+### **Current Version Location**
+
+Version number is currently tracked in:
+- Tarball filename: `tasker-v{MAJOR}.{MINOR}.tar.gz` (e.g., `tasker-v2.1.tar.gz`)
+- Git commit messages when updating tarball
+- Future: May be added to tasker.py `--version` output
+
+---
+
 ## 🚨 CRITICAL COMPATIBILITY REQUIREMENTS 🚨
 
 ### **Python 3.6.8 ONLY - No features from 3.7+ allowed**

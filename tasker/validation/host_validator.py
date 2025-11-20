@@ -154,15 +154,21 @@ class HostValidator:
             # Report unconfigured execution types
             if unconfigured_types:
                 if log_callback:
-                    log_callback(f"# ERROR: Execution types not found in configuration: {', '.join(unconfigured_types)}")
-                    log_callback("#        Config file location: cfg/execution_types.yaml")
-
-                    # Show available exec types if config is loaded, otherwise show fallback message
-                    available_types = exec_config_loader.get_execution_types()
-                    if available_types:
+                    # Check if config file was loaded successfully
+                    if exec_config_loader.loaded_config_path:
+                        # Config loaded but exec type not in it
+                        log_callback(f"# ERROR: Execution types not found in configuration: {', '.join(unconfigured_types)}")
+                        log_callback(f"#        Config file loaded: {exec_config_loader.loaded_config_path}")
+                        available_types = exec_config_loader.get_execution_types()
                         log_callback(f"#        Available exec types: {', '.join(sorted(['local', *available_types]))}")
                     else:
-                        log_callback("#        Only exec=local is supported (config file missing or invalid)")
+                        # Config file not found at all
+                        log_callback("# ERROR: Configuration file not found")
+                        log_callback("#        Searched locations:")
+                        for path in exec_config_loader.searched_paths:
+                            log_callback(f"#          - {path}")
+                        log_callback(f"#        Required exec types: {', '.join(unconfigured_types)}")
+                        log_callback("#        Only exec=local is supported without config file")
                 return {'error': 'unconfigured_exec_types', 'exit_code': ExitCodes.TASK_FILE_VALIDATION_FAILED}
 
             # Report missing command binaries

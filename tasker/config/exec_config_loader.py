@@ -50,6 +50,8 @@ class ExecConfigLoader:
         self.config_path = config_path
         self.config_data = None
         self.platform = self._detect_platform()
+        self.loaded_config_path = None  # Actual path where config was loaded from (or None)
+        self.searched_paths = []  # List of paths that were searched
 
         # Load configuration
         self._load_config()
@@ -99,8 +101,12 @@ class ExecConfigLoader:
         Returns:
             str or None: Path to config file if found
         """
+        # Clear previous searched paths
+        self.searched_paths = []
+
         # If explicit path provided, use it
         if self.config_path:
+            self.searched_paths.append(os.path.abspath(self.config_path))
             if os.path.isfile(self.config_path):
                 return self.config_path
             else:
@@ -128,6 +134,7 @@ class ExecConfigLoader:
             script_dir = os.path.dirname(script_path)
             config_path = os.path.join(script_dir, 'cfg', 'execution_types.yaml')
 
+            self.searched_paths.append(config_path)
             self.debug_callback(f"Searching for config at: {config_path}")
             if os.path.isfile(config_path):
                 self.debug_callback(f"Found config at script location: {config_path}")
@@ -136,7 +143,8 @@ class ExecConfigLoader:
                 self.debug_callback(f"Config not found at script location: {config_path}")
 
         # Priority 2: Current working directory
-        config_path = os.path.join('.', 'cfg', 'execution_types.yaml')
+        config_path = os.path.abspath(os.path.join('.', 'cfg', 'execution_types.yaml'))
+        self.searched_paths.append(config_path)
         if os.path.isfile(config_path):
             self.debug_callback(f"Found config at current directory: {config_path}")
             return config_path
@@ -179,7 +187,9 @@ class ExecConfigLoader:
             if 'platforms' not in self.config_data:
                 raise ValueError("Config file must contain 'platforms' key")
 
-            self.debug_callback(f"Successfully loaded config from: {config_file}")
+            # Store the successfully loaded config path
+            self.loaded_config_path = os.path.abspath(config_file)
+            self.debug_callback(f"Successfully loaded config from: {self.loaded_config_path}")
 
         except Exception as e:
             self.debug_callback(f"ERROR: Failed to load config file '{config_file}': {e}")

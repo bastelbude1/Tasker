@@ -1,0 +1,9 @@
+# TEST_METADATA: {"description": "Verify config error messages show full paths", "test_type": "negative", "expected_exit_code": 20, "expected_success": false}
+# This test verifies that error messages show full absolute paths to config file
+# and clearly distinguish between "exec type not in config" vs "config not found"
+
+task=0
+hostname=localhost
+exec=invalid_exec_type
+command=echo
+arguments=This should fail with clear error message showing full config path

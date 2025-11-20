@@ -1,0 +1,12 @@
+# TEST_METADATA: {"description": "Verify wwrs exec type is loaded from config", "test_type": "validation_only", "expected_exit_code": 0, "expected_success": true}
+# This test verifies that wwrs execution type is properly loaded from config file
+# Should pass validation when command and host validation are skipped
+
+--skip-command-validation
+--skip-host-validation
+
+task=0
+hostname=localhost
+exec=wwrs
+command=echo
+arguments=Testing WWRS execution type from config

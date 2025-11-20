@@ -127,19 +127,26 @@ class TaskRunner:
         expanded_arguments = os.path.expandvars(arguments) if arguments else ""
 
         if exec_type == 'pbrun':
-            return ["pbrun", "-n", "-h", hostname, command] + shlex.split(expanded_arguments)
+            return ["pbrun", "-n", "-h", hostname, command, *shlex.split(expanded_arguments)]
         elif exec_type == 'p7s':
-            return ["p7s", hostname, command] + shlex.split(expanded_arguments)
+            return ["p7s", hostname, command, *shlex.split(expanded_arguments)]
         elif exec_type == 'local':
-            return [command] + shlex.split(expanded_arguments)
+            return [command, *shlex.split(expanded_arguments)]
         elif exec_type == 'wwrs':
-            return ["wwrs_clir", hostname, command] + shlex.split(expanded_arguments)
+            return ["wwrs_clir", hostname, command, *shlex.split(expanded_arguments)]
         else:
-            # NOTE: This legacy code path should not be reached in normal operation.
-            # The new architecture uses exec_config_loader.build_command_array() instead.
-            # Fallback to local execution as the safest default.
+            # LEGACY FALLBACK: This code path should not be reached in normal operation.
+            # The new architecture (TaskExecutorMain) uses exec_config_loader.build_command_array()
+            # which supports all configured execution types from YAML.
+            #
+            # This fallback is reached if:
+            # 1. TaskRunner is instantiated independently (testing/debugging)
+            # 2. exec_config_loader.build_command_array() returns None (exec type not in YAML)
+            # 3. A custom exec type is passed without corresponding YAML config
+            #
+            # Defensive programming: Fall back to local execution as the safest default.
             self.log_warn(f"Unknown execution type '{exec_type}', using 'local' as safe fallback")
-            return [command] + shlex.split(expanded_arguments)
+            return [command, *shlex.split(expanded_arguments)]
 
     # ===== TIMEOUT HANDLING =====
 

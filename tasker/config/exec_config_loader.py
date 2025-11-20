@@ -17,6 +17,7 @@ import os
 import sys
 import platform
 import shlex
+import shutil
 
 # Try to import YAML, fall back gracefully if not available
 try:
@@ -108,14 +109,31 @@ class ExecConfigLoader:
 
         # Priority 1: Same directory as tasker.py (resolve symlinks to find real script location)
         # Find tasker.py location by checking sys.argv[0] and resolving symlinks
-        if len(sys.argv) > 0:
+        if len(sys.argv) > 0 and sys.argv[0]:
+            script_name = sys.argv[0]
+
+            # If sys.argv[0] is not an absolute path, find it in PATH
+            if not os.path.isabs(script_name):
+                # Try to find the script in PATH using shutil.which
+                found_path = shutil.which(script_name)
+                if found_path:
+                    script_name = found_path
+                    self.debug_callback(f"Found script in PATH: {script_name}")
+                else:
+                    # Fall back to resolving relative to current directory
+                    script_name = os.path.abspath(script_name)
+
             # Resolve symlinks to get real script path
-            script_path = os.path.realpath(sys.argv[0])
+            script_path = os.path.realpath(script_name)
             script_dir = os.path.dirname(script_path)
             config_path = os.path.join(script_dir, 'cfg', 'execution_types.yaml')
+
+            self.debug_callback(f"Searching for config at: {config_path}")
             if os.path.isfile(config_path):
                 self.debug_callback(f"Found config at script location: {config_path}")
                 return config_path
+            else:
+                self.debug_callback(f"Config not found at script location: {config_path}")
 
         # Priority 2: Current working directory
         config_path = os.path.join('.', 'cfg', 'execution_types.yaml')

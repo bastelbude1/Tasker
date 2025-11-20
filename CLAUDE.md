@@ -174,6 +174,7 @@ with subprocess.Popen(['command'],
 - **Wrong command**: `python3` (does not have PyYAML installed)
 
 **Examples:**
+
 ```bash
 # ✅ CORRECT - Use python
 python tasker.py workflow.txt

@@ -42,6 +42,23 @@
 - ❌ **DO NOT update version** for documentation-only changes (unless significant)
 - ❌ **DO NOT update version** for test-only changes
 
+### **CRITICAL: Version Increment Confirmation**
+
+- 🚨 **ALWAYS ASK USER** before incrementing MINOR (2nd digit) or MAJOR (1st digit)
+- ✅ **PATCH increments (3rd digit)** can be done without asking
+- ❌ **NEVER assume** a change is a "new feature" without user confirmation
+
+**Examples of what is NOT a new feature:**
+- Refactoring existing functionality (e.g., hardcoded → config-driven)
+- Performance improvements without new capabilities
+- Internal architecture changes that don't add user-facing features
+- Bug fixes, even significant ones
+
+**Examples of what IS a new feature (ask user first):**
+- New command-line flags or parameters
+- New workflow capabilities (e.g., auto-recovery, instance control)
+- New execution types or major subsystems
+
 ### **Current Version Location**
 
 Version number is currently tracked in:

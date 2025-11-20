@@ -152,7 +152,7 @@ class TaskExecutor:
         self.loop_counter = {} # Track remaining loops
         self.loop_iterations = {} # Track current iteration number
         self.exec_type = exec_type  # From command line argument
-        self.default_exec_type = 'pbrun'  # Default execution type
+        self.default_exec_type = 'local'  # Initial safe default (will be overridden from config)
         self.timeout = timeout # Default timeout from command line
         self.project = sanitize_filename(project) if project else None  # Sanitized project name
         self.show_plan = show_plan
@@ -386,6 +386,14 @@ class TaskExecutor:
         # Note: Only exec=local is hardcoded. All other execution types (shell, pbrun, p7s, wwrs)
         # are loaded from cfg/execution_types.yaml
         self._exec_config_loader = get_exec_config_loader(debug_callback=self.log_debug)
+
+        # Update default execution type from config (fallback to 'local' if not configured)
+        config_default = self._exec_config_loader.get_default_exec_type()
+        if config_default:
+            self.default_exec_type = config_default
+            self.log_debug(f"Using default execution type from config: {config_default}")
+        else:
+            self.log_debug(f"No default execution type in config, using hardcoded fallback: {self.default_exec_type}")
 
         # Initialize StateManager with existing state
         self._state_manager = StateManager()
@@ -1863,7 +1871,7 @@ class TaskExecutor:
             Normalized execution type
         """
         if not exec_type:
-            return 'pbrun'
+            return self.default_exec_type
 
         normalized = exec_type.lower().strip()
 

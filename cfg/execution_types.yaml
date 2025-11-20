@@ -19,6 +19,10 @@
 platforms:
   # Linux execution type definitions
   linux:
+    # Default execution type for Linux (if not specified in task, CLI, or env var)
+    # Fallback: 'local' (hardcoded, always safe)
+    default_exec_type: pbrun
+
     shell:
       description: "Local shell execution with Bash"
       binary: /bin/bash
@@ -75,6 +79,9 @@ platforms:
 
   # Windows execution type definitions (future support)
   windows:
+    # Default execution type for Windows
+    default_exec_type: shell
+
     shell:
       description: "Local shell execution with cmd.exe"
       binary: cmd.exe

@@ -27,7 +27,7 @@ class HostValidator:
     """
     
     @staticmethod
-    def validate_hosts(tasks, global_vars, task_results, exec_type=None, default_exec_type='pbrun', debug_callback=None, log_callback=None, *, skip_command_validation=False, skip_unresolved_host_validation=False):
+    def validate_hosts(tasks, global_vars, task_results, exec_type=None, default_exec_type=None, debug_callback=None, log_callback=None, *, skip_command_validation=False, skip_unresolved_host_validation=False):
         """
         Enhanced host validation with automatic connectivity testing for remote hosts.
         Returns a dict mapping original hostnames to validated FQDNs if successful,
@@ -38,7 +38,7 @@ class HostValidator:
             global_vars: Dictionary of global variables
             task_results: Dictionary of task results
             exec_type: Override execution type
-            default_exec_type: Default execution type to use
+            default_exec_type: Default execution type to use (None = load from config, fallback to 'local')
             debug_callback: Optional function for debug logging
             log_callback: Optional function for main logging
             skip_command_validation: Whether to skip command existence validation (keyword-only)
@@ -49,6 +49,16 @@ class HostValidator:
         """
         # Load execution type configuration
         exec_config_loader = get_exec_config_loader(debug_callback=debug_callback)
+
+        # Determine default execution type if not provided
+        if default_exec_type is None:
+            config_default = exec_config_loader.get_default_exec_type()
+            default_exec_type = config_default if config_default else 'local'
+            if debug_callback:
+                if config_default:
+                    debug_callback(f"Using default execution type from config: {default_exec_type}")
+                else:
+                    debug_callback(f"No config default, using hardcoded fallback: {default_exec_type}")
 
         # Collect unique host+exec_type combinations
         host_exec_combinations = {}  # {hostname: set(exec_types)}

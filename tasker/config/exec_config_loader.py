@@ -294,6 +294,30 @@ class ExecConfigLoader:
         """
         return self.get_exec_type_config(exec_type) is not None
 
+    def get_default_exec_type(self):
+        """
+        Get default execution type from YAML configuration.
+
+        Returns platform-specific default if configured, otherwise None.
+        The caller should fall back to 'local' if None is returned.
+
+        Returns:
+            str or None: Default execution type name, or None if not configured
+        """
+        if not self.config_data:
+            return None
+
+        # Get platform-specific default
+        platforms = self.config_data.get('platforms', {})
+        platform_config = platforms.get(self.platform, {})
+        default_exec_type = platform_config.get('default_exec_type')
+
+        if default_exec_type:
+            self.debug_callback(f"Using default execution type from config: {default_exec_type}")
+            return default_exec_type
+
+        return None
+
 
 # Global singleton instance
 _loader_instance = None

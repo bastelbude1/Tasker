@@ -31,7 +31,7 @@ class TaskRunner:
     """
 
     def __init__(self, state_manager, workflow_controller, result_collector,
-                 default_exec_type='pbrun', default_timeout=30, dry_run=False,
+                 default_exec_type='local', default_timeout=30, dry_run=False,
                  logger_callback=None, debug_logger_callback=None):
         """
         Initialize task runner.
@@ -40,7 +40,7 @@ class TaskRunner:
             state_manager: StateManager instance for state access
             workflow_controller: WorkflowController instance for flow control
             result_collector: ResultCollector instance for result handling
-            default_exec_type: Default execution type (pbrun, p7s, local, wwrs)
+            default_exec_type: Default execution type (loaded from config in TaskExecutorMain, fallback: 'local')
             default_timeout: Default timeout in seconds
             dry_run: Whether to run in dry-run mode
             logger_callback: Optional callback for regular logging
@@ -135,9 +135,11 @@ class TaskRunner:
         elif exec_type == 'wwrs':
             return ["wwrs_clir", hostname, command] + shlex.split(expanded_arguments)
         else:
-            # Default to pbrun if unknown exec_type
-            self.log_warn(f"Unknown execution type '{exec_type}', using default 'pbrun'")
-            return ["pbrun", "-n", "-h", hostname, command] + shlex.split(expanded_arguments)
+            # NOTE: This legacy code path should not be reached in normal operation.
+            # The new architecture uses exec_config_loader.build_command_array() instead.
+            # Fallback to local execution as the safest default.
+            self.log_warn(f"Unknown execution type '{exec_type}', using 'local' as safe fallback")
+            return [command] + shlex.split(expanded_arguments)
 
     # ===== TIMEOUT HANDLING =====
 

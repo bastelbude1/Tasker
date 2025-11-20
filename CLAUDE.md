@@ -166,6 +166,33 @@ with subprocess.Popen(['command'],
 - **PyYAML** - Required for execution type configuration (install: `pip install pyyaml`)
 - **Standard library modules** - All other functionality uses stdlib only
 
+### **CRITICAL: Use `python` Command (Not `python3`)**
+
+**🚨 MANDATORY: Always use `python` for TASKER execution and testing**
+
+- **Correct command**: `python` (v3.6.8 with PyYAML installed)
+- **Wrong command**: `python3` (does not have PyYAML installed)
+
+**Examples:**
+
+```bash
+# ✅ CORRECT - Use python
+python tasker.py workflow.txt
+python test_cases/scripts/intelligent_test_runner.py
+
+# ❌ WRONG - Do not use python3
+python3 tasker.py workflow.txt  # PyYAML not available!
+```
+
+**Reason:**
+- `python` → Python 3.6.8 with PyYAML 6.0.1 installed
+- `python3` → Missing PyYAML dependency, config files won't load
+
+**Impact of using wrong command:**
+- Config file `cfg/execution_types.yaml` won't load
+- Only `exec=local` will work (all other exec types unavailable)
+- Error: "WARNING: PyYAML not available. Only exec=local will be supported."
+
 ---
 
 ## 🔧 EXECUTION TYPE CONFIGURATION (Config-Based Architecture)

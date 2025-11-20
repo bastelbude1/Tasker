@@ -72,8 +72,9 @@
 - ✅ Documentation updates
 - ✅ ALL code changes
 
-**Only Exception:**
-- Emergency hotfixes (must be discussed with user first)
+**Exceptions (can commit directly to master):**
+- ✅ **Tarball updates** (`tasker-v*.tar.gz`) - distribution artifacts don't need code review
+- ⚠️ **Emergency hotfixes** (must be discussed with user first)
 
 ---
 

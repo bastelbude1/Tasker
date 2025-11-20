@@ -1919,9 +1919,21 @@ class TaskExecutor:
                 return cmd_array
 
         # NO FALLBACKS: If exec type not in config, it's an error
-        self.log_error(f"ERROR: Execution type '{exec_type}' not found in configuration")
-        self.log_error(f"       Config file location: cfg/execution_types.yaml")
-        self.log_error(f"       Only exec=local is supported without configuration file")
+        if hasattr(self, '_exec_config_loader') and self._exec_config_loader.loaded_config_path:
+            # Config was loaded but exec type not in it
+            self.log_error(f"ERROR: Execution type '{exec_type}' not found in configuration")
+            self.log_error(f"       Config file loaded: {self._exec_config_loader.loaded_config_path}")
+            available_types = self._exec_config_loader.get_execution_types()
+            self.log_error(f"       Available exec types: {', '.join(sorted(['local', *available_types]))}")
+        else:
+            # Config file not found at all
+            self.log_error("ERROR: Configuration file not found")
+            if hasattr(self, '_exec_config_loader') and self._exec_config_loader.searched_paths:
+                self.log_error("       Searched locations:")
+                for path in self._exec_config_loader.searched_paths:
+                    self.log_error(f"         - {path}")
+            self.log_error(f"       Required exec type: {exec_type}")
+            self.log_error("       Only exec=local is supported without configuration file")
         return None
 
     def get_task_timeout(self, task):

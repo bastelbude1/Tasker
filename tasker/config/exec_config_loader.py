@@ -161,15 +161,17 @@ class ExecConfigLoader:
         - Config file not found
         - Config file invalid
         """
+        # Always find config file locations first (populates searched_paths for error messages)
+        config_file = self._find_config_file()
+
         # Check if YAML is available
         if not YAML_AVAILABLE:
             self.debug_callback("WARNING: PyYAML not available. Only exec=local will be supported.")
             self.debug_callback("Install PyYAML: pip install pyyaml")
+            if config_file:
+                self.debug_callback(f"Config file found at {config_file} but cannot be loaded without PyYAML")
             self.config_data = {}
             return
-
-        # Find config file
-        config_file = self._find_config_file()
         if not config_file:
             self.debug_callback("WARNING: No execution_types.yaml config found. Only exec=local will be supported.")
             self.config_data = {}

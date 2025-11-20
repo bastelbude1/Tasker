@@ -15,6 +15,68 @@
 
 ---
 
+## 🚫 GIT WORKFLOW RULES 🚫
+
+### **CRITICAL: NEVER COMMIT DIRECTLY TO MASTER**
+
+**🚨 MANDATORY: ALL changes MUST go through branch → PR → merge workflow**
+
+**Git Workflow for ALL Changes:**
+
+1. **Create feature/fix branch**
+   ```bash
+   git checkout -b feature/description
+   # or
+   git checkout -b fix/bug-description
+   # or
+   git checkout -b docs/documentation-update
+   ```
+
+2. **Make changes and commit**
+   ```bash
+   git add <files>
+   git commit -m "descriptive message"
+   ```
+
+3. **Push branch to GitHub**
+   ```bash
+   git push -u origin <branch-name>
+   ```
+
+4. **Create Pull Request**
+   ```bash
+   gh pr create --title "Title" --body "Description"
+   ```
+
+5. **After PR merged, sync master**
+   ```bash
+   git checkout master
+   git pull origin master
+   git branch -d <branch-name>  # Delete local branch
+   ```
+
+**❌ FORBIDDEN:**
+- `git commit` while on master branch
+- `git push origin master` directly
+- Any direct modifications to master
+
+**✅ REQUIRED:**
+- Always work on feature/fix/docs branches
+- Always create PR for review
+- Wait for PR merge before syncing master
+
+**Applies to:**
+- ✅ Bug fixes (PATCH)
+- ✅ New features (MINOR)
+- ✅ Breaking changes (MAJOR)
+- ✅ Documentation updates
+- ✅ ALL code changes
+
+**Only Exception:**
+- Emergency hotfixes (must be discussed with user first)
+
+---
+
 ## 📋 VERSION NUMBERING POLICY 📋
 
 **TASKER follows semantic versioning: MAJOR.MINOR.PATCH (e.g., 2.1.3)**

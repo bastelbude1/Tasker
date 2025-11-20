@@ -180,6 +180,45 @@ with subprocess.Popen(['command'],
   - exec=wwrs (WWRS remote execution via wwrs_clir)
   - Custom execution types can be added via config
 
+### **CRITICAL: Config File Resolution (Symlink Support)**
+
+**🚨 MANDATORY: Config file MUST be found relative to tasker.py, even when run via symlink**
+
+**Implementation Requirements:**
+1. **Use `shutil.which()`** to find script in PATH if `sys.argv[0]` is not absolute
+2. **Use `os.path.realpath()`** to resolve symlinks to actual file location
+3. **Search for config** in `<real_tasker_dir>/cfg/execution_types.yaml`
+
+**Why This Matters:**
+- In production, `tasker` is often a symlink in PATH (e.g., `/usr/local/bin/tasker` → `/app/COOL/tasker2/tasker.py`)
+- Running `tasker task.txt` sets `sys.argv[0]` to just `tasker` (no path)
+- Without proper resolution, config is searched in wrong location (current directory)
+- Results in "ERROR: Execution types not found in configuration"
+
+**Correct Implementation Pattern:**
+```python
+import shutil
+import os
+
+script_name = sys.argv[0]
+
+# If not absolute, find in PATH
+if not os.path.isabs(script_name):
+    found_path = shutil.which(script_name)
+    if found_path:
+        script_name = found_path
+
+# Resolve symlinks to real location
+script_path = os.path.realpath(script_name)
+script_dir = os.path.dirname(script_path)
+config_path = os.path.join(script_dir, 'cfg', 'execution_types.yaml')
+```
+
+**❌ WRONG (does not work with symlinks in PATH):**
+```python
+script_path = os.path.realpath(sys.argv[0])  # Fails if sys.argv[0] = 'tasker'
+```
+
 ### **Config File Location Priority**
 
 1. **Same directory as tasker.py**: `<tasker_dir>/cfg/execution_types.yaml`

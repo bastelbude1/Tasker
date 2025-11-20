@@ -54,13 +54,22 @@ from datetime import datetime
 # Add the current directory to the path to ensure modules can be imported
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+# Support custom library paths for production environments (e.g., PyYAML location)
+# This allows production servers to specify where additional libraries are installed
+custom_lib_path = os.getenv('TASKER_LIB_PATH', '/app/COOL/lib')
+if custom_lib_path and os.path.exists(custom_lib_path):
+    sys.path.insert(0, custom_lib_path)
+    # Debug output when custom path is added (check early for debug flag)
+    if '--debug' in sys.argv or '-d' in sys.argv:
+        print(f"DEBUG: Added custom library path: {custom_lib_path}")
+
 # Import the core TaskExecutor and utilities
 from tasker.core.task_executor_main import TaskExecutor
 from tasker.core.utilities import get_log_directory, sanitize_filename
 from tasker.config.exec_config_loader import get_loader as get_exec_config_loader
 
 # Version information
-VERSION = "2.1.2"
+VERSION = "2.1.3"
 
 # Security: Flags that should NEVER be accepted from task files
 CLI_ONLY_FLAGS = {'--help', '-h', '--version', '-V', '--force-instance'}

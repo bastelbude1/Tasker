@@ -7,6 +7,7 @@ Normal sequential task execution with flow control.
 
 import time
 import threading
+import re
 from .base_executor import BaseExecutor
 from ..core.condition_evaluator import ConditionEvaluator
 from ..core.utilities import ExitHandler, ExitCodes, format_output_for_log
@@ -193,13 +194,32 @@ class SequentialExecutor(BaseExecutor):
         # Mask sensitive global variables in logging and summary
         log_command_display = full_command_display
         if hasattr(executor_instance, 'global_vars'):
-             for key, value in executor_instance.global_vars.items():
-                 if ConditionEvaluator.should_mask_variable(key) and value:
-                     # Create masked representation
-                     masked_val = ConditionEvaluator.mask_value(value)
-                     # Replace all occurrences of the secret value with the mask
-                     # We convert value to str to be safe
-                     log_command_display = log_command_display.replace(str(value), masked_val)
+             try:
+                 for key, value in executor_instance.global_vars.items():
+                     # Skip None only (mask empty strings and zero-like secrets)
+                     if ConditionEvaluator.should_mask_variable(key) and value is not None:
+                         try:
+                             str_val = str(value)
+                         except Exception:
+                             try:
+                                 str_val = repr(value)
+                             except Exception:
+                                 continue  # Cannot convert to string, skip
+
+                         # Create masked representation
+                         masked_val = ConditionEvaluator.mask_value(value)
+
+                         # Regex replacement with boundaries to prevent partial matching
+                         try:
+                             pattern = re.escape(str_val)
+                             # Enforce word boundaries using lookarounds
+                             regex = r'(?<!\w)' + pattern + r'(?!\w)'
+                             log_command_display = re.sub(regex, masked_val, log_command_display)
+                         except Exception:
+                             # Fallback to simple replacement if regex fails
+                             log_command_display = log_command_display.replace(str_val, masked_val)
+             except Exception as e:
+                 executor_instance.log(f"Warning: Error during secret masking: {str(e)}")
         
         executor_instance.final_command = log_command_display # better to have full command in the summary log
 

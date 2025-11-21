@@ -163,8 +163,10 @@ def get_explicit_args(parser, args_list):
         # or missing positionals (which we might not care about here)
         namespace, _ = parser.parse_known_args(args_list)
         return namespace
-    except Exception:
-        # Fallback in case of parsing error (shouldn't happen with valid args)
+    except (argparse.ArgumentError, TypeError, ValueError):
+        # Fallback for parsing errors (e.g., invalid argument types)
+        # Note: We deliberately do NOT catch SystemExit to allow standard
+        # argparse behavior (like --help) to work normally.
         return argparse.Namespace()
     finally:
         # Restore original defaults
@@ -222,11 +224,9 @@ def merge_args(parser, file_args, cli_args):
             
             # Special handling for boolean store_true (Additive)
             if isinstance(action, argparse._StoreTrueAction):
-                # If file has it True, ensure it's True in final (OR logic)
-                # (If CLI explicitly set it True, it's already True in final_ns)
-                # (If CLI explicitly set it False... wait, store_true doesn't allow setting False 
-                # unless it's a custom action or --no-flag, but standard store_true is just a toggle.
-                # So "OR" logic is correct for standard store_true flags.)
+                # Note: store_true flags are toggle-only and cannot be explicitly set to False
+                # For store_false or BooleanOptionalAction, different logic would be needed.
+                # Current logic implements an OR operation (File=True OR CLI=True).
                 if file_val:
                     setattr(final_ns, dest, True)
             else:

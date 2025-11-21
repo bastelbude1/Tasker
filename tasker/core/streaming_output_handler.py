@@ -186,7 +186,7 @@ class StreamingOutputHandler:
                     if shutdown_check and shutdown_check():
                         break
                 except Exception:
-                    pass # Keep polling if check fails
+                    logging.debug("Shutdown check raised exception during thread join, continuing")
 
                 thread.join(timeout=0.1)
                 
@@ -195,7 +195,8 @@ class StreamingOutputHandler:
             # Only warn if not shutting down (to avoid noisy warnings during SIGINT)
             try:
                 is_shutdown = shutdown_check and shutdown_check()
-            except Exception:
+            except Exception as e:
+                logging.debug("Shutdown check raised exception during warning check: %s", e)
                 is_shutdown = False
 
             if not is_shutdown:

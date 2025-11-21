@@ -9,6 +9,7 @@ CRITICAL: Python 3.6.8 compatible only - no 3.7+ features allowed
 """
 
 import os
+import logging
 import tempfile
 import threading
 import time
@@ -32,16 +33,18 @@ class StreamingOutputHandler:
     CHUNK_SIZE = 8192  # 8KB read chunks
     MAX_IN_MEMORY = 100 * 1024 * 1024  # 100MB absolute memory limit
 
-    def __init__(self, temp_threshold=None, temp_dir=None):
+    def __init__(self, temp_threshold=None, temp_dir=None, logger_callback=None):
         """
         Initialize streaming output handler.
 
         Args:
             temp_threshold: Size threshold for using temp files
             temp_dir: Directory for temporary files (default: system temp)
+            logger_callback: Optional callback for logging (defaults to logging module)
         """
         self.temp_threshold = temp_threshold or self.DEFAULT_TEMP_THRESHOLD
         self.temp_dir = temp_dir or tempfile.gettempdir()
+        self.logger_callback = logger_callback
         
         # Note: If temp_dir is None, we use the system default temp directory.
         # Caller (TaskExecutor) is responsible for creating run-specific directories.
@@ -187,8 +190,14 @@ class StreamingOutputHandler:
                 
         # Verify threads actually stopped
         if stdout_thread.is_alive() or stderr_thread.is_alive():
-            import logging
-            logging.warning("StreamingOutputHandler: Output threads did not complete within timeout")
+            # Only warn if not shutting down (to avoid noisy warnings during SIGINT)
+            is_shutdown = shutdown_check and shutdown_check()
+            if not is_shutdown:
+                msg = "StreamingOutputHandler: Output threads did not complete within timeout"
+                if self.logger_callback:
+                    self.logger_callback(msg)
+                else:
+                    logging.warning(msg)
 
         exit_code = process.returncode
 
@@ -307,13 +316,14 @@ class StreamingOutputHandler:
         # Return None to propagate any original exception
 
 
-def create_memory_efficient_handler(max_memory_mb=10, temp_dir=None):
+def create_memory_efficient_handler(max_memory_mb=10, temp_dir=None, logger_callback=None):
     """
     Factory function to create a memory-efficient output handler.
 
     Args:
         max_memory_mb: Maximum memory to use before switching to temp files
         temp_dir: Optional specific directory for temp files
+        logger_callback: Optional callback for logging
 
     Returns:
         StreamingOutputHandler instance configured for memory efficiency
@@ -321,5 +331,6 @@ def create_memory_efficient_handler(max_memory_mb=10, temp_dir=None):
     threshold_bytes = min(max_memory_mb * 1024 * 1024, StreamingOutputHandler.MAX_IN_MEMORY)
     return StreamingOutputHandler(
         temp_threshold=threshold_bytes,
-        temp_dir=temp_dir
+        temp_dir=temp_dir,
+        logger_callback=logger_callback
     )

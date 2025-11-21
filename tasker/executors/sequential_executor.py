@@ -262,7 +262,7 @@ class SequentialExecutor(BaseExecutor):
 
                 # Pass session_temp_dir to use the run-specific temp folder
                 session_temp_dir = getattr(executor_instance, 'session_temp_dir', None)
-                with create_memory_efficient_handler(max_memory_mb, temp_dir=session_temp_dir) as output_handler:
+                with create_memory_efficient_handler(max_memory_mb, temp_dir=session_temp_dir, logger_callback=executor_instance.log_warn) as output_handler:
                     with subprocess.Popen(
                         cmd_array,
                         shell=False, # More secure

@@ -288,9 +288,7 @@ Examples:
                        default='INFO', help='Set logging level (default: INFO)')
     parser.add_argument('-t', '--type', choices=get_available_exec_types(),
                        help='Execution type (overridden by task-specific settings)')
-    parser.add_argument('-o', '--timeout', type=int, default=300,
-                       help='DEPRECATED: Default command timeout in seconds (5-1000, default: 300). Configure in execution_types.yaml instead.')
-    parser.add_argument('-p', '--project', 
+    parser.add_argument('-p', '--project',
                        help='Project name for summary logging')
     
     # Resume capability
@@ -402,18 +400,6 @@ Examples:
     # Get and create log directory
     log_dir = get_log_directory(args.log_dir, args.log_level == 'DEBUG')
 
-    # Validate timeout range and show deprecation warning
-    if args.timeout != 300:  # 300 is the default, only warn if explicitly set
-        print(f"WARNING: The --timeout/-o CLI argument is deprecated and will be removed in a future version.")
-        print(f"         Please configure timeouts in cfg/execution_types.yaml or use task-level timeout parameter instead.")
-        print(f"         See execution_types.yaml for configuration examples.")
-
-    if args.timeout < 5:
-        print(f"Warning: Timeout {args.timeout} too low, using minimum 5")
-        args.timeout = 5
-    elif args.timeout > 1000:
-        print(f"Warning: Timeout {args.timeout} too high, using maximum 1000")
-        args.timeout = 1000
     
     # Handle convenience flag
     skip_task_validation = args.skip_task_validation or args.skip_validation
@@ -472,7 +458,7 @@ Examples:
         dry_run=not args.run,
         log_level=args.log_level,
         exec_type=args.type,
-        timeout=args.timeout,
+        timeout=None,  # Timeout now comes from YAML config or defaults to 300
         project=args.project,
         start_from_task=args.start_from,
         skip_task_validation=skip_task_validation,

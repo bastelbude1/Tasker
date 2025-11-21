@@ -153,7 +153,7 @@ class TaskExecutor:
         self.loop_iterations = {} # Track current iteration number
         self.exec_type = exec_type  # From command line argument
         self.default_exec_type = 'local'  # Initial safe default (will be overridden from config)
-        self.timeout = timeout # Default timeout from command line
+        self.timeout = timeout  # Timeout from CLI (deprecated), None means use YAML config
         self.project = sanitize_filename(project) if project else None  # Sanitized project name
         self.show_plan = show_plan
         self.validate_only = validate_only

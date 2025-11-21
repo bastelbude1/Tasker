@@ -189,7 +189,19 @@ class SequentialExecutor(BaseExecutor):
 
         # Log the full command for the user
         full_command_display = ' '.join(cmd_array)
-        executor_instance.final_command = full_command_display # better to have full command in the summary log
+        
+        # Mask sensitive global variables in logging and summary
+        log_command_display = full_command_display
+        if hasattr(executor_instance, 'global_vars'):
+             for key, value in executor_instance.global_vars.items():
+                 if ConditionEvaluator.should_mask_variable(key) and value:
+                     # Create masked representation
+                     masked_val = ConditionEvaluator.mask_value(value)
+                     # Replace all occurrences of the secret value with the mask
+                     # We convert value to str to be safe
+                     log_command_display = log_command_display.replace(str(value), masked_val)
+        
+        executor_instance.final_command = log_command_display # better to have full command in the summary log
 
         # Get timeout for this task (pass exec_type to avoid redundant computation)
         task_timeout = executor_instance.get_task_timeout(task, exec_type)
@@ -197,12 +209,12 @@ class SequentialExecutor(BaseExecutor):
 
         # Execute the command (or simulate in dry run mode)
         if executor_instance.dry_run:
-            executor_instance.log(f"Task {task_id}{loop_display}: [DRY RUN] Would execute: {full_command_display}")
+            executor_instance.log(f"Task {task_id}{loop_display}: [DRY RUN] Would execute: {log_command_display}")
             exit_code = 0
             stdout = "DRY RUN STDOUT"
             stderr = ""
         else:
-            executor_instance.log(f"Task {task_id}{loop_display}: Executing [{exec_type}]: {full_command_display}")
+            executor_instance.log(f"Task {task_id}{loop_display}: Executing [{exec_type}]: {log_command_display}")
             try:
                 # Execute using context manager for automatic cleanup
                 import subprocess

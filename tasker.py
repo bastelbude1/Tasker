@@ -136,17 +136,52 @@ def parse_file_args(task_file_path):
     return file_args
 
 
+def get_explicit_args(parser, args_list):
+    """
+    Helper to extract only explicitly provided arguments from a list.
+    
+    Temporarily suppresses defaults to identify which arguments were
+    actually provided by the user/file.
+    
+    Args:
+        parser: ArgumentParser instance
+        args_list: List of argument strings
+        
+    Returns:
+        Namespace containing only explicit arguments
+    """
+    # Save original defaults
+    defaults = {}
+    for action in parser._actions:
+        defaults[action] = action.default
+        # Suppress defaults so they don't appear in the namespace
+        # unless explicitly provided
+        action.default = argparse.SUPPRESS
+    
+    try:
+        # Use parse_known_args to avoid errors with partial args
+        # or missing positionals (which we might not care about here)
+        namespace, _ = parser.parse_known_args(args_list)
+        return namespace
+    except Exception:
+        # Fallback in case of parsing error (shouldn't happen with valid args)
+        return argparse.Namespace()
+    finally:
+        # Restore original defaults
+        for action, default in defaults.items():
+            action.default = default
+
+
 def merge_args(parser, file_args, cli_args):
     """
     Merge file-defined arguments with CLI arguments.
 
-    Precedence: File args provide baseline, CLI args are additive/override.
-
-    Strategy:
-    - Parse file args through argparse to get file_namespace
-    - Parse CLI args through argparse to get cli_namespace
-    - Merge: CLI args override file args for value-based options
-    - Merge: CLI args are additive to file args for boolean flags
+    Precedence: Default < File < CLI (Explicit)
+    
+    Logic:
+    1. CLI Explicit args override everything.
+    2. File Explicit args override Defaults (if not overridden by CLI).
+    3. Boolean flags are additive (True if either File or CLI is True).
 
     Args:
         parser: Configured ArgumentParser instance
@@ -156,66 +191,50 @@ def merge_args(parser, file_args, cli_args):
     Returns:
         Merged argparse.Namespace with effective arguments
     """
-    # Parse file args (skip task_file positional arg for now)
-    if file_args:
-        # Temporarily make task_file optional for file args parsing
-        task_file_action = None
-        for action in parser._actions:
-            if action.dest == 'task_file':
-                task_file_action = action
-                action.required = False
-                break
+    # 1. Get explicit CLI args (what the user actually typed)
+    cli_explicit = get_explicit_args(parser, cli_args)
+    
+    # 2. Get explicit File args
+    # We must include a dummy positional arg if one is required (task_file)
+    # to prevent parse_known_args from potentially getting confused
+    # (though parse_known_args usually handles missing positionals gracefully,
+    # the current parser setup expects it)
+    file_args_with_dummy = list(file_args) + ['__dummy__'] if file_args else ['__dummy__']
+    file_explicit = get_explicit_args(parser, file_args_with_dummy)
 
-        # Parse file args with a dummy task file
-        file_namespace = parser.parse_args([*file_args, '__dummy__'])
-
-        # Restore task_file requirement
-        if task_file_action:
-            task_file_action.required = True
-    else:
-        # No file args, create empty namespace
-        file_namespace = parser.parse_args(['__dummy__'])
-        # Reset to defaults
-        for action in parser._actions:
-            if action.dest != 'task_file' and hasattr(file_namespace, action.dest):
-                setattr(file_namespace, action.dest, action.default)
-
-    # Parse CLI args normally
-    cli_namespace = parser.parse_args(cli_args)
-
-    # Merge: CLI overrides/adds to file args
-    merged = argparse.Namespace()
-
+    # 3. Get full standard parse from CLI
+    # This provides the baseline: Defaults + CLI args (with type conversion etc.)
+    # This is our starting point for the merged namespace.
+    final_ns = parser.parse_args(cli_args)
+    
+    # 4. Apply File args where appropriate
     for action in parser._actions:
         dest = action.dest
-
-        # Skip special argparse internals
-        if dest in ('help', 'version'):
+        
+        # Skip special internals and the positional argument
+        # (task_file is handled by the main CLI parse)
+        if dest in ('help', 'version', 'task_file'):
             continue
-
-        file_value = getattr(file_namespace, dest, action.default)
-        cli_value = getattr(cli_namespace, dest, action.default)
-
-        # For task_file, always use CLI value
-        if dest == 'task_file':
-            setattr(merged, dest, cli_value)
-            continue
-
-        # Boolean flags: combine (file OR cli) - if either is True, result is True
-        if isinstance(action, argparse._StoreTrueAction):
-            merged_value = file_value or cli_value
-            setattr(merged, dest, merged_value)
-
-        # Value options: CLI overrides file
-        else:
-            # If CLI provided a value different from default, use CLI value
-            if cli_value != action.default:
-                setattr(merged, dest, cli_value)
-            # Otherwise use file value
+            
+        # If the file explicitly provided this argument...
+        if hasattr(file_explicit, dest):
+            file_val = getattr(file_explicit, dest)
+            
+            # Special handling for boolean store_true (Additive)
+            if isinstance(action, argparse._StoreTrueAction):
+                # If file has it True, ensure it's True in final (OR logic)
+                # (If CLI explicitly set it True, it's already True in final_ns)
+                # (If CLI explicitly set it False... wait, store_true doesn't allow setting False 
+                # unless it's a custom action or --no-flag, but standard store_true is just a toggle.
+                # So "OR" logic is correct for standard store_true flags.)
+                if file_val:
+                    setattr(final_ns, dest, True)
             else:
-                setattr(merged, dest, file_value)
-
-    return merged
+                # For values: Only apply file value if CLI did NOT explicitly provide it
+                if not hasattr(cli_explicit, dest):
+                    setattr(final_ns, dest, file_val)
+                    
+    return final_ns
 
 
 def get_available_exec_types():

@@ -1,0 +1,26 @@
+# TEST_METADATA: {"description": "Test TASK_EXECUTOR_TIMEOUT environment variable", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true}
+
+# Test that TASK_EXECUTOR_TIMEOUT environment variable works
+# Run with: TASK_EXECUTOR_TIMEOUT=120 python3 tasker.py test_timeout_env_variable.txt
+# This tests the environment variable fallback in the priority chain
+
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing environment variable timeout
+
+# Task without explicit timeout - should use env var (if set)
+# When YAML doesn't have timeout configured
+task=1
+hostname=localhost
+exec=local
+command=sleep
+arguments=1
+# No timeout - uses environment variable if set, otherwise 300
+
+task=2
+hostname=localhost
+exec=local
+command=echo
+arguments=Environment variable timeout test completed

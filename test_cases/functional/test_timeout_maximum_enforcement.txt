@@ -1,0 +1,24 @@
+# TEST_METADATA: {"description": "Test maximum timeout enforcement (1000s)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_warnings": 1}
+
+# Test that timeouts above 1000 seconds are clamped to maximum
+
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing maximum timeout enforcement
+
+# Task with timeout above maximum (should be clamped to 1000s)
+task=1
+hostname=localhost
+exec=local
+command=sleep
+arguments=1
+# Too high - will be clamped to 1000s with warning
+timeout=2000
+
+task=2
+hostname=localhost
+exec=local
+command=echo
+arguments=Maximum timeout enforcement test completed

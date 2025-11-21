@@ -1,0 +1,34 @@
+# TEST_METADATA: {"description": "Test minimum timeout enforcement (5s)", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true, "expected_warnings": 2}
+
+# Test that timeouts below 5 seconds are enforced to minimum 5 seconds
+# Should generate warnings about timeout being too low
+
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing minimum timeout enforcement
+
+# Task with timeout below minimum (should be enforced to 5s)
+task=1
+hostname=localhost
+exec=local
+command=sleep
+arguments=1
+# Too low - will be enforced to 5s with warning
+timeout=2
+
+# Another task with low timeout
+task=2
+hostname=localhost
+exec=local
+command=sleep
+arguments=1
+# Also too low - will be enforced to 5s with warning
+timeout=3
+
+task=3
+hostname=localhost
+exec=local
+command=echo
+arguments=Minimum timeout enforcement test completed

@@ -1,0 +1,34 @@
+# TEST_METADATA: {"description": "Test YAML exec-type specific timeout configuration", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true}
+
+# Test that YAML exec-type specific timeout is used when configured
+# This would require adding exec-type specific timeout to execution_types.yaml
+# For example: pbrun: timeout: 600
+
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing YAML exec-type timeout configuration
+
+# Task without explicit timeout - should use exec-type specific if configured
+# For shell exec type, if configured with different timeout
+task=1
+hostname=localhost
+exec=shell
+command=sleep
+arguments=1
+# No explicit timeout - should use exec-type timeout from YAML
+
+# Task with local exec - should use platform default (300)
+task=2
+hostname=localhost
+exec=local
+command=sleep
+arguments=1
+# No explicit timeout - should use platform default
+
+task=3
+hostname=localhost
+exec=local
+command=echo
+arguments=YAML exec-type timeout test completed

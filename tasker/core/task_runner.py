@@ -185,7 +185,7 @@ class TaskRunner:
                     self.log_warn(f"Invalid timeout value in task: '{timeout_str}'. Will check other sources.")
                     timeout = None
             else:
-                self.log_warn(f"Unresolved variables in timeout. Will check other sources.")
+                self.log_warn("Unresolved variables in timeout. Will check other sources.")
                 timeout = None
 
         # Get timeout from YAML configuration (exec-type and platform level)

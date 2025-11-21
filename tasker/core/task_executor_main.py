@@ -265,7 +265,7 @@ class TaskExecutor:
         if self.start_from_task is not None:
             self.log_info(f"# Resume mode: Starting from Task {self.start_from_task}")
             if self.skip_task_validation:
-                self.log_warn(f"# Task Validation will be skipped")
+                self.log_warn("# Task Validation will be skipped")
             if self.skip_host_validation:
                 self.log_warn("# Host Validation will be skipped - ATTENTION")
             if self.skip_unresolved_host_validation:
@@ -1965,7 +1965,7 @@ class TaskExecutor:
                     self.log_warn(f"Invalid timeout value in task: '{timeout_str}'. Will check other sources.")
                     timeout = None
             else:
-                self.log_warn(f"Unresolved variables in timeout. Will check other sources.")
+                self.log_warn("Unresolved variables in timeout. Will check other sources.")
                 timeout = None
 
         # Get timeout from YAML configuration (exec-type and platform level)

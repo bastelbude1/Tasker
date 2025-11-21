@@ -231,12 +231,12 @@ class SequentialExecutor(BaseExecutor):
                          # Critical: Re-raise system signals to avoid hanging
                          if isinstance(e, (SystemExit, KeyboardInterrupt)):
                              raise
-                         executor_instance.log(f"Warning: Error masking secret '{key}': {str(e)}")
+                         executor_instance.log(f"Warning: Error masking secret '{key}': {e!s}")
              except Exception as e:
                  # Critical: Re-raise system signals to avoid hanging
                  if isinstance(e, (SystemExit, KeyboardInterrupt)):
                      raise
-                 executor_instance.log(f"Warning: Unexpected error during secret masking setup: {str(e)}")
+                 executor_instance.log(f"Warning: Unexpected error during secret masking setup: {e!s}")
         
         executor_instance.final_command = log_command_display # better to have full command in the summary log
 

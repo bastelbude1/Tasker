@@ -43,11 +43,9 @@ class StreamingOutputHandler:
         self.temp_threshold = temp_threshold or self.DEFAULT_TEMP_THRESHOLD
         self.temp_dir = temp_dir or tempfile.gettempdir()
         
-        # Create a run-specific subdirectory if one wasn't provided
-        # This ensures we can clean up related files easily
+        # Note: If temp_dir is None, we use the system default temp directory.
+        # Caller (TaskExecutor) is responsible for creating run-specific directories.
         if temp_dir is None:
-            # We don't want to create a new dir if a specific one was passed (assuming caller manages it)
-            # But here we just use self.temp_dir as the base.
             pass
 
         # Output storage
@@ -69,7 +67,8 @@ class StreamingOutputHandler:
             try:
                 os.makedirs(self.temp_dir, exist_ok=True)
             except OSError:
-                pass # Fallback to system temp if we can't create
+                # Fallback to system temp if we can't create
+                self.temp_dir = None
 
         temp_file = tempfile.NamedTemporaryFile(
             mode='w+',

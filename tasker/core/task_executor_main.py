@@ -2473,8 +2473,8 @@ class TaskExecutor:
             # ESRCH (errno 3) means process doesn't exist
             if e.errno == errno.EPERM:
                 # Exists but can't signal.
-                # If we can't verify identity (likely can't read /proc either), assume valid
-                return True 
+                # Still attempt identity check (reading /proc usually works even if kill doesn't)
+                return self._verify_process_identity(pid) 
             return False  # Process doesn't exist
 
         # Process exists. Check if it's actually us (avoid PID reuse issues)

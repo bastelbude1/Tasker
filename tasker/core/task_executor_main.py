@@ -2416,13 +2416,7 @@ class TaskExecutor:
             if not args:
                 return True
                 
-            # Heuristic 1: Check for 'tasker' or 'python' in the command
-            # If it looks like us, return True
-            cmd_str = ' '.join(args)
-            if 'tasker' in cmd_str or 'python' in args[0]:
-                return True
-                
-            # Heuristic 2: Check for obvious mismatches (common system processes)
+            # Heuristic 1: Check for obvious mismatches (common system processes)
             # If the executable is obviously not python/tasker, assume PID reuse
             exe_name = os.path.basename(args[0])
             known_non_tasker = {
@@ -2437,6 +2431,19 @@ class TaskExecutor:
             
             if exe_name in known_non_tasker:
                 self.log_debug(f"PID {pid} identity mismatch: {exe_name} != tasker. Ignoring stale lock.")
+                return False
+
+            # Heuristic 2: Check for 'tasker' in the command
+            # If it explicitly mentions tasker, it's likely us.
+            cmd_str = ' '.join(args)
+            if 'tasker' in cmd_str:
+                return True
+                
+            # Heuristic 3: Strict Python check
+            # If it is a python process but does NOT mention tasker (checked above),
+            # assume it is an unrelated python script (PID reuse).
+            if 'python' in exe_name:
+                self.log_debug(f"PID {pid} identity mismatch: Python process '{cmd_str}' != tasker. Ignoring stale lock.")
                 return False
                 
             # Default: Assume valid if we're not sure

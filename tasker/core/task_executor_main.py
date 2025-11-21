@@ -356,7 +356,10 @@ class TaskExecutor:
             self.log_info("# Dry run mode")
         if self.strict_env_validation:
             self.log_info("# Strict environment variable validation: ENABLED (requires TASKER_ prefix)")
-        self.log_debug(f"# Default timeout: {timeout} [s]")
+        if timeout is not None:
+            self.log_debug(f"# CLI timeout: {timeout} [s]")
+        else:
+            self.log_debug("# Timeout: will be determined from YAML/env/defaults")
     
         # Only add minimal warning for shared summary files
         if self.project:
@@ -1961,16 +1964,17 @@ class TaskExecutor:
 
         # Get timeout from task (highest priority)
         if 'timeout' in task:
+            task_id = task.get('task', 'unknown')
             timeout_str, resolved = ConditionEvaluator.replace_variables(task['timeout'], self.global_vars, self.task_results, self.log_debug)
             if resolved:
                 try:
                     timeout = int(timeout_str)
                     self.log_debug(f"Using timeout from task: {timeout}")
                 except ValueError:
-                    self.log_warn(f"Invalid timeout value in task: '{timeout_str}'. Will check other sources.")
+                    self.log_warn(f"Task {task_id}: Invalid timeout value '{timeout_str}'. Will check other sources.")
                     timeout = None
             else:
-                self.log_warn("Unresolved variables in timeout. Will check other sources.")
+                self.log_warn(f"Task {task_id}: Unresolved variables in timeout. Will check other sources.")
                 timeout = None
 
         # Get timeout from YAML configuration (exec-type and platform level)
@@ -1998,7 +2002,7 @@ class TaskExecutor:
                 timeout = int(os.environ['TASK_EXECUTOR_TIMEOUT'])
                 self.log_debug(f"Using timeout from environment: {timeout}")
             except ValueError:
-                self.log_warn(f"Invalid timeout value in environment: '{os.environ['TASK_EXECUTOR_TIMEOUT']}'. Using hardcoded default.")
+                self.log_warn(f"Invalid timeout value in environment: '{os.environ['TASK_EXECUTOR_TIMEOUT']}'. Will use default.")
                 timeout = None
 
         # Use hardcoded default timeout (lowest priority - 300 seconds)

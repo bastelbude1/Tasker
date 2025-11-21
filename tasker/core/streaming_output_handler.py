@@ -9,6 +9,7 @@ CRITICAL: Python 3.6.8 compatible only - no 3.7+ features allowed
 """
 
 import os
+import logging
 import tempfile
 import threading
 import time
@@ -32,16 +33,18 @@ class StreamingOutputHandler:
     CHUNK_SIZE = 8192  # 8KB read chunks
     MAX_IN_MEMORY = 100 * 1024 * 1024  # 100MB absolute memory limit
 
-    def __init__(self, temp_threshold=None, temp_dir=None):
+    def __init__(self, temp_threshold=None, temp_dir=None, logger_callback=None):
         """
         Initialize streaming output handler.
 
         Args:
             temp_threshold: Size threshold for using temp files
             temp_dir: Directory for temporary files (default: system temp)
+            logger_callback: Optional callback for logging (defaults to logging module)
         """
         self.temp_threshold = temp_threshold or self.DEFAULT_TEMP_THRESHOLD
         self.temp_dir = temp_dir or tempfile.gettempdir()
+        self.logger_callback = logger_callback
         
         # Note: If temp_dir is None, we use the system default temp directory.
         # Caller (TaskExecutor) is responsible for creating run-specific directories.
@@ -132,7 +135,6 @@ class StreamingOutputHandler:
                     self._append_output(chunk, stream_type)
             except Exception as e:
                 # Stream closed or error - expected when process ends
-                import logging
                 logging.debug("Stream reader for %s ended: %s", stream_type, e)
 
         # Start threads to read stdout and stderr concurrently
@@ -168,9 +170,41 @@ class StreamingOutputHandler:
             # which can interfere with thread scheduling for sleep operations
             process.wait()
 
-        # Wait for reading threads to complete
-        stdout_thread.join(timeout=5)  # Give threads time to finish reading
-        stderr_thread.join(timeout=5)
+        # Wait for reading threads to complete with timeout
+        # Use polling loop to remain responsive to shutdown signals
+        join_timeout = 5.0
+        start_join = time.time()
+        
+        for thread in [stdout_thread, stderr_thread]:
+            while thread.is_alive():
+                # Check overall timeout
+                if time.time() - start_join > join_timeout:
+                    break
+                
+                # Check shutdown signal
+                try:
+                    if shutdown_check and shutdown_check():
+                        break
+                except Exception:
+                    logging.debug("Shutdown check raised exception during thread join, continuing")
+
+                thread.join(timeout=0.1)
+                
+        # Verify threads actually stopped
+        if stdout_thread.is_alive() or stderr_thread.is_alive():
+            # Only warn if not shutting down (to avoid noisy warnings during SIGINT)
+            try:
+                is_shutdown = shutdown_check and shutdown_check()
+            except Exception as e:
+                logging.debug("Shutdown check raised exception during warning check: %s", e)
+                is_shutdown = False
+
+            if not is_shutdown:
+                msg = "StreamingOutputHandler: Output threads did not complete within timeout"
+                if self.logger_callback:
+                    self.logger_callback(msg)
+                else:
+                    logging.warning(msg)
 
         exit_code = process.returncode
 
@@ -251,7 +285,6 @@ class StreamingOutputHandler:
                 self.stdout_file.close()
                 os.unlink(self.stdout_file.name)
             except Exception as e:
-                import logging
                 logging.debug("Failed to cleanup stdout temp file %s: %s", getattr(self.stdout_file, 'name', '<unknown>'), e)
 
         if self.stderr_file:
@@ -259,7 +292,6 @@ class StreamingOutputHandler:
                 self.stderr_file.close()
                 os.unlink(self.stderr_file.name)
             except Exception as e:
-                import logging
                 logging.debug("Failed to cleanup stderr temp file %s: %s", getattr(self.stderr_file, 'name', '<unknown>'), e)
 
     def __enter__(self):
@@ -289,13 +321,14 @@ class StreamingOutputHandler:
         # Return None to propagate any original exception
 
 
-def create_memory_efficient_handler(max_memory_mb=10, temp_dir=None):
+def create_memory_efficient_handler(max_memory_mb=10, temp_dir=None, logger_callback=None):
     """
     Factory function to create a memory-efficient output handler.
 
     Args:
         max_memory_mb: Maximum memory to use before switching to temp files
         temp_dir: Optional specific directory for temp files
+        logger_callback: Optional callback for logging
 
     Returns:
         StreamingOutputHandler instance configured for memory efficiency
@@ -303,5 +336,6 @@ def create_memory_efficient_handler(max_memory_mb=10, temp_dir=None):
     threshold_bytes = min(max_memory_mb * 1024 * 1024, StreamingOutputHandler.MAX_IN_MEMORY)
     return StreamingOutputHandler(
         temp_threshold=threshold_bytes,
-        temp_dir=temp_dir
+        temp_dir=temp_dir,
+        logger_callback=logger_callback
     )

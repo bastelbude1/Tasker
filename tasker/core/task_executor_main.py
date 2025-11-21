@@ -1952,7 +1952,7 @@ class TaskExecutor:
         1. Task-specific 'timeout' parameter (highest)
         2. Exec-type specific timeout from YAML configuration
         3. Platform default timeout from YAML configuration
-        4. Command line argument (deprecated)
+        4. Constructor timeout parameter (programmatic usage)
         5. Environment variable TASK_EXECUTOR_TIMEOUT
         6. Hardcoded default 300 (lowest)
         """
@@ -1991,10 +1991,10 @@ class TaskExecutor:
                 timeout = config_timeout
                 # Debug message already logged by get_timeout() method
 
-        # Get timeout from command line argument (deprecated but still supported)
+        # Get timeout from constructor parameter (for programmatic usage)
         if timeout is None and self.timeout is not None:
             timeout = self.timeout
-            self.log_debug(f"Using timeout from command line: {timeout}")
+            self.log_debug(f"Using timeout from constructor: {timeout}")
 
         # Get timeout from environment (lower priority)
         if timeout is None and 'TASK_EXECUTOR_TIMEOUT' in os.environ:

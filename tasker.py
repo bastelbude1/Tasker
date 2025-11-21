@@ -69,7 +69,7 @@ from tasker.core.utilities import get_log_directory, sanitize_filename
 from tasker.config.exec_config_loader import get_loader as get_exec_config_loader
 
 # Version information
-VERSION = "2.1.3"
+VERSION = "2.1.4"
 
 # Security: Flags that should NEVER be accepted from task files
 CLI_ONLY_FLAGS = {'--help', '-h', '--version', '-V', '--force-instance'}
@@ -288,8 +288,8 @@ Examples:
                        default='INFO', help='Set logging level (default: INFO)')
     parser.add_argument('-t', '--type', choices=get_available_exec_types(),
                        help='Execution type (overridden by task-specific settings)')
-    parser.add_argument('-o', '--timeout', type=int, default=30,
-                       help='Default command timeout in seconds (5-1000, default: 30)')
+    parser.add_argument('-o', '--timeout', type=int, default=300,
+                       help='Default command timeout in seconds (5-1000, default: 300)')
     parser.add_argument('-p', '--project', 
                        help='Project name for summary logging')
     

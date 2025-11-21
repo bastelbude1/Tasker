@@ -31,7 +31,7 @@ class TaskRunner:
     """
 
     def __init__(self, state_manager, workflow_controller, result_collector,
-                 default_exec_type='local', default_timeout=30, dry_run=False,
+                 default_exec_type='local', default_timeout=300, dry_run=False,
                  logger_callback=None, debug_logger_callback=None):
         """
         Initialize task runner.

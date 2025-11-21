@@ -94,7 +94,7 @@ class TaskExecutor:
     # ===== 1. CLASS LIFECYCLE =====
     
     def __init__(self, task_file, log_dir='logs', dry_run=True, log_level='INFO',
-                 exec_type=None, timeout=30, project=None,
+                 exec_type=None, timeout=300, project=None,
                  start_from_task=None, skip_task_validation=False,
                  skip_host_validation=False, skip_unresolved_host_validation=False,
                  skip_command_validation=False,
@@ -1968,11 +1968,11 @@ class TaskExecutor:
                 self.log_debug(f"Using timeout from environment: {timeout}")
             except ValueError:
                 self.log_warn(f"Invalid timeout value in environment: '{os.environ['TASK_EXECUTOR_TIMEOUT']}'. Using default.")
-                timeout = 30
+                timeout = self.timeout
 
         # Use default timeout (lowest priority)
         else:
-            timeout = 30
+            timeout = self.timeout
             self.log_debug(f"Using default timeout: {timeout}")
 
         # Ensure timeout is within valid range

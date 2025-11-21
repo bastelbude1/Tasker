@@ -118,7 +118,6 @@ File-defined arguments use **identical syntax** to command-line arguments:
 
 # ✅ CORRECT - Value options
 --log-level=DEBUG
---timeout=60
 --start-from=5
 
 # ❌ WRONG - Single dash with long names (invalid argparse syntax)
@@ -143,16 +142,16 @@ When both file and CLI arguments are present:
 # workflow.txt contains:
 # --auto-recovery
 # --log-level=DEBUG
-# --timeout=30
+# --start-from=10
 
 # Command line overrides
-python3 tasker.py workflow.txt -r --log-level=INFO --timeout=60
+python3 tasker.py workflow.txt -r --log-level=INFO --start-from=20
 
 # Effective arguments:
 # --auto-recovery    (from file)
 # --run              (from CLI)
 # --log-level=INFO   (CLI overrides file)
-# --timeout=60       (CLI overrides file)
+# --start-from=20    (CLI overrides file)
 ```
 
 ### Where Arguments Are Ignored
@@ -248,7 +247,6 @@ These flags generate warnings but are allowed:
 | `--run` / `-r` | Boolean | `--run` or `-r` |
 | `--debug` / `-d` | Boolean | `--debug` or `-d` |
 | `--log-level=LEVEL` | Value | `--log-level=DEBUG` |
-| `--timeout=N` | Value | `--timeout=60` |
 | `--start-from=N` | Value | `--start-from=5` |
 | `--auto-recovery` | Boolean | `--auto-recovery` |
 | `--skip-host-validation` | Boolean | `--skip-host-validation` |

@@ -183,15 +183,22 @@ class StreamingOutputHandler:
                     break
                 
                 # Check shutdown signal
-                if shutdown_check and shutdown_check():
-                    break
-                    
+                try:
+                    if shutdown_check and shutdown_check():
+                        break
+                except Exception:
+                    pass # Keep polling if check fails
+
                 thread.join(timeout=0.1)
                 
         # Verify threads actually stopped
         if stdout_thread.is_alive() or stderr_thread.is_alive():
             # Only warn if not shutting down (to avoid noisy warnings during SIGINT)
-            is_shutdown = shutdown_check and shutdown_check()
+            try:
+                is_shutdown = shutdown_check and shutdown_check()
+            except Exception:
+                is_shutdown = False
+
             if not is_shutdown:
                 msg = "StreamingOutputHandler: Output threads did not complete within timeout"
                 if self.logger_callback:

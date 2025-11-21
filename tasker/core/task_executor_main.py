@@ -2810,7 +2810,18 @@ class TaskExecutor:
                 self.final_success = False
                 self.final_hostname = "localhost"
                 self.final_command = "host_validation"
-                self.log_error("Host validation failed. Exiting.")
+                
+                # Enhanced error message with failed hosts
+                failed_hosts = validated_hosts.get('failed_hosts', [])
+                if failed_hosts:
+                    if len(failed_hosts) > 10:
+                        host_list = ", ".join(failed_hosts[:10]) + f" ... ({len(failed_hosts)} total)"
+                    else:
+                        host_list = ", ".join(failed_hosts)
+                    self.log_error(f"Host validation failed for: {host_list}. Exiting.")
+                else:
+                    self.log_error("Host validation failed. Exiting.")
+                    
                 self.cleanup()
                 ExitHandler.exit_with_code(exit_code, "Host validation failed", False)
             elif validated_hosts is False:

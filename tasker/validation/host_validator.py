@@ -582,4 +582,4 @@ class HostValidator:
                     exec_types = set(f['exec_type'] for f in connection_failures)
                     log_callback(f"# Remote access validation failed for: {', '.join(exec_types)}")
         
-        return {'error': 'validation_failed', 'exit_code': primary_exit_code}
+        return {'error': 'validation_failed', 'exit_code': primary_exit_code, 'failed_hosts': sorted(list(set(f['host'] for f in failures)))}

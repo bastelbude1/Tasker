@@ -420,6 +420,11 @@ class ExecConfigLoader:
 
         # First check for exec-type specific validation timeout
         if exec_type:
+            # Handle aliases
+            aliases = self.config_data.get('aliases', {})
+            if exec_type in aliases:
+                exec_type = aliases[exec_type]
+
             exec_config = platform_config.get(exec_type, {})
             validation_test = exec_config.get('validation_test', {})
             if validation_test and 'timeout' in validation_test:

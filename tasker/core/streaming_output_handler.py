@@ -135,7 +135,6 @@ class StreamingOutputHandler:
                     self._append_output(chunk, stream_type)
             except Exception as e:
                 # Stream closed or error - expected when process ends
-                import logging
                 logging.debug("Stream reader for %s ended: %s", stream_type, e)
 
         # Start threads to read stdout and stderr concurrently
@@ -285,7 +284,6 @@ class StreamingOutputHandler:
                 self.stdout_file.close()
                 os.unlink(self.stdout_file.name)
             except Exception as e:
-                import logging
                 logging.debug("Failed to cleanup stdout temp file %s: %s", getattr(self.stdout_file, 'name', '<unknown>'), e)
 
         if self.stderr_file:
@@ -293,7 +291,6 @@ class StreamingOutputHandler:
                 self.stderr_file.close()
                 os.unlink(self.stderr_file.name)
             except Exception as e:
-                import logging
                 logging.debug("Failed to cleanup stderr temp file %s: %s", getattr(self.stderr_file, 'name', '<unknown>'), e)
 
     def __enter__(self):

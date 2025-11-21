@@ -45,8 +45,6 @@ class StreamingOutputHandler:
         
         # Note: If temp_dir is None, we use the system default temp directory.
         # Caller (TaskExecutor) is responsible for creating run-specific directories.
-        if temp_dir is None:
-            pass
 
         # Output storage
         self.stdout_data = ""

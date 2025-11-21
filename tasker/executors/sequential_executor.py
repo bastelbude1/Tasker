@@ -205,14 +205,15 @@ class SequentialExecutor(BaseExecutor):
                          str_val = None
                          try:
                              str_val = f"{value!s}"
-                         except Exception:
+                         except Exception:  # noqa: BLE001
                              try:
                                  str_val = repr(value)
-                             except Exception:
+                             except Exception:  # noqa: BLE001
                                  executor_instance.log(f"Warning: Could not convert secret '{key}' to string for masking.")
                                  continue
                          
-                         if str_val is None:
+                         # Skip empty strings to avoid creating empty regex patterns
+                         if not str_val:
                              continue
 
                          # Create masked representation

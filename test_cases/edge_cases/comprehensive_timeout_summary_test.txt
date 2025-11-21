@@ -1,4 +1,4 @@
-# TEST_METADATA: {"description": "Comprehensive timeout summary test","test_type": "performance","expected_exit_code": 10,"expected_success": false,"skip_host_validation": true,"expected_warnings": 3}
+# TEST_METADATA: {"description": "Comprehensive timeout summary test","test_type": "performance","expected_exit_code": 10,"expected_success": false,"skip_host_validation": true,"expected_warnings": 0}
 # Test case to demonstrate timeout tasks are recorded in summary
 # This test uses a parallel task with a low timeout to ensure
 # some tasks timeout and verify they appear in the summary file
@@ -9,7 +9,7 @@ command=echo
 arguments=Starting comprehensive timeout test
 exec=local
 
-# Parallel task with 3 second timeout
+# Parallel task with 5 second timeout (minimum enforced)
 # Tasks 2 and 3 will timeout, task 4 will succeed
 task=1
 type=parallel
@@ -23,7 +23,7 @@ hostname=localhost
 command=sleep
 arguments=10
 exec=local
-timeout=3
+timeout=5
 
 # This will also timeout (sleeps for 10 seconds)
 task=3
@@ -31,7 +31,7 @@ hostname=localhost
 command=sleep
 arguments=10
 exec=local
-timeout=3
+timeout=5
 
 # This will succeed (sleeps for only 1 second)
 task=4
@@ -39,7 +39,7 @@ hostname=localhost
 command=sleep
 arguments=1
 exec=local
-timeout=3
+timeout=5
 
 # Final task to show execution continues after parallel timeouts
 task=5

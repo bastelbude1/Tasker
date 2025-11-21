@@ -2442,12 +2442,12 @@ class TaskExecutor:
             # Heuristic 3: Strict Python check
             # If it is a python process but does NOT mention tasker (checked above),
             # assume it is an unrelated python script (PID reuse).
-            if 'python' in exe_name:
+            if exe_name.startswith('python'):
                 self.log_debug(f"PID {pid} identity mismatch: Python process '{cmd_str}' != tasker. Ignoring stale lock.")
                 return False
-                
-            # Default: Assume valid if we're not sure
-            return True
+            else:
+                # Default: Assume valid if we're not sure
+                return True
             
         except (OSError, IOError):
             # Permission denied or other error - assume valid to be safe

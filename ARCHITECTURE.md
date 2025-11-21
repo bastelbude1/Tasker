@@ -1,11 +1,11 @@
-# TASKER 2.1 Architecture Diagram
+# TASKER 2.2 Architecture Diagram
 
 ## 1. High-Level System Architecture
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                         TASKER 2.1 SYSTEM                               │
-│                   Professional Task Automation Framework                │
+│                         TASKER 2.2 SYSTEM                               │
+│              Enterprise Production Ready Automation Framework           │
 └─────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -46,7 +46,7 @@
 │ │  • Task scheduling and routing                                  │ │
 │ │  • Result collection                                            │ │
 │ │  • Timeout management                                           │ │
-│ │  • Shutdown handling                                            │ │
+│ │  • Non-blocking shutdown (v2.2 - <100ms Ctrl+C response)        │ │
 │ └──────────────┬──────────────────────────────────────────────────┘ │
 │                │                                                    │
 │  ┌─────────────┴─────────────┐                                      │
@@ -56,7 +56,7 @@
 │ │ConditionEvaluator│  │ StreamingOutputHandler│                     │
 │ │ • @VAR@ replace  │  │ • Memory efficiency   │                     │
 │ │ • Success eval   │  │ • 1MB threshold       │                     │
-│ │ • Variable mask  │  │ • Temp file mgmt      │                     │
+│ │ • Secret masking │  │ • Session temp dirs   │                     │
 │ └──────────────────┘  └───────────────────────┘                     │
 │                                                                     │
 │ ┌──────────────────┐  ┌──────────────────────┐  ┌─────────────────┐ │
@@ -196,8 +196,8 @@
   │                                    │
   │  Size < 1MB?                       │
   │  ├─ YES → Memory Buffer            │
-  │  └─ NO  → Temp File                │
-  │            /tmp/tasker_stdout_XXX  │
+  │  └─ NO  → Session Temp File        │
+  │            ~/TASKER/tmp/<session>/ │
   └────────┬───────────────────────────┘
            │
            ▼
@@ -265,8 +265,8 @@ Task 0 Execution:
   │  StreamingOutputHandler      │
   │  Size check: 5MB > 1MB?      │
   │  └─ YES                      │
-  │     ├─ Create temp file      │
-  │     │  /tmp/tasker_stdout_XX │
+  │     ├─ Create session temp   │
+  │     │  ~/TASKER/tmp/<sess>/  │
   │     ├─ Stream data to file   │
   │     ├─ Release memory buffer │ ← Frees memory immediately
   │     └─ Store path in result  │
@@ -276,7 +276,7 @@ Task 0 Execution:
   ┌──────────────────────────────┐
   │  task_results[0] = {         │
   │    stdout: ""                │ ← Empty (memory freed)
-  │    stdout_file: "/tmp/..."   │ ← Path for file-based access
+  │    stdout_file: "~/TASKER/..." ← Session temp file path
   │    exit_code: 0              │
   │    success: True             │
   │  }                           │
@@ -324,18 +324,18 @@ Alternative: Full File Access
   ┌──────────────────────────────────┐
   │  Substitution:                   │
   │  @0_stdout_file@ →               │
-  │  /tmp/tasker_stdout_XX           │
+  │  ~/TASKER/tmp/<session>/...      │
   │                                  │
   │  Final Command:                  │
-  │  process /tmp/tasker_stdout_XX   │ ← Full data accessible
+  │  process ~/TASKER/tmp/<sess>/... │ ← Full data accessible
   └──────────────────────────────────┘
 
 Cleanup (Workflow End):
   ┌──────────────────────────────────┐
   │  Phase 3: Temp File Cleanup      │
-  │  ├─ Find all /tmp/tasker_*       │
+  │  ├─ Remove session directory     │
   │  ├─ Close file descriptors       │
-  │  └─ Unlink temp files            │
+  │  └─ Clean isolated temp files    │
   └──────────────────────────────────┘
 ```
 
@@ -743,16 +743,17 @@ Command-line Substitution:
 
 ## Summary
 
-**TASKER 2.1 Architecture Highlights**:
+**TASKER 2.2 Architecture Highlights**:
 
 1. **Layered Design**: Clear separation (Validation → Core → Execution → Target)
 2. **Config-Based Execution**: External YAML configuration for execution types (PR#96, PR#97)
 3. **Executor Pattern**: Pluggable strategies (4 execution strategies)
-4. **Security-First**: Multi-layer validation with defense-in-depth
+4. **Security-First**: Multi-layer validation with defense-in-depth + comprehensive secret masking
 5. **Memory Efficient**: O(1) memory for unlimited output sizes (1MB threshold)
 6. **Cross-Task Data**: Sophisticated variable substitution with ARG_MAX protection
 7. **Test Infrastructure**: Metadata-driven validation (465/465 tests passing)
 8. **No External Dependencies**: Pure Python 3.6.8 standard library
+9. **Production Ready**: Non-blocking shutdown (<100ms), session-isolated temp files, robust PID verification
 
 **Key Design Patterns** (with rationale):
 

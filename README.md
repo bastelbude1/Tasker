@@ -1,4 +1,4 @@
-# TASK ExecutoR - TASKER 2.1
+# TASK ExecutoR - TASKER 2.2
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Copyright](https://img.shields.io/badge/Copyright-2024--2025%20Bastelbude-green.svg)](COPYRIGHT)
@@ -32,6 +32,23 @@ Transform complex operations into simple configuration files. TASKER automates w
 - ✅ **Built-in Intelligence** - Detects success/failure from exit codes, stdout, stderr
 - ✅ **Resume & Recovery** - Automatic recovery from failures with resume capability
 - ✅ **Machine-Readable Output** - JSON workflow summaries for integration
+
+## What's New in 2.2? 🚀
+
+**Enterprise Production Ready Release** - All mandatory production improvements complete!
+
+**Production Safety & Reliability:**
+- ✅ **Non-Blocking Shutdown** - Graceful signal handling with <100ms Ctrl+C response
+- ✅ **Robust Instance Locks** - Process identity verification prevents false PID detection (Linux)
+- ✅ **Safe Temp Management** - Session-specific directories with automatic cleanup
+- ✅ **Secret Protection** - Comprehensive masking of passwords, tokens, and credentials in logs
+
+**Enhanced User Experience:**
+- ✅ **Correct CLI Precedence** - File arguments properly override defaults, CLI overrides all
+- ✅ **Better Error Handling** - Enhanced logging with debug capabilities throughout
+- ✅ **Responsive Threading** - Polling-based shutdown awareness in all background operations
+
+**See [CHANGELOG](#) for complete details.**
 
 ## Your First Workflow: Service Health Check
 
@@ -118,7 +135,9 @@ exec=local
 
 ## Overview
 
-TASKER 2.1 is a next-generation task automation framework that reads task definitions from configuration files and executes them with advanced orchestration capabilities. Built on a modular architecture for maximum maintainability and scalability.
+TASKER 2.2 is a next-generation task automation framework that reads task definitions from configuration files and executes them with advanced orchestration capabilities. Built on a modular architecture for maximum maintainability and scalability.
+
+**Enterprise Production Ready** - Version 2.2 completes all mandatory production improvements including non-blocking shutdown, robust PID verification, comprehensive secret masking, and safe temp file management.
 
 📐 **Architecture Documentation** - Comprehensive system design with 8 detailed diagrams:
 - **[Mermaid Version](ARCHITECTURE_MERMAID.md)** (GitHub-optimized, beautifully rendered diagrams)
@@ -834,6 +853,6 @@ See [LICENSE](LICENSE), [COPYRIGHT](COPYRIGHT), and [NOTICE](NOTICE) files for f
 
 ---
 
-**TASKER 2.1** - Professional Task Automation for Enterprise Environments
+**TASKER 2.2** - Enterprise Production Ready Task Automation
 
 Copyright (C) 2024-2025 Bastelbude and Contributors

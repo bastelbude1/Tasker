@@ -1019,7 +1019,9 @@ $ tasker -r task.txt --instance-check --debug
 
 ## Memory-Efficient Output Streaming
 
-TASKER 2.1 includes an advanced memory-efficient output streaming system that prevents Out-of-Memory (OOM) errors when processing commands that generate large amounts of output (1GB+). This system automatically manages memory usage and seamlessly handles outputs of any size.
+TASKER 2.2 includes an advanced memory-efficient output streaming system that prevents Out-of-Memory (OOM) errors when processing commands that generate large amounts of output (1GB+). This system automatically manages memory usage and seamlessly handles outputs of any size.
+
+**Enhanced in v2.2.0**: Session-specific temp directories (`~/TASKER/tmp/<session>/`) provide better isolation and automatic cleanup compared to previous versions.
 
 ### The Problem with Large Outputs
 
@@ -1111,7 +1113,7 @@ command=analyze_massive_dataset
 - **Buffer Size**: 8KB read chunks for streaming
 - **Maximum Memory**: 100MB absolute limit per task
 - **Command-Line Limit**: 100KB for @N_stdout@ / @N_stderr@ substitution
-- **Temp File Location**: System temp directory (`/tmp` on Linux)
+- **Temp File Location**: Session temp directory (`~/TASKER/tmp/<session>/` on Linux) - v2.2.0+
 
 #### Streaming Process
 
@@ -1120,14 +1122,18 @@ command=analyze_massive_dataset
 3. **Memory Management**: Constant memory usage regardless of output size
 4. **Resource Cleanup**: Temporary files persist until workflow completion for cross-task access
 
-#### File Naming Convention
+#### File Naming Convention (v2.2.0+)
 
 ```text
-/tmp/tasker_stdout_XXXXXX  # Standard output temp file
-/tmp/tasker_stderr_XXXXXX  # Standard error temp file
+~/TASKER/tmp/<session_timestamp>/tasker_stdout_XXXXXX  # Standard output temp file
+~/TASKER/tmp/<session_timestamp>/tasker_stderr_XXXXXX  # Standard error temp file
 ```
 
-Where `XXXXXX` is a random 6-character suffix for uniqueness.
+Where:
+- `<session_timestamp>` is the workflow execution session ID (e.g., `20251122_123045`)
+- `XXXXXX` is a random 6-character suffix for uniqueness per task
+
+**Benefits**: Session isolation prevents conflicts between concurrent workflows and enables automatic cleanup of entire session directories.
 
 ### Performance Characteristics
 
@@ -3278,9 +3284,10 @@ TASKER automatically manages temporary files for large outputs (>1MB) to prevent
 
 **1. Creation (During Task Execution):**
 - When task stdout or stderr exceeds 1MB threshold
-- File created in system temp directory (`/tmp` on Linux)
+- File created in session temp directory (`~/TASKER/tmp/<session>/` on Linux) - v2.2.0+
 - Format: `tasker_stdout_XXXXXX` or `tasker_stderr_XXXXXX`
 - File path stored in task result for cross-task access
+- Session isolation prevents conflicts between concurrent workflows
 
 **2. Usage (During Workflow):**
 - Temp files persist throughout workflow execution
@@ -3329,17 +3336,24 @@ arguments=-c "wc -c < @0_stdout_file@"
 
 **Automatic Cleanup:**
 - Occurs at workflow end (success or failure)
-- Handles graceful shutdown (Ctrl+C)
+- Handles graceful shutdown (Ctrl+C with <100ms response - v2.2.0+)
 - Cleans up on task failures
 - Logs errors but doesn't fail workflow
+- Session-based cleanup removes entire session directory (v2.2.0+)
 
 **Manual Cleanup:**
 
 ```bash
-# Find TASKER temp files (diagnostic)
+# v2.2.0+: Find TASKER session directories
+ls -la ~/TASKER/tmp/
+
+# v2.2.0+: Manual cleanup of specific session (use with caution)
+rm -rf ~/TASKER/tmp/20251122_123045/
+
+# Legacy (<v2.2.0): Find system temp files
 ls -la /tmp/tasker_stdout_* /tmp/tasker_stderr_*
 
-# Manual cleanup if needed (use with caution)
+# Legacy cleanup (use with caution)
 rm /tmp/tasker_stdout_* /tmp/tasker_stderr_*
 ```
 
@@ -3361,7 +3375,8 @@ TASKER's temp file management is designed for safe concurrent execution:
 
 2. **Debugging:**
    - Enable debug mode to see temp file creation/deletion
-   - Check `/tmp` for orphaned files after crashes
+   - Check `~/TASKER/tmp/` for orphaned session directories after crashes (v2.2.0+)
+   - Legacy: Check `/tmp` for orphaned files in older versions
    - Monitor disk space when processing many large outputs
 
 3. **Performance:**
@@ -3377,8 +3392,9 @@ TASKER's temp file management is designed for safe concurrent execution:
 - Enable debug logging for cleanup details
 
 **Disk Space Issues:**
-- Monitor `/tmp` usage during large workflows
-- Consider adjusting system temp directory size
+- Monitor `~/TASKER/tmp/` usage during large workflows (v2.2.0+)
+- Legacy: Monitor `/tmp` usage in older versions
+- Consider adjusting temp directory size
 - Use output splitting to reduce stored data
 
 **Access Errors:**

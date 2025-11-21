@@ -277,13 +277,14 @@ class TaskExecutor:
             if self.skip_security_validation:
                 self.log_warn("# Security Validation will be skipped - ATTENTION")
 
-        # Initialize summary tracking variables with sentinel values
-        # Task ID -1 indicates validation/setup failure (no task executed)
-        self.final_task_id = -1  # Default: -1 means validation failure (no task executed)
-        self.final_exit_code = -1  # Default: unset/unknown
-        self.final_success = False  # Default: assume failure until proven otherwise
-        self.final_hostname = "localhost"  # Default: validation happens locally
-        self.final_command = "validation"  # Default: validation phase
+        # Initialize summary tracking variables
+        # These remain None until actual execution or explicit validation failure
+        # Validation failures explicitly set task_id=-1 to indicate "no task executed"
+        self.final_task_id = None  # Will be set to -1 for validation failures, or actual task_id during execution
+        self.final_exit_code = None
+        self.final_success = None
+        self.final_hostname = None
+        self.final_command = None
         self.summary_log_path = None
 
         # Capture timestamp once for consistency across formats

@@ -392,6 +392,21 @@ Timeouts are configured through the following hierarchy (highest to lowest prior
 4. **Environment variable** - `TASK_EXECUTOR_TIMEOUT`
 5. **Hardcoded default** - 300 seconds
 
+#### Validation Timeout Configuration
+
+Host validation tests (pbtest, wwrs_test, etc.) use separate timeouts with this priority:
+
+1. **Environment variable** - `VALIDATION_TEST_TIMEOUT` (global override)
+2. **Exec-type specific** - `validation_test.timeout` in `cfg/execution_types.yaml`
+3. **Platform default** - `default_validation_timeout` in `cfg/execution_types.yaml`
+4. **Hardcoded default** - 10 seconds
+
+Example:
+```bash
+# Override validation timeout globally (useful for slow networks)
+VALIDATION_TEST_TIMEOUT=30 ptasker workflow.txt
+```
+
 **Complete parameter reference:** [TaskER_FlowChart.md](TaskER_FlowChart.md)
 
 ---

@@ -13,6 +13,7 @@ This guide covers advanced TASKER features for power users. For basic usage, see
 - [Alert-on-Failure: Workflow Monitoring](#alert-on-failure-workflow-monitoring)
 - [Remote Execution Configuration](#remote-execution-configuration)
 - [Timeout Configuration](#timeout-configuration)
+- [Validation Timeout Configuration](#validation-timeout-configuration)
 - [Execution Models](#execution-models)
 - [Advanced Flow Control](#advanced-flow-control)
 - [Task Result Storage and Data Flow](#task-result-storage-and-data-flow)
@@ -2268,6 +2269,125 @@ The `--timeout` CLI argument has been removed in favor of this configuration hie
 
 - **Old**: `tasker.py workflow.txt -r --timeout=600`
 - **New**: Set in `cfg/execution_types.yaml` or use `TASK_EXECUTOR_TIMEOUT=600`
+
+---
+
+## Validation Timeout Configuration
+
+Host validation tests use separate timeouts from task execution to ensure connectivity checks complete quickly.
+
+### Validation Timeout Priority Hierarchy
+
+Validation timeouts follow this priority order (highest to lowest):
+
+1. **Environment Variable (Global Override)**
+   ```bash
+   VALIDATION_TEST_TIMEOUT=30 ptasker workflow.txt
+   ```
+   - Overrides ALL validation timeouts globally
+   - Useful for CI/CD environments or slow networks
+   - Takes precedence over exec-type specific configurations
+
+2. **Exec-Type Specific Timeout**
+   ```yaml
+   platforms:
+     linux:
+       wwrs:
+         validation_test:
+           command: wwrs_test
+           timeout: 15  # Specific timeout for wwrs validation
+   ```
+
+3. **Platform Default Validation Timeout**
+   ```yaml
+   platforms:
+     linux:
+       default_validation_timeout: 10  # Platform-wide default
+   ```
+
+4. **Hardcoded Default**: 10 seconds
+
+### Configuration Examples
+
+#### Platform-Level Configuration
+```yaml
+platforms:
+  linux:
+    # Task execution timeout
+    default_timeout: 300
+
+    # Validation test timeout (separate from execution)
+    default_validation_timeout: 10
+
+    pbrun:
+      validation_test:
+        command: pbtest
+        expected_exit: 0
+        expected_output: "OK"
+        timeout: 10  # Optional: use platform default if not specified
+
+    wwrs:
+      validation_test:
+        command: wwrs_test
+        expected_exit: 0
+        expected_output: "OK"
+        timeout: 15  # Override for slower wwrs validation
+```
+
+#### Environment Variable Override
+```bash
+# Development environment with fast network
+VALIDATION_TEST_TIMEOUT=5 ptasker workflow.txt
+
+# Production with slow/high-latency connections
+VALIDATION_TEST_TIMEOUT=30 ptasker workflow.txt
+
+# CI/CD with consistent timeout requirements
+export VALIDATION_TEST_TIMEOUT=20
+ptasker test_suite.txt
+```
+
+### Validation vs Execution Timeouts
+
+| Aspect | Validation Timeout | Execution Timeout |
+|--------|-------------------|-------------------|
+| **Purpose** | Host connectivity checks | Task command execution |
+| **Default** | 10 seconds | 300 seconds |
+| **Config Key** | `default_validation_timeout` | `default_timeout` |
+| **Environment Variable** | `VALIDATION_TEST_TIMEOUT` | `TASK_EXECUTOR_TIMEOUT` |
+| **Scope** | Pre-execution validation | Actual task execution |
+| **Typical Values** | 5-30 seconds | 30-1000 seconds |
+
+### Best Practices
+
+1. **Keep validation timeouts short** - They run before every task on remote hosts
+2. **Use exec-type specific timeouts sparingly** - Only when certain tools are consistently slower
+3. **Set platform defaults appropriately** - Cover 95% of cases with the default
+4. **Use environment variables for environments** - Different timeouts for dev/test/prod
+5. **Document timeout increases** - Explain why certain validations need more time
+
+### Troubleshooting
+
+**Validation timing out?**
+```bash
+# Quick test with increased timeout
+VALIDATION_TEST_TIMEOUT=60 ptasker workflow.txt
+
+# If it works, update YAML configuration
+# cfg/execution_types.yaml:
+#   validation_test:
+#     timeout: 30
+```
+
+**Different timeouts for different environments?**
+```bash
+# In ptasker wrapper script:
+if [ "$ENVIRONMENT" = "production" ]; then
+    export VALIDATION_TEST_TIMEOUT=30
+else
+    export VALIDATION_TEST_TIMEOUT=10
+fi
+```
 
 ---
 

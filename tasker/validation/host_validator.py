@@ -456,15 +456,29 @@ class HostValidator:
 
         # Get timeout from config loader (handles exec-type and platform levels)
         config_timeout = exec_config_loader.get_validation_timeout(exec_type)
-        validation_timeout = config_timeout if config_timeout is not None else 10
+        if config_timeout is not None:
+            if config_timeout <= 0:
+                if debug_callback:
+                    debug_callback(f"WARNING: Config validation timeout must be positive, got {config_timeout}, using default 10s")
+                validation_timeout = 10
+            else:
+                validation_timeout = config_timeout
+        else:
+            validation_timeout = 10
+            if debug_callback:
+                debug_callback(f"Using hardcoded default validation timeout: {validation_timeout}s")
 
         # Check environment variable (highest priority - global override)
         if 'VALIDATION_TEST_TIMEOUT' in os.environ:
             try:
                 env_timeout = int(os.environ['VALIDATION_TEST_TIMEOUT'])
-                validation_timeout = env_timeout
-                if debug_callback:
-                    debug_callback(f"Using validation timeout from environment: {validation_timeout}s")
+                if env_timeout <= 0:
+                    if debug_callback:
+                        debug_callback(f"WARNING: VALIDATION_TEST_TIMEOUT must be positive, got {env_timeout}, using {validation_timeout}s")
+                else:
+                    validation_timeout = env_timeout
+                    if debug_callback:
+                        debug_callback(f"Using validation timeout from environment: {validation_timeout}s")
             except ValueError:
                 if debug_callback:
                     debug_callback(f"WARNING: Invalid VALIDATION_TEST_TIMEOUT value: '{os.environ['VALIDATION_TEST_TIMEOUT']}', using {validation_timeout}s")

@@ -10,6 +10,13 @@ Usage:
     vtps path/to/file.summary  # View specific file
     vtps -n 20              # List last 20 files
     vtps --dir /path/to/project  # Use specific project directory
+
+Special Task_ID values:
+    -1: Validation/setup failure (no task was executed)
+        The Command field indicates the failure type:
+        - "task_validation": Task file validation failed
+        - "host_validation": Host connectivity validation failed
+        - "start_from_validation": Start-from task validation failed
 """
 
 import os

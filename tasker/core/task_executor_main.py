@@ -116,7 +116,8 @@ class TaskExecutor:
             dry_run: If true, the executor operates in dry-run mode (no side-effecting task execution).
             log_level: Minimum log level name to emit (e.g., "INFO", "DEBUG").
             exec_type: Optional execution type override (e.g., 'pbrun', 'shell'); used as the default executor when tasks do not specify one.
-            timeout: Default per-task timeout fallback used when a task does not specify its own timeout.
+            timeout: Default per-task timeout in seconds. If None (default), timeout is determined from
+                     YAML configuration, environment variables, or hardcoded defaults in priority order.
             project: Optional project name used to enable shared summary logging; sanitized before use.
             start_from_task: Optional task id to resume execution from; enables resume mode and influences startup logging.
             skip_task_validation: If true, task file validation is skipped (useful in resume scenarios).
@@ -1960,29 +1961,33 @@ class TaskExecutor:
         min_timeout = 5
         max_timeout = 1000
 
+        # Extract task_id once for consistent use throughout the method
+        try:
+            task_id = int(task.get('task', 0))
+        except (ValueError, TypeError):
+            task_id = 0
+        task_display_id = f"{task_id}"
+
         timeout = None
 
         # Get timeout from task (highest priority)
         if 'timeout' in task:
-            task_id = task.get('task', 'unknown')
             timeout_str, resolved = ConditionEvaluator.replace_variables(task['timeout'], self.global_vars, self.task_results, self.log_debug)
             if resolved:
                 try:
                     timeout = int(timeout_str)
                     self.log_debug(f"Using timeout from task: {timeout}")
                 except ValueError:
-                    self.log_warn(f"Task {task_id}: Invalid timeout value '{timeout_str}'. Will check other sources.")
+                    self.log_warn(f"Task {task_display_id}: Invalid timeout value '{timeout_str}'. Will check other sources.")
                     timeout = None
             else:
-                self.log_warn(f"Task {task_id}: Unresolved variables in timeout. Will check other sources.")
+                self.log_warn(f"Task {task_display_id}: Unresolved variables in timeout. Will check other sources.")
                 timeout = None
 
         # Get timeout from YAML configuration (exec-type and platform level)
         if timeout is None and hasattr(self, '_exec_config_loader'):
             # Use provided exec_type or determine it (avoid redundant computation)
             if exec_type is None:
-                task_id = int(task.get('task', 0))
-                task_display_id = f"{task_id}"
                 exec_type = self.determine_execution_type(task, task_display_id)
 
             # Try to get timeout from YAML configuration

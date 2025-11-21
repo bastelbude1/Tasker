@@ -435,7 +435,11 @@ class ParallelExecutor(BaseExecutor):
             executor_instance.log_debug(f"Task {task_id}: Capping thread pool from {max_parallel} to {capped_max_workers} ({details})")
 
         try:
-            with ThreadPoolExecutor(max_workers=capped_max_workers, thread_name_prefix=f"Task{task_id}") as thread_executor:
+            # FIX: Use manual ThreadPoolExecutor management instead of context manager
+            # The context manager calls shutdown(wait=True) on exit, which blocks indefinitely
+            # if threads are hung. We need shutdown(wait=False) to allow graceful exit on signals.
+            thread_executor = ThreadPoolExecutor(max_workers=capped_max_workers, thread_name_prefix=f"Task{task_id}")
+            try:
                 # Submit tasks with or without retry based on config
                 future_to_task = {}
                 for task in tasks_to_execute:
@@ -564,6 +568,11 @@ class ParallelExecutor(BaseExecutor):
                         elif result.get('skipped', False):
                             success_text += " (skipped)"
                         executor_instance.log(f"Task {task_display_id}: Completed - {success_text}")
+
+            finally:
+                # Explicitly shutdown without waiting to prevent hanging on exit
+                # This ensures graceful shutdown handling (e.g. Ctrl+C) works immediately
+                thread_executor.shutdown(wait=False)
 
         except Exception as e:
             executor_instance.log(f"Task {task_id}: Parallel execution failed: {str(e)}")

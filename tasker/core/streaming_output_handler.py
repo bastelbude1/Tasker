@@ -168,9 +168,27 @@ class StreamingOutputHandler:
             # which can interfere with thread scheduling for sleep operations
             process.wait()
 
-        # Wait for reading threads to complete
-        stdout_thread.join(timeout=5)  # Give threads time to finish reading
-        stderr_thread.join(timeout=5)
+        # Wait for reading threads to complete with timeout
+        # Use polling loop to remain responsive to shutdown signals
+        join_timeout = 5.0
+        start_join = time.time()
+        
+        for thread in [stdout_thread, stderr_thread]:
+            while thread.is_alive():
+                # Check overall timeout
+                if time.time() - start_join > join_timeout:
+                    break
+                
+                # Check shutdown signal
+                if shutdown_check and shutdown_check():
+                    break
+                    
+                thread.join(timeout=0.1)
+                
+        # Verify threads actually stopped
+        if stdout_thread.is_alive() or stderr_thread.is_alive():
+            import logging
+            logging.warning("StreamingOutputHandler: Output threads did not complete within timeout")
 
         exit_code = process.returncode
 

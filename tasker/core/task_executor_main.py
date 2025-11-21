@@ -2683,6 +2683,7 @@ class TaskExecutor:
                 self.final_success = False
                 self.final_hostname = "localhost"
                 self.final_command = "task_validation"
+                self.cleanup()
                 ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Task file validation failed", False)
             # Add shutdown check after potentially long operation
             self._check_shutdown()
@@ -2700,6 +2701,7 @@ class TaskExecutor:
                 self.final_success = False
                 self.final_hostname = "localhost"
                 self.final_command = "start_from_validation"
+                self.cleanup()
                 ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, "Start-from task validation failed", False)
             # Optional: Add shutdown check after start-from validation
             self._check_shutdown()

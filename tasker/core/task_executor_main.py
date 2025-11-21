@@ -1992,7 +1992,7 @@ class TaskExecutor:
                 # Debug message already logged by get_timeout() method
 
         # Get timeout from command line argument (deprecated but still supported)
-        if timeout is None and self.timeout:
+        if timeout is None and self.timeout is not None:
             timeout = self.timeout
             self.log_debug(f"Using timeout from command line: {timeout}")
 

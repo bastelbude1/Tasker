@@ -123,9 +123,10 @@ def parse_file_args(task_file_path):
 
                     # Warning for security-sensitive flags
                     if arg_name in SECURITY_SENSITIVE_FLAGS:
-                        print(f"WARNING: File defines security-sensitive flag: {arg_name}")
-                        print(f"         Found in {task_file_path} at line {line_num}")
-                        print("         This flag reduces security checks - ensure this is intentional")
+                        print(f"WARNING: Security-sensitive flag '{arg_name}' found in task file.")
+                        print(f"         Location: {task_file_path} at line {line_num}")
+                        print("         Action: BLOCKED. Security flags cannot be set via file configuration.")
+                        continue # Skip adding this flag
 
                     file_args.append(line)
 

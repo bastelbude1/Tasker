@@ -200,11 +200,13 @@ class SequentialExecutor(BaseExecutor):
                      if ConditionEvaluator.should_mask_variable(key) and value is not None:
                          try:
                              str_val = str(value)
-                         except Exception:
+                         except (ValueError, TypeError):
                              try:
                                  str_val = repr(value)
-                             except Exception:
-                                 continue  # Cannot convert to string, skip
+                             except (ValueError, TypeError):
+                                 # Log failure to convert
+                                 executor_instance.log(f"Warning: Could not convert secret '{key}' to string for masking.")
+                                 continue
 
                          # Create masked representation
                          masked_val = ConditionEvaluator.mask_value(value)
@@ -215,11 +217,16 @@ class SequentialExecutor(BaseExecutor):
                              # Enforce word boundaries using lookarounds
                              regex = r'(?<!\w)' + pattern + r'(?!\w)'
                              log_command_display = re.sub(regex, masked_val, log_command_display)
-                         except Exception:
+                         except (re.error, TypeError, ValueError):
                              # Fallback to simple replacement if regex fails
                              log_command_display = log_command_display.replace(str_val, masked_val)
-             except Exception as e:
+             except (ValueError, TypeError, AttributeError, re.error) as e:
                  executor_instance.log(f"Warning: Error during secret masking: {str(e)}")
+             except Exception as e:
+                 # Re-raise system exits
+                 if isinstance(e, (SystemExit, KeyboardInterrupt)):
+                     raise
+                 executor_instance.log(f"Warning: Unexpected error during secret masking: {str(e)}")
         
         executor_instance.final_command = log_command_display # better to have full command in the summary log
 

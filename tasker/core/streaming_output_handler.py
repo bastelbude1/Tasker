@@ -42,6 +42,9 @@ class StreamingOutputHandler:
         """
         self.temp_threshold = temp_threshold or self.DEFAULT_TEMP_THRESHOLD
         self.temp_dir = temp_dir or tempfile.gettempdir()
+        
+        # Note: If temp_dir is None, we use the system default temp directory.
+        # Caller (TaskExecutor) is responsible for creating run-specific directories.
 
         # Output storage
         self.stdout_data = ""
@@ -56,6 +59,15 @@ class StreamingOutputHandler:
 
     def _create_temp_file(self, prefix):
         """Create a temporary file for large output storage."""
+        # If we are given a specific directory, use it.
+        # If that directory doesn't exist, create it (safety).
+        if self.temp_dir and not os.path.exists(self.temp_dir):
+            try:
+                os.makedirs(self.temp_dir, exist_ok=True)
+            except OSError:
+                # Fallback to system temp if we can't create
+                self.temp_dir = None
+
         temp_file = tempfile.NamedTemporaryFile(
             mode='w+',
             prefix=f'tasker_{prefix}_',
@@ -277,12 +289,13 @@ class StreamingOutputHandler:
         # Return None to propagate any original exception
 
 
-def create_memory_efficient_handler(max_memory_mb=10):
+def create_memory_efficient_handler(max_memory_mb=10, temp_dir=None):
     """
     Factory function to create a memory-efficient output handler.
 
     Args:
         max_memory_mb: Maximum memory to use before switching to temp files
+        temp_dir: Optional specific directory for temp files
 
     Returns:
         StreamingOutputHandler instance configured for memory efficiency
@@ -290,5 +303,5 @@ def create_memory_efficient_handler(max_memory_mb=10):
     threshold_bytes = min(max_memory_mb * 1024 * 1024, StreamingOutputHandler.MAX_IN_MEMORY)
     return StreamingOutputHandler(
         temp_threshold=threshold_bytes,
-        temp_dir=None  # Use system default
+        temp_dir=temp_dir
     )

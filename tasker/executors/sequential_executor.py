@@ -196,17 +196,25 @@ class SequentialExecutor(BaseExecutor):
         if hasattr(executor_instance, 'global_vars'):
              try:
                  for key, value in executor_instance.global_vars.items():
-                     # Skip None only (mask empty strings and zero-like secrets)
-                     if ConditionEvaluator.should_mask_variable(key) and value is not None:
+                     try:
+                         # Skip None only (mask empty strings and zero-like secrets)
+                         if not (ConditionEvaluator.should_mask_variable(key) and value is not None):
+                             continue
+
+                         # Safe string conversion
+                         str_val = None
                          try:
-                             str_val = str(value)
-                         except (ValueError, TypeError):
+                             str_val = f"{value!s}"
+                         except Exception:  # noqa: BLE001
                              try:
                                  str_val = repr(value)
-                             except (ValueError, TypeError):
-                                 # Log failure to convert
+                             except Exception:  # noqa: BLE001
                                  executor_instance.log(f"Warning: Could not convert secret '{key}' to string for masking.")
                                  continue
+                         
+                         # Skip empty strings to avoid creating empty regex patterns
+                         if not str_val:
+                             continue
 
                          # Create masked representation
                          masked_val = ConditionEvaluator.mask_value(value)
@@ -220,13 +228,16 @@ class SequentialExecutor(BaseExecutor):
                          except (re.error, TypeError, ValueError):
                              # Fallback to simple replacement if regex fails
                              log_command_display = log_command_display.replace(str_val, masked_val)
-             except (ValueError, TypeError, AttributeError, re.error) as e:
-                 executor_instance.log(f"Warning: Error during secret masking: {str(e)}")
+                     except Exception as e:
+                         # Critical: Re-raise system signals to avoid hanging
+                         if isinstance(e, (SystemExit, KeyboardInterrupt)):
+                             raise
+                         executor_instance.log(f"Warning: Error masking secret '{key}': {e!s}")
              except Exception as e:
-                 # Re-raise system exits
+                 # Critical: Re-raise system signals to avoid hanging
                  if isinstance(e, (SystemExit, KeyboardInterrupt)):
                      raise
-                 executor_instance.log(f"Warning: Unexpected error during secret masking: {str(e)}")
+                 executor_instance.log(f"Warning: Unexpected error during secret masking setup: {e!s}")
         
         executor_instance.final_command = log_command_display # better to have full command in the summary log
 
@@ -249,7 +260,9 @@ class SequentialExecutor(BaseExecutor):
                 # Create memory-efficient output handler with a 1MB threshold to match the temp-file cutoff
                 max_memory_mb = 1  # Aligned with temp threshold to prevent dead zones
 
-                with create_memory_efficient_handler(max_memory_mb) as output_handler:
+                # Pass session_temp_dir to use the run-specific temp folder
+                session_temp_dir = getattr(executor_instance, 'session_temp_dir', None)
+                with create_memory_efficient_handler(max_memory_mb, temp_dir=session_temp_dir) as output_handler:
                     with subprocess.Popen(
                         cmd_array,
                         shell=False, # More secure

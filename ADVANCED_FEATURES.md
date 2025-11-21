@@ -12,6 +12,7 @@ This guide covers advanced TASKER features for power users. For basic usage, see
 - [Memory-Efficient Output Streaming](#memory-efficient-output-streaming)
 - [Alert-on-Failure: Workflow Monitoring](#alert-on-failure-workflow-monitoring)
 - [Remote Execution Configuration](#remote-execution-configuration)
+- [Timeout Configuration](#timeout-configuration)
 - [Execution Models](#execution-models)
 - [Advanced Flow Control](#advanced-flow-control)
 - [Task Result Storage and Data Flow](#task-result-storage-and-data-flow)
@@ -2164,6 +2165,109 @@ print('Available:', loader.get_execution_types())
 - [TaskER FlowChart - exec parameter](TaskER_FlowChart.md) - Complete exec parameter reference
 - [README.md](README.md) - Basic execution type usage examples
 - `cfg/execution_types.yaml` - Full configuration file with examples
+
+---
+
+## Timeout Configuration
+
+TASKER provides flexible timeout configuration at multiple levels, allowing fine-grained control over task execution timeouts.
+
+### Timeout Priority Hierarchy
+
+Timeouts are resolved through the following priority chain (highest to lowest):
+
+1. **Task-level timeout parameter** - Always wins
+   ```bash
+   task=0
+   command=long_process
+   timeout=600  # This overrides everything
+   ```
+
+2. **Execution type specific timeout** - From `cfg/execution_types.yaml`
+   ```yaml
+   platforms:
+     linux:
+       pbrun:
+         timeout: 600  # Specific to pbrun execution type
+   ```
+
+3. **Platform default timeout** - From `cfg/execution_types.yaml`
+   ```yaml
+   platforms:
+     linux:
+       default_timeout: 300  # Default for all Linux execution types
+   ```
+
+4. **Environment variable** - `TASK_EXECUTOR_TIMEOUT`
+   ```bash
+   export TASK_EXECUTOR_TIMEOUT=400
+   python tasker.py workflow.txt -r
+   ```
+
+5. **Hardcoded default** - 300 seconds (5 minutes)
+
+### Configuration Examples
+
+#### Task-Level Override
+```bash
+# Individual task with custom timeout
+task=0
+exec=pbrun
+hostname=db-server
+command=database_backup
+arguments=--full
+timeout=1800  # 30 minutes for backup, overrides all defaults
+```
+
+#### YAML Configuration
+```yaml
+# cfg/execution_types.yaml
+platforms:
+  linux:
+    # Platform-wide default for all execution types
+    default_timeout: 300
+
+    # Specific execution types can override
+    shell:
+      timeout: 120  # Quick local operations
+
+    pbrun:
+      timeout: 600  # Remote operations need more time
+```
+
+#### Environment Variable Fallback
+```bash
+# Set default timeout via environment (only used if not in YAML)
+export TASK_EXECUTOR_TIMEOUT=450
+
+# This is useful for:
+# - Temporary testing with different timeouts
+# - Environments where YAML config isn't available
+# - Quick overrides without modifying config files
+```
+
+### Timeout Behavior
+
+- **Minimum timeout**: 5 seconds (enforced)
+- **Maximum timeout**: 1000 seconds (enforced)
+- **Timeout includes**: Command execution + output capture
+- **On timeout**: Task marked as failed with exit code 124
+- **Parallel tasks**: Each task has independent timeout
+
+### Best Practices
+
+1. **Use YAML for permanent configuration** - Check into version control
+2. **Use task-level for exceptions** - When specific tasks need different timeouts
+3. **Use environment variable for testing** - Temporary overrides
+4. **Set appropriate defaults** - Platform default should cover most cases
+5. **Document long-running tasks** - Add comments explaining why timeout is increased
+
+### Migration from CLI Argument
+
+The `--timeout` CLI argument has been removed in favor of this configuration hierarchy. To migrate:
+
+- **Old**: `tasker.py workflow.txt -r --timeout=600`
+- **New**: Set in `cfg/execution_types.yaml` or use `TASK_EXECUTOR_TIMEOUT=600`
 
 ---
 

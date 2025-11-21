@@ -1475,6 +1475,13 @@ class TaskExecutor:
         """
         if not os.path.exists(self.task_file):
             self.log_error(f"Task file '{self.task_file}' not found.")
+            # Set final state for summary before exiting
+            self.final_task_id = -1  # -1 indicates no task executed
+            self.final_exit_code = ExitCodes.TASK_FILE_NOT_FOUND
+            self.final_success = False
+            self.final_hostname = "localhost"
+            self.final_command = "task_file_parsing"
+            self.cleanup()
             ExitHandler.exit_with_code(ExitCodes.TASK_FILE_NOT_FOUND, f"Task file '{self.task_file}' not found", False)
 
         with open(self.task_file, 'r') as f:
@@ -1498,6 +1505,13 @@ class TaskExecutor:
             for error in parse_result['errors']:
                 self.log_error(error)
             self.log_error("# VALIDATION FAILED: Environment variable validation error")
+            # Set final state for summary before exiting
+            self.final_task_id = -1  # -1 indicates no task executed
+            self.final_exit_code = ExitCodes.TASK_FILE_VALIDATION_FAILED
+            self.final_success = False
+            self.final_hostname = "localhost"
+            self.final_command = "env_var_validation"
+            self.cleanup()
             ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Environment variable validation error", False)
 
         # Use the expanded global variables from TaskValidator

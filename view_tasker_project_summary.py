@@ -14,6 +14,8 @@ Usage:
 Special Task_ID values:
     -1: Validation/setup failure (no task was executed)
         The Command field indicates the failure type:
+        - "task_file_parsing": Task file not found or cannot be read
+        - "env_var_validation": Environment variable validation failed (strict mode)
         - "task_validation": Task file validation failed
         - "host_validation": Host connectivity validation failed
         - "start_from_validation": Start-from task validation failed

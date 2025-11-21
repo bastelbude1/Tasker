@@ -168,6 +168,9 @@ class TaskExecutor:
         self.instance_lock_file = None  # File object for instance lock
         self.instance_lock_path = None  # Path to instance lock file
         self.instance_hash = None  # Workflow instance hash
+        
+        # Session temporary directory
+        self.session_temp_dir = None
 
         # Configurable timeouts for cleanup and summary operations
         self.summary_lock_timeout = 20  # Seconds for summary file locking (longer for shared files)
@@ -761,13 +764,21 @@ class TaskExecutor:
             self._final_success_fallback = value
 
     def __enter__(self):
-        """Enable use of the class as a context manager."""
+        """Context manager entry."""
+        # Create a unique temporary directory for this execution session
+        try:
+            self.session_temp_dir = tempfile.mkdtemp(prefix="tasker_session_")
+            self.log_debug(f"Created session temporary directory: {self.session_temp_dir}")
+        except (OSError, IOError) as e:
+            self.log_warn(f"Failed to create session temporary directory: {e}")
+            self.session_temp_dir = None
+
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Clean up resources when exiting the context manager."""
+        """Context manager exit."""
         self.cleanup()
-        return False  # Don't suppress exceptions
+
 
     def _generate_workflow_output_json(self, workflow_status):
         """
@@ -952,50 +963,13 @@ class TaskExecutor:
                 self.summary_log = None
 
         # PHASE 3: Temp file cleanup for large outputs
-        # Clean up any temp files created for large stdout/stderr outputs
-        try:
-            temp_dir = tempfile.gettempdir()
-
-            # Collect all temp file references from task results
-            temp_files_to_delete = set()
-            for task_result in self.task_results.values():
-                if isinstance(task_result, dict):
-                    stdout_file = task_result.get('stdout_file')
-                    stderr_file = task_result.get('stderr_file')
-
-                    if stdout_file:
-                        temp_files_to_delete.add(stdout_file)
-                    if stderr_file:
-                        temp_files_to_delete.add(stderr_file)
-
-            if temp_files_to_delete:
-                self.log_debug(f"Cleaning up {len(temp_files_to_delete)} temporary output file(s)")
-
-                for temp_file in temp_files_to_delete:
-                    try:
-                        # Safety checks before deletion
-                        # 1. Verify file is in system temp directory
-                        if not temp_file.startswith(temp_dir):
-                            self.log_debug(f"Skipping temp file outside temp dir: {temp_file}")
-                            continue
-
-                        # 2. Verify file matches allowed prefixes (tasker_stdout_ or tasker_stderr_)
-                        basename = os.path.basename(temp_file)
-                        if not (basename.startswith('tasker_stdout_') or basename.startswith('tasker_stderr_')):
-                            self.log_debug(f"Skipping temp file with unexpected prefix: {temp_file}")
-                            continue
-
-                        # 3. Verify file exists before attempting deletion
-                        if os.path.exists(temp_file):
-                            os.remove(temp_file)
-                            self.log_debug(f"Deleted temp file: {temp_file}")
-                        else:
-                            self.log_debug(f"Temp file already deleted: {temp_file}")
-
-                    except (OSError, IOError) as e:
-                        cleanup_errors.append(f"Failed to delete temp file {temp_file}: {e}")
-        except (OSError, IOError, RuntimeError, ValueError) as temp_cleanup_error:
-            cleanup_errors.append(f"Temp file cleanup phase failed: {temp_cleanup_error}")
+        # Remove session temporary directory if it exists (cleans up all task temp files)
+        if self.session_temp_dir and os.path.exists(self.session_temp_dir):
+            try:
+                shutil.rmtree(self.session_temp_dir)
+                self.log_debug(f"Removed session temporary directory: {self.session_temp_dir}")
+            except (OSError, IOError) as e:
+                cleanup_errors.append(f"Failed to remove session temporary directory: {e}")
 
         # PHASE 4: Instance lock release
         if hasattr(self, 'instance_lock_file') and self.instance_lock_file:

@@ -51,7 +51,8 @@ class TaskRunner:
         self.workflow_controller = workflow_controller
         self.result_collector = result_collector
         self.default_exec_type = default_exec_type
-        self.default_timeout = default_timeout
+        # Ensure we always have a numeric fallback timeout
+        self.default_timeout = default_timeout if default_timeout is not None else 300
         self.dry_run = dry_run
 
         # Logging callbacks

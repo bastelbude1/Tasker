@@ -114,8 +114,20 @@ def parse_file_args(task_file_path):
 
                 # Collect argument lines (start with - or --)
                 if line.startswith(('-', '--')):
-                    # Security check: reject CLI-only flags
+                    # Extract argument name for validation
                     arg_name = line.split('=')[0] if '=' in line else line
+
+                    # Syntax validation: reject single-dash long names (e.g., -auto-recovery)
+                    # This catches invalid syntax early before parse_known_args() silently discards it
+                    if arg_name.startswith('-') and not arg_name.startswith('--'):
+                        arg_without_dash = arg_name[1:]
+                        if len(arg_without_dash) > 1:  # Multi-character name with single dash
+                            print(f"ERROR: Invalid argument syntax '{arg_name}'", file=sys.stderr)
+                            print(f"       Location: {task_file_path} at line {line_num}", file=sys.stderr)
+                            print(f"       Long option names require double dash: '--{arg_without_dash}'", file=sys.stderr)
+                            sys.exit(2)  # Argparse error code
+
+                    # Security check: reject CLI-only flags
                     if arg_name in CLI_ONLY_FLAGS:
                         print(f"ERROR: File-defined argument '{arg_name}' is not allowed (CLI-only flag)", file=sys.stderr)
                         print(f"       Found in {task_file_path} at line {line_num}", file=sys.stderr)

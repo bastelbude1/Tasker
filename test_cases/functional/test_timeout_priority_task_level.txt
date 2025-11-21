@@ -1,0 +1,25 @@
+# TEST_METADATA: {"description": "Test task-level timeout has highest priority", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true}
+
+# Test that task-level timeout overrides all other timeout configurations
+# Even though default timeout is 300s, task-level timeout of 10s should be used
+
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing task-level timeout priority
+
+# Task with explicit timeout (should use 10s, not default 300s)
+task=1
+hostname=localhost
+exec=local
+command=sleep
+arguments=1
+# This should override everything
+timeout=10
+
+task=2
+hostname=localhost
+exec=local
+command=echo
+arguments=Task-level timeout test completed

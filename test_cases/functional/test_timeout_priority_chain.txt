@@ -1,0 +1,55 @@
+# TEST_METADATA: {"description": "Test complete timeout priority chain", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true}
+
+# Comprehensive test of timeout priority chain:
+# 1. Task-level timeout (highest priority)
+# 2. YAML exec-type timeout (if configured)
+# 3. YAML platform default timeout
+# 4. Environment variable (if no YAML)
+# 5. Hardcoded 300s (lowest priority)
+
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing complete timeout priority chain
+
+# Task 1: Explicit timeout (highest priority - 7s)
+task=1
+hostname=localhost
+exec=local
+command=sleep
+arguments=1
+# Explicit - overrides everything
+timeout=7
+
+# Task 2: No timeout - uses YAML platform default (300s)
+task=2
+hostname=localhost
+exec=local
+command=sleep
+arguments=1
+# No timeout - uses YAML default_timeout: 300
+
+# Task 3: Different exec type might have different timeout
+task=3
+hostname=localhost
+# shell exec type (might have different timeout in YAML)
+exec=shell
+command=sleep
+arguments=1
+# Uses exec-type specific or platform default
+
+# Task 4: Another explicit timeout to verify override
+task=4
+hostname=localhost
+exec=local
+command=sleep
+arguments=2
+# Another explicit timeout
+timeout=15
+
+task=5
+hostname=localhost
+exec=local
+command=echo
+arguments=Priority chain test completed

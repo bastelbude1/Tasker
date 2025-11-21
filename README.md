@@ -382,6 +382,31 @@ exec=local
 | `return` | Set exit code | `return=0` |
 | `sleep` | Delay after task | `sleep=10` |
 
+#### Timeout Configuration
+
+Timeouts are configured through the following hierarchy (highest to lowest priority):
+
+1. **Task-level timeout parameter** - `timeout=120` in task definition
+2. **Execution type timeout** - Configured in `cfg/execution_types.yaml`
+3. **Platform default timeout** - Platform-wide default in `cfg/execution_types.yaml`
+4. **Environment variable** - `TASK_EXECUTOR_TIMEOUT`
+5. **Hardcoded default** - 300 seconds
+
+#### Validation Timeout Configuration
+
+Host validation tests (pbtest, wwrs_test, etc.) use separate timeouts with this priority:
+
+1. **Environment variable** - `VALIDATION_TEST_TIMEOUT` (global override)
+2. **Exec-type specific** - `validation_test.timeout` in `cfg/execution_types.yaml`
+3. **Platform default** - `default_validation_timeout` in `cfg/execution_types.yaml`
+4. **Hardcoded default** - 10 seconds
+
+Example:
+```bash
+# Override validation timeout globally (useful for slow networks)
+VALIDATION_TEST_TIMEOUT=30 ptasker workflow.txt
+```
+
 **Complete parameter reference:** [TaskER_FlowChart.md](TaskER_FlowChart.md)
 
 ---
@@ -611,7 +636,6 @@ $ ENV=dev tasker -r --instance-check deploy.txt &  # Also runs (different hash)
 | `--log-level` | Logging level (ERROR/WARN/INFO/DEBUG) | `tasker -r --log-level=DEBUG tasks.txt` |
 | `-d, --debug` | Shorthand for --log-level=DEBUG | `tasker -r -d tasks.txt` |
 | `-t, --type` | Default execution type | `tasker -r -t local tasks.txt` |
-| `-o, --timeout` | Default timeout in seconds | `tasker -r -o 60 tasks.txt` |
 
 #### Validation & Planning
 

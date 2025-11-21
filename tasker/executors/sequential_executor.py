@@ -191,8 +191,8 @@ class SequentialExecutor(BaseExecutor):
         full_command_display = ' '.join(cmd_array)
         executor_instance.final_command = full_command_display # better to have full command in the summary log
 
-        # Get timeout for this task
-        task_timeout = executor_instance.get_task_timeout(task)
+        # Get timeout for this task (pass exec_type to avoid redundant computation)
+        task_timeout = executor_instance.get_task_timeout(task, exec_type)
         #executor_instance.log(f"Task {task_id}{loop_display}: Using timeout of {task_timeout} [s]")
 
         # Execute the command (or simulate in dry run mode)

@@ -15,6 +15,11 @@
 #   arguments: Arguments for the validation command (optional, defaults to "")
 #   expected_exit: Expected exit code (typically 0)
 #   expected_output: String that must appear in stdout (e.g., "OK")
+#
+# Timeout Configuration:
+#   default_timeout: Platform-level default timeout in seconds (optional)
+#   timeout: Exec-type specific timeout in seconds (optional)
+#   Priority: Task timeout > Exec-type timeout > Platform timeout > Env var > Hardcoded 300
 
 platforms:
   # Linux execution type definitions
@@ -22,6 +27,15 @@ platforms:
     # Default execution type for Linux (if not specified in task, CLI, or env var)
     # Fallback: 'local' (hardcoded, always safe)
     default_exec_type: pbrun
+
+    # Platform-level default timeout for all Linux exec types (in seconds)
+    # Can be overridden at exec-type level or task level
+    default_timeout: 300
+
+    # Platform-level default validation timeout for host connectivity tests (in seconds)
+    # Used when validating hosts with pbtest, p7s_test, wwrs_test, etc.
+    # Can be overridden at exec-type level via validation_test.timeout
+    default_validation_timeout: 10
 
     shell:
       description: "Local shell execution with Bash"
@@ -50,6 +64,7 @@ platforms:
         command: pbtest
         expected_exit: 0
         expected_output: "OK"
+        timeout: 10  # Optional: validation timeout in seconds (default: 10)
 
     p7s:
       description: "P7S remote execution"
@@ -76,11 +91,18 @@ platforms:
         command: wwrs_test
         expected_exit: 0
         expected_output: "OK"
+        timeout: 15  # Optional: allow more time for wwrs validation (default: 10)
 
   # Windows execution type definitions (future support)
   windows:
     # Default execution type for Windows
     default_exec_type: shell
+
+    # Platform-level default timeout for all Windows exec types (in seconds)
+    default_timeout: 300
+
+    # Platform-level default validation timeout for host connectivity tests (in seconds)
+    default_validation_timeout: 10
 
     shell:
       description: "Local shell execution with cmd.exe"

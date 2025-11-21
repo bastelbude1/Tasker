@@ -12,6 +12,8 @@ This guide covers advanced TASKER features for power users. For basic usage, see
 - [Memory-Efficient Output Streaming](#memory-efficient-output-streaming)
 - [Alert-on-Failure: Workflow Monitoring](#alert-on-failure-workflow-monitoring)
 - [Remote Execution Configuration](#remote-execution-configuration)
+- [Timeout Configuration](#timeout-configuration)
+- [Validation Timeout Configuration](#validation-timeout-configuration)
 - [Execution Models](#execution-models)
 - [Advanced Flow Control](#advanced-flow-control)
 - [Task Result Storage and Data Flow](#task-result-storage-and-data-flow)
@@ -118,7 +120,6 @@ File-defined arguments use **identical syntax** to command-line arguments:
 
 # ✅ CORRECT - Value options
 --log-level=DEBUG
---timeout=60
 --start-from=5
 
 # ❌ WRONG - Single dash with long names (invalid argparse syntax)
@@ -143,16 +144,16 @@ When both file and CLI arguments are present:
 # workflow.txt contains:
 # --auto-recovery
 # --log-level=DEBUG
-# --timeout=30
+# --start-from=10
 
 # Command line overrides
-python3 tasker.py workflow.txt -r --log-level=INFO --timeout=60
+python3 tasker.py workflow.txt -r --log-level=INFO --start-from=20
 
 # Effective arguments:
 # --auto-recovery    (from file)
 # --run              (from CLI)
 # --log-level=INFO   (CLI overrides file)
-# --timeout=60       (CLI overrides file)
+# --start-from=20    (CLI overrides file)
 ```
 
 ### Where Arguments Are Ignored
@@ -248,7 +249,6 @@ These flags generate warnings but are allowed:
 | `--run` / `-r` | Boolean | `--run` or `-r` |
 | `--debug` / `-d` | Boolean | `--debug` or `-d` |
 | `--log-level=LEVEL` | Value | `--log-level=DEBUG` |
-| `--timeout=N` | Value | `--timeout=60` |
 | `--start-from=N` | Value | `--start-from=5` |
 | `--auto-recovery` | Boolean | `--auto-recovery` |
 | `--skip-host-validation` | Boolean | `--skip-host-validation` |
@@ -2166,6 +2166,228 @@ print('Available:', loader.get_execution_types())
 - [TaskER FlowChart - exec parameter](TaskER_FlowChart.md) - Complete exec parameter reference
 - [README.md](README.md) - Basic execution type usage examples
 - `cfg/execution_types.yaml` - Full configuration file with examples
+
+---
+
+## Timeout Configuration
+
+TASKER provides flexible timeout configuration at multiple levels, allowing fine-grained control over task execution timeouts.
+
+### Timeout Priority Hierarchy
+
+Timeouts are resolved through the following priority chain (highest to lowest):
+
+1. **Task-level timeout parameter** - Always wins
+   ```bash
+   task=0
+   command=long_process
+   timeout=600  # This overrides everything
+   ```
+
+2. **Execution type specific timeout** - From `cfg/execution_types.yaml`
+   ```yaml
+   platforms:
+     linux:
+       pbrun:
+         timeout: 600  # Specific to pbrun execution type
+   ```
+
+3. **Platform default timeout** - From `cfg/execution_types.yaml`
+   ```yaml
+   platforms:
+     linux:
+       default_timeout: 300  # Default for all Linux execution types
+   ```
+
+4. **Environment variable** - `TASK_EXECUTOR_TIMEOUT`
+   ```bash
+   export TASK_EXECUTOR_TIMEOUT=400
+   python tasker.py workflow.txt -r
+   ```
+
+5. **Hardcoded default** - 300 seconds (5 minutes)
+
+### Configuration Examples
+
+#### Task-Level Override
+```bash
+# Individual task with custom timeout
+task=0
+exec=pbrun
+hostname=db-server
+command=database_backup
+arguments=--full
+timeout=1800  # 30 minutes for backup, overrides all defaults
+```
+
+#### YAML Configuration
+```yaml
+# cfg/execution_types.yaml
+platforms:
+  linux:
+    # Platform-wide default for all execution types
+    default_timeout: 300
+
+    # Specific execution types can override
+    shell:
+      timeout: 120  # Quick local operations
+
+    pbrun:
+      timeout: 600  # Remote operations need more time
+```
+
+#### Environment Variable Fallback
+```bash
+# Set default timeout via environment (only used if not in YAML)
+export TASK_EXECUTOR_TIMEOUT=450
+
+# This is useful for:
+# - Temporary testing with different timeouts
+# - Environments where YAML config isn't available
+# - Quick overrides without modifying config files
+```
+
+### Timeout Behavior
+
+- **Minimum timeout**: 5 seconds (enforced)
+- **Maximum timeout**: 1000 seconds (enforced)
+- **Timeout includes**: Command execution + output capture
+- **On timeout**: Task marked as failed with exit code 124
+- **Parallel tasks**: Each task has independent timeout
+
+### Best Practices
+
+1. **Use YAML for permanent configuration** - Check into version control
+2. **Use task-level for exceptions** - When specific tasks need different timeouts
+3. **Use environment variable for testing** - Temporary overrides
+4. **Set appropriate defaults** - Platform default should cover most cases
+5. **Document long-running tasks** - Add comments explaining why timeout is increased
+
+### Migration from CLI Argument
+
+The `--timeout` CLI argument has been removed in favor of this configuration hierarchy. To migrate:
+
+- **Old**: `tasker.py workflow.txt -r --timeout=600`
+- **New**: Set in `cfg/execution_types.yaml` or use `TASK_EXECUTOR_TIMEOUT=600`
+
+---
+
+## Validation Timeout Configuration
+
+Host validation tests use separate timeouts from task execution to ensure connectivity checks complete quickly.
+
+### Validation Timeout Priority Hierarchy
+
+Validation timeouts follow this priority order (highest to lowest):
+
+1. **Environment Variable (Global Override)**
+   ```bash
+   VALIDATION_TEST_TIMEOUT=30 ptasker workflow.txt
+   ```
+   - Overrides ALL validation timeouts globally
+   - Useful for CI/CD environments or slow networks
+   - Takes precedence over exec-type specific configurations
+
+2. **Exec-Type Specific Timeout**
+   ```yaml
+   platforms:
+     linux:
+       wwrs:
+         validation_test:
+           command: wwrs_test
+           timeout: 15  # Specific timeout for wwrs validation
+   ```
+
+3. **Platform Default Validation Timeout**
+   ```yaml
+   platforms:
+     linux:
+       default_validation_timeout: 10  # Platform-wide default
+   ```
+
+4. **Hardcoded Default**: 10 seconds
+
+### Configuration Examples
+
+#### Platform-Level Configuration
+```yaml
+platforms:
+  linux:
+    # Task execution timeout
+    default_timeout: 300
+
+    # Validation test timeout (separate from execution)
+    default_validation_timeout: 10
+
+    pbrun:
+      validation_test:
+        command: pbtest
+        expected_exit: 0
+        expected_output: "OK"
+        timeout: 10  # Optional: use platform default if not specified
+
+    wwrs:
+      validation_test:
+        command: wwrs_test
+        expected_exit: 0
+        expected_output: "OK"
+        timeout: 15  # Override for slower wwrs validation
+```
+
+#### Environment Variable Override
+```bash
+# Development environment with fast network
+VALIDATION_TEST_TIMEOUT=5 ptasker workflow.txt
+
+# Production with slow/high-latency connections
+VALIDATION_TEST_TIMEOUT=30 ptasker workflow.txt
+
+# CI/CD with consistent timeout requirements
+export VALIDATION_TEST_TIMEOUT=20
+ptasker test_suite.txt
+```
+
+### Validation vs Execution Timeouts
+
+| Aspect | Validation Timeout | Execution Timeout |
+|--------|-------------------|-------------------|
+| **Purpose** | Host connectivity checks | Task command execution |
+| **Default** | 10 seconds | 300 seconds |
+| **Config Key** | `default_validation_timeout` | `default_timeout` |
+| **Environment Variable** | `VALIDATION_TEST_TIMEOUT` | `TASK_EXECUTOR_TIMEOUT` |
+| **Scope** | Pre-execution validation | Actual task execution |
+| **Typical Values** | 5-30 seconds | 30-1000 seconds |
+
+### Best Practices
+
+1. **Keep validation timeouts short** - They run before every task on remote hosts
+2. **Use exec-type specific timeouts sparingly** - Only when certain tools are consistently slower
+3. **Set platform defaults appropriately** - Cover 95% of cases with the default
+4. **Use environment variables for environments** - Different timeouts for dev/test/prod
+5. **Document timeout increases** - Explain why certain validations need more time
+
+### Troubleshooting
+
+**Validation timing out?**
+```bash
+# Quick test with increased timeout
+VALIDATION_TEST_TIMEOUT=60 ptasker workflow.txt
+
+# If it works, update YAML configuration
+# cfg/execution_types.yaml:
+#   validation_test:
+#     timeout: 30
+```
+
+**Different timeouts for different environments?**
+```bash
+# In ptasker wrapper script:
+if [ "$ENVIRONMENT" = "production" ]; then
+    export VALIDATION_TEST_TIMEOUT=30
+else
+    export VALIDATION_TEST_TIMEOUT=10
+fi
+```
 
 ---
 

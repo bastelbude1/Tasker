@@ -211,7 +211,14 @@ class ExecConfigLoader:
         platforms = self.config_data.get('platforms', {})
         platform_config = platforms.get(self.platform, {})
 
-        return list(platform_config.keys())
+        # Filter out non-exec-type keys (like 'default_exec_type' and 'default_timeout')
+        exec_types = []
+        for key, value in platform_config.items():
+            # Execution types have dict values with 'binary' or 'command_template' keys
+            if isinstance(value, dict) and ('binary' in value or 'command_template' in value):
+                exec_types.append(key)
+
+        return exec_types
 
     def get_exec_type_config(self, exec_type):
         """
@@ -345,6 +352,91 @@ class ExecConfigLoader:
         if default_exec_type:
             self.debug_callback(f"Using default execution type from config: {default_exec_type}")
             return default_exec_type
+
+        return None
+
+    def get_timeout(self, exec_type=None):
+        """
+        Get timeout configuration for execution type or platform.
+
+        Priority:
+        1. Exec-type specific timeout (if exec_type provided)
+        2. Platform-level default timeout
+        3. None (caller should fall back to environment/hardcoded)
+
+        Args:
+            exec_type: Optional execution type name for specific timeout
+
+        Returns:
+            int or None: Timeout in seconds, or None if not configured
+        """
+        if not self.config_data:
+            return None
+
+        platforms = self.config_data.get('platforms', {})
+        platform_config = platforms.get(self.platform, {})
+
+        # If exec_type provided, check for exec-type specific timeout first
+        if exec_type:
+            # Handle aliases
+            aliases = self.config_data.get('aliases', {})
+            if exec_type in aliases:
+                exec_type = aliases[exec_type]
+
+            exec_config = platform_config.get(exec_type, {})
+            exec_timeout = exec_config.get('timeout')
+            if exec_timeout is not None:
+                self.debug_callback(f"Using exec-type specific timeout for '{exec_type}': {exec_timeout} seconds")
+                return exec_timeout
+
+        # Fall back to platform-level default timeout
+        platform_timeout = platform_config.get('default_timeout')
+        if platform_timeout is not None:
+            self.debug_callback(f"Using platform default timeout: {platform_timeout} seconds")
+            return platform_timeout
+
+        return None
+
+    def get_validation_timeout(self, exec_type=None):
+        """
+        Get validation timeout configuration for execution type or platform.
+
+        Priority:
+        1. Exec-type specific validation test timeout (if exec_type provided)
+        2. Platform-level default_validation_timeout
+        3. None (caller should fall back to hardcoded default)
+
+        Args:
+            exec_type: Optional execution type name for specific timeout
+
+        Returns:
+            int or None: Validation timeout in seconds, or None if not configured
+        """
+        if not self.config_data:
+            return None
+
+        platforms = self.config_data.get('platforms', {})
+        platform_config = platforms.get(self.platform, {})
+
+        # First check for exec-type specific validation timeout
+        if exec_type:
+            # Handle aliases
+            aliases = self.config_data.get('aliases', {})
+            if exec_type in aliases:
+                exec_type = aliases[exec_type]
+
+            exec_config = platform_config.get(exec_type, {})
+            validation_test = exec_config.get('validation_test', {})
+            if validation_test and 'timeout' in validation_test:
+                exec_timeout = validation_test['timeout']
+                self.debug_callback(f"Using {exec_type} validation timeout: {exec_timeout} seconds")
+                return exec_timeout
+
+        # Fall back to platform-level default validation timeout
+        platform_timeout = platform_config.get('default_validation_timeout')
+        if platform_timeout is not None:
+            self.debug_callback(f"Using platform default validation timeout: {platform_timeout} seconds")
+            return platform_timeout
 
         return None
 

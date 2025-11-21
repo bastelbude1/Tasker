@@ -1352,7 +1352,6 @@ flowchart TD
 --auto-recovery
 --skip-host-validation
 --log-level=DEBUG
---timeout=60
 ```
 
 ### Entry Point
@@ -1401,7 +1400,6 @@ ENVIRONMENT=production
 | `--run` / `-r` | Boolean | Execute tasks |
 | `--debug` / `-d` | Boolean | Debug logging |
 | `--log-level=LEVEL` | Value | Set log level |
-| `--timeout=N` | Value | Set timeout |
 | `--start-from=N` | Value | Resume from task |
 | `--auto-recovery` | Boolean | Enable recovery |
 | `--skip-host-validation` | Boolean | Skip host checks |

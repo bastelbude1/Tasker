@@ -448,6 +448,41 @@ class HostValidator:
         expected_exit = test_config.get('expected_exit', 0)
         expected_output = test_config.get('expected_output')
 
+        # Determine validation timeout with priority chain:
+        # 1. Environment variable (highest - global override)
+        # 2. Exec-type specific timeout
+        # 3. Platform default validation timeout
+        # 4. Hardcoded default (10 seconds)
+
+        # Get timeout from config loader (handles exec-type and platform levels)
+        config_timeout = exec_config_loader.get_validation_timeout(exec_type)
+        if config_timeout is not None:
+            if config_timeout <= 0:
+                if debug_callback:
+                    debug_callback(f"WARNING: Config validation timeout must be positive, got {config_timeout}, using default 10s")
+                validation_timeout = 10
+            else:
+                validation_timeout = config_timeout
+        else:
+            validation_timeout = 10
+            if debug_callback:
+                debug_callback(f"Using hardcoded default validation timeout: {validation_timeout}s")
+
+        # Check environment variable (highest priority - global override)
+        if 'VALIDATION_TEST_TIMEOUT' in os.environ:
+            try:
+                env_timeout = int(os.environ['VALIDATION_TEST_TIMEOUT'])
+                if env_timeout <= 0:
+                    if debug_callback:
+                        debug_callback(f"WARNING: VALIDATION_TEST_TIMEOUT must be positive, got {env_timeout}, using {validation_timeout}s")
+                else:
+                    validation_timeout = env_timeout
+                    if debug_callback:
+                        debug_callback(f"Using validation timeout from environment: {validation_timeout}s")
+            except ValueError:
+                if debug_callback:
+                    debug_callback(f"WARNING: Invalid VALIDATION_TEST_TIMEOUT value: '{os.environ['VALIDATION_TEST_TIMEOUT']}', using {validation_timeout}s")
+
         # Build the full test command using config loader
         cmd_array = exec_config_loader.build_command_array(
             exec_type, hostname, test_command, test_arguments
@@ -472,7 +507,7 @@ class HostValidator:
                 start_new_session=(sys.platform != 'win32')
             ) as process:
                 try:
-                    stdout, stderr = process.communicate(timeout=10)
+                    stdout, stderr = process.communicate(timeout=validation_timeout)
                     exit_code = process.returncode
 
                     # Check exit code and expected output from config
@@ -504,7 +539,7 @@ class HostValidator:
                         process.kill()  # Fallback
                     stdout, stderr = process.communicate()
                     if debug_callback:
-                        debug_callback(f"ERROR: {exec_type} connection to '{hostname}' timed out")
+                        debug_callback(f"ERROR: {exec_type} connection to '{hostname}' timed out after {validation_timeout}s")
                     return False
 
         except Exception as e:

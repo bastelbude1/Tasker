@@ -184,3 +184,6 @@ Thumbs.db
 # Test case artifacts (keep the .txt files but ignore generated outputs)
 test_cases/*_*_*.log
 test_cases/*_*_*.dryrun
+
+# Code review artifacts
+code_review/

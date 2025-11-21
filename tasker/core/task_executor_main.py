@@ -28,6 +28,7 @@ import fcntl  # Linux Only
 import threading
 import errno
 import signal
+from typing import Optional
 import stat
 import tempfile
 import hashlib
@@ -94,7 +95,7 @@ class TaskExecutor:
     # ===== 1. CLASS LIFECYCLE =====
     
     def __init__(self, task_file, log_dir='logs', dry_run=True, log_level='INFO',
-                 exec_type=None, timeout=30, project=None,
+                 exec_type=None, timeout=None, project=None,
                  start_from_task=None, skip_task_validation=False,
                  skip_host_validation=False, skip_unresolved_host_validation=False,
                  skip_command_validation=False,
@@ -115,7 +116,8 @@ class TaskExecutor:
             dry_run: If true, the executor operates in dry-run mode (no side-effecting task execution).
             log_level: Minimum log level name to emit (e.g., "INFO", "DEBUG").
             exec_type: Optional execution type override (e.g., 'pbrun', 'shell'); used as the default executor when tasks do not specify one.
-            timeout: Default per-task timeout fallback used when a task does not specify its own timeout.
+            timeout: Default per-task timeout in seconds. If None (default), timeout is determined from
+                     YAML configuration, environment variables, or hardcoded defaults in priority order.
             project: Optional project name used to enable shared summary logging; sanitized before use.
             start_from_task: Optional task id to resume execution from; enables resume mode and influences startup logging.
             skip_task_validation: If true, task file validation is skipped (useful in resume scenarios).
@@ -153,7 +155,7 @@ class TaskExecutor:
         self.loop_iterations = {} # Track current iteration number
         self.exec_type = exec_type  # From command line argument
         self.default_exec_type = 'local'  # Initial safe default (will be overridden from config)
-        self.timeout = timeout # Default timeout from command line
+        self.timeout = timeout  # Constructor timeout parameter, None means use YAML/env/default
         self.project = sanitize_filename(project) if project else None  # Sanitized project name
         self.show_plan = show_plan
         self.validate_only = validate_only
@@ -265,7 +267,7 @@ class TaskExecutor:
         if self.start_from_task is not None:
             self.log_info(f"# Resume mode: Starting from Task {self.start_from_task}")
             if self.skip_task_validation:
-                self.log_warn(f"# Task Validation will be skipped")
+                self.log_warn("# Task Validation will be skipped")
             if self.skip_host_validation:
                 self.log_warn("# Host Validation will be skipped - ATTENTION")
             if self.skip_unresolved_host_validation:
@@ -355,7 +357,10 @@ class TaskExecutor:
             self.log_info("# Dry run mode")
         if self.strict_env_validation:
             self.log_info("# Strict environment variable validation: ENABLED (requires TASKER_ prefix)")
-        self.log_debug(f"# Default timeout: {timeout} [s]")
+        if timeout is not None:
+            self.log_debug(f"# CLI timeout: {timeout} [s]")
+        else:
+            self.log_debug("# Timeout: will be determined from YAML/env/defaults")
     
         # Only add minimal warning for shared summary files
         if self.project:
@@ -1936,11 +1941,34 @@ class TaskExecutor:
             self.log_error("       Only exec=local is supported without configuration file")
         return None
 
-    def get_task_timeout(self, task):
-        """Determine the timeout for a task, respecting priority order."""
+    def get_task_timeout(self, task, exec_type: Optional[str] = None) -> int:
+        """
+        Determine the timeout for a task, respecting priority order.
+
+        Args:
+            task: Task dictionary
+            exec_type: Optional pre-determined execution type (avoids redundant computation)
+
+        Priority order:
+        1. Task-specific 'timeout' parameter (highest)
+        2. Exec-type specific timeout from YAML configuration
+        3. Platform default timeout from YAML configuration
+        4. Constructor timeout parameter (programmatic usage)
+        5. Environment variable TASK_EXECUTOR_TIMEOUT
+        6. Hardcoded default 300 (lowest)
+        """
         # Start with the default range
         min_timeout = 5
         max_timeout = 1000
+
+        # Extract task_id once for consistent use throughout the method
+        try:
+            task_id = int(task.get('task', 0))
+        except (ValueError, TypeError):
+            task_id = 0
+        task_display_id = f"{task_id}"
+
+        timeout = None
 
         # Get timeout from task (highest priority)
         if 'timeout' in task:
@@ -1950,30 +1978,42 @@ class TaskExecutor:
                     timeout = int(timeout_str)
                     self.log_debug(f"Using timeout from task: {timeout}")
                 except ValueError:
-                    self.log_warn(f"Invalid timeout value in task: '{timeout_str}'. Using default.")
-                    timeout = self.timeout
+                    self.log_warn(f"Task {task_display_id}: Invalid timeout value '{timeout_str}'. Will check other sources.")
+                    timeout = None
             else:
-                self.log_warn(f"Unresolved variables in timeout. Using default.")
-                timeout = self.timeout
+                self.log_warn(f"Task {task_display_id}: Unresolved variables in timeout. Will check other sources.")
+                timeout = None
 
-        # Get timeout from command line argument (medium priority)
-        elif self.timeout:
+        # Get timeout from YAML configuration (exec-type and platform level)
+        if timeout is None and hasattr(self, '_exec_config_loader'):
+            # Use provided exec_type or determine it (avoid redundant computation)
+            if exec_type is None:
+                exec_type = self.determine_execution_type(task, task_display_id)
+
+            # Try to get timeout from YAML configuration
+            config_timeout = self._exec_config_loader.get_timeout(exec_type)
+            if config_timeout is not None:
+                timeout = config_timeout
+                # Debug message already logged by get_timeout() method
+
+        # Get timeout from constructor parameter (for programmatic usage)
+        if timeout is None and self.timeout is not None:
             timeout = self.timeout
-            self.log_debug(f"Using timeout from command line: {timeout}")
+            self.log_debug(f"Using timeout from constructor: {timeout}")
 
         # Get timeout from environment (lower priority)
-        elif 'TASK_EXECUTOR_TIMEOUT' in os.environ:
+        if timeout is None and 'TASK_EXECUTOR_TIMEOUT' in os.environ:
             try:
                 timeout = int(os.environ['TASK_EXECUTOR_TIMEOUT'])
                 self.log_debug(f"Using timeout from environment: {timeout}")
             except ValueError:
-                self.log_warn(f"Invalid timeout value in environment: '{os.environ['TASK_EXECUTOR_TIMEOUT']}'. Using default.")
-                timeout = 30
+                self.log_warn(f"Invalid timeout value in environment: '{os.environ['TASK_EXECUTOR_TIMEOUT']}'. Will use default.")
+                timeout = None
 
-        # Use default timeout (lowest priority)
-        else:
-            timeout = 30
-            self.log_debug(f"Using default timeout: {timeout}")
+        # Use hardcoded default timeout (lowest priority - 300 seconds)
+        if timeout is None:
+            timeout = 300
+            self.log_debug(f"Using hardcoded default timeout: {timeout}")
 
         # Ensure timeout is within valid range
         if timeout < min_timeout:

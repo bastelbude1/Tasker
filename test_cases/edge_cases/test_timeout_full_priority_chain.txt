@@ -1,0 +1,64 @@
+# TEST_METADATA: {"description": "Test complete timeout priority chain demonstration", "test_type": "positive", "expected_exit_code": 0, "expected_success": true, "skip_host_validation": true}
+
+# Comprehensive test demonstrating the full timeout priority chain:
+# Priority order: Task-level > YAML exec-type > YAML platform > Environment > Hardcoded
+#
+# To test all levels:
+# 1. Run with TASK_EXECUTOR_TIMEOUT=120 to test env var level
+# 2. YAML should have platform default_timeout: 300
+# 3. YAML could have exec-type specific timeout (e.g., shell: timeout: 200)
+# 4. Task-level timeout always wins when specified
+
+task=0
+hostname=localhost
+exec=local
+command=echo
+arguments=Testing complete timeout priority chain
+
+# Level 1: Task-level timeout (highest priority - 8s)
+# This overrides everything
+task=1
+hostname=localhost
+exec=local
+command=sleep
+arguments=1
+timeout=8
+
+# Level 2: YAML exec-type timeout (if configured)
+# If shell has timeout: 200 in YAML, this would use 200s
+task=2
+hostname=localhost
+exec=shell
+command=sleep
+arguments=1
+# No task timeout - uses exec-type specific from YAML
+
+# Level 3: YAML platform default
+# Uses default_timeout: 300 from platform config
+task=3
+hostname=localhost
+exec=local
+command=sleep
+arguments=1
+# No task timeout - uses platform default
+
+# Level 4: Environment variable
+# If YAML had no timeout config, would use TASK_EXECUTOR_TIMEOUT
+# This is tested by temporarily removing YAML timeout config
+
+# Level 5: Hardcoded default (300s)
+# Used only if no YAML config and no env var set
+
+# Task with explicit timeout overriding low-priority defaults
+task=4
+hostname=localhost
+exec=local
+command=sleep
+arguments=2
+timeout=12
+
+task=5
+hostname=localhost
+exec=local
+command=echo
+arguments=Priority chain demonstration completed

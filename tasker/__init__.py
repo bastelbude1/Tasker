@@ -2,7 +2,7 @@
 TaskExecutor Library - Modular task execution framework
 """
 
-__version__ = "2.1.4"
+__version__ = "2.2.0"
 
 # Core components
 from .core.utilities import (

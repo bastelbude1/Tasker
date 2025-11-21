@@ -208,9 +208,12 @@ class TaskRunner:
                 if config_timeout is not None:
                     timeout = config_timeout
                     # Debug message already logged by get_timeout() method
-            except Exception:
+            except Exception as e:
                 # exec_config_loader not available or failed in this context
-                pass
+                self.log_debug(
+                    f"YAML timeout lookup failed for exec_type='{exec_type}': "
+                    f"{type(e).__name__}: {e}"
+                )
 
         # Get timeout from environment (lower priority)
         if timeout is None and 'TASK_EXECUTOR_TIMEOUT' in os.environ:

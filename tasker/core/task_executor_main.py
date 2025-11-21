@@ -28,6 +28,7 @@ import fcntl  # Linux Only
 import threading
 import errno
 import signal
+from typing import Optional
 import stat
 import tempfile
 import hashlib
@@ -1936,7 +1937,7 @@ class TaskExecutor:
             self.log_error("       Only exec=local is supported without configuration file")
         return None
 
-    def get_task_timeout(self, task, exec_type=None):
+    def get_task_timeout(self, task, exec_type: Optional[str] = None) -> int:
         """
         Determine the timeout for a task, respecting priority order.
 

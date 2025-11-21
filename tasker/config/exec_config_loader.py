@@ -397,6 +397,44 @@ class ExecConfigLoader:
 
         return None
 
+    def get_validation_timeout(self, exec_type=None):
+        """
+        Get validation timeout configuration for execution type or platform.
+
+        Priority:
+        1. Exec-type specific validation test timeout (if exec_type provided)
+        2. Platform-level default_validation_timeout
+        3. None (caller should fall back to hardcoded default)
+
+        Args:
+            exec_type: Optional execution type name for specific timeout
+
+        Returns:
+            int or None: Validation timeout in seconds, or None if not configured
+        """
+        if not self.config_data:
+            return None
+
+        platforms = self.config_data.get('platforms', {})
+        platform_config = platforms.get(self.platform, {})
+
+        # First check for exec-type specific validation timeout
+        if exec_type:
+            exec_config = platform_config.get(exec_type, {})
+            validation_test = exec_config.get('validation_test', {})
+            if validation_test and 'timeout' in validation_test:
+                exec_timeout = validation_test['timeout']
+                self.debug_callback(f"Using {exec_type} validation timeout: {exec_timeout} seconds")
+                return exec_timeout
+
+        # Fall back to platform-level default validation timeout
+        platform_timeout = platform_config.get('default_validation_timeout')
+        if platform_timeout is not None:
+            self.debug_callback(f"Using platform default validation timeout: {platform_timeout} seconds")
+            return platform_timeout
+
+        return None
+
 
 # Global singleton instance
 _loader_instance = None

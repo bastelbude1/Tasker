@@ -69,7 +69,7 @@ from tasker.core.utilities import get_log_directory, sanitize_filename
 from tasker.config.exec_config_loader import get_loader as get_exec_config_loader
 
 # Version information
-VERSION = "2.1.5"
+VERSION = "2.1.6"
 
 # Security: Flags that should NEVER be accepted from task files
 CLI_ONLY_FLAGS = {'--help', '-h', '--version', '-V', '--force-instance'}

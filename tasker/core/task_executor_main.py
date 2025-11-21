@@ -278,7 +278,9 @@ class TaskExecutor:
                 self.log_warn("# Security Validation will be skipped - ATTENTION")
 
         # Initialize summary tracking variables
-        self.final_task_id = None
+        # These remain None until actual execution or explicit validation failure
+        # Validation failures explicitly set task_id=-1 to indicate "no task executed"
+        self.final_task_id = None  # Will be set to -1 for validation failures, or actual task_id during execution
         self.final_exit_code = None
         self.final_success = None
         self.final_hostname = None
@@ -1473,6 +1475,13 @@ class TaskExecutor:
         """
         if not os.path.exists(self.task_file):
             self.log_error(f"Task file '{self.task_file}' not found.")
+            # Set final state for summary before exiting
+            self.final_task_id = -1  # -1 indicates no task executed
+            self.final_exit_code = ExitCodes.TASK_FILE_NOT_FOUND
+            self.final_success = False
+            self.final_hostname = "localhost"
+            self.final_command = "task_file_parsing"
+            self.cleanup()
             ExitHandler.exit_with_code(ExitCodes.TASK_FILE_NOT_FOUND, f"Task file '{self.task_file}' not found", False)
 
         with open(self.task_file, 'r') as f:
@@ -1496,6 +1505,13 @@ class TaskExecutor:
             for error in parse_result['errors']:
                 self.log_error(error)
             self.log_error("# VALIDATION FAILED: Environment variable validation error")
+            # Set final state for summary before exiting
+            self.final_task_id = -1  # -1 indicates no task executed
+            self.final_exit_code = ExitCodes.TASK_FILE_VALIDATION_FAILED
+            self.final_success = False
+            self.final_hostname = "localhost"
+            self.final_command = "env_var_validation"
+            self.cleanup()
             ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Environment variable validation error", False)
 
         # Use the expanded global variables from TaskValidator
@@ -2668,6 +2684,12 @@ class TaskExecutor:
 
         if not self.tasks:
             self.log_warn("No valid tasks found. Exiting.")
+            # Set final state for summary before exiting
+            self.final_task_id = -1  # -1 indicates no task executed
+            self.final_exit_code = ExitCodes.NO_TASKS_FOUND
+            self.final_success = False
+            self.final_hostname = "localhost"
+            self.final_command = "task_validation"
             self.cleanup() # clean up resources before exit
             ExitHandler.exit_with_code(ExitCodes.NO_TASKS_FOUND, "No valid tasks to execute", False)
 
@@ -2676,6 +2698,13 @@ class TaskExecutor:
         if not self.skip_task_validation:
             validation_successful = self.validate_tasks()
             if not validation_successful:
+                # Set final state for summary before exiting
+                self.final_task_id = -1  # -1 indicates no task executed
+                self.final_exit_code = ExitCodes.TASK_FILE_VALIDATION_FAILED
+                self.final_success = False
+                self.final_hostname = "localhost"
+                self.final_command = "task_validation"
+                self.cleanup()
                 ExitHandler.exit_with_code(ExitCodes.TASK_FILE_VALIDATION_FAILED, "Task file validation failed", False)
             # Add shutdown check after potentially long operation
             self._check_shutdown()
@@ -2687,6 +2716,13 @@ class TaskExecutor:
         # Additional validation for --start-from
         if self.start_from_task is not None:
             if not self.validate_start_from_task(self.start_from_task):
+                # Set final state for summary before exiting
+                self.final_task_id = -1  # -1 indicates no task executed
+                self.final_exit_code = ExitCodes.TASK_DEPENDENCY_FAILED
+                self.final_success = False
+                self.final_hostname = "localhost"
+                self.final_command = "start_from_validation"
+                self.cleanup()
                 ExitHandler.exit_with_code(ExitCodes.TASK_DEPENDENCY_FAILED, "Start-from task validation failed", False)
             # Optional: Add shutdown check after start-from validation
             self._check_shutdown()
@@ -2715,11 +2751,23 @@ class TaskExecutor:
             if isinstance(validated_hosts, dict) and 'error' in validated_hosts:
                 # Extract the specific exit code
                 exit_code = validated_hosts.get('exit_code', ExitCodes.HOST_VALIDATION_FAILED)
+                # Set final state for summary before exiting
+                self.final_task_id = -1  # -1 indicates no task executed
+                self.final_exit_code = exit_code
+                self.final_success = False
+                self.final_hostname = "localhost"
+                self.final_command = "host_validation"
                 self.log_error("Host validation failed. Exiting.")
                 self.cleanup()
                 ExitHandler.exit_with_code(exit_code, "Host validation failed", False)
             elif validated_hosts is False:
                 # Legacy compatibility
+                # Set final state for summary before exiting
+                self.final_task_id = -1  # -1 indicates no task executed
+                self.final_exit_code = ExitCodes.HOST_VALIDATION_FAILED
+                self.final_success = False
+                self.final_hostname = "localhost"
+                self.final_command = "host_validation"
                 self.log_error("Host validation failed. Exiting.")
                 self.cleanup()
                 ExitHandler.exit_with_code(ExitCodes.HOST_VALIDATION_FAILED, "Host validation failed", False)

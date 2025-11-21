@@ -20,6 +20,7 @@ from .execution_context import ExecutionContext
 from ..executors.base_executor import BaseExecutor
 from ..executors.parallel_executor import ParallelExecutor
 from ..executors.conditional_executor import ConditionalExecutor
+from ..config.exec_config_loader import get_loader as get_exec_config_loader
 
 
 class TaskRunner:
@@ -191,9 +192,8 @@ class TaskRunner:
 
         # Get timeout from YAML configuration (exec-type and platform level)
         if timeout is None:
-            # Try to import and use exec_config_loader if available
+            # Try to use exec_config_loader if available
             try:
-                from ..config.exec_config_loader import get_loader as get_exec_config_loader
                 exec_config_loader = get_exec_config_loader(debug_callback=self.log_debug)
 
                 # Use provided exec_type or determine it (avoid redundant computation)
@@ -207,8 +207,8 @@ class TaskRunner:
                 if config_timeout is not None:
                     timeout = config_timeout
                     # Debug message already logged by get_timeout() method
-            except ImportError:
-                # exec_config_loader not available in this context
+            except Exception:
+                # exec_config_loader not available or failed in this context
                 pass
 
         # Get timeout from environment (lower priority)
@@ -225,8 +225,14 @@ class TaskRunner:
             timeout = self.default_timeout
             self.log_debug(f"Using default timeout: {timeout}")
 
-        # Clamp to valid range
-        return max(min_timeout, min(timeout, max_timeout))
+        # Ensure timeout is within valid range
+        if timeout < min_timeout:
+            self.log_warn(f"Timeout {timeout} too low, using minimum {min_timeout}")
+            timeout = min_timeout
+        elif timeout > max_timeout:
+            self.log_warn(f"Timeout {timeout} too high, using maximum {max_timeout}")
+            timeout = max_timeout
+        return timeout
 
     # ===== EXECUTION CONTEXT MANAGEMENT =====
 

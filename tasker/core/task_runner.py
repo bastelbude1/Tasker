@@ -150,7 +150,7 @@ class TaskRunner:
 
     # ===== TIMEOUT HANDLING =====
 
-    def get_task_timeout(self, task: Dict[str, Any]) -> int:
+    def get_task_timeout(self, task: Dict[str, Any], exec_type: str = None) -> int:
         """
         Determine the timeout for a task, respecting priority order.
 
@@ -163,6 +163,7 @@ class TaskRunner:
 
         Args:
             task: Task definition dictionary
+            exec_type: Optional pre-determined execution type (avoids redundant computation)
 
         Returns:
             Timeout value in seconds
@@ -195,10 +196,11 @@ class TaskRunner:
                 from ..config.exec_config_loader import get_loader as get_exec_config_loader
                 exec_config_loader = get_exec_config_loader(debug_callback=self.log_debug)
 
-                # Determine execution type for this task
-                task_id = int(task.get('task', 0))
-                task_display_id = f"{task_id}"
-                exec_type = self.determine_execution_type(task, task_display_id)
+                # Use provided exec_type or determine it (avoid redundant computation)
+                if exec_type is None:
+                    task_id = int(task.get('task', 0))
+                    task_display_id = f"{task_id}"
+                    exec_type = self.determine_execution_type(task, task_display_id)
 
                 # Try to get timeout from YAML configuration
                 config_timeout = exec_config_loader.get_timeout(exec_type)

@@ -1936,9 +1936,13 @@ class TaskExecutor:
             self.log_error("       Only exec=local is supported without configuration file")
         return None
 
-    def get_task_timeout(self, task):
+    def get_task_timeout(self, task, exec_type=None):
         """
         Determine the timeout for a task, respecting priority order.
+
+        Args:
+            task: Task dictionary
+            exec_type: Optional pre-determined execution type (avoids redundant computation)
 
         Priority order:
         1. Task-specific 'timeout' parameter (highest)
@@ -1970,10 +1974,11 @@ class TaskExecutor:
 
         # Get timeout from YAML configuration (exec-type and platform level)
         if timeout is None and hasattr(self, '_exec_config_loader'):
-            # Determine execution type for this task
-            task_id = int(task.get('task', 0))
-            task_display_id = f"{task_id}"
-            exec_type = self.determine_execution_type(task, task_display_id)
+            # Use provided exec_type or determine it (avoid redundant computation)
+            if exec_type is None:
+                task_id = int(task.get('task', 0))
+                task_display_id = f"{task_id}"
+                exec_type = self.determine_execution_type(task, task_display_id)
 
             # Try to get timeout from YAML configuration
             config_timeout = self._exec_config_loader.get_timeout(exec_type)

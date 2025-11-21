@@ -150,7 +150,7 @@ class TaskRunner:
 
     # ===== TIMEOUT HANDLING =====
 
-    def get_task_timeout(self, task: Dict[str, Any], exec_type: str = None) -> int:
+    def get_task_timeout(self, task: Dict[str, Any], exec_type: Optional[str] = None) -> int:
         """
         Determine the timeout for a task, respecting priority order.
 

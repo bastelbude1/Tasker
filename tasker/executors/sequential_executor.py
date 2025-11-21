@@ -7,6 +7,7 @@ Normal sequential task execution with flow control.
 
 import time
 import threading
+import re
 from .base_executor import BaseExecutor
 from ..core.condition_evaluator import ConditionEvaluator
 from ..core.utilities import ExitHandler, ExitCodes, format_output_for_log
@@ -189,7 +190,45 @@ class SequentialExecutor(BaseExecutor):
 
         # Log the full command for the user
         full_command_display = ' '.join(cmd_array)
-        executor_instance.final_command = full_command_display # better to have full command in the summary log
+        
+        # Mask sensitive global variables in logging and summary
+        log_command_display = full_command_display
+        if hasattr(executor_instance, 'global_vars'):
+             try:
+                 for key, value in executor_instance.global_vars.items():
+                     # Skip None only (mask empty strings and zero-like secrets)
+                     if ConditionEvaluator.should_mask_variable(key) and value is not None:
+                         try:
+                             str_val = str(value)
+                         except (ValueError, TypeError):
+                             try:
+                                 str_val = repr(value)
+                             except (ValueError, TypeError):
+                                 # Log failure to convert
+                                 executor_instance.log(f"Warning: Could not convert secret '{key}' to string for masking.")
+                                 continue
+
+                         # Create masked representation
+                         masked_val = ConditionEvaluator.mask_value(value)
+
+                         # Regex replacement with boundaries to prevent partial matching
+                         try:
+                             pattern = re.escape(str_val)
+                             # Enforce word boundaries using lookarounds
+                             regex = r'(?<!\w)' + pattern + r'(?!\w)'
+                             log_command_display = re.sub(regex, masked_val, log_command_display)
+                         except (re.error, TypeError, ValueError):
+                             # Fallback to simple replacement if regex fails
+                             log_command_display = log_command_display.replace(str_val, masked_val)
+             except (ValueError, TypeError, AttributeError, re.error) as e:
+                 executor_instance.log(f"Warning: Error during secret masking: {str(e)}")
+             except Exception as e:
+                 # Re-raise system exits
+                 if isinstance(e, (SystemExit, KeyboardInterrupt)):
+                     raise
+                 executor_instance.log(f"Warning: Unexpected error during secret masking: {str(e)}")
+        
+        executor_instance.final_command = log_command_display # better to have full command in the summary log
 
         # Get timeout for this task (pass exec_type to avoid redundant computation)
         task_timeout = executor_instance.get_task_timeout(task, exec_type)
@@ -197,12 +236,12 @@ class SequentialExecutor(BaseExecutor):
 
         # Execute the command (or simulate in dry run mode)
         if executor_instance.dry_run:
-            executor_instance.log(f"Task {task_id}{loop_display}: [DRY RUN] Would execute: {full_command_display}")
+            executor_instance.log(f"Task {task_id}{loop_display}: [DRY RUN] Would execute: {log_command_display}")
             exit_code = 0
             stdout = "DRY RUN STDOUT"
             stderr = ""
         else:
-            executor_instance.log(f"Task {task_id}{loop_display}: Executing [{exec_type}]: {full_command_display}")
+            executor_instance.log(f"Task {task_id}{loop_display}: Executing [{exec_type}]: {log_command_display}")
             try:
                 # Execute using context manager for automatic cleanup
                 import subprocess

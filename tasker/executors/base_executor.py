@@ -198,7 +198,7 @@ class BaseExecutor(ABC):
                 max_memory_mb = 1
                 
                 # Pass session_temp_dir and logger for consistency
-                session_temp_dir = getattr(execution_context, 'session_temp_dir', None)
+                session_temp_dir = getattr(execution_context.executor, 'session_temp_dir', None)
                 with create_memory_efficient_handler(max_memory_mb, temp_dir=session_temp_dir, logger_callback=execution_context.log_warn) as output_handler:
                     # Use Popen pattern for Python 3.6.8 compatibility
                     with subprocess.Popen(

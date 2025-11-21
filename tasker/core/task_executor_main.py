@@ -2684,6 +2684,12 @@ class TaskExecutor:
 
         if not self.tasks:
             self.log_warn("No valid tasks found. Exiting.")
+            # Set final state for summary before exiting
+            self.final_task_id = -1  # -1 indicates no task executed
+            self.final_exit_code = ExitCodes.NO_TASKS_FOUND
+            self.final_success = False
+            self.final_hostname = "localhost"
+            self.final_command = "task_validation"
             self.cleanup() # clean up resources before exit
             ExitHandler.exit_with_code(ExitCodes.NO_TASKS_FOUND, "No valid tasks to execute", False)
 

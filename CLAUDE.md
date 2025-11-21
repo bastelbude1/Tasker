@@ -76,6 +76,33 @@
 - ✅ **Tarball updates** (`tasker-v*.tar.gz`) - distribution artifacts don't need code review
 - ⚠️ **Emergency hotfixes** (must be discussed with user first)
 
+### **PR Push Frequency - Rate Limiting**
+
+**🚨 IMPORTANT: Code review tools have rate limits - minimize pushes to open PRs**
+
+**When to push to an open PR:**
+- ✅ When explicitly asked by the user ("push to PR", "commit changes")
+- ✅ When a significant milestone is completed (major feature done, all tests passing)
+- ✅ At the end of a work session (to save progress)
+- ✅ After fixing critical bugs that block further work
+
+**When NOT to push automatically:**
+- ❌ After every small change or fix
+- ❌ Multiple times within a short period
+- ❌ For minor formatting or comment changes
+- ❌ During iterative debugging (accumulate fixes first)
+
+**Best Practice:**
+- **Batch changes together** before pushing
+- **Ask user permission** if uncertain: "Should I push these changes to the PR now?"
+- **Inform user** about pending changes: "I have X changes ready to push when you're ready"
+- **Single push** with multiple commits is better than multiple pushes
+
+**Rate Limit Consideration:**
+- CodeRabbit and other review tools have hourly/daily limits
+- Each push triggers automated reviews
+- Excessive pushes can exhaust the rate limit and block reviews
+
 ---
 
 ## 📋 VERSION NUMBERING POLICY 📋

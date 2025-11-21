@@ -48,8 +48,6 @@ platforms:
     pbrun:
       description: "PowerBroker remote execution"
       binary: pbrun
-      # Remote operations may need more time
-      timeout: 600
       command_template:
         - "{binary}"
         - "-n"

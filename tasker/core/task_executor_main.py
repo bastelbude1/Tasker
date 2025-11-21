@@ -2379,27 +2379,106 @@ class TaskExecutor:
 
         return instance_hash
 
+    def _verify_process_identity(self, pid):
+        """
+        Verify if the process with given PID is likely a Tasker instance.
+        
+        Used to detect PID reuse where a stale lock file points to a PID
+        that is now occupied by an unrelated process (e.g., bash, systemd).
+        
+        Args:
+            pid: Process ID to verify
+            
+        Returns:
+            bool: True if process appears to be Tasker (or verification impossible),
+                  False if process is definitely NOT Tasker.
+        """
+        if not sys.platform.startswith('linux'):
+            return True # Identity check only supported on Linux
+            
+        try:
+            # Read command line arguments from /proc
+            proc_path = f"/proc/{pid}/cmdline"
+            if not os.path.exists(proc_path):
+                return False # Process vanished?
+                
+            with open(proc_path, 'rb') as f:
+                # cmdline is null-separated arguments
+                cmdline_bytes = f.read()
+                
+            if not cmdline_bytes:
+                return True # Empty cmdline? Assume valid to be safe.
+                
+            cmd_args = cmdline_bytes.split(b'\0')
+            # Convert to strings (lossy is fine)
+            args = [arg.decode('utf-8', errors='replace') for arg in cmd_args if arg]
+            
+            if not args:
+                return True
+                
+            # Heuristic 1: Check for obvious mismatches (common system processes)
+            # If the executable is obviously not python/tasker, assume PID reuse
+            exe_name = os.path.basename(args[0])
+            known_non_tasker = {
+                'bash', 'sh', 'zsh', 'dash', 'fish', # Shells
+                'systemd', 'init', # Init
+                'ssh-agent', 'sshd', # SSH
+                'cron', 'crond', # Cron
+                'sleep', 'grep', 'sed', 'awk', # Common utils
+                'docker', 'containerd', # Containers
+                'chrome', 'firefox', 'slack' # Browsers
+            }
+            
+            if exe_name in known_non_tasker:
+                self.log_debug(f"PID {pid} identity mismatch: {exe_name} != tasker. Ignoring stale lock.")
+                return False
+
+            # Heuristic 2: Check for 'tasker' in the command
+            # If it explicitly mentions tasker, it's likely us.
+            cmd_str = ' '.join(args)
+            if 'tasker' in cmd_str:
+                return True
+                
+            # Heuristic 3: Strict Python check
+            # If it is a python process but does NOT mention tasker (checked above),
+            # assume it is an unrelated python script (PID reuse).
+            if exe_name.startswith('python'):
+                self.log_debug(f"PID {pid} identity mismatch: Python process '{cmd_str}' != tasker. Ignoring stale lock.")
+                return False
+            else:
+                # Default: Assume valid if we're not sure
+                return True
+            
+        except (OSError, IOError):
+            # Permission denied or other error - assume valid to be safe
+            return True
+
     def _is_process_running(self, pid):
         """
         Check if a process with given PID is currently running.
 
         Uses os.kill with signal 0 (doesn't actually kill, just checks existence).
+        Also performs process identity verification on Linux to detect PID reuse.
 
         Args:
             pid: Process ID to check
 
         Returns:
-            bool: True if process is running, False otherwise
+            bool: True if process is running and valid, False otherwise
         """
         try:
             os.kill(pid, 0)
-            return True
         except OSError as e:
             # EPERM (errno 1) means process exists but we lack permission
             # ESRCH (errno 3) means process doesn't exist
             if e.errno == errno.EPERM:
-                return True  # Process exists, just can't signal it
+                # Exists but can't signal.
+                # Still attempt identity check (reading /proc usually works even if kill doesn't)
+                return self._verify_process_identity(pid) 
             return False  # Process doesn't exist
+
+        # Process exists. Check if it's actually us (avoid PID reuse issues)
+        return self._verify_process_identity(pid)
 
     def _is_lock_stale(self, lock_path):
         """

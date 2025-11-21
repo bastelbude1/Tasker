@@ -69,7 +69,7 @@ from tasker.core.utilities import get_log_directory, sanitize_filename
 from tasker.config.exec_config_loader import get_loader as get_exec_config_loader
 
 # Version information
-VERSION = "2.1.4"
+VERSION = "2.1.5"
 
 # Security: Flags that should NEVER be accepted from task files
 CLI_ONLY_FLAGS = {'--help', '-h', '--version', '-V', '--force-instance'}
@@ -289,7 +289,7 @@ Examples:
     parser.add_argument('-t', '--type', choices=get_available_exec_types(),
                        help='Execution type (overridden by task-specific settings)')
     parser.add_argument('-o', '--timeout', type=int, default=300,
-                       help='Default command timeout in seconds (5-1000, default: 300)')
+                       help='DEPRECATED: Default command timeout in seconds (5-1000, default: 300). Configure in execution_types.yaml instead.')
     parser.add_argument('-p', '--project', 
                        help='Project name for summary logging')
     
@@ -402,7 +402,12 @@ Examples:
     # Get and create log directory
     log_dir = get_log_directory(args.log_dir, args.log_level == 'DEBUG')
 
-    # Validate timeout range
+    # Validate timeout range and show deprecation warning
+    if args.timeout != 300:  # 300 is the default, only warn if explicitly set
+        print(f"WARNING: The --timeout/-o CLI argument is deprecated and will be removed in a future version.")
+        print(f"         Please configure timeouts in cfg/execution_types.yaml or use task-level timeout parameter instead.")
+        print(f"         See execution_types.yaml for configuration examples.")
+
     if args.timeout < 5:
         print(f"Warning: Timeout {args.timeout} too low, using minimum 5")
         args.timeout = 5

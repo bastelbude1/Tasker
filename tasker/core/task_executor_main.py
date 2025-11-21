@@ -1937,10 +1937,22 @@ class TaskExecutor:
         return None
 
     def get_task_timeout(self, task):
-        """Determine the timeout for a task, respecting priority order."""
+        """
+        Determine the timeout for a task, respecting priority order.
+
+        Priority order:
+        1. Task-specific 'timeout' parameter (highest)
+        2. Exec-type specific timeout from YAML configuration
+        3. Platform default timeout from YAML configuration
+        4. Command line argument (deprecated)
+        5. Environment variable TASK_EXECUTOR_TIMEOUT
+        6. Hardcoded default 300 (lowest)
+        """
         # Start with the default range
         min_timeout = 5
         max_timeout = 1000
+
+        timeout = None
 
         # Get timeout from task (highest priority)
         if 'timeout' in task:
@@ -1950,30 +1962,43 @@ class TaskExecutor:
                     timeout = int(timeout_str)
                     self.log_debug(f"Using timeout from task: {timeout}")
                 except ValueError:
-                    self.log_warn(f"Invalid timeout value in task: '{timeout_str}'. Using default.")
-                    timeout = self.timeout
+                    self.log_warn(f"Invalid timeout value in task: '{timeout_str}'. Will check other sources.")
+                    timeout = None
             else:
-                self.log_warn(f"Unresolved variables in timeout. Using default.")
-                timeout = self.timeout
+                self.log_warn(f"Unresolved variables in timeout. Will check other sources.")
+                timeout = None
 
-        # Get timeout from command line argument (medium priority)
-        elif self.timeout:
+        # Get timeout from YAML configuration (exec-type and platform level)
+        if timeout is None and hasattr(self, '_exec_config_loader'):
+            # Determine execution type for this task
+            task_id = int(task.get('task', 0))
+            task_display_id = f"{task_id}"
+            exec_type = self.determine_execution_type(task, task_display_id)
+
+            # Try to get timeout from YAML configuration
+            config_timeout = self._exec_config_loader.get_timeout(exec_type)
+            if config_timeout is not None:
+                timeout = config_timeout
+                # Debug message already logged by get_timeout() method
+
+        # Get timeout from command line argument (deprecated but still supported)
+        if timeout is None and self.timeout:
             timeout = self.timeout
             self.log_debug(f"Using timeout from command line: {timeout}")
 
         # Get timeout from environment (lower priority)
-        elif 'TASK_EXECUTOR_TIMEOUT' in os.environ:
+        if timeout is None and 'TASK_EXECUTOR_TIMEOUT' in os.environ:
             try:
                 timeout = int(os.environ['TASK_EXECUTOR_TIMEOUT'])
                 self.log_debug(f"Using timeout from environment: {timeout}")
             except ValueError:
-                self.log_warn(f"Invalid timeout value in environment: '{os.environ['TASK_EXECUTOR_TIMEOUT']}'. Using default.")
-                timeout = self.timeout
+                self.log_warn(f"Invalid timeout value in environment: '{os.environ['TASK_EXECUTOR_TIMEOUT']}'. Using hardcoded default.")
+                timeout = None
 
-        # Use default timeout (lowest priority)
-        else:
-            timeout = self.timeout
-            self.log_debug(f"Using default timeout: {timeout}")
+        # Use hardcoded default timeout (lowest priority - 300 seconds)
+        if timeout is None:
+            timeout = 300
+            self.log_debug(f"Using hardcoded default timeout: {timeout}")
 
         # Ensure timeout is within valid range
         if timeout < min_timeout:

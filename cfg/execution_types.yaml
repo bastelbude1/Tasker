@@ -15,6 +15,11 @@
 #   arguments: Arguments for the validation command (optional, defaults to "")
 #   expected_exit: Expected exit code (typically 0)
 #   expected_output: String that must appear in stdout (e.g., "OK")
+#
+# Timeout Configuration:
+#   default_timeout: Platform-level default timeout in seconds (optional)
+#   timeout: Exec-type specific timeout in seconds (optional)
+#   Priority: Task timeout > Exec-type timeout > Platform timeout > Env var > Hardcoded 300
 
 platforms:
   # Linux execution type definitions
@@ -22,6 +27,10 @@ platforms:
     # Default execution type for Linux (if not specified in task, CLI, or env var)
     # Fallback: 'local' (hardcoded, always safe)
     default_exec_type: pbrun
+
+    # Platform-level default timeout for all Linux exec types (in seconds)
+    # Can be overridden at exec-type level or task level
+    default_timeout: 300
 
     shell:
       description: "Local shell execution with Bash"
@@ -39,6 +48,8 @@ platforms:
     pbrun:
       description: "PowerBroker remote execution"
       binary: pbrun
+      # Remote operations may need more time
+      timeout: 600
       command_template:
         - "{binary}"
         - "-n"
@@ -81,6 +92,9 @@ platforms:
   windows:
     # Default execution type for Windows
     default_exec_type: shell
+
+    # Platform-level default timeout for all Windows exec types (in seconds)
+    default_timeout: 300
 
     shell:
       description: "Local shell execution with cmd.exe"

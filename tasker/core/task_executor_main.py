@@ -94,7 +94,7 @@ class TaskExecutor:
     # ===== 1. CLASS LIFECYCLE =====
     
     def __init__(self, task_file, log_dir='logs', dry_run=True, log_level='INFO',
-                 exec_type=None, timeout=300, project=None,
+                 exec_type=None, timeout=None, project=None,
                  start_from_task=None, skip_task_validation=False,
                  skip_host_validation=False, skip_unresolved_host_validation=False,
                  skip_command_validation=False,
@@ -153,7 +153,7 @@ class TaskExecutor:
         self.loop_iterations = {} # Track current iteration number
         self.exec_type = exec_type  # From command line argument
         self.default_exec_type = 'local'  # Initial safe default (will be overridden from config)
-        self.timeout = timeout  # Timeout from CLI (deprecated), None means use YAML config
+        self.timeout = timeout  # Constructor timeout parameter, None means use YAML/env/default
         self.project = sanitize_filename(project) if project else None  # Sanitized project name
         self.show_plan = show_plan
         self.validate_only = validate_only

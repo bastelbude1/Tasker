@@ -198,15 +198,19 @@ class SequentialExecutor(BaseExecutor):
                  for key, value in executor_instance.global_vars.items():
                      # Skip None only (mask empty strings and zero-like secrets)
                      if ConditionEvaluator.should_mask_variable(key) and value is not None:
+                         # Safe string conversion
+                         str_val = None
                          try:
-                             str_val = str(value)
+                             str_val = f"{value!s}"
                          except (ValueError, TypeError):
                              try:
                                  str_val = repr(value)
                              except (ValueError, TypeError):
-                                 # Log failure to convert
                                  executor_instance.log(f"Warning: Could not convert secret '{key}' to string for masking.")
                                  continue
+                         
+                         if str_val is None:
+                             continue
 
                          # Create masked representation
                          masked_val = ConditionEvaluator.mask_value(value)
@@ -223,7 +227,7 @@ class SequentialExecutor(BaseExecutor):
              except (ValueError, TypeError, AttributeError, re.error) as e:
                  executor_instance.log(f"Warning: Error during secret masking: {str(e)}")
              except Exception as e:
-                 # Re-raise system exits
+                 # Critical: Re-raise system signals to avoid hanging
                  if isinstance(e, (SystemExit, KeyboardInterrupt)):
                      raise
                  executor_instance.log(f"Warning: Unexpected error during secret masking: {str(e)}")
